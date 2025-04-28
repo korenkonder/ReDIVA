@@ -5,10 +5,32 @@
 
 #include "task_movie.hpp"
 #include "../CRE/data.hpp"
+#include "../CRE/gl_state.hpp"
 #include "movie_play_lib/movie_play_lib.hpp"
 #include "movie_play_lib/external_clock.hpp"
 #include "movie_play_lib/player.hpp"
 #include <atomic>
+
+struct TaskMoviePlayerNoInterop {
+    ID3D11Device* d3d11_device;
+    ID3D11DeviceContext* d3d11_device_context;
+    ID3D11Texture2D* d3d11_texture;
+    texture* d3d11_tex;
+    std::vector<uint8_t> d3d11_tex_data;
+
+    TaskMoviePlayerNoInterop();
+    ~TaskMoviePlayerNoInterop();
+
+    void Create();
+    void Ctrl(TaskMovie* task_movie, TaskMovie::Player* player,
+        TaskMovie::PlayerVideoParams* player_video_params);
+    void GetD3D11Texture(TaskMovie::Player* player, texture*& ptr);
+    void Release();
+    void ReleaseTexture();
+    void UpdateD3D11Texture(TaskMovie::Player* player, TaskMovie::PlayerVideoParams* player_video_params);
+
+    static TaskMoviePlayerNoInterop* Get(TaskMovie::Player* player);
+};
 
 const int32_t TASK_MOVIE_COUNT = 2;
 
@@ -17,6 +39,7 @@ std::atomic_int64_t movie_current_time;
 std::atomic_int64_t movie_play_time;
 
 TaskMovie task_movie[TASK_MOVIE_COUNT];
+std::map<TaskMovie::Player*, TaskMoviePlayerNoInterop> task_movie_player_no_interop;
 
 static int32_t dword_1411A1840 = 0;
 
@@ -77,6 +100,17 @@ void TaskMovie::Player::Ctrl() {
         state = TaskMovie::State::Disp;
         break;
     case MoviePlayLib::State::Play:
+        {
+            TaskMoviePlayerNoInterop* no_interop = TaskMoviePlayerNoInterop::Get(this);
+            if (no_interop) {
+                if (no_interop->d3d11_texture && no_interop->d3d11_tex && pause)
+                    player->Pause();
+
+                state = TaskMovie::State::Disp;
+                break;
+            }
+        }
+
         if (interop_texture && interop_texture->GetTexture() && pause)
             player->Pause();
 
@@ -104,6 +138,14 @@ void TaskMovie::Player::Ctrl() {
 void TaskMovie::Player::Destroy(Player* ptr) {
     if (!ptr)
         return;
+
+    {
+        auto elem = task_movie_player_no_interop.find(ptr);
+        if (elem != task_movie_player_no_interop.end()) {
+            elem->second.Release();
+            task_movie_player_no_interop.erase(elem);
+        }
+    }
 
     if (ptr->interop_texture) {
         ptr->interop_texture->Release();
@@ -183,6 +225,12 @@ bool TaskMovie::ctrl() {
     }
 
     if (CheckState()) {
+        TaskMoviePlayerNoInterop* no_interop = TaskMoviePlayerNoInterop::Get(player);
+        if (no_interop) {
+            no_interop->Ctrl(this, player, player_video_params);
+            return false;
+        }
+
         if (player->interop_texture) {
             player->interop_texture->Release();
             player->interop_texture = 0;
@@ -197,6 +245,9 @@ bool TaskMovie::ctrl() {
             if (disp_state != TaskMovie::DispState::None)
                 player->GetInteropTexture(tex);
         }
+
+        if (!player->interop_texture && !no_interop)
+            task_movie_player_no_interop.insert({ player, {} }).first->second.Create();
     }
     return false;
 }
@@ -399,12 +450,19 @@ bool TaskMovie::Shutdown() {
 
     bool res = false;
     if (player) {
+        TaskMoviePlayerNoInterop* no_interop = TaskMoviePlayerNoInterop::Get(player);
+        if (no_interop)
+            no_interop->ReleaseTexture();
+
         if (player->interop_texture) {
             player->interop_texture->Release();
             player->interop_texture = 0;
         }
 
         tex = 0;
+
+        if (no_interop)
+            no_interop->ReleaseTexture();
 
         if (player->interop_texture) {
             player->interop_texture->Release();
@@ -493,6 +551,201 @@ void movie_play_time_set(int64_t value) {
 void movie_play_time_set_begin(int64_t value) {
     if (movie_external_clock_get() && movie_play_time < 0)
         movie_play_time = value;
+}
+
+TaskMoviePlayerNoInterop::TaskMoviePlayerNoInterop() : d3d11_device(),
+d3d11_device_context(), d3d11_texture(), d3d11_tex() {
+
+}
+
+TaskMoviePlayerNoInterop::~TaskMoviePlayerNoInterop() {
+
+}
+
+void TaskMoviePlayerNoInterop::Create() {
+    D3D11CreateDevice(0, D3D_DRIVER_TYPE_HARDWARE, 0, 0, 0, 0,
+        D3D11_SDK_VERSION, &d3d11_device, 0, &d3d11_device_context);
+}
+
+void TaskMoviePlayerNoInterop::Ctrl(TaskMovie* task_movie,
+    TaskMovie::Player* player, TaskMovie::PlayerVideoParams* player_video_params) {
+    UpdateD3D11Texture(player, player_video_params);
+
+    if (player_video_params->frame_size_width && player_video_params->frame_size_height) {
+        if (!task_movie->tex)
+            task_movie->tex = sub_14041E560();
+
+        if (task_movie->disp_state != TaskMovie::DispState::None)
+            GetD3D11Texture(player, task_movie->tex);
+    }
+}
+
+void TaskMoviePlayerNoInterop::GetD3D11Texture(TaskMovie::Player* player, texture*& ptr) {
+    if (!d3d11_texture)
+        return;
+
+    texture* tex = d3d11_tex;
+    if (!tex)
+        return;
+
+    D3D11_MAPPED_SUBRESOURCE mapped_res = {};
+    if (SUCCEEDED(d3d11_device_context->Map(d3d11_texture, 0, D3D11_MAP_READ, 0, &mapped_res))) {
+        const void* data = mapped_res.pData;
+        const size_t dx_row_pitch = mapped_res.RowPitch;
+        const size_t gl_row_pitch = sizeof(uint8_t) * 4 * tex->width;
+        if (gl_row_pitch != dx_row_pitch) {
+            if (d3d11_tex_data.size() < gl_row_pitch * tex->height)
+                d3d11_tex_data.resize(gl_row_pitch * tex->height);
+
+            const ssize_t row_pitch = min_def(dx_row_pitch, gl_row_pitch);
+            const uint8_t* src = (const uint8_t*)data;
+            uint8_t* dst = d3d11_tex_data.data();
+            for (int32_t y = 0; y < tex->height; y++, dst += gl_row_pitch, src += dx_row_pitch)
+                memcpy(dst, src, row_pitch);
+            data = d3d11_tex_data.data();
+        }
+
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        if (GLAD_GL_VERSION_4_5) {
+            glTextureSubImage2D(tex->glid, 0, 0, 0, tex->width, tex->height,
+                GL_RGBA, GL_UNSIGNED_BYTE, data);
+        }
+        else {
+            gl_state.bind_texture_2d(tex->glid);
+            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, tex->width, tex->height,
+                GL_RGBA, GL_UNSIGNED_BYTE, data);
+            gl_state.bind_texture_2d(0);
+        }
+        d3d11_device_context->Unmap(d3d11_texture, 0);
+    }
+
+    ptr = tex;
+    ptr->width = player->video_params.frame_size_width;
+    ptr->height = player->video_params.frame_size_height;
+}
+
+void TaskMoviePlayerNoInterop::Release() {
+    d3d11_tex_data.clear();
+    d3d11_tex_data.shrink_to_fit();
+
+    if (d3d11_tex) {
+        texture_release(d3d11_tex);
+        d3d11_tex = 0;
+    }
+
+    if (d3d11_texture) {
+        d3d11_texture->Release();
+        d3d11_texture = 0;
+    }
+
+    if (d3d11_device_context) {
+        d3d11_device_context->Release();
+        d3d11_device_context = 0;
+    }
+
+    if (d3d11_device) {
+        d3d11_device->Release();
+        d3d11_device = 0;
+    }
+}
+
+void TaskMoviePlayerNoInterop::ReleaseTexture() {
+    d3d11_tex_data.clear();
+    d3d11_tex_data.shrink_to_fit();
+
+    if (d3d11_tex) {
+        texture_release(d3d11_tex);
+        d3d11_tex = 0;
+    }
+
+    if (d3d11_texture) {
+        d3d11_texture->Release();
+        d3d11_texture = 0;
+    }
+}
+
+void TaskMoviePlayerNoInterop::UpdateD3D11Texture(TaskMovie::Player* player,
+    TaskMovie::PlayerVideoParams* player_video_params) {
+    ID3D11Texture2D* d3d_texture = 0;
+    if (player->player)
+        player->player->GetD3D11Texture(d3d11_device, &d3d_texture);
+
+    if (!d3d_texture)
+        return;
+
+    D3D11_TEXTURE2D_DESC desc;
+    d3d_texture->GetDesc(&desc);
+
+    if (!d3d11_tex || (d3d11_tex->width != desc.Width || d3d11_tex->height != desc.Height)) {
+        if (d3d11_texture) {
+            d3d11_texture->Release();
+            d3d11_texture = 0;
+        }
+
+        d3d11_tex_data.clear();
+        d3d11_tex_data.shrink_to_fit();
+
+        if (d3d11_tex) {
+            texture_release(d3d11_tex);
+            d3d11_tex = 0;
+        }
+
+        static uint16_t counter = 0;
+        d3d11_tex = texture_load_tex_2d(texture_id(0x31, counter), GL_RGBA8, desc.Width, desc.Height, 0, 0, 0);
+
+        if (d3d11_tex) {
+            gl_state.bind_texture_2d(d3d11_tex->glid);
+            const GLint swizzle[] = { GL_BLUE, GL_GREEN, GL_RED, GL_ALPHA };
+            glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
+            gl_state.bind_texture_2d(0);
+        }
+
+        D3D11_TEXTURE2D_DESC tex_desc = {};
+        tex_desc.Width = desc.Width;
+        tex_desc.Height = desc.Height;
+        tex_desc.MipLevels = 1;
+        tex_desc.ArraySize = 1;
+        tex_desc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+        tex_desc.SampleDesc.Count = 1;
+        tex_desc.SampleDesc.Quality = 0;
+        tex_desc.Usage = D3D11_USAGE_STAGING;
+        tex_desc.BindFlags = 0;
+        tex_desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+        tex_desc.MiscFlags = 0;
+
+        d3d11_device->CreateTexture2D(&tex_desc, 0, &d3d11_texture);
+    }
+
+    if (d3d11_texture)
+        d3d11_device_context->CopyResource(d3d11_texture, d3d_texture);
+
+    if (d3d_texture) {
+        d3d_texture->Release();
+        d3d_texture = 0;
+    }
+
+    if (!player_video_params)
+        return;
+
+    if (player->state == TaskMovie::State::Disp) {
+        player_video_params->width = player->video_params.width;
+        player_video_params->height = player->video_params.height;
+        player_video_params->frame_size_width = player->video_params.frame_size_width;
+        player_video_params->frame_size_height = player->video_params.frame_size_height;
+    }
+    else {
+        player_video_params->width = 0;
+        player_video_params->height = 0;
+        player_video_params->frame_size_width = 0;
+        player_video_params->frame_size_height = 0;
+    }
+}
+
+inline TaskMoviePlayerNoInterop* TaskMoviePlayerNoInterop::Get(TaskMovie::Player* player) {
+    auto elem = task_movie_player_no_interop.find(player);
+    if (elem != task_movie_player_no_interop.end())
+        return &elem->second;
+    return 0;
 }
 
 static bool movie_external_clock_get() {
