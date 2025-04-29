@@ -14087,7 +14087,7 @@ void rob_chara_item_equip::disp(int32_t chara_id, render_context* rctx) {
         if (field_A0 & 0x04) {
             vec3 pos = position;
             pos.y -= 0.2f;
-            shadow_ptr_get()->field_1D0[shadow_type].push_back(pos);
+            shadow_ptr_get()->positions[shadow_type].push_back(pos);
 
             float_t v9;
             if (sub_140512F60(this) <= -0.2f)

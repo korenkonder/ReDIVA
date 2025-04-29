@@ -21,7 +21,7 @@ static void sub_1405E6910(Shadow* shad);
 static void sub_1405E6B70(Shadow* shad);
 
 Shadow::Shadow() : curr_render_textures(), shadow_range(), shadow_range_factor(), field_1C0(), field_1C8(),
-field_200(), field_208(), near_blur(), blur_filter(), far_blur(), field_2BC(), distance(), field_2C4(),
+index(), z_half_range(), near_blur(), blur_filter(), far_blur(), field_2BC(), distance(), field_2C4(),
 z_near(), z_far(), field_2D0(), field_2D4(), field_2D8(), field_2DC(), field_2E0(), shadow_ambient(),
 show_texture(), num_shadow(), shadow_enable(), self_shadow(), blur_filter_enable(), separate() {
     reset();
@@ -150,7 +150,7 @@ void Shadow::reset() {
         view_point[i] = 1.0f;
         field_1C0[i] = 0.0f;
         field_1C8[i] = 0.0f;
-        field_200[i] = i;
+        index[i] = i;
     }
 
     for (RenderTexture*& i : curr_render_textures)
@@ -177,7 +177,7 @@ void Shadow::reset() {
     show_texture = false;
     self_shadow = true;
     separate = false;
-    field_208 = (z_far - z_near) * 0.5f;
+    z_half_range = (z_far - z_near) * 0.5f;
 }
 
 void Shadow::set_distance(float_t value) {
@@ -204,33 +204,33 @@ void shadow_ptr_free() {
 
 static void sub_1405E60E0(Shadow* shad) {
     for (int32_t i = 0; i < 2; i++) {
-        shad->field_1A8[i] = 0.0f;
+        shad->position[i] = 0.0f;
         shad->field_1C8[i] = 0.0f;
 
-        if (!shad->shadow_enable[i] || !shad->field_1D0[i].size())
+        if (!shad->shadow_enable[i] || !shad->positions[i].size())
             continue;
 
-        vec3 v7 = 0.0f;
-        for (vec3& j : shad->field_1D0[i])
-            v7 += j;
+        vec3 position = 0.0f;
+        for (vec3& j : shad->positions[i])
+            position += j;
 
-        float_t v14 = (float_t)(int64_t)shad->field_1D0[i].size();
-        if (v14 < 0.0f)
-            v14 += (float_t)UINT64_MAX;
-        v7 *= 1.0f / v14;
+        float_t position_count = (float_t)(int64_t)shad->positions[i].size();
+        if (position_count < 0.0f)
+            position_count += (float_t)UINT64_MAX;
+        position *= 1.0f / position_count;
 
         float_t v15 = 0.0f;
-        for (vec3& j : shad->field_1D0[i]) {
-            vec3 v22 = v7 - j;
-            vec3 v23 = vec3::dot(v22, shad->direction);
-            float_t v24 = vec3::distance(shad->direction * v23, v22);
+        for (vec3& j : shad->positions[i]) {
+            vec3 position_diff = position - j;
+            float_t v23 = vec3::dot(position_diff, shad->direction);
+            float_t v24 = vec3::distance(shad->direction * v23, position_diff);
             v15 = max_def(v15, max_def(v24 - 0.25f, 0.0f));
         }
-        shad->field_1A8[i] = v7;
+        shad->position[i] = position;
         shad->field_1C8[i] = v15;
     }
 
-    for (std::vector<vec3>& i : shad->field_1D0)
+    for (std::vector<vec3>& i : shad->positions)
         i.clear();
 }
 
@@ -244,12 +244,12 @@ static void sub_1405E63D0(Shadow* shad) {
         if (!shad->shadow_enable[i])
             continue;
 
-        const vec3 v11 = shad->field_1A8[i] - shad->direction * shad->field_208;
+        const vec3 v11 = shad->position[i] - shad->direction * shad->z_half_range;
         const float_t v9 = vec3::distance(shad->view_point[i], v11);
-        const float_t v12 = vec3::distance(shad->interest[i], shad->field_1A8[i]);
+        const float_t v12 = vec3::distance(shad->interest[i], shad->position[i]);
         if (v9 > 0.1f || v12 > 0.1f) {
             shad->view_point[i] = v11;
-            shad->interest[i] = shad->field_1A8[i];
+            shad->interest[i] = shad->position[i];
         }
 
         view_point += shad->view_point[i];
@@ -264,9 +264,9 @@ static void sub_1405E6840(Shadow* shad) {
     int32_t count = 0;
     shad->num_shadow = 0;
     for (int32_t i = 0; i < 2; i++) {
-        if (shad->shadow_enable[i] && shad->field_1D0[i].size()) {
+        if (shad->shadow_enable[i] && shad->positions[i].size()) {
             ++shad->num_shadow;
-            count += (int32_t)shad->field_1D0->size();
+            count += (int32_t)shad->positions->size();
         }
         else
             shad->shadow_enable[i] = false;
@@ -285,14 +285,14 @@ static void sub_1405E6910(Shadow* shad) {
     const float_t v2 = max_def(shad->field_1C8[0], shad->field_1C8[1]);
     shad->separate = false;
     shad->shadow_range = v2 + MIN_SHADOW_RANGE;
-    shad->field_200[0] = 0;
-    shad->field_200[1] = 1;
+    shad->index[0] = 0;
+    shad->index[1] = 1;
 
     if (shad->num_shadow < 2)
         return;
 
-    const vec3 v12 = shad->field_1A8[0] - shad->interest_shared;
-    const vec3 v14 = shad->field_1A8[1] - shad->interest_shared;
+    const vec3 v12 = shad->position[0] - shad->interest_shared;
+    const vec3 v14 = shad->position[1] - shad->interest_shared;
     float_t v16 = vec3::distance((shad->direction * vec3::dot(v12, shad->direction)), v12);
     v16 = max_def(v16 - 0.25f, 0.0f);
 
@@ -304,8 +304,8 @@ static void sub_1405E6910(Shadow* shad) {
         shad->shadow_range = v2 + MIN_SHADOW_RANGE + v16;
 
     if (vec3::dot(v12, shad->direction) < vec3::dot(v14, shad->direction)) {
-        shad->field_200[0] = 1;
-        shad->field_200[1] = 0;
+        shad->index[0] = 1;
+        shad->index[1] = 0;
     }
 }
 
@@ -324,29 +324,29 @@ static void sub_1405E6B70(Shadow* shad) {
     }
 
     for (int32_t i = 0; i < 2; i++) {
-        shad->field_1A8[i] = 0.0f;
+        shad->position[i] = 0.0f;
         shad->field_1C8[i] = 0.0f;
 
-        if (!shad->shadow_enable[i] || !shad->field_1D0[i].size())
+        if (!shad->shadow_enable[i] || !shad->positions[i].size())
             continue;
 
         vec3 v22 = 0.0f;
-        for (vec3& j : shad->field_1D0[i])
+        for (vec3& j : shad->positions[i])
             v22 += j;
 
-        float_t v29 = (float_t)(int64_t)shad->field_1D0[i].size();
+        float_t v29 = (float_t)(int64_t)shad->positions[i].size();
         if (v29 < 0.0f)
             v29 += (float_t)UINT64_MAX;
         v22 *= 1.0f / v29;
 
         float_t v30 = 0.0f;
-        for (vec3& j : shad->field_1D0[i]) {
+        for (vec3& j : shad->positions[i]) {
             const vec3 v35 = v22 - j;
             const float_t v39 = fabsf(vec3::dot(v35, v86));
             const float_t v38 = fabsf(vec3::dot(v35, v3));
             v30 = max_def(v30, max_def(v38, v39));
         }
-        shad->field_1A8[i] = v22;
+        shad->position[i] = v22;
         shad->field_1C8[i] = v30;
     }
 
@@ -357,12 +357,12 @@ static void sub_1405E6B70(Shadow* shad) {
             if (!shad->shadow_enable[i])
                 continue;
 
-            const vec3 v41 = shad->field_1A8[0] - shad->direction * shad->field_208;
+            const vec3 v41 = shad->position[0] - shad->direction * shad->z_half_range;
             const float_t v42 = vec3::distance(shad->view_point[0], v41);
-            const float_t v45 = vec3::distance(shad->interest[0], shad->field_1A8[0]);
+            const float_t v45 = vec3::distance(shad->interest[0], shad->position[0]);
             if (v42 > 0.1f || v45 > 0.1f) {
                 shad->view_point[0] = v41;
-                shad->interest[0] = shad->field_1A8[0];
+                shad->interest[0] = shad->position[0];
             }
 
             view_point += shad->view_point[i];
@@ -376,8 +376,8 @@ static void sub_1405E6B70(Shadow* shad) {
     const float_t v67 = max_def(shad->field_1C8[0], shad->field_1C8[1]);
     shad->separate = 0;
     shad->shadow_range = v67 + MIN_SHADOW_RANGE;
-    shad->field_200[0] = 0;
-    shad->field_200[1] = 1;
+    shad->index[0] = 0;
+    shad->index[1] = 1;
 
     if (shad->num_shadow >= 2) {
         float_t v2 = 0.0f;
@@ -388,16 +388,16 @@ static void sub_1405E6B70(Shadow* shad) {
             if (!shad->shadow_enable[i])
                 continue;
 
-            for (vec3& j : shad->field_1D0[i]) {
-                const vec3 v74 = j - shad->interest_shared;
+            for (vec3& j : shad->positions[i]) {
+                const vec3 interest_diff = j - shad->interest_shared;
 
-                const float_t v77 = vec3::dot(v86, v74);
+                const float_t v77 = vec3::dot(v86, interest_diff);
                 if (v2 > v77)
                     v2 = v77;
                 else if (v69 < v77)
                     v69 = v77;
 
-                const float_t v78 = vec3::dot(v3, v74);
+                const float_t v78 = vec3::dot(v3, interest_diff);
                 if (v68 > v78)
                     v68 = v78;
                 else if (v70 < v78)
@@ -414,13 +414,13 @@ static void sub_1405E6B70(Shadow* shad) {
         else
             shad->shadow_range = v79 + MIN_SHADOW_RANGE;
 
-        if (vec3::dot(shad->field_1A8[0] - shad->interest_shared, shad->direction)
-            < vec3::dot(shad->field_1A8[1] - shad->interest_shared, shad->direction)) {
-            shad->field_200[1] = 0;
-            shad->field_200[0] = 1;
+        if (vec3::dot(shad->position[0] - shad->interest_shared, shad->direction)
+            < vec3::dot(shad->position[1] - shad->interest_shared, shad->direction)) {
+            shad->index[1] = 0;
+            shad->index[0] = 1;
         }
     }
 
-    for (std::vector<vec3>& i : shad->field_1D0)
+    for (std::vector<vec3>& i : shad->positions)
         i.clear();
 }

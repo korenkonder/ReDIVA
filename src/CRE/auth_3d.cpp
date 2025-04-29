@@ -4761,9 +4761,10 @@ static void auth_3d_m_object_hrc_disp(auth_3d_m_object_hrc* moh, auth_3d* auth, 
             mat4 mat = i.model_transform.mat;
             mat4_mul(&mat, m, &mat);
 
-            vec3 pos = *(vec3*)&mat.row3;
+            vec3 pos;
+            mat4_get_translation(&mat, &pos);
             pos.y -= 0.2f;
-            shad->field_1D0[shadow_type].push_back(pos);
+            shad->positions[shadow_type].push_back(pos);
         }
 
         if (i.mats.size())
@@ -6604,7 +6605,7 @@ static void auth_3d_object_hrc_disp(auth_3d_object_hrc* oh, auth_3d* auth, rende
             vec3 pos;
             mat4_get_translation(&mat, &pos);
             pos.y -= 0.2f;
-            shad->field_1D0[SHADOW_STAGE].push_back(pos);
+            shad->positions[SHADOW_STAGE].push_back(pos);
         }
     }
 

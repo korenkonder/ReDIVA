@@ -480,9 +480,9 @@ namespace rndr {
 
         Shadow* shad = shadow_ptr;
         if (shadow && v3) {
-            int32_t v11[2];
-            v11[0] = shad->field_200[0];
-            v11[1] = shad->field_200[1];
+            int32_t index[2];
+            index[0] = shad->index[0];
+            index[1] = shad->index[1];
             shad->curr_render_textures[0] = &shad->render_textures[0];
             shad->curr_render_textures[1] = &shad->render_textures[1];
             shad->curr_render_textures[2] = &shad->render_textures[2];
@@ -492,17 +492,17 @@ namespace rndr {
                 if (!v10[i])
                     continue;
 
-                draw_pass_shadow_begin_make_shadowmap(shad, rend_data_ctx, cam, v11[i], j);
+                draw_pass_shadow_begin_make_shadowmap(shad, rend_data_ctx, cam, index[i], j);
                 rend_data_ctx.set_batch_scene_camera(cam);
-                rctx->disp_manager->draw(rend_data_ctx, (mdl::ObjType)(mdl::OBJ_TYPE_SHADOW_CHARA + v11[i]), cam);
-                if (rctx->disp_manager->get_obj_count((mdl::ObjType)(mdl::OBJ_TYPE_SHADOW_OBJECT_CHARA + v11[i])) > 0) {
+                rctx->disp_manager->draw(rend_data_ctx, (mdl::ObjType)(mdl::OBJ_TYPE_SHADOW_CHARA + index[i]), cam);
+                if (rctx->disp_manager->get_obj_count((mdl::ObjType)(mdl::OBJ_TYPE_SHADOW_OBJECT_CHARA + index[i])) > 0) {
                     rend_data_ctx.state.set_color_mask(show_stage_shadow
                         ? GL_TRUE : GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
                     rctx->disp_manager->draw(rend_data_ctx,
                         (mdl::ObjType)(mdl::OBJ_TYPE_SHADOW_OBJECT_CHARA + i), cam);
                     rend_data_ctx.state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
                 }
-                draw_pass_shadow_end_make_shadowmap(shad, rend_data_ctx, v11[i], j);
+                draw_pass_shadow_end_make_shadowmap(shad, rend_data_ctx, index[i], j);
                 j++;
             }
         }
@@ -1414,7 +1414,7 @@ static void draw_pass_shadow_end_make_shadowmap(Shadow* shad,
     if (a3 == shad->num_shadow - 1) {
         draw_pass_shadow_filter(rend_data_ctx, &shad->render_textures[3],
             &shad->render_textures[4], shad->curr_render_textures[0],
-            shad->field_2DC, shad->field_2E0 / (shad->field_208 * 2.0f), false);
+            shad->field_2DC, shad->field_2E0 / (shad->z_half_range * 2.0f), false);
         draw_pass_shadow_esm_filter(rend_data_ctx, &shad->render_textures[5],
             &shad->render_textures[6], &shad->render_textures[3]);
     }
@@ -1807,7 +1807,7 @@ static void draw_pass_3d_shadow_set(render_data_context& rend_data_ctx, Shadow* 
         rend_data_ctx.state.active_bind_texture_2d(19, shad->render_textures[3].GetColorTex());
         rend_data_ctx.state.active_bind_texture_2d(20, shad->render_textures[5].GetColorTex());
         rend_data_ctx.state.active_texture(0);
-        esm_param = (shad->field_2D8 * shad->field_208 * 2.0f) * 1.442695f;
+        esm_param = (shad->field_2D8 * shad->z_half_range * 2.0f) * 1.442695f;
         rend_data_ctx.set_self_shadow(true);
     }
     else {

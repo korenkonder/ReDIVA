@@ -58,8 +58,7 @@ global_material_struct::global_material_struct() {
     refract_uv_scale = 0.1f;
 }
 
-draw_state::render_data::render_data() : self_shadow(), shadow(),
-blend(), cull_front(), field_8(), curr_obj_sub_mesh_args() {
+draw_state::render_data::render_data() : self_shadow(), shadow(), blend(), cull_front(), field_8() {
     shader_index = -1;
 }
 
