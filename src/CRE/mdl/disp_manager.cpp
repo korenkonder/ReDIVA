@@ -2114,7 +2114,7 @@ namespace mdl {
         case OBJ_TYPE_TRANSLUCENT:
         case OBJ_TYPE_TRANSLUCENT_SORT_BY_RADIUS:
             if (depth_mask)
-                func = draw_sub_mesh_translucent;
+                func = draw_sub_mesh_no_mat;
             else
                 rend_data_ctx.state.set_depth_mask(GL_FALSE);
 
@@ -2134,12 +2134,12 @@ namespace mdl {
             func = draw_sub_mesh_shadow;
             break;
         case OBJ_TYPE_TYPE_6:
-            func = draw_sub_mesh_translucent;
+            func = draw_sub_mesh_no_mat;
             rend_data_ctx.state.set_color_mask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
             rctx_ptr->draw_state->rend_data[rend_data_ctx.index].shader_index = SHADER_FT_SIL;
             break;
         case OBJ_TYPE_TYPE_7:
-            func = draw_sub_mesh_translucent;
+            func = draw_sub_mesh_no_mat;
             rend_data_ctx.state.set_color_mask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
             rctx_ptr->draw_state->rend_data[rend_data_ctx.index].shader_index = SHADER_FT_SIL;
 
@@ -2152,9 +2152,9 @@ namespace mdl {
 
             if (!reflect_draw) {
                 if (reflect)
-                    func = draw_sub_mesh_reflect;
+                    func = draw_sub_mesh_cheap;
                 else if (rctx_ptr->render_manager->reflect_type == STAGE_DATA_REFLECT_REFLECT_MAP)
-                    func = draw_sub_mesh_reflect_reflect_map;
+                    func = draw_sub_mesh_cheap_reflect_map;
             }
             break;
         case OBJ_TYPE_REFLECT_CHARA_TRANSLUCENT:
@@ -2164,9 +2164,9 @@ namespace mdl {
 
             if (!reflect_draw) {
                 if (reflect)
-                    func = draw_sub_mesh_reflect;
+                    func = draw_sub_mesh_cheap;
                 else if (rctx_ptr->render_manager->reflect_type == STAGE_DATA_REFLECT_REFLECT_MAP)
-                    func = draw_sub_mesh_reflect_reflect_map;
+                    func = draw_sub_mesh_cheap_reflect_map;
             }
             break;
         case OBJ_TYPE_REFLECT_CHARA_TRANSPARENT:
@@ -2178,9 +2178,9 @@ namespace mdl {
 
             if (!reflect_draw) {
                 if (reflect)
-                    func = draw_sub_mesh_reflect;
+                    func = draw_sub_mesh_cheap;
                 else if (rctx_ptr->render_manager->reflect_type == STAGE_DATA_REFLECT_REFLECT_MAP)
-                    func = draw_sub_mesh_reflect_reflect_map;
+                    func = draw_sub_mesh_cheap_reflect_map;
             }
             break;
         case OBJ_TYPE_REFLECT_OPAQUE:
@@ -2190,7 +2190,7 @@ namespace mdl {
             if (reflect_draw)
                 rend_data_ctx.state.set_cull_face_mode(GL_FRONT);
             else if (!reflect_texture_mask)
-                func = draw_sub_mesh_reflect_reflect_map;
+                func = draw_sub_mesh_cheap_reflect_map;
             break;
         case OBJ_TYPE_REFLECT_TRANSLUCENT:
             rend_data_ctx.state.set_depth_mask(GL_FALSE);
@@ -2243,7 +2243,7 @@ namespace mdl {
             alpha_threshold = 0.0f;
             break;
         case OBJ_TYPE_USER:
-            func = draw_sub_mesh_translucent;
+            func = draw_sub_mesh_no_mat;
             break;
         }
         rend_data_ctx.set_batch_alpha_threshold(alpha_threshold);
@@ -2363,7 +2363,7 @@ namespace mdl {
         switch (type) {
         case OBJ_TYPE_LOCAL_TRANSLUCENT:
             if (depth_mask)
-                func = draw_sub_mesh_translucent;
+                func = draw_sub_mesh_no_mat;
             else
                 rend_data_ctx.state.set_depth_mask(GL_FALSE);
 
@@ -2430,7 +2430,7 @@ namespace mdl {
         switch (type) {
         case OBJ_TYPE_REFLECT_TRANSLUCENT_SORT_BY_RADIUS:
             if (depth_mask)
-                func = draw_sub_mesh_translucent;
+                func = draw_sub_mesh_no_mat;
             else
                 rend_data_ctx.state.set_depth_mask(GL_FALSE);
 

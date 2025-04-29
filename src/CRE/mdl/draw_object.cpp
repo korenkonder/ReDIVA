@@ -16,22 +16,22 @@ static void draw_object_chara_color_fog_set(render_data_context& rend_data_ctx,
     const mdl::ObjSubMeshArgs* args, bool disable_fog);
 static void draw_object_material_reset_default(
     render_data_context& rend_data_ctx, const obj_material_data* mat_data);
-static void draw_object_material_reset_reflect(render_data_context& rend_data_ctx);
+static void draw_object_material_reset_cheap(render_data_context& rend_data_ctx);
 static void draw_object_material_set_default(render_data_context& rend_data_ctx,
     const mdl::ObjSubMeshArgs* args, bool use_shader);
 static void draw_object_material_set_parameter(
     render_data_context& rend_data_ctx, const obj_material_data* mat_data);
-static void draw_object_material_set_reflect(
+static void draw_object_material_set_cheap(
     render_data_context& rend_data_ctx, const mdl::ObjSubMeshArgs* args);
 static void draw_object_material_set_uniform(render_data_context& rend_data_ctx,
     const obj_material_data* mat_data, bool disable_color_l);
 static void draw_object_vertex_attrib_reset_default(
     render_data_context& rend_data_ctx, const mdl::ObjSubMeshArgs* args);
-static void draw_object_vertex_attrib_reset_reflect(
+static void draw_object_vertex_attrib_reset_cheap(
     render_data_context& rend_data_ctx, const mdl::ObjSubMeshArgs* args);
 static void draw_object_vertex_attrib_set_default(
     render_data_context& rend_data_ctx, const mdl::ObjSubMeshArgs* args);
-static void draw_object_vertex_attrib_set_reflect(
+static void draw_object_vertex_attrib_set_cheap(
     render_data_context& rend_data_ctx, const mdl::ObjSubMeshArgs* args);
 
 extern render_context* rctx_ptr;
@@ -215,8 +215,59 @@ namespace mdl {
         }
     }
 
+    void draw_sub_mesh_cheap(render_data_context& rend_data_ctx,
+        const ObjSubMeshArgs* args, const cam_data& cam, const mat4* mat) {
+
+        const obj_material_data* material = args->material;
+        draw_object_vertex_attrib_set_cheap(rend_data_ctx, args);
+        obj_material_shader_lighting_type lighting_type
+            = material->material.shader_info.get_lighting_type();
+        bool disable_fog = draw_object_blend_set(rend_data_ctx, args, lighting_type);
+        draw_object_chara_color_fog_set(rend_data_ctx, args, disable_fog);
+        draw_object_material_set_cheap(rend_data_ctx, args);
+
+        const obj_sub_mesh* sub_mesh = args->sub_mesh;
+        if (sub_mesh->index_format != OBJ_INDEX_U8)
+            draw(rend_data_ctx,
+                sub_mesh->primitive_type,
+                sub_mesh->num_index,
+                sub_mesh->first_index,
+                sub_mesh->last_index,
+                sub_mesh->index_format,
+                sub_mesh->index_offset);
+
+        draw_object_material_reset_cheap(rend_data_ctx);
+        draw_object_vertex_attrib_reset_cheap(rend_data_ctx, args);
+        rend_data_ctx.reset_shader_flags();
+
+        rctx_ptr->draw_state->rend_data[rend_data_ctx.index].stats.sub_mesh_cheap_count++;
+    }
+
+    void draw_sub_mesh_cheap_reflect_map(render_data_context& rend_data_ctx,
+        const ObjSubMeshArgs* args, const cam_data& cam, const mat4* mat) {
+
+        draw_object_vertex_attrib_set_cheap(rend_data_ctx, args);
+        draw_object_material_set_cheap(rend_data_ctx, args);
+
+        const obj_sub_mesh* sub_mesh = args->sub_mesh;
+        if (sub_mesh->index_format != OBJ_INDEX_U8)
+            draw(rend_data_ctx,
+                sub_mesh->primitive_type,
+                sub_mesh->num_index,
+                sub_mesh->first_index,
+                sub_mesh->last_index,
+                sub_mesh->index_format,
+                sub_mesh->index_offset);
+
+        draw_object_material_reset_cheap(rend_data_ctx);
+        draw_object_vertex_attrib_reset_cheap(rend_data_ctx, args);
+
+        rctx_ptr->draw_state->rend_data[rend_data_ctx.index].stats.sub_mesh_cheap_count++;
+    }
+
     void draw_sub_mesh_default(render_data_context& rend_data_ctx,
         const ObjSubMeshArgs* args, const cam_data& cam, const mat4* mat) {
+
         if (args->set_blend_color)
             rend_data_ctx.set_batch_blend_color_offset_color(args->blend_color, 0.0f);
 
@@ -241,11 +292,12 @@ namespace mdl {
         if (args->set_blend_color)
             rend_data_ctx.set_batch_blend_color_offset_color(1.0f, 0.0f);
 
-        rctx_ptr->draw_state->rend_data[rend_data_ctx.index].stats.object_draw_count++;
+        rctx_ptr->draw_state->rend_data[rend_data_ctx.index].stats.sub_mesh_count++;
     }
 
     void draw_sub_mesh_default_instanced(render_data_context& rend_data_ctx,
         const ObjSubMeshArgs* args, const cam_data& cam, const mat4* mat) {
+
         if (args->set_blend_color)
             rend_data_ctx.set_batch_blend_color_offset_color(args->blend_color, 0.0f);
 
@@ -276,118 +328,12 @@ namespace mdl {
         if (args->set_blend_color)
             rend_data_ctx.set_batch_blend_color_offset_color(1.0f, 0.0f);
 
-        rctx_ptr->draw_state->rend_data[rend_data_ctx.index].stats.object_draw_count++;
+        rctx_ptr->draw_state->rend_data[rend_data_ctx.index].stats.sub_mesh_count++;
     }
 
-    void draw_sub_mesh_sss(render_data_context& rend_data_ctx,
+    void draw_sub_mesh_no_mat(render_data_context& rend_data_ctx,
         const ObjSubMeshArgs* args, const cam_data& cam, const mat4* mat) {
-        obj_material_attrib_member attrib = args->material->material.attrib.m;
-        rend_data_ctx.shader_flags.arr[U_ALPHA_TEST] = (!attrib.flag_28 && (args->blend_color.w < 1.0f
-            || (attrib.alpha_texture || attrib.alpha_material) && !attrib.punch_through
-            || args->sub_mesh->attrib.m.translucent)
-            || attrib.punch_through) ? 1 : 0;
 
-        rend_data_ctx.shader_flags.arr[U_NPR_NORMAL] = 1;
-        bool chara = false;
-        const obj_material_data* material = args->material;
-        switch (material->material.shader.index) {
-        case SHADER_FT_CLOTH:
-            if (!rctx_ptr->render_manager->npr_param && material->material.color.ambient.w < 1.0f
-                && material->material.shader_info.m.aniso_direction == OBJ_MATERIAL_ANISO_DIRECTION_NORMAL)
-                chara = true;
-            break;
-        case SHADER_FT_TIGHTS:
-            if (!rctx_ptr->render_manager->npr_param)
-                chara = true;
-            break;
-        case SHADER_FT_GLASEYE:
-            rend_data_ctx.shader_flags.arr[U_NPR_NORMAL] = 0;
-            chara = true;
-            break;
-        case SHADER_FT_SKIN:
-            chara = true;
-            break;
-        }
-
-        if (chara) {
-            rend_data_ctx.set_batch_sss_param({ 0.0f, 0.0f, 0.0f, 0.5f });
-            rend_data_ctx.shader_flags.arr[U_SSS_CHARA] = 1;
-        }
-        else {
-            const vec4& sss_param = rctx_ptr->sss_data->param;
-            rend_data_ctx.set_batch_sss_param({ sss_param.x, sss_param.y, sss_param.z, 0.5f });
-            rend_data_ctx.shader_flags.arr[U_SSS_CHARA] = 0;
-        }
-        draw_sub_mesh_default(rend_data_ctx, args, cam, mat);
-    }
-
-    void draw_sub_mesh_reflect(render_data_context& rend_data_ctx,
-        const ObjSubMeshArgs* args, const cam_data& cam, const mat4* mat) {
-        const obj_material_data* material = args->material;
-        draw_object_vertex_attrib_set_reflect(rend_data_ctx, args);
-        obj_material_shader_lighting_type lighting_type
-            = material->material.shader_info.get_lighting_type();
-        bool disable_fog = draw_object_blend_set(rend_data_ctx, args, lighting_type);
-        draw_object_chara_color_fog_set(rend_data_ctx, args, disable_fog);
-        draw_object_material_set_reflect(rend_data_ctx, args);
-
-        const obj_sub_mesh* sub_mesh = args->sub_mesh;
-        if (sub_mesh->index_format != OBJ_INDEX_U8)
-            draw(rend_data_ctx,
-                sub_mesh->primitive_type,
-                sub_mesh->num_index,
-                sub_mesh->first_index,
-                sub_mesh->last_index,
-                sub_mesh->index_format,
-                sub_mesh->index_offset);
-
-        draw_object_material_reset_reflect(rend_data_ctx);
-        draw_object_vertex_attrib_reset_reflect(rend_data_ctx, args);
-        rend_data_ctx.reset_shader_flags();
-
-        rctx_ptr->draw_state->rend_data[rend_data_ctx.index].stats.object_reflect_draw_count++;
-    }
-
-    void draw_sub_mesh_reflect_reflect_map(render_data_context& rend_data_ctx,
-        const ObjSubMeshArgs* args, const cam_data& cam, const mat4* mat) {
-        draw_object_vertex_attrib_set_reflect(rend_data_ctx, args);
-        draw_object_material_set_reflect(rend_data_ctx, args);
-
-        const obj_sub_mesh* sub_mesh = args->sub_mesh;
-        if (sub_mesh->index_format != OBJ_INDEX_U8)
-            draw(rend_data_ctx,
-                sub_mesh->primitive_type,
-                sub_mesh->num_index,
-                sub_mesh->first_index,
-                sub_mesh->last_index,
-                sub_mesh->index_format,
-                sub_mesh->index_offset);
-
-        draw_object_material_reset_reflect(rend_data_ctx);
-        draw_object_vertex_attrib_reset_reflect(rend_data_ctx, args);
-
-        rctx_ptr->draw_state->rend_data[rend_data_ctx.index].stats.object_reflect_draw_count++;
-    }
-
-    void draw_sub_mesh_shadow(render_data_context& rend_data_ctx,
-        const ObjSubMeshArgs* args, const cam_data& cam, const mat4* mat) {
-        obj_material_attrib_member attrib = args->material->material.attrib.m;
-        if (!attrib.flag_28 && (args->blend_color.w < 1.0f
-            || (attrib.alpha_texture || attrib.alpha_material) && !attrib.punch_through
-            || args->sub_mesh->attrib.m.translucent)
-            || attrib.punch_through) {
-            rend_data_ctx.shader_flags.arr[U_ALPHA_TEST] = 1;
-            rend_data_ctx.set_batch_alpha_threshold(0.5f);
-            draw_sub_mesh_translucent(rend_data_ctx, args, cam, mat);
-            rend_data_ctx.shader_flags.arr[U_ALPHA_TEST] = 0;
-            rend_data_ctx.set_batch_alpha_threshold(0.0f);
-        }
-        else
-            draw_sub_mesh_translucent(rend_data_ctx, args, cam, mat);
-    }
-
-    void draw_sub_mesh_translucent(render_data_context& rend_data_ctx,
-        const ObjSubMeshArgs* args, const cam_data& cam, const mat4* mat) {
         const obj_material_data* material = args->material;
         const std::vector<GLuint>* textures = args->textures;
         if (rctx_ptr->draw_state->rend_data[rend_data_ctx.index].shader_index != -1) {
@@ -484,7 +430,66 @@ namespace mdl {
         if (rctx_ptr->draw_state->rend_data[rend_data_ctx.index].shader_index != -1)
             rend_data_ctx.reset_shader_flags();
 
-        rctx_ptr->draw_state->rend_data[rend_data_ctx.index].stats.object_translucent_draw_count++;
+        rctx_ptr->draw_state->rend_data[rend_data_ctx.index].stats.sub_mesh_no_mat_count++;
+    }
+
+    void draw_sub_mesh_shadow(render_data_context& rend_data_ctx,
+        const ObjSubMeshArgs* args, const cam_data& cam, const mat4* mat) {
+        obj_material_attrib_member attrib = args->material->material.attrib.m;
+        if (!attrib.flag_28 && (args->blend_color.w < 1.0f
+            || (attrib.alpha_texture || attrib.alpha_material) && !attrib.punch_through
+            || args->sub_mesh->attrib.m.translucent)
+            || attrib.punch_through) {
+            rend_data_ctx.shader_flags.arr[U_ALPHA_TEST] = 1;
+            rend_data_ctx.set_batch_alpha_threshold(0.5f);
+            draw_sub_mesh_no_mat(rend_data_ctx, args, cam, mat);
+            rend_data_ctx.shader_flags.arr[U_ALPHA_TEST] = 0;
+            rend_data_ctx.set_batch_alpha_threshold(0.0f);
+        }
+        else
+            draw_sub_mesh_no_mat(rend_data_ctx, args, cam, mat);
+    }
+
+    void draw_sub_mesh_sss(render_data_context& rend_data_ctx,
+        const ObjSubMeshArgs* args, const cam_data& cam, const mat4* mat) {
+        obj_material_attrib_member attrib = args->material->material.attrib.m;
+        rend_data_ctx.shader_flags.arr[U_ALPHA_TEST] = (!attrib.flag_28 && (args->blend_color.w < 1.0f
+            || (attrib.alpha_texture || attrib.alpha_material) && !attrib.punch_through
+            || args->sub_mesh->attrib.m.translucent)
+            || attrib.punch_through) ? 1 : 0;
+
+        rend_data_ctx.shader_flags.arr[U_NPR_NORMAL] = 1;
+        bool chara = false;
+        const obj_material_data* material = args->material;
+        switch (material->material.shader.index) {
+        case SHADER_FT_CLOTH:
+            if (!rctx_ptr->render_manager->npr_param && material->material.color.ambient.w < 1.0f
+                && material->material.shader_info.m.aniso_direction == OBJ_MATERIAL_ANISO_DIRECTION_NORMAL)
+                chara = true;
+            break;
+        case SHADER_FT_TIGHTS:
+            if (!rctx_ptr->render_manager->npr_param)
+                chara = true;
+            break;
+        case SHADER_FT_GLASEYE:
+            rend_data_ctx.shader_flags.arr[U_NPR_NORMAL] = 0;
+            chara = true;
+            break;
+        case SHADER_FT_SKIN:
+            chara = true;
+            break;
+        }
+
+        if (chara) {
+            rend_data_ctx.set_batch_sss_param({ 0.0f, 0.0f, 0.0f, 0.5f });
+            rend_data_ctx.shader_flags.arr[U_SSS_CHARA] = 1;
+        }
+        else {
+            const vec4& sss_param = rctx_ptr->sss_data->param;
+            rend_data_ctx.set_batch_sss_param({ sss_param.x, sss_param.y, sss_param.z, 0.5f });
+            rend_data_ctx.shader_flags.arr[U_SSS_CHARA] = 0;
+        }
+        draw_sub_mesh_default(rend_data_ctx, args, cam, mat);
     }
 }
 
@@ -620,7 +625,7 @@ static void draw_object_material_reset_default(
     rend_data_ctx.reset_shader_flags();
 }
 
-static void draw_object_material_reset_reflect(render_data_context& rend_data_ctx) {
+static void draw_object_material_reset_cheap(render_data_context& rend_data_ctx) {
     rend_data_ctx.state.active_bind_texture_2d(0, rctx_ptr->empty_texture_2d->glid);
     rend_data_ctx.state.enable_cull_face();
     rend_data_ctx.reset_shader_flags();
@@ -879,7 +884,7 @@ static void draw_object_material_set_parameter(
         reflect_uv_scale, refract_uv_scale);
 }
 
-static void draw_object_material_set_reflect(
+static void draw_object_material_set_cheap(
     render_data_context& rend_data_ctx, const mdl::ObjSubMeshArgs* args) {
     const obj_material_data* material = args->material;
     const std::vector<GLuint>* textures = args->textures;
@@ -1027,7 +1032,7 @@ static void draw_object_vertex_attrib_reset_default(
     rend_data_ctx.state.active_texture(0);
 }
 
-static void draw_object_vertex_attrib_reset_reflect(
+static void draw_object_vertex_attrib_reset_cheap(
     render_data_context& rend_data_ctx, const mdl::ObjSubMeshArgs* args) {
     const obj_mesh* mesh = args->mesh;
     obj_vertex_format vertex_format = mesh->vertex_format;
@@ -1111,7 +1116,7 @@ static void draw_object_vertex_attrib_set_default(
         rend_data_ctx.shader_flags.arr[U_INSTANCE] = 0;*/
 }
 
-static void draw_object_vertex_attrib_set_reflect(
+static void draw_object_vertex_attrib_set_cheap(
     render_data_context& rend_data_ctx, const mdl::ObjSubMeshArgs* args) {
     const obj_mesh* mesh = args->mesh;
     obj_vertex_format vertex_format = mesh->vertex_format;

@@ -31,9 +31,9 @@ enum render_data_flags {
 };
 
 struct draw_state_stats {
-    int32_t object_draw_count;
-    int32_t object_translucent_draw_count;
-    int32_t object_reflect_draw_count;
+    int32_t sub_mesh_count;
+    int32_t sub_mesh_no_mat_count;
+    int32_t sub_mesh_cheap_count;
     int32_t field_C;
     int32_t field_10;
     int32_t draw_count;

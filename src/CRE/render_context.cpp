@@ -34,15 +34,15 @@ static const GLuint MORPH_TEXCOORD0_INDEX = 13;
 static const GLuint MORPH_TEXCOORD1_INDEX = 14;
 static const GLuint      BONE_INDEX_INDEX = 15;
 
-draw_state_stats::draw_state_stats() : object_draw_count(), object_translucent_draw_count(),
-object_reflect_draw_count(), field_C(), field_10(), draw_count(), draw_triangle_count(), field_1C() {
+draw_state_stats::draw_state_stats() : sub_mesh_count(), sub_mesh_no_mat_count(),
+sub_mesh_cheap_count(), field_C(), field_10(), draw_count(), draw_triangle_count(), field_1C() {
 
 }
 
 void draw_state_stats::reset() {
-    object_draw_count = 0;
-    object_translucent_draw_count = 0;
-    object_reflect_draw_count = 0;
+    sub_mesh_count = 0;
+    sub_mesh_no_mat_count = 0;
+    sub_mesh_cheap_count = 0;
     field_C = 0;
     field_10 = 0;
     draw_count = 0;
@@ -58,7 +58,8 @@ global_material_struct::global_material_struct() {
     refract_uv_scale = 0.1f;
 }
 
-draw_state::render_data::render_data() : self_shadow(), shadow(), blend(), cull_front(), field_8() {
+draw_state::render_data::render_data() : self_shadow(), shadow(),
+blend(), cull_front(), field_8(), curr_obj_sub_mesh_args() {
     shader_index = -1;
 }
 
@@ -78,9 +79,9 @@ void draw_state::stats_update() {
     stats_prev.reset();
 
     for (draw_state::render_data& i : rend_data) {
-        stats_prev.object_draw_count += i.stats.object_draw_count;
-        stats_prev.object_translucent_draw_count += i.stats.object_translucent_draw_count;
-        stats_prev.object_reflect_draw_count += i.stats.object_reflect_draw_count;
+        stats_prev.sub_mesh_count += i.stats.sub_mesh_count;
+        stats_prev.sub_mesh_no_mat_count += i.stats.sub_mesh_no_mat_count;
+        stats_prev.sub_mesh_cheap_count += i.stats.sub_mesh_cheap_count;
         stats_prev.field_C += i.stats.field_C;
         stats_prev.field_10 += i.stats.field_10;
         stats_prev.draw_count += i.stats.draw_count;
