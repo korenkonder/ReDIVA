@@ -39,7 +39,8 @@ static void draw_pass_shadow_filter(render_data_context& rend_data_ctx,
 static void draw_pass_shadow_esm_filter(render_data_context& rend_data_ctx,
     RenderTexture* dst, RenderTexture* buf, RenderTexture* src);
 static bool draw_pass_shadow_litproj(render_data_context& rend_data_ctx, light_proj* litproj, cam_data& cam);
-static void draw_pass_sss_contour(render_data_context& rend_data_ctx, render_context* rctx, rndr::Render* rend);
+static void draw_pass_sss_contour(render_data_context& rend_data_ctx,
+    render_context* rctx, rndr::Render* rend, cam_data& cam);
 static void draw_pass_sss_filter(render_data_context& rend_data_ctx, render_context* rctx, sss_data* sss);
 static int32_t draw_pass_3d_get_translucent_count(render_context* rctx);
 static void draw_pass_3d_shadow_reset(render_data_context& rend_data_ctx, render_context* rctx);
@@ -290,17 +291,12 @@ namespace rndr {
         gl_state.get();
         sprite_manager_pre_draw();
 
-        static const vec4 color_clear = 0.0f;
-
         {
             render_data_context rend_data_ctx(GL_REND_STATE_PRE_3D);
             rend_data_ctx.state.get();
             rend_data_ctx.state.bind_framebuffer(0);
+            static const vec4 color_clear = 0.0f;
             rend_data_ctx.state.clear_buffer(GL_COLOR, 0, (float_t*)&color_clear);
-
-            rend_data_ctx.set_scene_framebuffer_size(render->render_width[0],
-                render->render_height[0], render->render_width[0], render->render_height[0]);
-
             rend_data_ctx.state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
             rend_data_ctx.state.enable_depth_test();
             rend_data_ctx.state.set_depth_func(GL_LEQUAL);
@@ -573,7 +569,7 @@ namespace rndr {
             if (npr_param == 1) {
                 if (sss->enable && sss->npr_contour) {
                     rend_data_ctx.shader_flags.arr[U_NPR] = 1;
-                    draw_pass_sss_contour(rend_data_ctx, rctx, rend);
+                    draw_pass_sss_contour(rend_data_ctx, rctx, rend, reflect_cam);
                 }
                 else if (npr) {
                     refl_tex.Bind(rend_data_ctx.state);
@@ -587,7 +583,7 @@ namespace rndr {
                     rctx->draw_state->rend_data[rend_data_ctx.index].shader_index = -1;
                     rend_data_ctx.state.bind_framebuffer(0);
                     rend_data_ctx.shader_flags.arr[U_NPR] = 1;
-                    draw_pass_sss_contour(rend_data_ctx, rctx, rend);
+                    draw_pass_sss_contour(rend_data_ctx, rctx, rend, reflect_cam);
                 }
             }
 
@@ -626,8 +622,7 @@ namespace rndr {
 
         //if (sss->npr_contour) {
             rend->rend_texture[0].Bind(rend_data_ctx.state);
-            rend_data_ctx.state.set_viewport(0, 0,
-                rend->rend_texture[0].GetWidth(), rend->rend_texture[0].GetHeight());
+            rend->rend_texture[0].SetViewport(rend_data_ctx.state);
         //}
         //else {
         //    sss->textures[0].Bind(rend_data_ctx.state);
@@ -660,7 +655,7 @@ namespace rndr {
         if (npr_param == 1) {
             if (sss->enable && sss->npr_contour) {
                 rend_data_ctx.shader_flags.arr[U_NPR] = 1;
-                draw_pass_sss_contour(rend_data_ctx, rctx, rend);
+                draw_pass_sss_contour(rend_data_ctx, rctx, rend, cam);
             }
             else if (npr) {
                 rend->rend_texture[0].Bind(rend_data_ctx.state);
@@ -674,7 +669,7 @@ namespace rndr {
                 rctx->draw_state->rend_data[rend_data_ctx.index].shader_index = -1;
                 rend_data_ctx.state.bind_framebuffer(0);
                 rend_data_ctx.shader_flags.arr[U_NPR] = 1;
-                draw_pass_sss_contour(rend_data_ctx, rctx, rend);
+                draw_pass_sss_contour(rend_data_ctx, rctx, rend, cam);
             }
         }
 
@@ -764,10 +759,6 @@ namespace rndr {
                 reflect_draw = true;
                 rctx->draw_state->rend_data[rend_data_ctx.index].shader_index = -1;
 
-                int32_t render_width = refl_tex.GetWidth();
-                int32_t render_height = refl_tex.GetHeight();
-                rend_data_ctx.set_scene_framebuffer_size(render_width, render_height, render_width, render_height);
-
                 if (shadow)
                     draw_pass_3d_shadow_set(rend_data_ctx, shadow_ptr, rctx);
                 else
@@ -816,9 +807,6 @@ namespace rndr {
 
                 if (shadow)
                     draw_pass_3d_shadow_reset(rend_data_ctx, rctx);
-
-                rend_data_ctx.set_scene_framebuffer_size(render->render_width[0],
-                    render->render_height[0], render->render_width[0], render->render_height[0]);
                 reflect_draw = false;
             }
             else if (reflect_type == STAGE_DATA_REFLECT_REFLECT_MAP) {
@@ -856,8 +844,8 @@ namespace rndr {
         if (rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_REFRACT_OPAQUE)
             || rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_REFRACT_TRANSPARENT)
             || rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_REFRACT_TRANSLUCENT)) {
-            texture* refr_tex = refract_texture.color_texture;
-            rend_data_ctx.state.set_viewport(0, 0, refr_tex->width, refr_tex->height);
+            refract_texture.SetViewport(rend_data_ctx.state);
+            rend_data_ctx.set_batch_scene_camera(cam);
 
             for (int32_t i = LIGHT_SET_MAIN; i < LIGHT_SET_MAX; i++)
                 rctx->light_set[i].data_set(rend_data_ctx, rctx->face, (light_set_id)i);
@@ -1047,7 +1035,7 @@ namespace rndr {
             rend_data_ctx.state.disable_depth_test();
         }
 
-        Glitter::glt_particle_manager->DispScenes(rend_data_ctx, Glitter::DISP_OPAQUE);
+        Glitter::glt_particle_manager->DispScenes(rend_data_ctx, Glitter::DISP_OPAQUE, cam);
 
         rend_data_ctx.state.enable_depth_test();
         rend_data_ctx.state.set_depth_mask(GL_TRUE);
@@ -1076,13 +1064,13 @@ namespace rndr {
         rend_data_ctx.state.disable_depth_test();
 
         rend_data_ctx.state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
-        Glitter::glt_particle_manager->DispScenes(rend_data_ctx, Glitter::DISP_ALPHA);
+        Glitter::glt_particle_manager->DispScenes(rend_data_ctx, Glitter::DISP_ALPHA, cam);
         rend_data_ctx.state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
         /*if (npr_param == 1) {
             rend_data_ctx.state.set_color_mask(GL_FALSE, GL_FALSE, GL_FALSE, GL_TRUE);
-            glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-            glClear(GL_COLOR_BUFFER_BIT);
+            rend_data_ctx.state.clear_color(0.0f, 0.0f, 0.0f, 0.0f);
+            rend_data_ctx.state.clear(GL_COLOR_BUFFER_BIT);
             rend_data_ctx.state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
         }*/
 
@@ -1098,7 +1086,7 @@ namespace rndr {
         }
 
         rend_data_ctx.state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE); // X
-        Glitter::glt_particle_manager->DispScenes(rend_data_ctx, Glitter::DISP_TYPE_2);
+        Glitter::glt_particle_manager->DispScenes(rend_data_ctx, Glitter::DISP_TYPE_2, cam);
         rend_data_ctx.state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
         rend_data_ctx.state.set_depth_mask(GL_TRUE);
@@ -1109,7 +1097,7 @@ namespace rndr {
         rend_data_ctx.state.disable_depth_test();
 
         rend_data_ctx.state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
-        Glitter::glt_particle_manager->DispScenes(rend_data_ctx, Glitter::DISP_NORMAL);
+        Glitter::glt_particle_manager->DispScenes(rend_data_ctx, Glitter::DISP_NORMAL, cam);
         rend_data_ctx.state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
         rend_data_ctx.state.enable_depth_test();
@@ -1124,6 +1112,8 @@ namespace rndr {
 
             cam_data local_cam = cam;
             local_cam.set_fov(32.2673416137695f);
+            local_cam.calc_persp_proj_mat_offset(1.0f, rctx->render.get_taa_offset());
+            local_cam.calc_view_proj_mat();
             rend_data_ctx.set_batch_scene_camera(local_cam);
 
             if (alpha_z_sort)
@@ -1139,7 +1129,7 @@ namespace rndr {
             rend_data_ctx.state.disable_blend();
 
             rend_data_ctx.state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
-            Glitter::glt_particle_manager->DispScenes(rend_data_ctx, Glitter::DISP_LOCAL);
+            Glitter::glt_particle_manager->DispScenes(rend_data_ctx, Glitter::DISP_LOCAL, local_cam);
             rend_data_ctx.state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
             rend_data_ctx.state.end_event();
@@ -1253,8 +1243,8 @@ namespace rndr {
         rctx->quad_ubo.WriteMemory(rend_data_ctx.state, quad_data);
 
         contour_params_shader_data contour_params_data = {};
-        const float_t max_distance = rctx->camera->max_distance;
-        const float_t min_distance = rctx->camera->min_distance;
+        const float_t max_distance = cam.get_max_distance();
+        const float_t min_distance = cam.get_min_distance();
         contour_params_data.g_near_far = {
             (float_t)(max_distance / (max_distance - min_distance)),
             (float_t)(-(max_distance * min_distance) / (max_distance - min_distance)),
@@ -1302,7 +1292,8 @@ namespace rndr {
     }
 }
 
-void image_filter_scale(render_data_context& rend_data_ctx, RenderTexture* dst, texture* src, const vec4& scale) {
+void image_filter_scale(render_data_context& rend_data_ctx,
+    RenderTexture* dst, texture* src, const vec4& scale) {
     if (!dst || !dst->color_texture->glid || !dst->color_texture || !src || !src->glid)
         return;
 
@@ -1421,7 +1412,6 @@ static void draw_pass_shadow_end_make_shadowmap(Shadow* shad,
 
     RenderTexture* rend_tex = shad->curr_render_textures[1 + index];
     RenderTexture& rend_buf_tex = rctx_ptr->shadow_buffer;
-    rend_tex->Bind(rend_data_ctx.state);
 
     image_filter_scale(rend_data_ctx, rend_tex,
         shad->curr_render_textures[0]->color_texture);
@@ -1592,7 +1582,8 @@ static bool draw_pass_shadow_litproj(render_data_context& rend_data_ctx, light_p
     return true;
 }
 
-static void draw_pass_sss_contour(render_data_context& rend_data_ctx, render_context* rctx, rndr::Render* rend) {
+static void draw_pass_sss_contour(render_data_context& rend_data_ctx,
+    render_context* rctx, rndr::Render* rend, cam_data& cam) {
     if (reflect_draw)
         rctx->reflect_buffer.Bind(rend_data_ctx.state);
     else
@@ -1618,10 +1609,9 @@ static void draw_pass_sss_contour(render_data_context& rend_data_ctx, render_con
     }
     rend_data_ctx.state.active_texture(0);
 
-    camera* cam = rctx->camera;
-    float_t v3 = 1.0f / tanf(cam->fov * 0.5f * DEG_TO_RAD_FLOAT);
+    float_t v3 = 1.0f / tanf(cam.get_fov() * 0.5f);
 
-    vec3 direction = cam->interest - cam->view_point;
+    vec3 direction = cam.get_interest() - cam.get_view_point();
     float_t length = vec3::length(direction);
     float_t v7 = direction.y;
     if (length != 0.0f)
@@ -1633,8 +1623,8 @@ static void draw_pass_sss_contour(render_data_context& rend_data_ctx, render_con
 
     contour_coef_shader_data shader_data = {};
     shader_data.g_contour = { v9 * 0.004f + 0.0027f, 0.003f, v3 * 0.35f, 0.0008f };
-    const float_t max_distance = rctx->camera->max_distance;
-    const float_t min_distance = rctx->camera->min_distance;
+    const float_t max_distance = cam.get_max_distance();
+    const float_t min_distance = cam.get_min_distance();
     shader_data.g_near_far = {
         (float_t)(max_distance / (max_distance - min_distance)),
         (float_t)(-(max_distance * min_distance) / (max_distance - min_distance)),
@@ -2007,10 +1997,6 @@ static void draw_pass_reflect_full(render_data_context& rend_data_ctx, rndr::Ren
         reflect_draw = true;
         rctx->draw_state->rend_data[rend_data_ctx.index].shader_index = -1;
 
-        int32_t render_width = refl_tex.GetWidth();
-        int32_t render_height = refl_tex.GetHeight();
-        rend_data_ctx.set_scene_framebuffer_size(render_width, render_height, render_width, render_height);
-
         if (render_manager->shadow)
             draw_pass_3d_shadow_set(rend_data_ctx, render_manager->shadow_ptr, rctx);
         else
@@ -2052,7 +2038,7 @@ static void draw_pass_reflect_full(render_data_context& rend_data_ctx, rndr::Ren
             rend_data_ctx.state.disable_depth_test();
         }
 
-        Glitter::glt_particle_manager->DispScenes(rend_data_ctx, Glitter::DISP_OPAQUE);
+        Glitter::glt_particle_manager->DispScenes(rend_data_ctx, Glitter::DISP_OPAQUE, cam);
 
         rend_data_ctx.state.enable_depth_test();
         rend_data_ctx.state.set_depth_mask(GL_TRUE);
@@ -2067,13 +2053,13 @@ static void draw_pass_reflect_full(render_data_context& rend_data_ctx, rndr::Ren
         rend_data_ctx.state.disable_depth_test();
 
         rend_data_ctx.state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
-        Glitter::glt_particle_manager->DispScenes(rend_data_ctx, Glitter::DISP_ALPHA);
+        Glitter::glt_particle_manager->DispScenes(rend_data_ctx, Glitter::DISP_ALPHA, cam);
         rend_data_ctx.state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
         /*if (npr_param == 1) {
             rend_data_ctx.state.set_color_mask(GL_FALSE, GL_FALSE, GL_FALSE, GL_TRUE);
-            glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-            glClear(GL_COLOR_BUFFER_BIT);
+            rend_data_ctx.state.clear_color(0.0f, 0.0f, 0.0f, 0.0f);
+            rend_data_ctx.state.clear(GL_COLOR_BUFFER_BIT);
             rend_data_ctx.state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
         }*/
 
@@ -2090,12 +2076,12 @@ static void draw_pass_reflect_full(render_data_context& rend_data_ctx, rndr::Ren
         }
 
         rend_data_ctx.state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE); // X
-        Glitter::glt_particle_manager->DispScenes(rend_data_ctx, Glitter::DISP_TYPE_2);
+        Glitter::glt_particle_manager->DispScenes(rend_data_ctx, Glitter::DISP_TYPE_2, cam);
         rend_data_ctx.state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
         rend_data_ctx.state.disable_depth_test();
 
         rend_data_ctx.state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
-        Glitter::glt_particle_manager->DispScenes(rend_data_ctx, Glitter::DISP_NORMAL);
+        Glitter::glt_particle_manager->DispScenes(rend_data_ctx, Glitter::DISP_NORMAL, cam);
         rend_data_ctx.state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
         rend_data_ctx.state.active_bind_texture_2d(14, 0);
@@ -2103,10 +2089,6 @@ static void draw_pass_reflect_full(render_data_context& rend_data_ctx, rndr::Ren
 
         if (render_manager->shadow)
             draw_pass_3d_shadow_reset(rend_data_ctx, rctx);
-
-        rndr::Render* render = render_manager->render;
-        rend_data_ctx.set_scene_framebuffer_size(render->render_width[0],
-            render->render_height[0], render->render_width[0], render->render_height[0]);
         reflect_draw = false;
 
         rend_data_ctx.state.set_cull_face_mode(GL_BACK);

@@ -37,7 +37,7 @@ static const GLuint      BONE_INDEX_INDEX = 15;
 static void object_data_get_vertex_attrib_buffer_bindings(const mdl::ObjSubMeshArgs* args,
     int32_t texcoord_array[2], GLuint vertex_attrib_buffer_binding[16]);
 
-static void sub_140436760();
+static void sub_140436760(const cam_data& cam);
 
 material_list_struct::material_list_struct() : blend_color(), has_blend_color(), emission(), has_emission() {
     hash = (uint32_t)-1;
@@ -2101,7 +2101,7 @@ namespace mdl {
         float_t alpha_threshold = 0.0f;
         bool reflect = rend_data_ctx.shader_flags.arr[U_REFLECT] == 1;
         void(*func)(render_data_context & rend_data_ctx, const ObjSubMeshArgs * args,
-            const cam_data & cam, const mat4* mat) = draw_sub_mesh_default;
+            const cam_data & cam, const mat4 * mat) = draw_sub_mesh_default;
 
         for (int32_t i = 0; i < 5; i++)
             rend_data_ctx.state.active_bind_texture_2d(i, rctx_ptr->empty_texture_2d->glid);
@@ -3457,7 +3457,7 @@ namespace mdl {
             return;
 
         if (a3 && type == mdl::OBJ_TYPE_TRANSLUCENT)
-            sub_140436760();
+            sub_140436760(cam);
 
         calc_obj_radius(cam, type);
 
@@ -3703,10 +3703,7 @@ static void object_data_get_vertex_attrib_buffer_bindings(const mdl::ObjSubMeshA
     }
 }
 
-static void sub_140436760() {
-    camera* cam = rctx_ptr->camera;
-    mat4* view = &cam->view;
-
+static void sub_140436760(const cam_data& cam) {
     for (auto& i : rctx_ptr->disp_manager->obj[mdl::OBJ_TYPE_TRANSLUCENT]) {
         if (i->kind != mdl::OBJ_KIND_NORMAL)
             continue;
@@ -3738,7 +3735,7 @@ static void sub_140436760() {
 
         mat4 mat;
         mat4_mul_translate(&i->mat, &aabb->center, &mat);
-        mat4_mul(&mat, view, &mat);
+        mat4_mul(&mat, &cam.get_view_mat(), &mat);
         mat4_transpose(&mat, &mat);
 
         vec4 t;

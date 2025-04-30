@@ -1414,14 +1414,14 @@ void snow_particle_draw(render_data_context& rend_data_ctx, const cam_data& cam)
         return;
 
     stage_param_snow* snow = stage_param_data_snow_current;
+    rend_data_ctx.set_batch_scene_camera(cam);
 
     rend_data_ctx.state.enable_blend();
     rend_data_ctx.state.set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     rend_data_ctx.state.enable_depth_test();
     rend_data_ctx.state.set_depth_mask(GL_FALSE);
 
-    float_t point_attenuation = powf(tanf((float_t)rctx_ptr->camera->get_fov()
-        * 0.5f * DEG_TO_RAD_FLOAT) * 3.4f, 2.0f) * 0.1f;
+    float_t point_attenuation = powf(tanf(cam.get_fov() * 0.5f) * 3.4f, 2.0f) * 0.1f;
 
     snow_particle_scene_shader_data snow_scene = {};
     mat4 temp;
@@ -1471,8 +1471,7 @@ void snow_particle_draw(render_data_context& rend_data_ctx, const cam_data& cam)
     rend_data_ctx.state.bind_uniform_buffer_base(0, snow_particle_scene_ubo);
     rend_data_ctx.state.bind_uniform_buffer_base(1, snow_particle_batch_ubo);
 
-    point_attenuation = powf(tanf((float_t)rctx_ptr->camera->get_fov()
-        * 0.5f * DEG_TO_RAD_FLOAT) * 3.4f, 2.0f) * 0.06f;
+    point_attenuation = powf(tanf(cam.get_fov() * 0.5f) * 3.4f, 2.0f) * 0.06f;
 
     snow_scene.g_state_point_attenuation = { 0.0f, 0.0f, point_attenuation, 0.0f };
     snow_particle_scene_ubo.WriteMemory(rend_data_ctx.state, snow_scene);
@@ -3152,6 +3151,7 @@ void EffectRipple::draw(render_data_context& rend_data_ctx, const cam_data& cam)
 
         rend_data_ctx.state.set_viewport(1, 1, width - 2, height - 2);
 
+        rend_data_ctx.set_batch_scene_camera(cam);
         rend_data_ctx.state.clear(GL_DEPTH_BUFFER_BIT);
         if (rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_USER)) {
             rend_data_ctx.state.active_bind_texture_2d(7, rt[counter % 3]->GetColorTex());

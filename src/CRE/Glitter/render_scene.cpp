@@ -12,9 +12,6 @@
 
 extern render_context* rctx_ptr;
 
-extern bool reflect_draw;
-extern mat4 reflect_mat;
-
 namespace Glitter {
     RenderScene::RenderScene() : ctrl_quad(), ctrl_line(), ctrl_locus(),
         ctrl_mesh(), disp_quad(), disp_line(), disp_locus(), disp_mesh() {
@@ -310,7 +307,7 @@ namespace Glitter {
         rend_group->disp = disp;
 
 #if !SHARED_GLITTER_BUFFER
-        rend_group->vbo.WriteMemory(0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
+        rend_group->vbo.WriteMemory(gl_state, 0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
 #endif
     }
 
@@ -461,7 +458,7 @@ namespace Glitter {
         rend_group->disp = disp;
 
 #if !SHARED_GLITTER_BUFFER
-        rend_group->vbo.WriteMemory(0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
+        rend_group->vbo.WriteMemory(gl_state, 0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
 #endif
     }
 
@@ -655,7 +652,7 @@ namespace Glitter {
         rend_group->disp = disp;
 
 #if !SHARED_GLITTER_BUFFER
-        rend_group->vbo.WriteMemory(0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
+        rend_group->vbo.WriteMemory(gl_state, 0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
 #endif
     }
 
@@ -878,7 +875,7 @@ namespace Glitter {
         rend_group->disp = disp;
 
 #if !SHARED_GLITTER_BUFFER
-        rend_group->vbo.WriteMemory(0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
+        rend_group->vbo.WriteMemory(gl_state, 0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
 #endif
     }
 
@@ -908,7 +905,7 @@ namespace Glitter {
         }
     }
 
-    void F2RenderScene::Disp(GPM, render_data_context& rend_data_ctx, DispType disp_type) {
+    void F2RenderScene::Disp(GPM, render_data_context& rend_data_ctx, DispType disp_type, const cam_data& cam) {
         Effect* eff = GPM_VAL->selected_effect;
         Emitter* emit = GPM_VAL->selected_emitter;
         Particle* ptcl = GPM_VAL->selected_particle;
@@ -922,11 +919,11 @@ namespace Glitter {
                 continue;
 
             if (!GPM_VAL->draw_selected || !eff) {
-                Disp(GPM_VAL, rend_data_ctx, rend_group);
+                Disp(GPM_VAL, rend_data_ctx, rend_group, cam);
             }
             else if ((eff && ptcl) || (eff && !emit)) {
                 if (!ptcl || rend_group->particle->particle == ptcl)
-                    Disp(GPM_VAL, rend_data_ctx, rend_group);
+                    Disp(GPM_VAL, rend_data_ctx, rend_group, cam);
             }
             else if (emit)
                 for (Particle*& j : emit->particles) {
@@ -935,12 +932,12 @@ namespace Glitter {
 
                     Particle* particle = j;
                     if (rend_group->particle->particle == particle)
-                        Disp(GPM_VAL, rend_data_ctx, rend_group);
+                        Disp(GPM_VAL, rend_data_ctx, rend_group, cam);
                 }
         }
     }
 
-    void F2RenderScene::Disp(GPM, render_data_context& rend_data_ctx, F2RenderGroup* rend_group) {
+    void F2RenderScene::Disp(GPM, render_data_context& rend_data_ctx, F2RenderGroup* rend_group, const cam_data& cam) {
         switch (rend_group->type) {
         case PARTICLE_QUAD:
         case PARTICLE_LINE:
@@ -954,8 +951,8 @@ namespace Glitter {
             return;
 
         mat4 mat;
-        mat4_mul(&rend_group->mat_draw, &rctx_ptr->camera->view, &mat);
-        mat4_mul(&mat, &rctx_ptr->camera->projection, &mat);
+        mat4_mul(&rend_group->mat_draw, &cam.get_view_mat(), &mat);
+        mat4_mul(&mat, &cam.get_proj_mat(), &mat);
 
         float_t emission = 1.0f;
         if (rend_group->flags & PARTICLE_EMISSION || rend_group->blend_mode == PARTICLE_BLEND_TYPICAL)
@@ -1287,7 +1284,7 @@ namespace Glitter {
         rend_group->disp = disp;
 
 #if !SHARED_GLITTER_BUFFER
-        rend_group->vbo.WriteMemory(0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
+        rend_group->vbo.WriteMemory(gl_state, 0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
 #endif
     }
 
@@ -1436,7 +1433,7 @@ namespace Glitter {
         rend_group->disp = disp;
 
 #if !SHARED_GLITTER_BUFFER
-        rend_group->vbo.WriteMemory(0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
+        rend_group->vbo.WriteMemory(gl_state, 0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
 #endif
     }
 
@@ -1623,7 +1620,7 @@ namespace Glitter {
         rend_group->disp = disp;
 
 #if !SHARED_GLITTER_BUFFER
-        rend_group->vbo.WriteMemory(0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
+        rend_group->vbo.WriteMemory(gl_state, 0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
 #endif
     }
 
@@ -1837,7 +1834,7 @@ namespace Glitter {
         rend_group->disp = disp;
 
 #if !SHARED_GLITTER_BUFFER
-        rend_group->vbo.WriteMemory(0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
+        rend_group->vbo.WriteMemory(gl_state, 0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
 #endif
     }
 
@@ -1883,7 +1880,7 @@ namespace Glitter {
         }
     }
 
-    void XRenderScene::Disp(GPM, render_data_context& rend_data_ctx, DispType disp_type) {
+    void XRenderScene::Disp(GPM, render_data_context& rend_data_ctx, DispType disp_type, const cam_data& cam) {
         Effect* eff = GPM_VAL->selected_effect;
         Emitter* emit = GPM_VAL->selected_emitter;
         Particle* ptcl = GPM_VAL->selected_particle;
@@ -1896,11 +1893,11 @@ namespace Glitter {
                 continue;
 
             if (!GPM_VAL->draw_selected || !eff) {
-                Disp(GPM_VAL, rend_data_ctx, rend_group);
+                Disp(GPM_VAL, rend_data_ctx, rend_group, cam);
             }
             else if ((eff && ptcl) || (eff && !emit)) {
                 if (!ptcl || rend_group->particle->particle == ptcl)
-                    Disp(GPM_VAL, rend_data_ctx, rend_group);
+                    Disp(GPM_VAL, rend_data_ctx, rend_group, cam);
             }
             else if (emit)
                 for (Particle*& j : emit->particles) {
@@ -1909,12 +1906,12 @@ namespace Glitter {
 
                     Particle* particle = j;
                     if (rend_group->particle->particle == particle)
-                        Disp(GPM_VAL, rend_data_ctx, rend_group);
+                        Disp(GPM_VAL, rend_data_ctx, rend_group, cam);
                 }
         }
     }
 
-    void XRenderScene::Disp(GPM, render_data_context& rend_data_ctx, XRenderGroup* rend_group) {
+    void XRenderScene::Disp(GPM, render_data_context& rend_data_ctx, XRenderGroup* rend_group, const cam_data& cam) {
         switch (rend_group->type) {
         case PARTICLE_QUAD:
         case PARTICLE_LINE:
@@ -1928,13 +1925,9 @@ namespace Glitter {
         if (!rend_group->vao || rend_group->disp < 1)
             return;
 
-        mat4 cam_view = rctx_ptr->camera->view;
-        if (reflect_draw)
-            mat4_mul(&reflect_mat, &cam_view, &cam_view);
-
         mat4 mat;
-        mat4_mul(&rend_group->mat_draw, &cam_view, &mat);
-        mat4_mul(&mat, &rctx_ptr->camera->projection, &mat);
+        mat4_mul(&rend_group->mat_draw, &cam.get_view_mat(), &mat);
+        mat4_mul(&mat, &cam.get_proj_mat(), &mat);
 
         float_t emission = 1.0f;
         if (rend_group->flags & PARTICLE_EMISSION || rend_group->blend_mode == PARTICLE_BLEND_TYPICAL)

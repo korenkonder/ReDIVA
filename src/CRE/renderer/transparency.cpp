@@ -81,8 +81,8 @@ namespace renderer {
             shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_REDUCE);
             rend_data_ctx.state.active_bind_texture_2d(0, texture);
             rend_data_ctx.state.bind_sampler(0, rctx_ptr->render_samplers[1]);
-            rctx_ptr->render.draw_quad(rend_data_ctx, fbo.width, fbo.height, 1.0f, 1.0f,
-                0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
+            rctx_ptr->render.draw_quad(rend_data_ctx, fbo.width, fbo.height,
+                1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
             rend_data_ctx.state.enable_depth_test();
         }
     }

@@ -191,8 +191,8 @@ namespace spr {
         spr::SprArgsInner& args_inner, std::vector<sprite_draw_param>& draw_param_buffer,
         std::vector<sprite_draw_vertex>& vertex_buffer, std::vector<uint32_t>& index_buffer);
     static void draw_sprite(render_data_context& rend_data_ctx,
-        spr::SpriteManager* sprite_manager, const SprArgs& args,
-        const mat4& mat, int32_t x_min, int32_t y_min, int32_t x_max, int32_t y_max, texture* overlay_tex);
+        spr::SpriteManager* sprite_manager, const SprArgs& args, const mat4& mat,
+        int32_t x_min, int32_t y_min, int32_t x_max, int32_t y_max, texture* overlay_tex);
     static void draw_sprite_begin(render_data_context& rend_data_ctx);
     static void draw_sprite_copy_overlay_texture(
         render_data_context& rend_data_ctx, const SprArgs& args, const mat4& mat, const vec3* vtx,

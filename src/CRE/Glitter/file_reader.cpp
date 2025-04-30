@@ -12,9 +12,6 @@
 #include "../data.hpp"
 #include "../gl_state.hpp"
 #include "../object.hpp"
-#if SHARED_GLITTER_BUFFER
-#include "../gl_rend_state.hpp"
-#endif
 
 namespace Glitter {
     static void effect_group_msgpack_read(const char* path, const char* file, EffectGroup* eff_group);

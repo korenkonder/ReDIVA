@@ -164,7 +164,7 @@ namespace Glitter {
         }
     }
 
-    void Scene::Disp(GPM, render_data_context& rend_data_ctx, DispType disp_type) {
+    void Scene::Disp(GPM, render_data_context& rend_data_ctx, DispType disp_type, const cam_data& cam) {
         if (flags & SCENE_NOT_DISP)
             return;
 
@@ -174,7 +174,7 @@ namespace Glitter {
                     && GPM_VAL->selected_effect != i.ptr->effect)
                     continue;
 
-                i.ptr->Disp(GPM_VAL, rend_data_ctx, disp_type);
+                i.ptr->Disp(GPM_VAL, rend_data_ctx, disp_type, cam);
             }
     }
 

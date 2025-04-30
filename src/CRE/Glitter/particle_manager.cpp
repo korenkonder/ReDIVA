@@ -272,7 +272,7 @@ namespace Glitter {
         init_buffers = max_def(init_buffers - count, 0);
     }
 
-    void GltParticleManager::DispScenes(render_data_context& rend_data_ctx, DispType disp_type) {
+    void GltParticleManager::DispScenes(render_data_context& rend_data_ctx, DispType disp_type, const cam_data& cam) {
         if (flags & PARTICLE_MANAGER_NOT_DISP)
             return;
 
@@ -281,7 +281,7 @@ namespace Glitter {
                 && selected_effect_group != i->effect_group)
                 continue;
 
-            i->Disp(this, rend_data_ctx, disp_type);
+            i->Disp(this, rend_data_ctx, disp_type, cam);
         }
 
         rend_data_ctx.state.bind_vertex_array(0);

@@ -403,7 +403,7 @@ namespace rndr {
         if (!tex)
             return;
 
-        float_t v5 = tanf(cam.get_fov() * 0.5f);
+        float_t v5 = tanf(cam.get_fov() * 0.5f * DEG_TO_RAD_FLOAT);
         light_set* set = &rctx_ptr->light_set[LIGHT_SET_MAIN];
         light_data* data = &set->lights[LIGHT_SUN];
 
@@ -1104,6 +1104,12 @@ namespace rndr {
                 rend_data_ctx.state.bind_framebuffer(0);
             }
         }
+
+        for (int32_t i = 0; i < GL_REND_STATE_COUNT; i++) {
+            render_data_context rend_data_ctx((gl_rend_state_index)i);
+            rend_data_ctx.set_scene_framebuffer_size(
+                render_width[0], render_height[0], render_width[0], render_height[0]);
+        }
     }
 
     int32_t Render::render_texture_set(texture* render_texture, bool task_photo) {
@@ -1196,7 +1202,6 @@ namespace rndr {
         gl_state.bind_texture_2d(rend_texture[0].GetDepthTex());
         GLint swizzle[] = { GL_RED, GL_RED, GL_RED, GL_ONE };
         glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
-        gl_state.bind_texture_2d(0);
 
         for (int32_t i = 0; i < 3; i++) {
             texture_id id = taa_tex[i]->id;
@@ -1225,8 +1230,6 @@ namespace rndr {
             gl_state.bind_texture_2d(rend_texture[i].GetColorTex());
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         }
-
-        gl_state.bind_texture_2d(0);
 
         dof->resize(render_post_width[0], render_post_height[0]);
 
@@ -1543,6 +1546,12 @@ namespace rndr {
         render_post_width_scale = (float_t)render_width[0] / (float_t)render_post_width[0];
         render_post_height_scale = (float_t)render_height[0] / (float_t)render_post_height[0];
 
+        for (int32_t i = 0; i < GL_REND_STATE_COUNT; i++) {
+            render_data_context rend_data_ctx((gl_rend_state_index)i);
+            rend_data_ctx.set_scene_framebuffer_size(
+                render_width[0], render_height[0], render_width[0], render_height[0]);
+        }
+
         taa_blend = -1.0f;
     }
 
@@ -1604,7 +1613,7 @@ namespace rndr {
 
         rend_data_ctx.state.begin_event("PostProcess::tone_map");
 
-        update_tone_map_lut();
+        update_tone_map_lut(rend_data_ctx.state);
 
         rend_data_ctx.shader_flags.arr[U_TONE_MAP] = (int32_t)tone_map;
         rend_data_ctx.shader_flags.arr[U_FLARE] = 0;
@@ -1857,11 +1866,9 @@ namespace rndr {
 
             rend_data_ctx.state.active_bind_texture_2d(0, exposure_history->glid);
             if (reset_exposure)
-                rend_data_ctx.state.copy_tex_sub_image_2d(GL_TEXTURE_2D,
-                    0, 0, 0, 0, 0, 32, 1);
+                rend_data_ctx.state.copy_tex_sub_image_2d(GL_TEXTURE_2D, 0, 0, 0, 0, 0, 32, 1);
             else
-                rend_data_ctx.state.copy_tex_sub_image_2d(GL_TEXTURE_2D,
-                    0, exposure_history_counter, 0, 0, 0, 1, 1);
+                rend_data_ctx.state.copy_tex_sub_image_2d(GL_TEXTURE_2D, 0, exposure_history_counter, 0, 0, 0, 1, 1);
             exposure_history_counter = (exposure_history_counter + 1) % 32;
         }
 
@@ -2145,7 +2152,7 @@ namespace rndr {
         reduce_tex_draw = reduce_tex[0]->glid;
     }
 
-    void Render::update_tone_map_lut() {
+    void Render::update_tone_map_lut(p_gl_rend_state& p_gl_rend_st) {
         if (!update_lut)
             return;
 
@@ -2181,7 +2188,7 @@ namespace rndr {
             glTextureSubImage2D(tonemap_lut_texture, 0, 0, 0,
                 16 * TONE_MAP_SAT_GAMMA_SAMPLES, 1, GL_RG, GL_FLOAT, tex_data);
         else {
-            gl_state.bind_texture_2d(tonemap_lut_texture);
+            p_gl_rend_st.bind_texture_2d(tonemap_lut_texture);
             glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0,
                 16 * TONE_MAP_SAT_GAMMA_SAMPLES, 1, GL_RG, GL_FLOAT, tex_data);
         }

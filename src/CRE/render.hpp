@@ -266,7 +266,8 @@ namespace rndr {
         void update_res(bool set, int32_t base_downsample);
 
     private:
-        void apply_mlaa(render_data_context& rend_data_ctx, int32_t destination, int32_t source, int32_t ss_alpha_mask);
+        void apply_mlaa(render_data_context& rend_data_ctx,
+            int32_t destination, int32_t source, int32_t ss_alpha_mask);
         void apply_tone_map(render_data_context& rend_data_ctx, texture* light_proj_tex, int32_t npr_param);
         void calc_exposure(render_data_context& rend_data_ctx, const cam_data& cam);
         void calc_gaussian_blur(render_data_context& rend_data_ctx, float_t start, float_t step,
@@ -278,7 +279,7 @@ namespace rndr {
         void downsample(render_data_context& rend_data_ctx);
         void generate_mlaa_area_texture();
         void get_blur(render_data_context& rend_data_ctx);
-        void update_tone_map_lut();
+        void update_tone_map_lut(p_gl_rend_state& p_gl_rend_st);
     };
 }
 

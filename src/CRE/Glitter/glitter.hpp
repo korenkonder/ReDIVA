@@ -29,6 +29,7 @@
 
 #define SHARED_GLITTER_BUFFER (1)
 
+struct cam_data;
 struct render_data_context;
 
 namespace Glitter {
@@ -858,8 +859,8 @@ namespace Glitter {
         void CalcDispQuadNormal(GPM,
             F2RenderGroup* rend_group, mat4* model_mat, mat4* dir_mat);
         void Ctrl(GLT, float_t delta_frame);
-        void Disp(GPM, render_data_context& rend_data_ct, DispType disp_type);
-        void Disp(GPM, render_data_context& rend_data_ct, F2RenderGroup* rend_group);
+        void Disp(GPM, render_data_context& rend_data_ctx, DispType disp_type, const cam_data& cam);
+        void Disp(GPM, render_data_context& rend_data_ctx, F2RenderGroup* rend_group, const cam_data& cam);
     };
 
     class XRenderScene : public RenderScene {
@@ -880,8 +881,8 @@ namespace Glitter {
         bool CanDisp(DispType disp_type, bool a3);
         void CheckUseCamera();
         void Ctrl(float_t delta_frame, bool copy_mats);
-        void Disp(GPM, render_data_context& rend_data_ct, DispType disp_type);
-        void Disp(GPM, render_data_context& rend_data_ct, XRenderGroup* rend_group);
+        void Disp(GPM, render_data_context& rend_data_ctx, DispType disp_type, const cam_data& cam);
+        void Disp(GPM, render_data_context& rend_data_ctx, XRenderGroup* rend_group, const cam_data& cam);
         void DispMesh(GPM);
         void DispMesh(GPM, XRenderGroup* rend_group);
     };
@@ -914,7 +915,7 @@ namespace Glitter {
 
         virtual void CalcDisp(GPM) = 0;
         virtual void Copy(EffectInst* dst, float_t emission) = 0;
-        virtual void Disp(GPM, render_data_context& rend_data_ct, DispType disp_type) = 0;
+        virtual void Disp(GPM, render_data_context& rend_data_ctx, DispType disp_type, const cam_data& cam) = 0;
         virtual void DispMesh(GPM) = 0;
         virtual void Free(GPM, GLT, float_t emission, bool free) = 0;
         virtual size_t GetCtrlCount(ParticleType type) = 0;
@@ -967,7 +968,7 @@ namespace Glitter {
 
         virtual void CalcDisp(GPM) override;
         virtual void Copy(EffectInst* dst, float_t emission) override;
-        virtual void Disp(GPM, render_data_context& rend_data_ct, DispType disp_type) override;
+        virtual void Disp(GPM, render_data_context& rend_data_ctx, DispType disp_type, const cam_data& cam) override;
         virtual void DispMesh(GPM) override;
         virtual void Free(GPM, GLT, float_t emission, bool free) override;
         virtual size_t GetCtrlCount(ParticleType type) override;
@@ -1033,7 +1034,7 @@ namespace Glitter {
 
         virtual void CalcDisp(GPM) override;
         virtual void Copy(EffectInst* dst, float_t emission) override;
-        virtual void Disp(GPM, render_data_context& rend_data_ct, DispType disp_type) override;
+        virtual void Disp(GPM, render_data_context& rend_data_ctx, DispType disp_type, const cam_data& cam) override;
         virtual void DispMesh(GPM) override;
         virtual void Free(GPM, GLT, float_t emission, bool free) override;
         virtual size_t GetCtrlCount(ParticleType type) override;
@@ -1625,7 +1626,7 @@ namespace Glitter {
         void CheckUpdate(float_t delta_frame);
         bool Copy(EffectInst* eff_inst, Scene* dst);
         void Ctrl(GPM, float_t delta_frame);
-        void Disp(GPM, render_data_context& rend_data_ct, DispType disp_type);
+        void Disp(GPM, render_data_context& rend_data_ctx, DispType disp_type, const cam_data& cam);
         void DispMesh(GPM);
         size_t GetCtrlCount(ParticleType ptcl_type);
         size_t GetDispCount(ParticleType ptcl_type);
@@ -1689,7 +1690,7 @@ namespace Glitter {
         void CheckSceneHasLocalEffect(Scene* sc);
         void CtrlScenes();
         void DecrementInitBuffersByCount(int32_t count = 1);
-        void DispScenes(render_data_context& rend_data_ct, DispType disp_type);
+        void DispScenes(render_data_context& rend_data_ctx, DispType disp_type, const cam_data& cam);
         void FreeEffects();
         void FreeSceneEffect(SceneCounter scene_counter, bool force_kill = true);
         void FreeSceneEffect(uint64_t effect_group_hash, uint64_t effect_hash, bool force_kill = true);
