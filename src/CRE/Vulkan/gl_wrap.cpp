@@ -1020,12 +1020,9 @@ namespace Vulkan {
                 vk_tex->width = vk_tex_data->width;
                 vk_tex->height = vk_tex_data->height;
                 vk_tex->level_count = vk_tex_data->level_count;
-
-                gl_texture_data::tex_data* tex_data = vk_tex_data->get_tex_data(0, 0);
-                vk_tex->attachment = attachment || !tex_data || !tex_data->data || !tex_data->size;
             }
-            else
-                vk_tex->attachment = true;
+
+            vk_tex->attachment = attachment;
 
             const VkImageViewType image_view_type = Vulkan::get_image_view_type(vk_tex->target);
             const VkFormat format = Vulkan::get_format(vk_tex->internal_format);
@@ -3089,7 +3086,7 @@ namespace Vulkan {
 
                     GLuint color_attachment = vk_fbo->color_attachments[draw_buffer - GL_COLOR_ATTACHMENT0];
                     if (color_attachment) {
-                        Vulkan::gl_texture* vk_tex = Vulkan::gl_texture::get(color_attachment);
+                        Vulkan::gl_texture* vk_tex = Vulkan::gl_texture::get(color_attachment, true, true);
                         Vulkan::Image::PipelineBarrier(Vulkan::current_command_buffer,
                             vk_tex->image, Vulkan::get_aspect_mask(vk_tex->internal_format),
                             vk_tex->level_count, 1, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
@@ -3097,7 +3094,7 @@ namespace Vulkan {
                 }
 
                 if (vk_fbo->depth_attachment) {
-                    Vulkan::gl_texture* vk_tex = Vulkan::gl_texture::get(vk_fbo->depth_attachment);
+                    Vulkan::gl_texture* vk_tex = Vulkan::gl_texture::get(vk_fbo->depth_attachment, true, true);
                     const VkImageLayout layout = depth_stencil_state.depthWriteEnable
                         || depth_stencil_state.stencilTestEnable
                         ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
@@ -4872,7 +4869,7 @@ namespace Vulkan {
             return;
         }
 
-        gl_texture* vk_tex = gl_texture::get(texture, false);
+        gl_texture* vk_tex = gl_texture::get(texture, false, true);
         gl_texture_data* vk_tex_data = gl_texture_data::get(texture);
         if (texture && (!vk_tex || level >= (int64_t)vk_tex->level_count && (!vk_tex_data
             || !vk_tex_data->valid() || level >= (int64_t)vk_tex_data->level_count))) {
