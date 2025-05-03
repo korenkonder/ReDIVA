@@ -2516,13 +2516,6 @@ namespace Vulkan {
             }
         }
 
-        VkPipelineVertexInputStateCreateInfo vertex_input_info = {};
-        vertex_input_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-        vertex_input_info.vertexBindingDescriptionCount = binding_description_count;
-        vertex_input_info.pVertexBindingDescriptions = binding_descriptions;
-        vertex_input_info.vertexAttributeDescriptionCount = attribute_description_count;
-        vertex_input_info.pVertexAttributeDescriptions = attribute_descriptions;
-
         VkPipelineInputAssemblyStateCreateInfo input_assembly_state = {};
         input_assembly_state.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
         switch (mode) {

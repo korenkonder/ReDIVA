@@ -462,7 +462,7 @@ namespace Vulkan {
         uint64_t vertex_input_info_binding_hash = hash_xxh3_64bits(vertex_input_binding_descriptions,
             sizeof(VkVertexInputBindingDescription) * vertex_input_binding_description_count);
         uint64_t vertex_input_info_attribute_hash = hash_xxh3_64bits(vertex_input_attribute_descriptions,
-            sizeof(VkVertexInputBindingDescription) * vertex_input_attribute_description_count);
+            sizeof(VkVertexInputAttributeDescription) * vertex_input_attribute_description_count);
         uint64_t input_assembly_state_hash = hash_xxh3_64bits(input_assembly_state,
             sizeof(VkPipelineInputAssemblyStateCreateInfo));
         uint64_t rasterization_state_hash = hash_xxh3_64bits(rasterization_state,

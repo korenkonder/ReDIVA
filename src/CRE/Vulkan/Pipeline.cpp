@@ -58,7 +58,7 @@ namespace Vulkan {
         graphics_pipeline_create_info.pNext = 0;
         graphics_pipeline_create_info.flags = flags;
         graphics_pipeline_create_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-        graphics_pipeline_create_info.stageCount = 2;
+        graphics_pipeline_create_info.stageCount = stage_count;
         graphics_pipeline_create_info.pStages = stages;
         graphics_pipeline_create_info.pVertexInputState = &vertex_input_state;
         graphics_pipeline_create_info.pInputAssemblyState = input_assembly_state;
