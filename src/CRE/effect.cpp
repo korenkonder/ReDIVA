@@ -1425,7 +1425,7 @@ void snow_particle_draw(render_data_context& rend_data_ctx, const cam_data& cam)
 
     snow_particle_scene_shader_data snow_scene = {};
     mat4 temp;
-    mat4_transpose(&cam.view_mat, &temp);
+    mat4_transpose(&cam.view_proj_mat, &temp);
     snow_scene.g_transform[0] = temp.row0;
     snow_scene.g_transform[1] = temp.row1;
     snow_scene.g_transform[2] = temp.row2;
