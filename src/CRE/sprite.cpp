@@ -1471,7 +1471,7 @@ namespace spr {
                     spr_vtx[3].pos = vtx[3];
                     spr_vtx[3].color = color;
 
-                    draw_param.attrib.m.primitive = GL_LINES;
+                    draw_param.attrib.m.primitive = GL_LINE_STRIP;
                     draw_param.first = (GLint)vertex_buffer.size();
                     draw_param.count = 5;
 
