@@ -118,7 +118,7 @@ void font_handler::set_font(const font* f, bool disable_glyph_spacing) {
     glyph_height = f->glyph_height;
     glyph_horizontal_spacing = 0;
     glyph_vertical_spacing = 0;
-    disable_glyph_spacing = disable_glyph_spacing;
+    this->disable_glyph_spacing = disable_glyph_spacing;
 }
 
 void fontmap_data_init() {

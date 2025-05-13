@@ -467,6 +467,9 @@ namespace Vulkan {
 
         auto elem = gl_wrap_manager_ptr->gl_index_buffers.find(buffer);
         if (elem == gl_wrap_manager_ptr->gl_index_buffers.end()) {
+            if (vk_buf->target)
+                return 0;
+
             vk_buf->target = GL_ELEMENT_ARRAY_BUFFER;
             elem = gl_wrap_manager_ptr->gl_index_buffers.insert({ buffer, {} }).first;
         }
@@ -946,6 +949,9 @@ namespace Vulkan {
 
         auto elem = gl_wrap_manager_ptr->gl_storage_buffers.find(buffer);
         if (elem == gl_wrap_manager_ptr->gl_storage_buffers.end()) {
+            if (vk_buf->target)
+                return 0;
+
             vk_buf->target = GL_SHADER_STORAGE_BUFFER;
             elem = gl_wrap_manager_ptr->gl_storage_buffers.insert({ buffer, {} }).first;
         }
@@ -1136,6 +1142,9 @@ namespace Vulkan {
 
         auto elem = gl_wrap_manager_ptr->gl_uniform_buffers.find(buffer);
         if (elem == gl_wrap_manager_ptr->gl_uniform_buffers.end()) {
+            if (vk_buf->target)
+                return 0;
+
             vk_buf->target = GL_UNIFORM_BUFFER;
             elem = gl_wrap_manager_ptr->gl_uniform_buffers.insert({ buffer, {} }).first;
         }
@@ -1279,7 +1288,10 @@ namespace Vulkan {
 
         auto elem = gl_wrap_manager_ptr->gl_vertex_buffers.find(buffer);
         if (elem == gl_wrap_manager_ptr->gl_vertex_buffers.end()) {
-            vk_buf->target = GL_ELEMENT_ARRAY_BUFFER;
+            if (vk_buf->target)
+                return 0;
+
+            vk_buf->target = GL_ARRAY_BUFFER;
             elem = gl_wrap_manager_ptr->gl_vertex_buffers.insert({ buffer, {} }).first;
         }
 
@@ -2261,6 +2273,7 @@ namespace Vulkan {
     }
 
     void gl_wrap_manager::update_buffers() {
+        std::vector<VkBufferMemoryBarrier> buffer_memory_barriers;
         for (auto& i : gl_index_buffers) {
             gl_index_buffer* vk_ib = &i.second;
             if (vk_ib->copy_working_buffer) {
@@ -2282,10 +2295,8 @@ namespace Vulkan {
                 barrier.buffer = dst_buffer;
                 barrier.offset = dst_offset;
                 barrier.size = size;
+                buffer_memory_barriers.push_back(barrier);
 
-                vkCmdPipelineBarrier(Vulkan::current_command_buffer,
-                    VK_PIPELINE_STAGE_HOST_BIT,
-                    VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, 0, 0, 0, 1, &barrier, 0, 0);
                 vk_ib->copy_working_buffer = false;
             }
             vk_ib->working_buffer.Reset();
@@ -2312,11 +2323,8 @@ namespace Vulkan {
                 barrier.buffer = dst_buffer;
                 barrier.offset = dst_offset;
                 barrier.size = size;
+                buffer_memory_barriers.push_back(barrier);
 
-                vkCmdPipelineBarrier(Vulkan::current_command_buffer,
-                    VK_PIPELINE_STAGE_HOST_BIT,
-                    VK_PIPELINE_STAGE_VERTEX_SHADER_BIT
-                    | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, 0, 1, &barrier, 0, 0);
                 vk_sb->copy_working_buffer = false;
             }
             vk_sb->working_buffer.Reset();
@@ -2343,11 +2351,8 @@ namespace Vulkan {
                 barrier.buffer = dst_buffer;
                 barrier.offset = dst_offset;
                 barrier.size = size;
+                buffer_memory_barriers.push_back(barrier);
 
-                vkCmdPipelineBarrier(Vulkan::current_command_buffer,
-                    VK_PIPELINE_STAGE_HOST_BIT,
-                    VK_PIPELINE_STAGE_VERTEX_SHADER_BIT
-                    | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, 0, 1, &barrier, 0, 0);
                 vk_ub->copy_working_buffer = false;
             }
             vk_ub->working_buffer.Reset();
@@ -2374,14 +2379,21 @@ namespace Vulkan {
                 barrier.buffer = dst_buffer;
                 barrier.offset = dst_offset;
                 barrier.size = size;
+                buffer_memory_barriers.push_back(barrier);
 
-                vkCmdPipelineBarrier(Vulkan::current_command_buffer,
-                    VK_PIPELINE_STAGE_HOST_BIT,
-                    VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, 0, 0, 0, 1, &barrier, 0, 0);
                 vk_vb->copy_working_buffer = false;
             }
             vk_vb->working_buffer.Reset();
         }
+
+        if (buffer_memory_barriers.size())
+            vkCmdPipelineBarrier(Vulkan::current_command_buffer,
+                VK_PIPELINE_STAGE_HOST_BIT,
+                VK_PIPELINE_STAGE_VERTEX_INPUT_BIT
+                | VK_PIPELINE_STAGE_VERTEX_SHADER_BIT
+                | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
+                | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, 0,
+                (uint32_t)buffer_memory_barriers.size(), buffer_memory_barriers.data(), 0, 0);
 
         if (gl_texture_datas.size()) {
             auto i_begin = gl_texture_datas.begin();
@@ -2509,7 +2521,7 @@ namespace Vulkan {
                 VkVertexInputBindingDescription& binding_desc = binding_descriptions[binding_description_count++];
                 binding_desc.binding = binding;
                 binding_desc.stride = 0;
-                binding_desc.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+                binding_desc.inputRate = VK_VERTEX_INPUT_RATE_INSTANCE;
             }
         }
 

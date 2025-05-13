@@ -278,6 +278,36 @@ vec2 PrintWork::GetStringSize(const wchar_t* str_begin, const wchar_t* str_end) 
     return size;
 }
 
+vec2 PrintWork::GetTextOffset(app::text_flags flags, vec2 size) {
+    vec2 pos = text_current_loc;
+    if (flags & app::TEXT_FLAG_ALIGN_FLAG_RIGHT)
+        pos.x -= size.x;
+    else if (flags & app::TEXT_FLAG_ALIGN_FLAG_H_CENTER) {
+        if (flags & app::TEXT_FLAG_CLIP)
+            pos.x = clip_data.pos.x + clip_data.size.x * 0.5f;
+        else {
+            resolution_struct v10(resolution_mode);
+            pos.x = (float_t)v10.width * 0.5f;
+        }
+        pos.x -= size.x * 0.5f;
+    }
+    else if (flags & app::TEXT_FLAG_ALIGN_FLAG_LOCATE_H_CENTER)
+        pos.x -= size.x * 0.5f;
+
+    if (flags & app::TEXT_FLAG_ALIGN_FLAG_V_CENTER) {
+        if (flags & app::TEXT_FLAG_CLIP)
+            pos.y = clip_data.pos.y + clip_data.size.y * 0.5f;
+        else {
+            resolution_struct v10(resolution_mode);
+            pos.y = (float_t)v10.height * 0.5f;
+        }
+        pos.y -= size.y * 0.5f;
+    }
+    else if (flags & app::TEXT_FLAG_ALIGN_FLAG_LOCATE_V_CENTER)
+        pos.y -= size.y * 0.5f;
+    return pos;
+}
+
 vec2 PrintWork::GetTextSize(const wchar_t* str, size_t length) {
     return GetTextSize(str, str + length);
 }
@@ -354,14 +384,14 @@ void PrintWork::PutText(app::text_flags flags, const wchar_t* str_begin, const w
         && clip_data.pos.y + clip_data.size.y < text_current_loc.y)
         return;
 
-    std::vector<font_char> v43 = PrintWork::GetStringData(str_begin, str_end);
+    std::vector<font_char> chars = PrintWork::GetStringData(str_begin, str_end);
     float_t spacing = font->spacing.x / font->glyph_ratio.x;
 
     vec2 glyph_ratio = font->glyph_ratio;
     rectangle clip_box;
     if (clip) {
         float_t glyph_size_x = 0.0f;
-        for (font_char& i : v43)
+        for (font_char& i : chars)
             glyph_size_x += i.glyph_width + spacing;
 
         vec2 glyph_size;
@@ -372,44 +402,46 @@ void PrintWork::PutText(app::text_flags flags, const wchar_t* str_begin, const w
     else
         clip_box = {};
 
-    std::vector<sprite_text_mesh> v44;
-    sprite_text_mesh v45;
-    v45.sprite_id = font->font_ptr->sprite_id;
-    v44.push_back(v45);
-    v44.back().vertices.reserve(str_end - str_begin);
+    std::vector<sprite_text_mesh> meshes;
+    sprite_text_mesh mesh;
+    mesh.sprite_id = font->font_ptr->sprite_id;
+
+    meshes.push_back(mesh);
+    meshes.back().vertices.reserve(str_end - str_begin);
 
     float_t glyph_x = 0.0f;
     if (str_end - str_begin) {
         for (size_t i = 0; i != str_end - str_begin; i++) {
-            font_char* fc = &v43.data()[i];
-            rectangle v37;
-            v37.pos.x = glyph_x;
-            v37.pos.y = 0.0f;
-            v37.size.x = fc->glyph_width;
-            v37.size.y = fc->tex.size.y;
-            rectangle v42;
-            v42.pos.x = fc->tex.pos.x + fc->glyph_offset;
-            v42.pos.y = fc->tex.pos.y;
-            v42.size.x = fc->glyph_width;
-            v42.size.y = fc->tex.size.y;
-            if (!clip || PrintWork::sub_140197D60(clip_box, v37, v42))
-                v44.data()[fc->field_18].add_set_char(v6, v37, v42, color);
+            font_char* fc = &chars.data()[i];
+            rectangle pos;
+            pos.pos.x = glyph_x;
+            pos.pos.y = 0.0f;
+            pos.size.x = fc->glyph_width;
+            pos.size.y = fc->tex.size.y;
+
+            rectangle uv;
+            uv.pos.x = fc->tex.pos.x + fc->glyph_offset;
+            uv.pos.y = fc->tex.pos.y;
+            uv.size.x = fc->glyph_width;
+            uv.size.y = fc->tex.size.y;
+            if (!clip || PrintWork::sub_140197D60(clip_box, pos, uv))
+                meshes.data()[fc->field_18].add_set_char(v6, pos, uv, color);
             glyph_x += fc->glyph_width + spacing;
         }
     }
     else
         glyph_x -= spacing;
 
-    vec2 v35;
-    v35.x = glyph_x * glyph_ratio.x;
-    v35.y = font->glyph.y;
+    vec2 size;
+    size.x = glyph_x * glyph_ratio.x;
+    size.y = font->glyph.y;
 
-    vec2 v41 = PrintWork::sub_140197B80((app::text_flags)(v5 | v6), v35);
+    vec2 offset = PrintWork::GetTextOffset((app::text_flags)(v5 | v6), size);
     if (v5 & app::TEXT_FLAG_ALIGN_FLAG_LEFT)
-        text_current_loc.x += font->spacing.x + v35.x;
+        text_current_loc.x += font->spacing.x + size.x;
 
-    for (sprite_text_mesh& i : v44) {
-        i.apply_scale_offset(glyph_ratio, v41);
+    for (sprite_text_mesh& i : meshes) {
+        i.apply_scale_offset(glyph_ratio, offset);
         DrawTextMesh(flags, i);
     }
 }
@@ -483,36 +515,6 @@ void PrintWork::ClampPosToClipBox(float_t pos_min, float_t pos_max,
         clip_pos_min = pos_min;
         clip_pos_max = pos_min;
     }
-}
-
-vec2 PrintWork::sub_140197B80(app::text_flags flags, vec2 size) {
-    vec2 pos = text_current_loc;
-    if (flags & app::TEXT_FLAG_ALIGN_FLAG_RIGHT)
-        pos.x -= size.x;
-    else if (flags & app::TEXT_FLAG_ALIGN_FLAG_H_CENTER) {
-        if (flags & app::TEXT_FLAG_CLIP)
-            pos.x = clip_data.pos.x + clip_data.size.x * 0.5f;
-        else {
-            resolution_struct v10(resolution_mode);
-            pos.x = (float_t)v10.width * 0.5f;
-        }
-        pos.x -= size.x * 0.5f;
-    }
-    else if (flags & app::TEXT_FLAG_ALIGN_FLAG_LOCATE_H_CENTER)
-        pos.x -= size.x * 0.5f;
-
-    if (flags & app::TEXT_FLAG_ALIGN_FLAG_V_CENTER) {
-        if (flags & app::TEXT_FLAG_CLIP)
-            pos.y = clip_data.pos.y + clip_data.size.y * 0.5f;
-        else {
-            resolution_struct v10(resolution_mode);
-            pos.y = (float_t)v10.height * 0.5f;
-        }
-        pos.y -= size.y * 0.5f;
-    }
-    else if (flags & app::TEXT_FLAG_ALIGN_FLAG_LOCATE_V_CENTER)
-        pos.y -= size.y * 0.5f;
-    return pos;
 }
 
 int32_t PrintWork::sub_140197D60(rectangle clip_box, rectangle& pos, rectangle& uv) {

@@ -74,6 +74,7 @@ struct PrintWork {
     rectangle GetClipBox(app::text_flags flags, vec2 glyph_size, vec2 glyph_ratio);
     std::vector<font_char> GetStringData(const wchar_t* str_begin, const wchar_t* str_end);
     vec2 GetStringSize(const wchar_t* str_begin, const wchar_t* str_end);
+    vec2 GetTextOffset(app::text_flags flags, vec2 size);
     vec2 GetTextSize(const wchar_t* str, size_t length);
     vec2 GetTextSize(const wchar_t* str_begin, const wchar_t* str_end);
     vec2 GetTextSize(const char* str, size_t length);
@@ -101,8 +102,6 @@ struct PrintWork {
 
     static void ClampPosToClipBox(float_t pos_min, float_t pos_max,
         float_t clip_box_min, float_t clip_box_max, float_t& clip_pos_min, float_t& clip_pos_max);
-
-    vec2 sub_140197B80(app::text_flags flags, vec2 size);
 
     static int32_t sub_140197D60(rectangle clip_box, rectangle& pos, rectangle& uv);
 };
