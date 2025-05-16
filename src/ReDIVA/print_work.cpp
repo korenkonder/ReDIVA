@@ -129,7 +129,7 @@ void sprite_text_mesh::set_char(spr::SpriteVertex* vtx, app::text_flags flags, r
 
     vtx[1].pos.x = pos.pos.x + pos.size.x;
     vtx[1].pos.y = pos.pos.y;
-    vtx[1].pos.z = 0.0;
+    vtx[1].pos.z = 0.0f;
     vtx[1].uv.x = uv_pos.x + uv_size.x;
     vtx[1].uv.y = uv_pos.y;
     vtx[1].color = color;
@@ -190,7 +190,8 @@ void PrintWork::DrawTextMesh(app::text_flags flags, sprite_text_mesh& mesh) {
             i.color.r = 0x40;
             i.color.g = 0x40;
             i.color.b = 0x40;
-            i.pos += 2.0f;
+            i.pos.x += 2.0f;
+            i.pos.y += 2.0f;
         }
         args.SetVertexArray(mesh.vertices.data(), mesh.vertices.size());
         args.id.index = mesh.sprite_id;

@@ -1571,7 +1571,6 @@ namespace spr {
                     vertex_buffer.reserve(args.num_vertex);
 
                     sprite_draw_vertex spr_vtx = {};
-                    spr_vtx.color = color;
 
 #if BREAK_SPRITE_VERTEX_LIMIT
                     SpriteVertex* vtx = sprite_vertex_array + args.vertex_array;
@@ -1580,6 +1579,7 @@ namespace spr {
 #endif
                     for (size_t i = args.num_vertex; i; i--, vtx++) {
                         spr_vtx.pos = vtx->pos;
+                        spr_vtx.color = vtx->color;
                         vertex_buffer.push_back(spr_vtx);
                     }
                 } break;
