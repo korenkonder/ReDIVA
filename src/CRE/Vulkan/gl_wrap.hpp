@@ -42,6 +42,11 @@ namespace Vulkan {
         GL_BUFFER_FLAG_DYNAMIC_STORAGE_BIT = 0x20,
     };
 
+    enum gl_texture_flags {
+        GL_TEXTURE_NONE       = (0 << 0u),
+        GL_TEXTURE_ATTACHMENT = (1 << 0u),
+    };
+
     struct gl_buffer {
         GLenum target;
         gl_buffer_flags flags;
@@ -230,14 +235,15 @@ namespace Vulkan {
         Vulkan::ImageView sample_image_view;
         uint32_t level_count;
         VkComponentMapping components;
-        bool attachment;
+        gl_texture_flags flags;
         gl_sampler sampler_data;
 
         gl_texture();
 
         VkImageView get_image_view();
 
-        static gl_texture* get(GLuint texture, bool update_data = true, bool attachment = false);
+        static gl_texture* get(GLuint texture, bool update_data = true,
+            gl_texture_flags attachment = GL_TEXTURE_NONE);
 
         inline uint32_t get_layer_count() const {
             return target == GL_TEXTURE_CUBE_MAP ? 6 : 1;

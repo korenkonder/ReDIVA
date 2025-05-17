@@ -344,7 +344,8 @@ namespace Vulkan {
                 vk_fbo->color_attachment_image_views[i].Destroy();
 
             for (int32_t i = 0; i < Vulkan::MAX_COLOR_ATTACHMENTS; i++) {
-                gl_texture* vk_tex = gl_texture::get(vk_fbo->color_attachments[i], true, true);
+                gl_texture* vk_tex = gl_texture::get(
+                    vk_fbo->color_attachments[i], true, Vulkan::GL_TEXTURE_ATTACHMENT);
                 if (vk_tex && vk_tex->get_level_count() > 0) {
                     const VkImageViewType image_view_type = Vulkan::get_image_view_type(vk_tex->target);
                     const VkFormat format = Vulkan::get_format(vk_tex->internal_format);
@@ -363,7 +364,8 @@ namespace Vulkan {
         if (vk_fbo->update_depth_attachment) {
             vk_fbo->depth_attachment_image_view.Destroy();
 
-            gl_texture* vk_tex = gl_texture::get(vk_fbo->depth_attachment, true, true);
+            gl_texture* vk_tex = gl_texture::get(
+                vk_fbo->depth_attachment, true, Vulkan::GL_TEXTURE_ATTACHMENT);
             if (vk_tex && vk_tex->get_level_count() > 0) {
                 const VkImageViewType image_view_type = Vulkan::get_image_view_type(vk_tex->target);
                 const VkFormat format = Vulkan::get_format(vk_tex->internal_format);
@@ -389,7 +391,7 @@ namespace Vulkan {
 
             for (uint32_t i = 0; i < Vulkan::MAX_DRAW_BUFFERS; i++) {
                 GLuint texture = vk_fbo->get_draw_buffer_texture(i);
-                gl_texture* vk_tex = gl_texture::get(texture, true, true);
+                gl_texture* vk_tex = gl_texture::get(texture, true, Vulkan::GL_TEXTURE_ATTACHMENT);
                 if (!vk_tex)
                     continue;
 
@@ -413,7 +415,8 @@ namespace Vulkan {
 
             GLenum depth_format = GL_ZERO;
             if (vk_fbo->depth_attachment) {
-                gl_texture* vk_tex = gl_texture::get(vk_fbo->depth_attachment, true, true);
+                gl_texture* vk_tex = gl_texture::get(
+                    vk_fbo->depth_attachment, true, Vulkan::GL_TEXTURE_ATTACHMENT);
                 if (vk_tex) {
                     depth_format = vk_tex->internal_format;
                     image_views[image_view_count] = vk_tex->image_view;
@@ -982,7 +985,7 @@ namespace Vulkan {
     }
 
     gl_texture::gl_texture() : target(), base_mipmap_level(), internal_format(),
-        width(), height(), level_count(), components(), attachment() {
+        width(), height(), level_count(), components(), flags() {
         max_mipmap_level = 1000;
     }
 
@@ -990,7 +993,7 @@ namespace Vulkan {
         return sample_image_view ? sample_image_view : image_view;
     }
 
-    gl_texture* gl_texture::get(GLuint texture, bool update_data, bool attachment) {
+    gl_texture* gl_texture::get(GLuint texture, bool update_data, gl_texture_flags flags) {
         if (!texture)
             return 0;
 
@@ -1015,7 +1018,7 @@ namespace Vulkan {
             || vk_tex->width != vk_tex_data->width
             || vk_tex->height != vk_tex_data->height
             || vk_tex->level_count != vk_tex_data->level_count)
-            || attachment && vk_tex->attachment != attachment)
+            || flags && vk_tex->flags != flags)
             create = true;
 
         if (create && update_data) {
@@ -1028,7 +1031,7 @@ namespace Vulkan {
                 vk_tex->level_count = vk_tex_data->level_count;
             }
 
-            vk_tex->attachment = attachment;
+            vk_tex->flags = flags;
 
             const VkImageViewType image_view_type = Vulkan::get_image_view_type(vk_tex->target);
             const VkFormat format = Vulkan::get_format(vk_tex->internal_format);
@@ -1039,7 +1042,7 @@ namespace Vulkan {
             switch (format) {
             case VK_FORMAT_D24_UNORM_S8_UINT:
             case VK_FORMAT_D32_SFLOAT:
-                if (vk_tex->attachment) {
+                if (vk_tex->flags & Vulkan::GL_TEXTURE_ATTACHMENT) {
                     usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
                     layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
                 }
@@ -1047,7 +1050,7 @@ namespace Vulkan {
                     layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
                 break;
             default:
-                if (vk_tex->attachment) {
+                if (vk_tex->flags & Vulkan::GL_TEXTURE_ATTACHMENT) {
                     usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
                     layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
                 }
@@ -1067,7 +1070,7 @@ namespace Vulkan {
             vk_tex->image.Create(Vulkan::current_allocator,
                 flags, vk_tex->width, vk_tex->height, level_count, layer_count, format,
                 VK_IMAGE_TILING_OPTIMAL, usage, VMA_MEMORY_USAGE_AUTO,
-                vk_tex->attachment ? VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT : 0);
+                (vk_tex->flags & Vulkan::GL_TEXTURE_ATTACHMENT) ? VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT : 0);
             vk_tex->image_view.Create(Vulkan::current_device, 0, vk_tex->image,
                 image_view_type, format, aspect_mask, 0, level_count, 0, layer_count);
             Vulkan::Image::PipelineBarrier(Vulkan::current_command_buffer, vk_tex->image,
@@ -3098,7 +3101,8 @@ namespace Vulkan {
 
                     GLuint color_attachment = vk_fbo->color_attachments[draw_buffer - GL_COLOR_ATTACHMENT0];
                     if (color_attachment) {
-                        Vulkan::gl_texture* vk_tex = Vulkan::gl_texture::get(color_attachment, true, true);
+                        Vulkan::gl_texture* vk_tex = Vulkan::gl_texture::get(
+                            color_attachment, true, Vulkan::GL_TEXTURE_ATTACHMENT);
                         Vulkan::Image::PipelineBarrier(Vulkan::current_command_buffer,
                             vk_tex->image, Vulkan::get_aspect_mask(vk_tex->internal_format),
                             vk_tex->level_count, 1, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
@@ -3106,7 +3110,8 @@ namespace Vulkan {
                 }
 
                 if (vk_fbo->depth_attachment) {
-                    Vulkan::gl_texture* vk_tex = Vulkan::gl_texture::get(vk_fbo->depth_attachment, true, true);
+                    Vulkan::gl_texture* vk_tex = Vulkan::gl_texture::get(
+                        vk_fbo->depth_attachment, true, Vulkan::GL_TEXTURE_ATTACHMENT);
                     const VkImageLayout layout = depth_stencil_state.depthWriteEnable
                         || depth_stencil_state.stencilTestEnable
                         ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
@@ -4881,7 +4886,7 @@ namespace Vulkan {
             return;
         }
 
-        gl_texture* vk_tex = gl_texture::get(texture, false, true);
+        gl_texture* vk_tex = gl_texture::get(texture, true, Vulkan::GL_TEXTURE_ATTACHMENT);
         gl_texture_data* vk_tex_data = gl_texture_data::get(texture);
         if (texture && (!vk_tex || level >= (int64_t)vk_tex->level_count && (!vk_tex_data
             || !vk_tex_data->valid() || level >= (int64_t)vk_tex_data->level_count))) {
