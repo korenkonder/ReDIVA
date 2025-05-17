@@ -81,6 +81,7 @@ namespace Vulkan {
         std::unordered_map<GLuint, gl_texture> gl_textures;
         std::unordered_map<GLuint, gl_texture_data> gl_texture_datas;
         std::unordered_map<GLuint, gl_uniform_buffer> gl_uniform_buffers;
+        std::unordered_map<GLuint, gl_unknown_buffer> gl_unknown_buffers;
         std::unordered_map<GLuint, gl_vertex_array> gl_vertex_arrays;
         std::unordered_map<GLuint, gl_vertex_buffer> gl_vertex_buffers;
 
@@ -502,6 +503,17 @@ namespace Vulkan {
         if (!vk_ib->index_buffer || vk_ib->index_buffer.GetSize() < size)
             vk_ib->index_buffer.Create(Vulkan::current_allocator, size);
 
+        auto elem_unknown = gl_wrap_manager_ptr->gl_unknown_buffers.find(buffer);
+        if (elem_unknown != gl_wrap_manager_ptr->gl_unknown_buffers.end()) {
+            gl_unknown_buffer* vk_unb = &elem_unknown->second;
+            if (vk_unb->unknown_buffer) {
+                Vulkan::Buffer::Copy(Vulkan::current_command_buffer,
+                    vk_unb->unknown_buffer, vk_ib->index_buffer, 0, 0, size);
+                vk_unb->unknown_buffer.Destroy();
+            }
+            gl_wrap_manager_ptr->gl_unknown_buffers.erase(elem_unknown);
+        }
+
         vk_buf->set_buffer(size, alignment,
             vk_ib->index_buffer, vk_ib->copy_working_buffer, vk_ib->working_buffer);
         return vk_ib;
@@ -902,6 +914,17 @@ namespace Vulkan {
         if (!vk_sb->storage_buffer || vk_sb->storage_buffer.GetSize() < size)
             vk_sb->storage_buffer.Create(Vulkan::current_allocator, size);
 
+        auto elem_unknown = gl_wrap_manager_ptr->gl_unknown_buffers.find(buffer);
+        if (elem_unknown != gl_wrap_manager_ptr->gl_unknown_buffers.end()) {
+            gl_unknown_buffer* vk_unb = &elem_unknown->second;
+            if (vk_unb->unknown_buffer) {
+                Vulkan::Buffer::Copy(Vulkan::current_command_buffer,
+                    vk_unb->unknown_buffer, vk_sb->storage_buffer, 0, 0, size);
+                vk_unb->unknown_buffer.Destroy();
+            }
+            gl_wrap_manager_ptr->gl_unknown_buffers.erase(elem_unknown);
+        }
+
         vk_buf->set_buffer(size, alignment,
             vk_sb->storage_buffer, vk_sb->copy_working_buffer, vk_sb->working_buffer);
         return vk_sb;
@@ -1082,9 +1105,51 @@ namespace Vulkan {
         if (!vk_ub->uniform_buffer || vk_ub->uniform_buffer.GetSize() < size)
             vk_ub->uniform_buffer.Create(Vulkan::current_allocator, size);
 
+        auto elem_unknown = gl_wrap_manager_ptr->gl_unknown_buffers.find(buffer);
+        if (elem_unknown != gl_wrap_manager_ptr->gl_unknown_buffers.end()) {
+            gl_unknown_buffer* vk_unb = &elem_unknown->second;
+            if (vk_unb->unknown_buffer) {
+                Vulkan::Buffer::Copy(Vulkan::current_command_buffer,
+                    vk_unb->unknown_buffer, vk_ub->uniform_buffer, 0, 0, size);
+                vk_unb->unknown_buffer.Destroy();
+            }
+            gl_wrap_manager_ptr->gl_unknown_buffers.erase(elem_unknown);
+        }
+
         vk_buf->set_buffer(size, alignment,
             vk_ub->uniform_buffer, vk_ub->copy_working_buffer, vk_ub->working_buffer);
         return vk_ub;
+    }
+
+    gl_unknown_buffer::gl_unknown_buffer() {
+
+    }
+
+    gl_unknown_buffer* gl_unknown_buffer::get(GLuint buffer) {
+        if (!buffer)
+            return 0;
+
+        auto elem_buffer = gl_wrap_manager_ptr->gl_buffers.find(buffer);
+        if (elem_buffer == gl_wrap_manager_ptr->gl_buffers.end())
+            return 0;
+
+        gl_buffer* vk_buf = &elem_buffer->second;
+
+        auto elem = gl_wrap_manager_ptr->gl_unknown_buffers.find(buffer);
+        if (elem == gl_wrap_manager_ptr->gl_unknown_buffers.end()) {
+            if (vk_buf->target)
+                return 0;
+
+            elem = gl_wrap_manager_ptr->gl_unknown_buffers.insert({ buffer, {} }).first;
+        }
+
+        gl_unknown_buffer* vk_unb = &elem->second;
+
+        const VkDeviceSize size = vk_buf->data.size();
+        const VkDeviceSize alignment = sv_min_uniform_buffer_alignment;
+        if (!vk_unb->unknown_buffer || vk_unb->unknown_buffer.GetSize() < size)
+            vk_unb->unknown_buffer.Create(Vulkan::current_allocator, size);
+        return vk_unb;
     }
 
     gl_vertex_buffer_binding_data::gl_vertex_buffer_binding_data() : buffer(), offset(), stride() {
@@ -1214,6 +1279,17 @@ namespace Vulkan {
         const VkDeviceSize alignment = 0x40;
         if (!vk_vb->vertex_buffer || vk_vb->vertex_buffer.GetSize() < size)
             vk_vb->vertex_buffer.Create(Vulkan::current_allocator, size);
+
+        auto elem_unknown = gl_wrap_manager_ptr->gl_unknown_buffers.find(buffer);
+        if (elem_unknown != gl_wrap_manager_ptr->gl_unknown_buffers.end()) {
+            gl_unknown_buffer* vk_unb = &elem_unknown->second;
+            if (vk_unb->unknown_buffer) {
+                Vulkan::Buffer::Copy(Vulkan::current_command_buffer,
+                    vk_unb->unknown_buffer, vk_vb->vertex_buffer, 0, 0, size);
+                vk_unb->unknown_buffer.Destroy();
+            }
+            gl_wrap_manager_ptr->gl_unknown_buffers.erase(elem_unknown);
+        }
 
         vk_buf->set_buffer(size, alignment,
             vk_vb->vertex_buffer, vk_vb->copy_working_buffer, vk_vb->working_buffer);
@@ -1978,6 +2054,8 @@ namespace Vulkan {
     gl_wrap_manager::~gl_wrap_manager() {
         for (auto& i : gl_vertex_buffers)
             i.second.vertex_buffer.Destroy();
+        for (auto& i : gl_unknown_buffers)
+            i.second.unknown_buffer.Destroy();
         for (auto& i : gl_uniform_buffers)
             i.second.uniform_buffer.Destroy();
         for (auto& i : gl_storage_buffers)
@@ -2068,6 +2146,13 @@ namespace Vulkan {
         auto elem = gl_buffers.find(buffer);
         if (elem != gl_buffers.end()) {
             switch (elem->second.target) {
+            case 0: {
+                auto elem = gl_unknown_buffers.find(buffer);
+                if (elem != gl_unknown_buffers.end()) {
+                    elem->second.unknown_buffer.Destroy();
+                    gl_unknown_buffers.erase(elem);
+                }
+            } break;
             case GL_ARRAY_BUFFER: {
                 auto elem = gl_vertex_buffers.find(buffer);
                 if (elem != gl_vertex_buffers.end()) {
