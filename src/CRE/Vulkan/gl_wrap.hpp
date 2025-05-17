@@ -18,6 +18,7 @@
 #include "Sampler.hpp"
 #include "StorageBuffer.hpp"
 #include "UniformBuffer.hpp"
+#include "UnknownBuffer.hpp"
 #include "VertexBuffer.hpp"
 #include "WorkingBuffer.hpp"
 
@@ -265,6 +266,14 @@ namespace Vulkan {
         gl_uniform_buffer();
 
         static gl_uniform_buffer* get(GLuint buffer);
+    };
+
+    struct gl_unknown_buffer {
+        Vulkan::UnknownBuffer unknown_buffer;
+
+        gl_unknown_buffer();
+
+        static gl_unknown_buffer* get(GLuint buffer);
     };
 
     struct gl_vertex_buffer_binding_data {
