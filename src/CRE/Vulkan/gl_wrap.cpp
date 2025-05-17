@@ -3073,6 +3073,55 @@ namespace Vulkan {
             Vulkan::gl_query::get(query)->query.Reset(Vulkan::current_command_buffer);
         }
 
+        {
+            uint32_t binding_count = 0;
+            for (Vulkan::gl_vertex_array_vertex_attrib& i : vk_vao->vertex_attribs)
+                if (i.binding != -1)
+                    binding_count++;
+
+            int32_t count = 0;
+            VkBuffer buffers[Vulkan::MAX_VERTEX_ATTRIB_COUNT] = {};
+            VkDeviceSize offsets[Vulkan::MAX_VERTEX_ATTRIB_COUNT] = {};
+
+            for (Vulkan::gl_vertex_buffer_binding_data& i : vk_vao->vertex_buffer_bindings) {
+                Vulkan::gl_vertex_buffer* vk_vb = Vulkan::gl_vertex_buffer::get(i.buffer);
+                if (vk_vb) {
+                    buffers[count] = vk_vb->working_buffer;
+                    offsets[count] = vk_vb->working_buffer.GetOffset() + i.offset;
+                    count++;
+                }
+            }
+
+            if (use_dummy_vertex_buffer) {
+                buffers[count] = Vulkan::gl_wrap_manager_get_dummy_vertex_buffer();
+                offsets[count] = 0;
+                count++;
+            }
+
+            if (count)
+                vkCmdBindVertexBuffers(Vulkan::current_command_buffer, 0, count, buffers, offsets);
+        }
+
+        if (vk_vao->index_buffer_binding.buffer)
+            switch (type) {
+            case GL_UNSIGNED_SHORT: {
+                Vulkan::gl_index_buffer* vk_ib = Vulkan::gl_index_buffer::get(vk_vao->index_buffer_binding.buffer);
+                if (vk_ib) {
+                    VkBuffer buffer = vk_ib->working_buffer;
+                    VkDeviceSize offset = vk_ib->working_buffer.GetOffset() + (size_t)indices;
+                    vkCmdBindIndexBuffer(Vulkan::current_command_buffer, buffer, offset, VK_INDEX_TYPE_UINT16);
+                }
+            } break;
+            case GL_UNSIGNED_INT: {
+                Vulkan::gl_index_buffer* vk_ib = Vulkan::gl_index_buffer::get(vk_vao->index_buffer_binding.buffer);
+                if (vk_ib) {
+                    VkBuffer buffer = vk_ib->working_buffer;
+                    VkDeviceSize offset = vk_ib->working_buffer.GetOffset() + (size_t)indices;
+                    vkCmdBindIndexBuffer(Vulkan::current_command_buffer, buffer, offset, VK_INDEX_TYPE_UINT32);
+                }
+            } break;
+            }
+
         if (gl_state.draw_framebuffer_binding) {
             Vulkan::gl_framebuffer* vk_fbo = Vulkan::gl_framebuffer::get(gl_state.draw_framebuffer_binding);
             if (!vk_fbo->framebuffer) {
@@ -3154,55 +3203,6 @@ namespace Vulkan {
 
         free_def(descriptor_infos);
         free_def(color_blend_attachments);
-
-        {
-            uint32_t binding_count = 0;
-            for (Vulkan::gl_vertex_array_vertex_attrib& i : vk_vao->vertex_attribs)
-                if (i.binding != -1)
-                    binding_count++;
-
-            int32_t count = 0;
-            VkBuffer buffers[Vulkan::MAX_VERTEX_ATTRIB_COUNT] = {};
-            VkDeviceSize offsets[Vulkan::MAX_VERTEX_ATTRIB_COUNT] = {};
-
-            for (Vulkan::gl_vertex_buffer_binding_data& i : vk_vao->vertex_buffer_bindings) {
-                Vulkan::gl_vertex_buffer* vk_vb = Vulkan::gl_vertex_buffer::get(i.buffer);
-                if (vk_vb) {
-                    buffers[count] = vk_vb->working_buffer;
-                    offsets[count] = vk_vb->working_buffer.GetOffset() + i.offset;
-                    count++;
-                }
-            }
-
-            if (use_dummy_vertex_buffer) {
-                buffers[count] = Vulkan::gl_wrap_manager_get_dummy_vertex_buffer();
-                offsets[count] = 0;
-                count++;
-            }
-
-            if (count)
-                vkCmdBindVertexBuffers(Vulkan::current_command_buffer, 0, count, buffers, offsets);
-        }
-
-        if (vk_vao->index_buffer_binding.buffer)
-            switch (type) {
-            case GL_UNSIGNED_SHORT: {
-                Vulkan::gl_index_buffer* vk_ib = Vulkan::gl_index_buffer::get(vk_vao->index_buffer_binding.buffer);
-                if (vk_ib) {
-                    VkBuffer buffer = vk_ib->working_buffer;
-                    VkDeviceSize offset = vk_ib->working_buffer.GetOffset() + (size_t)indices;
-                    vkCmdBindIndexBuffer(Vulkan::current_command_buffer, buffer, offset, VK_INDEX_TYPE_UINT16);
-                }
-            } break;
-            case GL_UNSIGNED_INT: {
-                Vulkan::gl_index_buffer* vk_ib = Vulkan::gl_index_buffer::get(vk_vao->index_buffer_binding.buffer);
-                if (vk_ib) {
-                    VkBuffer buffer = vk_ib->working_buffer;
-                    VkDeviceSize offset = vk_ib->working_buffer.GetOffset() + (size_t)indices;
-                    vkCmdBindIndexBuffer(Vulkan::current_command_buffer, buffer, offset, VK_INDEX_TYPE_UINT32);
-                }
-            } break;
-            }
 
         vkCmdBindPipeline(Vulkan::current_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
