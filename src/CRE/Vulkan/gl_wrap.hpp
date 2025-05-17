@@ -33,13 +33,13 @@ namespace Vulkan {
     constexpr uint32_t MAX_VERTEX_ATTRIB_COUNT = 16;
 
     enum gl_buffer_flags {
-        GL_BUFFER_FLAG_NONE                = 0x00,
-        GL_BUFFER_FLAG_MAPPED              = 0x01,
-        GL_BUFFER_FLAG_IMMUTABLE_STORAGE   = 0x02,
-        GL_BUFFER_FLAG_UPDATE_DATA         = 0x04,
-        GL_BUFFER_FLAG_MAP_READ_BIT        = 0x08,
-        GL_BUFFER_FLAG_MAP_WRITE_BIT       = 0x10,
-        GL_BUFFER_FLAG_DYNAMIC_STORAGE_BIT = 0x20,
+        GL_BUFFER_FLAG_NONE                = (0 << 0u),
+        GL_BUFFER_FLAG_MAPPED              = (1 << 0u),
+        GL_BUFFER_FLAG_IMMUTABLE_STORAGE   = (1 << 1u),
+        GL_BUFFER_FLAG_UPDATE_DATA         = (1 << 2u),
+        GL_BUFFER_FLAG_MAP_READ_BIT        = (1 << 3u),
+        GL_BUFFER_FLAG_MAP_WRITE_BIT       = (1 << 4u),
+        GL_BUFFER_FLAG_DYNAMIC_STORAGE_BIT = (1 << 5u),
     };
 
     enum gl_texture_flags {
@@ -54,6 +54,9 @@ namespace Vulkan {
 
         gl_buffer();
         ~gl_buffer();
+
+        void set_buffer(const VkDeviceSize size, const VkDeviceSize alignment,
+            Vulkan::Buffer& buffer, bool& copy_working_buffer, Vulkan::WorkingBuffer& working_buffer);
 
         gl_buffer& operator=(const gl_buffer& other);
 

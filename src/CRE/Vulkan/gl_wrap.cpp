@@ -264,6 +264,24 @@ namespace Vulkan {
         return *this;
     }
 
+    void gl_buffer::set_buffer(const VkDeviceSize size, const VkDeviceSize alignment,
+        Vulkan::Buffer& buffer, bool& copy_working_buffer, Vulkan::WorkingBuffer& working_buffer) {
+        if (flags & Vulkan::GL_BUFFER_FLAG_UPDATE_DATA) {
+            const uint64_t hash = hash_xxh3_64bits(data.data(), size);
+            if (copy_working_buffer && working_buffer.FindBuffer(hash, size))
+                return;
+
+            Vulkan::Buffer dynamic_buffer = Vulkan::manager_get_dynamic_buffer(size, alignment);
+            dynamic_buffer.WriteMemory(dynamic_buffer.GetOffset(), size, data.data());
+            enum_and(flags, ~Vulkan::GL_BUFFER_FLAG_UPDATE_DATA);
+
+            working_buffer.AddBuffer(hash, dynamic_buffer);
+            copy_working_buffer = true;
+        }
+        else if (!copy_working_buffer)
+            working_buffer.SetBuffer(buffer);
+    }
+
     gl_buffer* gl_buffer::get(GLuint buffer) {
         if (!buffer)
             return 0;
@@ -484,21 +502,8 @@ namespace Vulkan {
         if (!vk_ib->index_buffer || vk_ib->index_buffer.GetSize() < size)
             vk_ib->index_buffer.Create(Vulkan::current_allocator, size);
 
-        if (elem_buffer->second.flags & Vulkan::GL_BUFFER_FLAG_UPDATE_DATA) {
-            const uint64_t hash = hash_xxh3_64bits(vk_buf->data.data(), size);
-            if (vk_ib->copy_working_buffer && vk_ib->working_buffer.FindBuffer(hash, size))
-                return vk_ib;
-
-            Vulkan::Buffer dynamic_buffer = Vulkan::manager_get_dynamic_buffer(size, alignment);
-            dynamic_buffer.WriteMemory(dynamic_buffer.GetOffset(), size, vk_buf->data.data());
-            enum_and(elem_buffer->second.flags, ~Vulkan::GL_BUFFER_FLAG_UPDATE_DATA);
-
-            vk_ib->working_buffer.AddBuffer(hash, dynamic_buffer);
-            vk_ib->copy_working_buffer = true;
-        }
-        else if (!vk_ib->copy_working_buffer)
-            vk_ib->working_buffer.SetBuffer(vk_ib->index_buffer);
-
+        vk_buf->set_buffer(size, alignment,
+            vk_ib->index_buffer, vk_ib->copy_working_buffer, vk_ib->working_buffer);
         return vk_ib;
     }
 
@@ -888,14 +893,14 @@ namespace Vulkan {
         element_array_buffer_binding = 0;
 
         uniform_buffer_binding = 0;
-        for (GLuint i = 0; i < 14; i++) {
+        for (GLuint i = 0; i < Vulkan::MAX_SHADER_STORAGE_BUFFER_BINDINGS; i++) {
             uniform_buffer_bindings[i] = 0;
             uniform_buffer_offsets[i] = 0;
             uniform_buffer_sizes[i] = 0;
         }
 
         shader_storage_buffer_binding = 0;
-        for (GLuint i = 0; i < 14; i++) {
+        for (GLuint i = 0; i < Vulkan::MAX_UNIFORM_BUFFER_BINDINGS; i++) {
             shader_storage_buffer_bindings[i] = 0;
             shader_storage_buffer_offsets[i] = 0;
             shader_storage_buffer_sizes[i] = 0;
@@ -966,21 +971,8 @@ namespace Vulkan {
         if (!vk_sb->storage_buffer || vk_sb->storage_buffer.GetSize() < size)
             vk_sb->storage_buffer.Create(Vulkan::current_allocator, size);
 
-        if (elem_buffer->second.flags & Vulkan::GL_BUFFER_FLAG_UPDATE_DATA) {
-            const uint64_t hash = hash_xxh3_64bits(vk_buf->data.data(), size);
-            if (vk_sb->copy_working_buffer && vk_sb->working_buffer.FindBuffer(hash, size))
-                return vk_sb;
-
-            Vulkan::Buffer dynamic_buffer = Vulkan::manager_get_dynamic_buffer(size, alignment);
-            dynamic_buffer.WriteMemory(dynamic_buffer.GetOffset(), size, vk_buf->data.data());
-            enum_and(elem_buffer->second.flags, ~Vulkan::GL_BUFFER_FLAG_UPDATE_DATA);
-
-            vk_sb->working_buffer.AddBuffer(hash, dynamic_buffer);
-            vk_sb->copy_working_buffer = true;
-        }
-        else if (!vk_sb->copy_working_buffer)
-            vk_sb->working_buffer.SetBuffer(vk_sb->storage_buffer);
-
+        vk_buf->set_buffer(size, alignment,
+            vk_sb->storage_buffer, vk_sb->copy_working_buffer, vk_sb->working_buffer);
         return vk_sb;
     }
 
@@ -1159,21 +1151,8 @@ namespace Vulkan {
         if (!vk_ub->uniform_buffer || vk_ub->uniform_buffer.GetSize() < size)
             vk_ub->uniform_buffer.Create(Vulkan::current_allocator, size);
 
-        if (elem_buffer->second.flags & Vulkan::GL_BUFFER_FLAG_UPDATE_DATA) {
-            const uint64_t hash = hash_xxh3_64bits(vk_buf->data.data(), size);
-            if (vk_ub->copy_working_buffer && vk_ub->working_buffer.FindBuffer(hash, size))
-                return vk_ub;
-
-            Vulkan::Buffer dynamic_buffer = Vulkan::manager_get_dynamic_buffer(size, alignment);
-            dynamic_buffer.WriteMemory(dynamic_buffer.GetOffset(), size, vk_buf->data.data());
-            enum_and(elem_buffer->second.flags, ~Vulkan::GL_BUFFER_FLAG_UPDATE_DATA);
-
-            vk_ub->working_buffer.AddBuffer(hash, dynamic_buffer);
-            vk_ub->copy_working_buffer = true;
-        }
-        else if (!vk_ub->copy_working_buffer)
-            vk_ub->working_buffer.SetBuffer(vk_ub->uniform_buffer);
-
+        vk_buf->set_buffer(size, alignment,
+            vk_ub->uniform_buffer, vk_ub->copy_working_buffer, vk_ub->working_buffer);
         return vk_ub;
     }
 
@@ -1305,21 +1284,8 @@ namespace Vulkan {
         if (!vk_vb->vertex_buffer || vk_vb->vertex_buffer.GetSize() < size)
             vk_vb->vertex_buffer.Create(Vulkan::current_allocator, size);
 
-        if (elem_buffer->second.flags & Vulkan::GL_BUFFER_FLAG_UPDATE_DATA) {
-            const uint64_t hash = hash_xxh3_64bits(vk_buf->data.data(), size);
-            if (vk_vb->copy_working_buffer && vk_vb->working_buffer.FindBuffer(hash, size))
-                return vk_vb;
-
-            Vulkan::Buffer dynamic_buffer = Vulkan::manager_get_dynamic_buffer(size, alignment);
-            dynamic_buffer.WriteMemory(dynamic_buffer.GetOffset(), size, vk_buf->data.data());
-            enum_and(elem_buffer->second.flags, ~Vulkan::GL_BUFFER_FLAG_UPDATE_DATA);
-
-            vk_vb->working_buffer.AddBuffer(hash, dynamic_buffer);
-            vk_vb->copy_working_buffer = true;
-        }
-        else if (!vk_vb->copy_working_buffer)
-            vk_vb->working_buffer.SetBuffer(vk_vb->vertex_buffer);
-
+        vk_buf->set_buffer(size, alignment,
+            vk_vb->vertex_buffer, vk_vb->copy_working_buffer, vk_vb->working_buffer);
         return vk_vb;
     }
 
@@ -2011,7 +1977,7 @@ namespace Vulkan {
             }
         }
         return *this;
-    };
+    }
 
     gl_texture_data::gl_texture_data() : target(), internal_format(), width(), height(), level_count(), alive_time() {
 
@@ -2320,7 +2286,7 @@ namespace Vulkan {
                 barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
                 barrier.pNext = 0;
                 barrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
-                barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+                barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
                 barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
                 barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
                 barrier.buffer = dst_buffer;
@@ -2348,7 +2314,7 @@ namespace Vulkan {
                 barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
                 barrier.pNext = 0;
                 barrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
-                barrier.dstAccessMask = VK_ACCESS_UNIFORM_READ_BIT;
+                barrier.dstAccessMask = VK_ACCESS_UNIFORM_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
                 barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
                 barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
                 barrier.buffer = dst_buffer;
@@ -2394,8 +2360,7 @@ namespace Vulkan {
                 VK_PIPELINE_STAGE_HOST_BIT,
                 VK_PIPELINE_STAGE_VERTEX_INPUT_BIT
                 | VK_PIPELINE_STAGE_VERTEX_SHADER_BIT
-                | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
-                | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, 0,
+                | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, 0,
                 (uint32_t)buffer_memory_barriers.size(), buffer_memory_barriers.data(), 0, 0);
 
         if (gl_texture_datas.size()) {
@@ -3798,7 +3763,7 @@ namespace Vulkan {
         default:
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
             break;
-        };
+        }
     }
 
     static void gl_wrap_manager_buffer_storage(
@@ -3823,7 +3788,7 @@ namespace Vulkan {
         default:
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
             break;
-        };
+        }
     }
 
     static void gl_wrap_manager_buffer_sub_data(
@@ -3848,7 +3813,7 @@ namespace Vulkan {
         default:
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
             break;
-        };
+        }
     }
 
     static GLenum gl_wrap_manager_check_framebuffer_status(GLenum target) {
@@ -5681,7 +5646,7 @@ namespace Vulkan {
         default:
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
             return 0;
-        };
+        }
     }
 
     static void* gl_wrap_manager_map_named_buffer(GLuint buffer, GLenum access) {
@@ -6677,7 +6642,7 @@ namespace Vulkan {
         default:
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
             return GL_FALSE;
-        };
+        }
     }
 
     static GLboolean gl_wrap_manager_unmap_named_buffer(GLuint buffer) {
