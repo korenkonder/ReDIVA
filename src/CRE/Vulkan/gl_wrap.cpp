@@ -18,6 +18,8 @@
 #include <list>
 #include <unordered_map>
 
+extern bool cpu_caps_avx;
+
 extern VkRenderPassBeginInfo vulkan_swapchain_render_pass_info;
 
 namespace Vulkan {
@@ -278,6 +280,15 @@ namespace Vulkan {
 
             working_buffer.AddBuffer(hash, dynamic_buffer);
             copy_working_buffer = true;
+        }
+        else if (flags & Vulkan::GL_BUFFER_FLAG_CLEAR_DATA) {
+            Vulkan::end_render_pass(Vulkan::current_command_buffer);
+
+            vkCmdFillBuffer(Vulkan::current_command_buffer, buffer, 0, size, 0);
+            enum_and(flags, ~Vulkan::GL_BUFFER_FLAG_CLEAR_DATA);
+
+            working_buffer.SetBuffer(buffer);
+            copy_working_buffer = false;
         }
         else if (!copy_working_buffer)
             working_buffer.SetBuffer(buffer);
@@ -5912,6 +5923,45 @@ namespace Vulkan {
         return vk_buf->data.data();
     }
 
+    inline static bool check_for_zero(const uint8_t* data, const size_t size) {
+        const uint8_t* d = data;
+        size_t s = size;
+        if (cpu_caps_avx && s >= 0x20) {
+            __m256 zero = {};
+            size_t s32 = s / 0x20;
+            while (s32)
+                if (_mm256_movemask_ps(_mm256_cmp_ps(
+                    _mm256_loadu_ps((const float*)d), zero, _CMP_EQ_OS)) != 0xFF)
+                    return false;
+                else {
+                    d += 0x20;
+                    s -= 0x20;
+                    s32--;
+                }
+        }
+
+        __m128 zero = {};
+        size_t s16 = s / 0x10;
+        while (s16)
+            if (_mm_movemask_ps(_mm_cmpeq_ps(
+                _mm_loadu_ps((const float*)d), zero)) != 0x0F)
+                return false;
+            else {
+                d += 0x10;
+                s -= 0x10;
+                s16--;
+            }
+
+        while (s)
+            if (*d)
+                return false;
+            else {
+                d++;
+                s--;
+            }
+        return true;
+    }
+
     static void gl_wrap_manager_named_buffer_data(
         GLuint buffer, GLsizeiptr size, const void* data, GLenum usage) {
         switch (usage) {
@@ -5949,7 +5999,11 @@ namespace Vulkan {
             vk_buf->data.assign((const uint8_t*)data, (const uint8_t*)data + size);
         else
             vk_buf->data.assign(size, 0);
-        enum_or(vk_buf->flags, Vulkan::GL_BUFFER_FLAG_WRITE_DATA);
+
+        if (check_for_zero(vk_buf->data.data(), vk_buf->data.size()))
+            enum_or(vk_buf->flags, Vulkan::GL_BUFFER_FLAG_CLEAR_DATA);
+        else
+            enum_or(vk_buf->flags, Vulkan::GL_BUFFER_FLAG_WRITE_DATA);
     }
 
     static void gl_wrap_manager_named_buffer_storage(
@@ -5981,7 +6035,11 @@ namespace Vulkan {
             vk_buf->data.assign((const uint8_t*)data, (const uint8_t*)data + size);
         else
             vk_buf->data.assign(size, 0);
-        enum_or(vk_buf->flags, Vulkan::GL_BUFFER_FLAG_WRITE_DATA);
+
+        if (check_for_zero(vk_buf->data.data(), vk_buf->data.size()))
+            enum_or(vk_buf->flags, Vulkan::GL_BUFFER_FLAG_CLEAR_DATA);
+        else
+            enum_or(vk_buf->flags, Vulkan::GL_BUFFER_FLAG_WRITE_DATA);
     }
 
     static void gl_wrap_manager_named_buffer_sub_data(
@@ -5999,7 +6057,11 @@ namespace Vulkan {
         }
 
         memcpy(vk_buf->data.data() + offset, data, size);
-        enum_or(vk_buf->flags, Vulkan::GL_BUFFER_FLAG_WRITE_DATA);
+
+        if (check_for_zero(vk_buf->data.data(), vk_buf->data.size()))
+            enum_or(vk_buf->flags, Vulkan::GL_BUFFER_FLAG_CLEAR_DATA);
+        else
+            enum_or(vk_buf->flags, Vulkan::GL_BUFFER_FLAG_WRITE_DATA);
     }
 
     static void gl_wrap_manager_pixel_store(GLenum pname, GLint param) {
@@ -6884,6 +6946,15 @@ namespace Vulkan {
         if (!vk_buf || !(vk_buf->flags & Vulkan::GL_BUFFER_FLAG_MAPPED)) {
             gl_wrap_manager_ptr->push_error(GL_INVALID_OPERATION);
             return GL_FALSE;
+        }
+
+        if (vk_buf->flags & Vulkan::GL_BUFFER_FLAG_WRITE_DATA) {
+            enum_and(vk_buf->flags, ~Vulkan::GL_BUFFER_FLAG_CLEAR_DATA);
+
+            if (check_for_zero(vk_buf->data.data(), vk_buf->data.size()))
+                enum_or(vk_buf->flags, Vulkan::GL_BUFFER_FLAG_CLEAR_DATA);
+            else
+                enum_or(vk_buf->flags, Vulkan::GL_BUFFER_FLAG_WRITE_DATA);
         }
 
         enum_and(vk_buf->flags, ~Vulkan::GL_BUFFER_FLAG_MAPPED);
