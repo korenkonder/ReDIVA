@@ -88,8 +88,10 @@ namespace Vulkan {
             };
         case VK_IMAGE_LAYOUT_GENERAL:
             return {
-                0,
-                VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT
+                VK_ACCESS_SHADER_READ_BIT
+                | VK_ACCESS_SHADER_WRITE_BIT,
+                VK_PIPELINE_STAGE_VERTEX_SHADER_BIT
+                | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
             };
         case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
             return {

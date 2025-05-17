@@ -24,6 +24,24 @@ enum shader_description_type {
     SHADER_DESCRIPTION_END = -1,
 };
 
+enum shader_description_storage {
+    SHADER_DESCRIPTION_STORAGE_SIZE_MASK   = 0xFFFFFFF << 0,
+
+    SHADER_DESCRIPTION_STORAGE_READ_ONLY   = 0x00 << 28,
+    SHADER_DESCRIPTION_STORAGE_WRITE_ONLY  = 0x01 << 28,
+    SHADER_DESCRIPTION_STORAGE_READ_WRITE  = 0x02 << 28,
+    SHADER_DESCRIPTION_STORAGE_ACCESS_MASK = 0x03 << 28,
+};
+
+enum shader_description_uniform {
+    SHADER_DESCRIPTION_UNIFORM_SIZE_MASK   = 0x1FFFFF << 0,
+
+    SHADER_DESCRIPTION_UNIFORM_READ_ONLY   = 0x00 << 21,
+    SHADER_DESCRIPTION_UNIFORM_WRITE_ONLY  = 0x01 << 21,
+    SHADER_DESCRIPTION_UNIFORM_READ_WRITE  = 0x02 << 21,
+    SHADER_DESCRIPTION_UNIFORM_ACCESS_MASK = 0x03 << 21,
+};
+
 struct shader_description {
     shader_description_type type;
     int32_t binding;
