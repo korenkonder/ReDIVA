@@ -526,6 +526,99 @@ namespace Vulkan {
         return false;
     }
 
+    inline static void populate_layout_bindings(const shader_table* shader,
+        const uint32_t* unival_arr, const shader_description* _desc, VkShaderStageFlags stage_flags,
+        VkDescriptorSetLayoutBinding* sampler_bindings, VkDescriptorSetLayoutBinding*& sampler_binding,
+        VkDescriptorSetLayoutBinding* uniform_bindings, VkDescriptorSetLayoutBinding*& uniform_binding,
+        VkDescriptorSetLayoutBinding* storage_bindings, VkDescriptorSetLayoutBinding*& storage_binding,
+        VkPushConstantRange* push_constant_ranges, VkPushConstantRange*& push_constant_range) {
+        while (_desc->type != SHADER_DESCRIPTION_NONE && _desc->type != SHADER_DESCRIPTION_END
+            && _desc->type != SHADER_DESCRIPTION_MAX) {
+            const shader_description* desc = _desc++;
+            if (!get_use_binding(desc->use_uniform, shader, unival_arr))
+                continue;
+
+            bool found = false;
+            switch (desc->type) {
+            case SHADER_DESCRIPTION_SAMPLER: {
+                uint32_t sampler_count = (uint32_t)(sampler_binding - sampler_bindings);
+                for (uint32_t i = 0; i < sampler_count; i++)
+                    if (sampler_bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+                        && sampler_bindings[i].binding == desc->binding) {
+                        sampler_bindings[i].stageFlags |= stage_flags;
+                        found = true;
+                        break;
+                    }
+
+                if (!found) {
+                    sampler_binding->binding = desc->binding;
+                    sampler_binding->descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+                    sampler_binding->descriptorCount = 1;
+                    sampler_binding->stageFlags = stage_flags;
+                    sampler_binding->pImmutableSamplers = 0;
+                    sampler_binding++;
+                }
+            } break;
+            case SHADER_DESCRIPTION_UNIFORM: {
+                if (desc->binding == -1) {
+                    uint32_t push_constant_range_count = (uint32_t)(push_constant_range - push_constant_ranges);
+                    for (uint32_t i = 0; i < push_constant_range_count; i++)
+                        if (push_constant_ranges[i].size == (desc->data & SHADER_DESCRIPTION_UNIFORM_SIZE_MASK)) {
+                            push_constant_ranges[i].stageFlags |= stage_flags;
+                            found = true;
+                            break;
+                        }
+
+                    if (!found && !push_constant_range_count) {
+                        push_constant_range->stageFlags = stage_flags;
+                        push_constant_range->offset = 0;
+                        push_constant_range->size = desc->data & SHADER_DESCRIPTION_UNIFORM_SIZE_MASK;
+                        push_constant_range++;
+                    }
+                    break;
+                }
+
+                uint32_t uniform_count = (uint32_t)(uniform_binding - uniform_bindings);
+                for (uint32_t i = 0; i < uniform_count; i++)
+                    if (uniform_bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC
+                        && uniform_bindings[i].binding == desc->binding) {
+                        uniform_bindings[i].stageFlags |= stage_flags;
+                        found = true;
+                        break;
+                    }
+
+                if (!found) {
+                    uniform_binding->binding = desc->binding;
+                    uniform_binding->descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+                    uniform_binding->descriptorCount = 1;
+                    uniform_binding->stageFlags = stage_flags;
+                    uniform_binding->pImmutableSamplers = 0;
+                    uniform_binding++;
+                }
+            } break;
+            case SHADER_DESCRIPTION_STORAGE: {
+                uint32_t storage_count = (uint32_t)(storage_binding - storage_bindings);
+                for (uint32_t i = 0; i < storage_count; i++)
+                    if (storage_bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC
+                        && storage_bindings[i].binding == desc->binding) {
+                        storage_bindings[i].stageFlags |= stage_flags;
+                        found = true;
+                        break;
+                    }
+
+                if (!found) {
+                    storage_binding->binding = desc->binding;
+                    storage_binding->descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
+                    storage_binding->descriptorCount = 1;
+                    storage_binding->stageFlags = stage_flags;
+                    storage_binding->pImmutableSamplers = 0;
+                    storage_binding++;
+                }
+            } break;
+            }
+        }
+    }
+
     void gl_program::init() {
         sampler_count = 0;
         uniform_count = 0;
@@ -593,11 +686,11 @@ namespace Vulkan {
         const uint32_t uniform_max_count = uniform_count;
         const uint32_t storage_max_count = storage_count;
 
-        VkDescriptorSetLayoutBinding* bindings = force_malloc<VkDescriptorSetLayoutBinding>(
-            (size_t)sampler_max_count + uniform_max_count + storage_max_count + push_constant_range_count);
+        VkDescriptorSetLayoutBinding* bindings = force_malloc<VkDescriptorSetLayoutBinding>((size_t)sampler_max_count
+            + uniform_max_count + storage_max_count + push_constant_range_count);
         VkDescriptorSetLayoutBinding* sampler_bindings = bindings;
         VkDescriptorSetLayoutBinding* uniform_bindings = sampler_bindings + sampler_max_count;
-        VkDescriptorSetLayoutBinding* storage_bindings = bindings + sampler_max_count + uniform_max_count;
+        VkDescriptorSetLayoutBinding* storage_bindings = uniform_bindings + uniform_max_count;
         VkPushConstantRange* push_constant_ranges = (VkPushConstantRange*)(bindings
             + sampler_max_count + uniform_max_count + storage_max_count);
         VkDescriptorSetLayoutBinding* sampler_binding = sampler_bindings;
@@ -605,176 +698,14 @@ namespace Vulkan {
         VkDescriptorSetLayoutBinding* storage_binding = storage_bindings;
         VkPushConstantRange* push_constant_range = push_constant_ranges;
 
-        vp_desc = sub_shader->vp_desc;
-        while (vp_desc->type != SHADER_DESCRIPTION_NONE && vp_desc->type != SHADER_DESCRIPTION_END
-            && vp_desc->type != SHADER_DESCRIPTION_MAX) {
-            const shader_description* desc = vp_desc++;
-            if (!get_use_binding(desc->use_uniform, shader, unival_arr))
-                continue;
-
-            bool found = false;
-            switch (desc->type) {
-            case SHADER_DESCRIPTION_SAMPLER:
-                sampler_count = (uint32_t)(sampler_binding - sampler_bindings);
-                for (uint32_t i = 0; i < sampler_count; i++)
-                    if (sampler_bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-                        && sampler_bindings[i].binding == desc->binding) {
-                        found = true;
-                        break;
-                    }
-
-                if (!found) {
-                    sampler_binding->binding = desc->binding;
-                    sampler_binding->descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-                    sampler_binding->descriptorCount = 1;
-                    sampler_binding->stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-                    sampler_binding->pImmutableSamplers = 0;
-                    sampler_binding++;
-                }
-                break;
-            case SHADER_DESCRIPTION_UNIFORM:
-                if (desc->binding == -1) {
-                    push_constant_range_count = (uint32_t)(push_constant_range - push_constant_ranges);
-                    for (uint32_t i = 0; i < push_constant_range_count; i++)
-                        if (push_constant_ranges[i].size == desc->data) {
-                            push_constant_ranges[i].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-                            found = true;
-                            break;
-                        }
-
-                    if (!found && !push_constant_range_count) {
-                        push_constant_range->stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-                        push_constant_range->offset = 0;
-                        push_constant_range->size = desc->data;
-                        push_constant_range++;
-                    }
-                    break;
-                }
-
-                uniform_count = (uint32_t)(uniform_binding - uniform_bindings);
-                for (uint32_t i = 0; i < uniform_count; i++)
-                    if (uniform_bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC
-                        && uniform_bindings[i].binding == desc->binding) {
-                        found = true;
-                        break;
-                    }
-
-                if (!found) {
-                    uniform_binding->binding = desc->binding;
-                    uniform_binding->descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-                    uniform_binding->descriptorCount = 1;
-                    uniform_binding->stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-                    uniform_binding->pImmutableSamplers = 0;
-                    uniform_binding++;
-                }
-                break;
-            case SHADER_DESCRIPTION_STORAGE:
-                storage_count = (uint32_t)(storage_binding - storage_bindings);
-                for (uint32_t i = 0; i < storage_count; i++)
-                    if (storage_bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC
-                        && storage_bindings[i].binding == desc->binding) {
-                        found = true;
-                        break;
-                    }
-
-                if (!found) {
-                    storage_binding->binding = desc->binding;
-                    storage_binding->descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
-                    storage_binding->descriptorCount = 1;
-                    storage_binding->stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-                    storage_binding->pImmutableSamplers = 0;
-                    storage_binding++;
-                }
-                break;
-            }
-        }
-
-        fp_desc = sub_shader->fp_desc;
-        while (fp_desc->type != SHADER_DESCRIPTION_NONE && fp_desc->type != SHADER_DESCRIPTION_END
-            && fp_desc->type != SHADER_DESCRIPTION_MAX) {
-            const shader_description* desc = fp_desc++;
-            if (!get_use_binding(desc->use_uniform, shader, unival_arr))
-                continue;
-
-            bool found = false;
-            switch (desc->type) {
-            case SHADER_DESCRIPTION_SAMPLER:
-                sampler_count = (uint32_t)(sampler_binding - sampler_bindings);
-                for (uint32_t i = 0; i < sampler_count; i++)
-                    if (sampler_bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-                        && sampler_bindings[i].binding == desc->binding) {
-                        sampler_bindings[i].stageFlags |= VK_SHADER_STAGE_FRAGMENT_BIT;
-                        found = true;
-                        break;
-                    }
-
-                if (!found) {
-                    sampler_binding->descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-                    sampler_binding->binding = desc->binding;
-                    sampler_binding->descriptorCount = 1;
-                    sampler_binding->stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-                    sampler_binding->pImmutableSamplers = 0;
-                    sampler_binding++;
-                }
-                break;
-            case SHADER_DESCRIPTION_UNIFORM:
-                if (desc->binding == -1) {
-                    push_constant_range_count = (uint32_t)(push_constant_range - push_constant_ranges);
-                    for (uint32_t i = 0; i < push_constant_range_count; i++)
-                        if (push_constant_ranges[i].size == desc->data) {
-                            push_constant_ranges[i].stageFlags |= VK_SHADER_STAGE_FRAGMENT_BIT;
-                            found = true;
-                            break;
-                        }
-
-                    if (!found && !push_constant_range_count) {
-                        push_constant_range->stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-                        push_constant_range->offset = 0;
-                        push_constant_range->size = desc->data;
-                        push_constant_range++;
-                    }
-                    break;
-                }
-
-                uniform_count = (uint32_t)(uniform_binding - uniform_bindings);
-                for (uint32_t i = 0; i < uniform_count; i++)
-                    if (uniform_bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC
-                        && uniform_bindings[i].binding == desc->binding) {
-                        uniform_bindings[i].stageFlags |= VK_SHADER_STAGE_FRAGMENT_BIT;
-                        found = true;
-                        break;
-                    }
-
-                if (!found) {
-                    uniform_binding->descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-                    uniform_binding->binding = desc->binding;
-                    uniform_binding->descriptorCount = 1;
-                    uniform_binding->stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-                    uniform_binding->pImmutableSamplers = 0;
-                    uniform_binding++;
-                }
-                break;
-            case SHADER_DESCRIPTION_STORAGE:
-                storage_count = (uint32_t)(storage_binding - storage_bindings);
-                for (uint32_t i = 0; i < storage_count; i++)
-                    if (storage_bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC
-                        && storage_bindings[i].binding == desc->binding) {
-                        storage_bindings[i].stageFlags |= VK_SHADER_STAGE_FRAGMENT_BIT;
-                        found = true;
-                        break;
-                    }
-
-                if (!found) {
-                    storage_binding->descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
-                    storage_binding->binding = desc->binding;
-                    storage_binding->descriptorCount = 1;
-                    storage_binding->stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-                    storage_binding->pImmutableSamplers = 0;
-                    storage_binding++;
-                }
-                break;
-            }
-        }
+        populate_layout_bindings(shader, unival_arr, sub_shader->vp_desc,
+            VK_SHADER_STAGE_VERTEX_BIT, sampler_bindings, sampler_binding,
+            uniform_bindings, uniform_binding, storage_bindings, storage_binding,
+            push_constant_ranges, push_constant_range);
+        populate_layout_bindings(shader, unival_arr, sub_shader->fp_desc,
+            VK_SHADER_STAGE_FRAGMENT_BIT, sampler_bindings, sampler_binding,
+            uniform_bindings, uniform_binding, storage_bindings, storage_binding,
+            push_constant_ranges, push_constant_range);
 
         sampler_count = (uint32_t)(sampler_binding - sampler_bindings);
         uniform_count = (uint32_t)(uniform_binding - uniform_bindings);
