@@ -37,10 +37,11 @@ namespace Vulkan {
         GL_BUFFER_FLAG_NONE                = (0 << 0u),
         GL_BUFFER_FLAG_MAPPED              = (1 << 0u),
         GL_BUFFER_FLAG_IMMUTABLE_STORAGE   = (1 << 1u),
-        GL_BUFFER_FLAG_UPDATE_DATA         = (1 << 2u),
-        GL_BUFFER_FLAG_MAP_READ_BIT        = (1 << 3u),
-        GL_BUFFER_FLAG_MAP_WRITE_BIT       = (1 << 4u),
-        GL_BUFFER_FLAG_DYNAMIC_STORAGE_BIT = (1 << 5u),
+        GL_BUFFER_FLAG_READ_DATA           = (1 << 2u),
+        GL_BUFFER_FLAG_WRITE_DATA          = (1 << 3u),
+        GL_BUFFER_FLAG_MAP_READ_BIT        = (1 << 4u),
+        GL_BUFFER_FLAG_MAP_WRITE_BIT       = (1 << 5u),
+        GL_BUFFER_FLAG_DYNAMIC_STORAGE_BIT = (1 << 6u),
     };
 
     enum gl_texture_flags {
@@ -220,6 +221,8 @@ namespace Vulkan {
     struct gl_storage_buffer {
         Vulkan::StorageBuffer storage_buffer;
         bool copy_working_buffer;
+        bool shader_write;
+        VkPipelineStageFlags shader_write_flags;
         Vulkan::WorkingBuffer working_buffer;
 
         gl_storage_buffer();
@@ -261,6 +264,8 @@ namespace Vulkan {
     struct gl_uniform_buffer {
         Vulkan::UniformBuffer uniform_buffer;
         bool copy_working_buffer;
+        bool shader_write;
+        VkPipelineStageFlags shader_write_flags;
         Vulkan::WorkingBuffer working_buffer;
 
         gl_uniform_buffer();

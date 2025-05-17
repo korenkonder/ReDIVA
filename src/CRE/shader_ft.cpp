@@ -708,17 +708,22 @@ static const int32_t transparency_fpt_unival_max[] = {
     { SHADER_DESCRIPTION_SAMPLER, 14, 0, U_INVALID, }
 
 #define SHADER_DESCRIPTION_COMMON_SCENE \
-    { SHADER_DESCRIPTION_UNIFORM, -1, sizeof(render_data::obj_shader_data), U_INVALID, }, \
-    { SHADER_DESCRIPTION_UNIFORM, 1, sizeof(render_data::obj_scene_data), U_INVALID, }, \
-    { SHADER_DESCRIPTION_UNIFORM, 2, sizeof(render_data::obj_batch_data), U_INVALID, }
+    { SHADER_DESCRIPTION_UNIFORM, -1, SHADER_DESCRIPTION_UNIFORM_READ_ONLY \
+        | sizeof(render_data::obj_shader_data), U_INVALID, }, \
+    { SHADER_DESCRIPTION_UNIFORM, 1, SHADER_DESCRIPTION_UNIFORM_READ_ONLY \
+        | sizeof(render_data::obj_scene_data), U_INVALID, }, \
+    { SHADER_DESCRIPTION_UNIFORM, 2, SHADER_DESCRIPTION_UNIFORM_READ_ONLY \
+        | sizeof(render_data::obj_batch_data), U_INVALID, }
 
 #define SHADER_DESCRIPTION_COMMON_SKINNING \
     { SHADER_DESCRIPTION_VERTEX_INPUT,  1, 4, U_SKINNING, }, \
     { SHADER_DESCRIPTION_VERTEX_INPUT, 15, 4, U_SKINNING, }, \
-    { SHADER_DESCRIPTION_STORAGE, 0, sizeof(render_data::obj_skinning_data), U_SKINNING, }
+    { SHADER_DESCRIPTION_STORAGE, 0, SHADER_DESCRIPTION_STORAGE_READ_ONLY \
+        | sizeof(render_data::obj_skinning_data), U_SKINNING, }
 
 #define SHADER_DESCRIPTION_COMMON_QUAD \
-    { SHADER_DESCRIPTION_UNIFORM, 0, sizeof(quad_shader_data), U_INVALID, }
+    { SHADER_DESCRIPTION_UNIFORM, 0, SHADER_DESCRIPTION_UNIFORM_READ_ONLY \
+        | sizeof(quad_shader_data), U_INVALID, }
 
 static const shader_description blinn_per_vert_vpt_desc[] = {
     { SHADER_DESCRIPTION_VERTEX_INPUT, 0, 3, U_INVALID, },
@@ -921,7 +926,8 @@ static const shader_description sss_filter_gauss_2d_vpt_desc[] = {
 static const shader_description sss_filter_gauss_2d_fpt_desc[] = {
     { SHADER_DESCRIPTION_SAMPLER, 0, 0, U_INVALID, },
     SHADER_DESCRIPTION_COMMON_QUAD,
-    { SHADER_DESCRIPTION_UNIFORM, 1, sizeof(sss_filter_gaussian_coef_shader_data), U_INVALID, },
+    { SHADER_DESCRIPTION_UNIFORM, 1, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | sizeof(sss_filter_gaussian_coef_shader_data), U_INVALID, },
     { SHADER_DESCRIPTION_FRAGMENT_OUTPUT, 0, 4, U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
@@ -1075,7 +1081,8 @@ static const shader_description glass_eye_vpt_desc[] = {
     { SHADER_DESCRIPTION_VERTEX_INPUT, 0, 3, U_INVALID, },
     { SHADER_DESCRIPTION_VERTEX_INPUT, 2, 3, U_INVALID, },
     { SHADER_DESCRIPTION_VERTEX_INPUT, 8, 2, U_INVALID, },
-    { SHADER_DESCRIPTION_UNIFORM, 3, sizeof(glass_eye_batch_shader_data), U_INVALID, },
+    { SHADER_DESCRIPTION_UNIFORM, 3, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | sizeof(glass_eye_batch_shader_data), U_INVALID, },
     SHADER_DESCRIPTION_EFFECT_TEXTURE_SAMPLER,
     SHADER_DESCRIPTION_COMMON_SCENE,
     SHADER_DESCRIPTION_COMMON_SKINNING,
@@ -1092,43 +1099,50 @@ static const shader_description glass_eye_fpt_desc[] = {
     { SHADER_DESCRIPTION_SAMPLER, 16, 0, U_INVALID, },
     { SHADER_DESCRIPTION_SAMPLER, 19, 0, U_INVALID, },
     SHADER_DESCRIPTION_COMMON_SCENE,
-    { SHADER_DESCRIPTION_UNIFORM, 3, sizeof(glass_eye_batch_shader_data), U_INVALID, },
+    { SHADER_DESCRIPTION_UNIFORM, 3, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | sizeof(glass_eye_batch_shader_data), U_INVALID, },
     { SHADER_DESCRIPTION_FRAGMENT_OUTPUT, 0, 4, U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
 
 static const shader_description esm_gauss_vpt_desc[] = {
-    { SHADER_DESCRIPTION_UNIFORM, 0, sizeof(filter_scene_shader_data), U_INVALID, },
+    { SHADER_DESCRIPTION_UNIFORM, 0, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | sizeof(filter_scene_shader_data), U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
 
 static const shader_description esm_gauss_fpt_desc[] = {
     { SHADER_DESCRIPTION_SAMPLER, 0, 0, U_INVALID, },
-    { SHADER_DESCRIPTION_UNIFORM, 1, sizeof(esm_filter_batch_shader_data), U_INVALID, },
+    { SHADER_DESCRIPTION_UNIFORM, 1, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | sizeof(esm_filter_batch_shader_data), U_INVALID, },
     { SHADER_DESCRIPTION_FRAGMENT_OUTPUT, 0, 4, U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
 
 static const shader_description esm_filter_min_vpt_desc[] = {
-    { SHADER_DESCRIPTION_UNIFORM, 0, sizeof(filter_scene_shader_data), U_INVALID, },
+    { SHADER_DESCRIPTION_UNIFORM, 0, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | sizeof(filter_scene_shader_data), U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
 
 static const shader_description esm_filter_min_fpt_desc[] = {
     { SHADER_DESCRIPTION_SAMPLER, 0, 0, U_INVALID, },
-    { SHADER_DESCRIPTION_UNIFORM, 1, sizeof(esm_filter_batch_shader_data), U_INVALID, },
+    { SHADER_DESCRIPTION_UNIFORM, 1, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | sizeof(esm_filter_batch_shader_data), U_INVALID, },
     { SHADER_DESCRIPTION_FRAGMENT_OUTPUT, 0, 4, U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
 
 static const shader_description esm_filter_erosion_vpt_desc[] = {
-    { SHADER_DESCRIPTION_UNIFORM, 0, sizeof(filter_scene_shader_data), U_INVALID, },
+    { SHADER_DESCRIPTION_UNIFORM, 0, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | sizeof(filter_scene_shader_data), U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
 
 static const shader_description esm_filter_erosion_fpt_desc[] = {
     { SHADER_DESCRIPTION_SAMPLER, 0, 0, U_INVALID, },
-    { SHADER_DESCRIPTION_UNIFORM, 1, sizeof(esm_filter_batch_shader_data), U_INVALID, },
+    { SHADER_DESCRIPTION_UNIFORM, 1, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | sizeof(esm_filter_batch_shader_data), U_INVALID, },
     { SHADER_DESCRIPTION_FRAGMENT_OUTPUT, 0, 4, U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
@@ -1244,7 +1258,8 @@ static const shader_description constant_fpt_desc[] = {
 static const shader_description tone_map_vpt_desc[] = {
     { SHADER_DESCRIPTION_SAMPLER, 3, 0, U_INVALID, },
     SHADER_DESCRIPTION_COMMON_QUAD,
-    { SHADER_DESCRIPTION_UNIFORM, 1, sizeof(tone_map_shader_data), U_INVALID, },
+    { SHADER_DESCRIPTION_UNIFORM, 1, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | sizeof(tone_map_shader_data), U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
 
@@ -1257,7 +1272,8 @@ static const shader_description tone_map_fpt_desc[] = {
     { SHADER_DESCRIPTION_SAMPLER, 6, 0, U_AET_BACK, },
     { SHADER_DESCRIPTION_SAMPLER, 7, 0, U_INVALID, },
     SHADER_DESCRIPTION_COMMON_QUAD,
-    { SHADER_DESCRIPTION_UNIFORM, 1, sizeof(tone_map_shader_data), U_INVALID, },
+    { SHADER_DESCRIPTION_UNIFORM, 1, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | sizeof(tone_map_shader_data), U_INVALID, },
     { SHADER_DESCRIPTION_FRAGMENT_OUTPUT, 0, 4, U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
@@ -1265,7 +1281,8 @@ static const shader_description tone_map_fpt_desc[] = {
 static const shader_description tone_map_npr1_vpt_desc[] = {
     { SHADER_DESCRIPTION_SAMPLER, 3, 0, U_INVALID, },
     SHADER_DESCRIPTION_COMMON_QUAD,
-    { SHADER_DESCRIPTION_UNIFORM, 1, sizeof(tone_map_shader_data), U_INVALID, },
+    { SHADER_DESCRIPTION_UNIFORM, 1, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | sizeof(tone_map_shader_data), U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
 
@@ -1275,7 +1292,8 @@ static const shader_description tone_map_npr1_fpt_desc[] = {
     { SHADER_DESCRIPTION_SAMPLER,  6, 0, U_AET_BACK, },
     { SHADER_DESCRIPTION_SAMPLER, 14, 0, U_AET_BACK, },
     SHADER_DESCRIPTION_COMMON_QUAD,
-    { SHADER_DESCRIPTION_UNIFORM, 1, sizeof(tone_map_shader_data), U_INVALID, },
+    { SHADER_DESCRIPTION_UNIFORM, 1, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | sizeof(tone_map_shader_data), U_INVALID, },
     { SHADER_DESCRIPTION_FRAGMENT_OUTPUT, 0, 4, U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
@@ -1358,7 +1376,8 @@ static const shader_description reduce_tex_reduce_composite_blur_vpt_desc[] = {
 static const shader_description reduce_tex_reduce_composite_blur_fpt_desc[] = {
     { SHADER_DESCRIPTION_SAMPLER, 0, 0, U_INVALID, },
     { SHADER_DESCRIPTION_SAMPLER, 2, 0, U_INVALID, },
-    { SHADER_DESCRIPTION_UNIFORM, 1, sizeof(camera_blur_shader_data), U_INVALID, },
+    { SHADER_DESCRIPTION_UNIFORM, 1, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | sizeof(camera_blur_shader_data), U_INVALID, },
     { SHADER_DESCRIPTION_FRAGMENT_OUTPUT, 0, 4, U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
@@ -1477,7 +1496,8 @@ static const shader_description contour_vpt_desc[] = {
 static const shader_description contour_fpt_desc[] = {
     { SHADER_DESCRIPTION_SAMPLER, 0, 0, U_INVALID, },
     { SHADER_DESCRIPTION_SAMPLER, 1, 0, U_INVALID, },
-    { SHADER_DESCRIPTION_UNIFORM, 2, sizeof(contour_coef_shader_data), U_INVALID, },
+    { SHADER_DESCRIPTION_UNIFORM, 2, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | sizeof(contour_coef_shader_data), U_INVALID, },
     { SHADER_DESCRIPTION_FRAGMENT_OUTPUT, 0, 4, U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
@@ -1491,7 +1511,8 @@ static const shader_description contour_npr_fpt_desc[] = {
     { SHADER_DESCRIPTION_SAMPLER, 14, 0, U_INVALID, },
     { SHADER_DESCRIPTION_SAMPLER, 16, 0, U_INVALID, },
     { SHADER_DESCRIPTION_SAMPLER, 17, 0, U_INVALID, },
-    { SHADER_DESCRIPTION_UNIFORM, 2, sizeof(contour_params_shader_data), U_INVALID, },
+    { SHADER_DESCRIPTION_UNIFORM, 2, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | sizeof(contour_params_shader_data), U_INVALID, },
     { SHADER_DESCRIPTION_FRAGMENT_OUTPUT, 0, 4, U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
@@ -1514,7 +1535,8 @@ static const shader_description exposure_measure_vpt_desc[] = {
 static const shader_description exposure_measure_fpt_desc[] = {
     { SHADER_DESCRIPTION_SAMPLER, 0, 0, U_INVALID, },
     { SHADER_DESCRIPTION_SAMPLER, 1, 0, U_INVALID, },
-    { SHADER_DESCRIPTION_UNIFORM, 1, sizeof(exposure_measure_shader_data), U_INVALID, },
+    { SHADER_DESCRIPTION_UNIFORM, 1, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | sizeof(exposure_measure_shader_data), U_INVALID, },
     { SHADER_DESCRIPTION_FRAGMENT_OUTPUT, 0, 4, U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
@@ -1537,7 +1559,8 @@ static const shader_description pp_gauss_usual_vpt_desc[] = {
 static const shader_description pp_gauss_usual_fpt_desc[] = {
     { SHADER_DESCRIPTION_SAMPLER, 0, 0, U_INVALID, },
     SHADER_DESCRIPTION_COMMON_QUAD,
-    { SHADER_DESCRIPTION_UNIFORM, 1, sizeof(gaussian_coef_shader_data), U_INVALID, },
+    { SHADER_DESCRIPTION_UNIFORM, 1, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | sizeof(gaussian_coef_shader_data), U_INVALID, },
     { SHADER_DESCRIPTION_FRAGMENT_OUTPUT, 0, 4, U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
@@ -1555,19 +1578,22 @@ static const shader_description pp_gauss_cone_fpt_desc[] = {
 };
 
 static const shader_description sun_vpt_desc[] = {
-    { SHADER_DESCRIPTION_UNIFORM, 0, sizeof(sun_quad_shader_data), U_INVALID, },
+    { SHADER_DESCRIPTION_UNIFORM, 0, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | sizeof(sun_quad_shader_data), U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
 
 static const shader_description sun_fpt_desc[] = {
     { SHADER_DESCRIPTION_SAMPLER, 0, 0, U_INVALID, },
-    { SHADER_DESCRIPTION_UNIFORM, 0, sizeof(sun_quad_shader_data), U_INVALID, },
+    { SHADER_DESCRIPTION_UNIFORM, 0, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | sizeof(sun_quad_shader_data), U_INVALID, },
     { SHADER_DESCRIPTION_FRAGMENT_OUTPUT, 0, 4, U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
 
 static const shader_description sun_no_textured_vpt_desc[] = {
-    { SHADER_DESCRIPTION_UNIFORM, 0, sizeof(sun_quad_shader_data), U_INVALID, },
+    { SHADER_DESCRIPTION_UNIFORM, 0, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | sizeof(sun_quad_shader_data), U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
 
@@ -1607,8 +1633,9 @@ static const shader_description water01_fpt_desc[] = {
 };
 
 static const shader_description water_particle_vpt_desc[] = {
-    { SHADER_DESCRIPTION_UNIFORM, 0, 0x70, U_INVALID, }, // sizeof(water_particle_scene_shader_data)
-    { SHADER_DESCRIPTION_STORAGE, 0, 0, U_INVALID, },
+    { SHADER_DESCRIPTION_UNIFORM, 0, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | 0x70, U_INVALID, }, // sizeof(water_particle_scene_shader_data)
+    { SHADER_DESCRIPTION_STORAGE, 0, SHADER_DESCRIPTION_STORAGE_READ_ONLY, U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
 
@@ -1619,31 +1646,38 @@ static const shader_description water_particle_fpt_desc[] = {
 };
 
 static const shader_description snow_particle_vpt_desc[] = {
-    { SHADER_DESCRIPTION_UNIFORM, 0, 0xB0, U_INVALID, }, // sizeof(snow_particle_scene_shader_data)
-    { SHADER_DESCRIPTION_UNIFORM, 1, 0x30, U_INVALID, }, // sizeof(snow_particle_batch_shader_data)
-    { SHADER_DESCRIPTION_STORAGE, 0, 0, U_INVALID, },
+    { SHADER_DESCRIPTION_UNIFORM, 0, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | 0xB0, U_INVALID, }, // sizeof(snow_particle_scene_shader_data)
+    { SHADER_DESCRIPTION_UNIFORM, 1, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | 0x30, U_INVALID, }, // sizeof(snow_particle_batch_shader_data)
+    { SHADER_DESCRIPTION_STORAGE, 0, SHADER_DESCRIPTION_STORAGE_READ_ONLY, U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
 
 static const shader_description snow_particle_fpt_desc[] = {
     { SHADER_DESCRIPTION_SAMPLER, 0, 0, U_INVALID, },
     { SHADER_DESCRIPTION_SAMPLER, 1, 0, U_INVALID, },
-    { SHADER_DESCRIPTION_UNIFORM, 0, 0xB0, U_INVALID, }, // sizeof(snow_particle_scene_shader_data)
-    { SHADER_DESCRIPTION_UNIFORM, 1, 0x30, U_INVALID, }, // sizeof(snow_particle_batch_shader_data)
+    { SHADER_DESCRIPTION_UNIFORM, 0, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | 0xB0, U_INVALID, }, // sizeof(snow_particle_scene_shader_data)
+    { SHADER_DESCRIPTION_UNIFORM, 1, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | 0x30, U_INVALID, }, // sizeof(snow_particle_batch_shader_data)
     { SHADER_DESCRIPTION_FRAGMENT_OUTPUT, 0, 4, U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
 
 static const shader_description snow_particle_cpu_vpt_desc[] = {
-    { SHADER_DESCRIPTION_UNIFORM, 0, 0xB0, U_INVALID, }, // sizeof(snow_particle_scene_shader_data)
-    { SHADER_DESCRIPTION_UNIFORM, 1, 0x30, U_INVALID, }, // sizeof(snow_particle_batch_shader_data)
-    { SHADER_DESCRIPTION_STORAGE, 0, 0, U_INVALID, },
+    { SHADER_DESCRIPTION_UNIFORM, 0, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | 0xB0, U_INVALID, }, // sizeof(snow_particle_scene_shader_data)
+    { SHADER_DESCRIPTION_UNIFORM, 1, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | 0x30, U_INVALID, }, // sizeof(snow_particle_batch_shader_data)
+    { SHADER_DESCRIPTION_STORAGE, 0, SHADER_DESCRIPTION_STORAGE_READ_ONLY, U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
 
 static const shader_description snow_particle_cpu_fpt_desc[] = {
     { SHADER_DESCRIPTION_SAMPLER, 0, 0, U_INVALID, },
-    { SHADER_DESCRIPTION_UNIFORM, 1, 0x30, U_INVALID, }, // sizeof(snow_particle_batch_shader_data)
+    { SHADER_DESCRIPTION_UNIFORM, 1, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | 0x30, U_INVALID, }, // sizeof(snow_particle_batch_shader_data)
     { SHADER_DESCRIPTION_FRAGMENT_OUTPUT, 0, 4, U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
@@ -1652,7 +1686,8 @@ static const shader_description leaf_particle_vpt_desc[] = {
     { SHADER_DESCRIPTION_VERTEX_INPUT, 0, 3, U_INVALID, },
     { SHADER_DESCRIPTION_VERTEX_INPUT, 1, 2, U_INVALID, },
     { SHADER_DESCRIPTION_VERTEX_INPUT, 2, 3, U_INVALID, },
-    { SHADER_DESCRIPTION_UNIFORM, 0, 0xA0, U_INVALID, }, // sizeof(leaf_particle_scene_shader_data)
+    { SHADER_DESCRIPTION_UNIFORM, 0, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | 0xA0, U_INVALID, }, // sizeof(leaf_particle_scene_shader_data)
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
 
@@ -1660,15 +1695,18 @@ static const shader_description leaf_particle_fpt_desc[] = {
     { SHADER_DESCRIPTION_SAMPLER,  0, 0, U_INVALID, },
     { SHADER_DESCRIPTION_SAMPLER,  9, 1, U_INVALID, },
     { SHADER_DESCRIPTION_SAMPLER, 10, 1, U_INVALID, },
-    { SHADER_DESCRIPTION_UNIFORM, 0, 0xA0, U_INVALID, }, // sizeof(leaf_particle_scene_shader_data)
+    { SHADER_DESCRIPTION_UNIFORM, 0, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | 0xA0, U_INVALID, }, // sizeof(leaf_particle_scene_shader_data)
     { SHADER_DESCRIPTION_FRAGMENT_OUTPUT, 0, 4, U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
 
 static const shader_description star_vpt_desc[] = {
-    { SHADER_DESCRIPTION_UNIFORM, 0, 0x40, U_INVALID, }, // sizeof(star_catalog_scene_shader_data)
-    { SHADER_DESCRIPTION_UNIFORM, 1, 0x30, U_INVALID, }, // sizeof(star_catalog_batch_shader_data)
-    { SHADER_DESCRIPTION_STORAGE, 0, 0, U_INVALID, },
+    { SHADER_DESCRIPTION_UNIFORM, 0, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | 0x40, U_INVALID, }, // sizeof(star_catalog_scene_shader_data)
+    { SHADER_DESCRIPTION_UNIFORM, 1, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | 0x30, U_INVALID, }, // sizeof(star_catalog_batch_shader_data)
+    { SHADER_DESCRIPTION_STORAGE, 0, SHADER_DESCRIPTION_STORAGE_READ_ONLY, U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
 
@@ -1681,7 +1719,8 @@ static const shader_description star_fpt_desc[] = {
 static const shader_description star_milky_way_vpt_desc[] = {
     { SHADER_DESCRIPTION_VERTEX_INPUT, 0, 3, U_INVALID, },
     { SHADER_DESCRIPTION_VERTEX_INPUT, 1, 2, U_INVALID, },
-    { SHADER_DESCRIPTION_UNIFORM, 0, 0x40, U_INVALID, }, // sizeof(star_catalog_scene_shader_data)
+    { SHADER_DESCRIPTION_UNIFORM, 0, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | 0x40, U_INVALID, }, // sizeof(star_catalog_scene_shader_data)
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
 
@@ -1786,47 +1825,54 @@ static const shader_description simple_refract_fpt_desc[] = {
 };
 
 static const shader_description ripple_emit_vpt_desc[] = {
-    { SHADER_DESCRIPTION_UNIFORM, 0, 0x30, U_INVALID, }, // sizeof(ripple_emit_scene_shader_data)
-    { SHADER_DESCRIPTION_STORAGE, 0, 0, U_INVALID, },
+    { SHADER_DESCRIPTION_UNIFORM, 0, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | 0x30, U_INVALID, }, // sizeof(ripple_emit_scene_shader_data)
+    { SHADER_DESCRIPTION_STORAGE, 0, SHADER_DESCRIPTION_STORAGE_READ_ONLY, U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
 
 static const shader_description ripple_emit_fpt_desc[] = {
     { SHADER_DESCRIPTION_SAMPLER, 7, 0, U_RIPPLE, },
-    { SHADER_DESCRIPTION_UNIFORM, 0, 0x30, U_INVALID, }, // sizeof(ripple_emit_scene_shader_data)
+    { SHADER_DESCRIPTION_UNIFORM, 0, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | 0x30, U_INVALID, }, // sizeof(ripple_emit_scene_shader_data)
     { SHADER_DESCRIPTION_FRAGMENT_OUTPUT, 0, 4, U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
 
 static const shader_description rain_vpt_desc[] = {
-    { SHADER_DESCRIPTION_UNIFORM, 0, 0xA0, U_INVALID, }, // sizeof(rain_particle_scene_shader_data)
-    { SHADER_DESCRIPTION_UNIFORM, 1, 0x30, U_INVALID, }, // sizeof(rain_particle_batch_shader_data)
-    { SHADER_DESCRIPTION_STORAGE, 0, 0, U_INVALID, },
+    { SHADER_DESCRIPTION_UNIFORM, 0, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | 0xA0, U_INVALID, }, // sizeof(rain_particle_scene_shader_data)
+    { SHADER_DESCRIPTION_UNIFORM, 1, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | 0x30, U_INVALID, }, // sizeof(rain_particle_batch_shader_data)
+    { SHADER_DESCRIPTION_STORAGE, 0, SHADER_DESCRIPTION_STORAGE_READ_ONLY, U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
 
 static const shader_description rain_fpt_desc[] = {
     { SHADER_DESCRIPTION_SAMPLER, 0, 0, U_INVALID, },
-    { SHADER_DESCRIPTION_UNIFORM, 1, 0x30, U_INVALID, }, // sizeof(rain_particle_batch_shader_data)
+    { SHADER_DESCRIPTION_UNIFORM, 1, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | 0x30, U_INVALID, }, // sizeof(rain_particle_batch_shader_data)
     { SHADER_DESCRIPTION_FRAGMENT_OUTPUT, 0, 4, U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
 
 static const shader_description ripple_vpt_desc[] = {
-    { SHADER_DESCRIPTION_UNIFORM, 0, 0x20, U_INVALID, }, // sizeof(ripple_scene_shader_data)
+    { SHADER_DESCRIPTION_UNIFORM, 0, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | 0x20, U_INVALID, }, // sizeof(ripple_scene_shader_data)
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
 
 static const shader_description ripple_fpt_desc[] = {
     { SHADER_DESCRIPTION_SAMPLER, 0, 0, U_INVALID, },
     { SHADER_DESCRIPTION_SAMPLER, 1, 0, U_INVALID, },
-    { SHADER_DESCRIPTION_UNIFORM, 1, 0x10, U_INVALID, }, // sizeof(ripple_batch_shader_data)
+    { SHADER_DESCRIPTION_UNIFORM, 1, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | 0x10, U_INVALID, }, // sizeof(ripple_batch_shader_data)
     { SHADER_DESCRIPTION_FRAGMENT_OUTPUT, 0, 4, U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
 
 static const shader_description fog_ptcl_vpt_desc[] = {
-    { SHADER_DESCRIPTION_STORAGE, 0, 0, U_INVALID, },
+    { SHADER_DESCRIPTION_STORAGE, 0, SHADER_DESCRIPTION_STORAGE_READ_ONLY, U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
 
@@ -1841,7 +1887,8 @@ static const shader_description particle_vpt_desc[] = {
     { SHADER_DESCRIPTION_VERTEX_INPUT, 1, 4, U_INVALID, },
     { SHADER_DESCRIPTION_VERTEX_INPUT, 2, 2, U_INVALID, },
     { SHADER_DESCRIPTION_VERTEX_INPUT, 3, 3, U_INVALID, },
-    { SHADER_DESCRIPTION_UNIFORM, 0, 0x70, U_INVALID, }, // sizeof(particle_scene_shader_data)
+    { SHADER_DESCRIPTION_UNIFORM, 0, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | 0x70, U_INVALID, }, // sizeof(particle_scene_shader_data)
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
 
@@ -1849,7 +1896,8 @@ static const shader_description particle_fpt_desc[] = {
     { SHADER_DESCRIPTION_SAMPLER,  9, 1, U_INVALID, },
     { SHADER_DESCRIPTION_SAMPLER, 10, 1, U_INVALID, },
     { SHADER_DESCRIPTION_SAMPLER, 11, 1, U_INVALID, },
-    { SHADER_DESCRIPTION_UNIFORM, 0, 0x70, U_INVALID, }, // sizeof(particle_scene_shader_data)
+    { SHADER_DESCRIPTION_UNIFORM, 0, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | 0x70, U_INVALID, }, // sizeof(particle_scene_shader_data)
     { SHADER_DESCRIPTION_FRAGMENT_OUTPUT, 0, 4, U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
@@ -1860,7 +1908,8 @@ static const shader_description glitter_particle_vpt_desc[] = {
     { SHADER_DESCRIPTION_VERTEX_INPUT, 2, 4, U_INVALID, },
     SHADER_DESCRIPTION_EFFECT_TEXTURE_SAMPLER,
     SHADER_DESCRIPTION_COMMON_SCENE,
-    { SHADER_DESCRIPTION_UNIFORM, 3, sizeof(glitter_batch_shader_data), U_INVALID, },
+    { SHADER_DESCRIPTION_UNIFORM, 3, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | sizeof(glitter_batch_shader_data), U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
 
@@ -1868,7 +1917,8 @@ static const shader_description glitter_particle_fpt_desc[] = {
     { SHADER_DESCRIPTION_SAMPLER, 0, 0, U_INVALID, },
     { SHADER_DESCRIPTION_SAMPLER, 1, 0, U_INVALID, },
     SHADER_DESCRIPTION_COMMON_SCENE,
-    { SHADER_DESCRIPTION_UNIFORM, 3, sizeof(glitter_batch_shader_data), U_INVALID, },
+    { SHADER_DESCRIPTION_UNIFORM, 3, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | sizeof(glitter_batch_shader_data), U_INVALID, },
     { SHADER_DESCRIPTION_FRAGMENT_OUTPUT, 0, 4, U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
@@ -1877,7 +1927,8 @@ static const shader_description font_vpt_desc[] = {
     { SHADER_DESCRIPTION_VERTEX_INPUT, 0, 3, U_INVALID, },
     { SHADER_DESCRIPTION_VERTEX_INPUT, 1, 4, U_INVALID, },
     { SHADER_DESCRIPTION_VERTEX_INPUT, 2, 2, U_INVALID, },
-    { SHADER_DESCRIPTION_UNIFORM, 0, sizeof(sprite_scene_shader_data), U_INVALID, },
+    { SHADER_DESCRIPTION_UNIFORM, 0, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | sizeof(sprite_scene_shader_data), U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
 
@@ -1890,13 +1941,15 @@ static const shader_description font_fpt_desc[] = {
 static const shader_description box4_vpt_desc[] = {
     { SHADER_DESCRIPTION_VERTEX_INPUT, 0, 4, U_INVALID, },
     { SHADER_DESCRIPTION_VERTEX_INPUT, 1, 4, U_INVALID, },
-    { SHADER_DESCRIPTION_UNIFORM, 0, sizeof(filter_scene_shader_data), U_INVALID, },
+    { SHADER_DESCRIPTION_UNIFORM, 0, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | sizeof(filter_scene_shader_data), U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
 
 static const shader_description box4_fpt_desc[] = {
     { SHADER_DESCRIPTION_SAMPLER, 0, 0, U_INVALID, },
-    { SHADER_DESCRIPTION_UNIFORM, 1, sizeof(imgfilter_batch_shader_data), U_INVALID, },
+    { SHADER_DESCRIPTION_UNIFORM, 1, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | sizeof(imgfilter_batch_shader_data), U_INVALID, },
     { SHADER_DESCRIPTION_FRAGMENT_OUTPUT, 0, 4, U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
@@ -1906,25 +1959,29 @@ static const shader_description box8_vpt_desc[] = {
     { SHADER_DESCRIPTION_VERTEX_INPUT, 1, 4, U_INVALID, },
     { SHADER_DESCRIPTION_VERTEX_INPUT, 2, 4, U_INVALID, },
     { SHADER_DESCRIPTION_VERTEX_INPUT, 3, 4, U_INVALID, },
-    { SHADER_DESCRIPTION_UNIFORM, 0, sizeof(filter_scene_shader_data), U_INVALID, },
+    { SHADER_DESCRIPTION_UNIFORM, 0, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | sizeof(filter_scene_shader_data), U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
 
 static const shader_description box8_fpt_desc[] = {
     { SHADER_DESCRIPTION_SAMPLER, 0, 0, U_INVALID, },
-    { SHADER_DESCRIPTION_UNIFORM, 1, sizeof(imgfilter_batch_shader_data), U_INVALID, },
+    { SHADER_DESCRIPTION_UNIFORM, 1, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | sizeof(imgfilter_batch_shader_data), U_INVALID, },
     { SHADER_DESCRIPTION_FRAGMENT_OUTPUT, 0, 4, U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
 
 static const shader_description copy_vpt_desc[] = {
-    { SHADER_DESCRIPTION_UNIFORM, 0, sizeof(filter_scene_shader_data), U_INVALID, },
+    { SHADER_DESCRIPTION_UNIFORM, 0, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | sizeof(filter_scene_shader_data), U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
 
 static const shader_description copy_fpt_desc[] = {
     { SHADER_DESCRIPTION_SAMPLER, 0, 0, U_INVALID, },
-    { SHADER_DESCRIPTION_UNIFORM, 1, sizeof(imgfilter_batch_shader_data), U_INVALID, },
+    { SHADER_DESCRIPTION_UNIFORM, 1, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | sizeof(imgfilter_batch_shader_data), U_INVALID, },
     { SHADER_DESCRIPTION_FRAGMENT_OUTPUT, 0, 4, U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
@@ -1933,7 +1990,8 @@ static const shader_description sprite_vpt_desc[] = {
     { SHADER_DESCRIPTION_VERTEX_INPUT, 0, 3, U_INVALID, },
     { SHADER_DESCRIPTION_VERTEX_INPUT, 1, 4, U_INVALID, },
     { SHADER_DESCRIPTION_VERTEX_INPUT, 2, 2, U_INVALID, },
-    { SHADER_DESCRIPTION_UNIFORM, 0, sizeof(sprite_scene_shader_data), U_INVALID, },
+    { SHADER_DESCRIPTION_UNIFORM, 0, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | sizeof(sprite_scene_shader_data), U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
 
@@ -1941,7 +1999,8 @@ static const shader_description sprite_fpt_desc[] = {
     { SHADER_DESCRIPTION_SAMPLER, 0, 0, U_INVALID, },
     { SHADER_DESCRIPTION_SAMPLER, 1, 0, U_INVALID, },
     { SHADER_DESCRIPTION_SAMPLER, 7, 0, U_INVALID, },
-    { SHADER_DESCRIPTION_UNIFORM, 0, sizeof(sprite_scene_shader_data), U_INVALID, },
+    { SHADER_DESCRIPTION_UNIFORM, 0, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | sizeof(sprite_scene_shader_data), U_INVALID, },
     { SHADER_DESCRIPTION_FRAGMENT_OUTPUT, 0, 4, U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
@@ -1952,7 +2011,8 @@ static const shader_description dof_common_vpt_desc[] = {
 
 static const shader_description dof_render_tile_fpt_desc[] = {
     { SHADER_DESCRIPTION_SAMPLER, 0, 0, U_INVALID, },
-    { SHADER_DESCRIPTION_UNIFORM, 0, 0x30, U_INVALID, }, // sizeof(dof_common_shader_data)
+    { SHADER_DESCRIPTION_UNIFORM, 0, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | 0x30, U_INVALID, }, // sizeof(dof_common_shader_data)
     { SHADER_DESCRIPTION_FRAGMENT_OUTPUT, 0, 4, U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
@@ -1967,7 +2027,8 @@ static const shader_description dof_downsample_fpt_desc[] = {
     { SHADER_DESCRIPTION_SAMPLER, 0, 0, U_INVALID, },
     { SHADER_DESCRIPTION_SAMPLER, 1, 0, U_INVALID, },
     { SHADER_DESCRIPTION_SAMPLER, 2, 0, U_INVALID, },
-    { SHADER_DESCRIPTION_UNIFORM, 0, 0x30, U_INVALID, }, // sizeof(dof_common_shader_data)
+    { SHADER_DESCRIPTION_UNIFORM, 0, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | 0x30, U_INVALID, }, // sizeof(dof_common_shader_data)
     { SHADER_DESCRIPTION_FRAGMENT_OUTPUT, 0, 3, U_INVALID, },
     { SHADER_DESCRIPTION_FRAGMENT_OUTPUT, 1, 3, U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
@@ -1977,8 +2038,10 @@ static const shader_description dof_main_filter_fpt_desc[] = {
     { SHADER_DESCRIPTION_SAMPLER, 0, 0, U_INVALID, },
     { SHADER_DESCRIPTION_SAMPLER, 1, 0, U_INVALID, },
     { SHADER_DESCRIPTION_SAMPLER, 2, 0, U_INVALID, },
-    { SHADER_DESCRIPTION_UNIFORM, 0, 0x30, U_INVALID, }, // sizeof(dof_common_shader_data)
-    { SHADER_DESCRIPTION_UNIFORM, 1, 0x190, U_INVALID, }, // sizeof(vec2) * 50
+    { SHADER_DESCRIPTION_UNIFORM, 0, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | 0x30, U_INVALID, }, // sizeof(dof_common_shader_data)
+    { SHADER_DESCRIPTION_UNIFORM, 1, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | 0x190, U_INVALID, }, // sizeof(vec2) * 50
     { SHADER_DESCRIPTION_FRAGMENT_OUTPUT, 0, 4, U_INVALID, },
     { SHADER_DESCRIPTION_FRAGMENT_OUTPUT, 0, 1, U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
@@ -1990,7 +2053,8 @@ static const shader_description dof_upsample_fpt_desc[] = {
     { SHADER_DESCRIPTION_SAMPLER, 2, 0, U_INVALID, },
     { SHADER_DESCRIPTION_SAMPLER, 3, 0, U_INVALID, },
     { SHADER_DESCRIPTION_SAMPLER, 4, 0, U_INVALID, },
-    { SHADER_DESCRIPTION_UNIFORM, 0, 0x30, U_INVALID, }, // sizeof(dof_common_shader_data)
+    { SHADER_DESCRIPTION_UNIFORM, 0, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | 0x30, U_INVALID, }, // sizeof(dof_common_shader_data)
     { SHADER_DESCRIPTION_FRAGMENT_OUTPUT, 0, 4, U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
@@ -2002,7 +2066,8 @@ static const shader_description transparency_vpt_desc[] = {
 static const shader_description transparency_fpt_desc[] = {
     { SHADER_DESCRIPTION_SAMPLER, 0, 0, U_INVALID, },
     { SHADER_DESCRIPTION_SAMPLER, 1, 0, U_INVALID, },
-    { SHADER_DESCRIPTION_UNIFORM, 0, sizeof(transparency_batch_shader_data), U_INVALID, },
+    { SHADER_DESCRIPTION_UNIFORM, 0, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | sizeof(transparency_batch_shader_data), U_INVALID, },
     { SHADER_DESCRIPTION_FRAGMENT_OUTPUT, 0, 4, U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };

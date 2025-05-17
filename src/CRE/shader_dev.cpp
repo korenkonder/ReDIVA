@@ -59,17 +59,22 @@ static const int32_t cubemap_display_fpt_unival_max[] = {
     { SHADER_DESCRIPTION_SAMPLER, 14, 0, U_INVALID, }
 
 #define SHADER_DESCRIPTION_COMMON_SCENE \
-    { SHADER_DESCRIPTION_UNIFORM, 0, sizeof(obj_shader_shader_data), U_INVALID, }, \
-    { SHADER_DESCRIPTION_UNIFORM, 1, sizeof(obj_scene_shader_data), U_INVALID, }, \
-    { SHADER_DESCRIPTION_UNIFORM, 2, sizeof(obj_batch_shader_data), U_INVALID, }
+    { SHADER_DESCRIPTION_UNIFORM, 0, SHADER_DESCRIPTION_UNIFORM_READ_ONLY \
+        | sizeof(obj_shader_shader_data), U_INVALID, }, \
+    { SHADER_DESCRIPTION_UNIFORM, 1, SHADER_DESCRIPTION_UNIFORM_READ_ONLY \
+        | sizeof(obj_scene_shader_data), U_INVALID, }, \
+    { SHADER_DESCRIPTION_UNIFORM, 2, SHADER_DESCRIPTION_UNIFORM_READ_ONLY \
+        | sizeof(obj_batch_shader_data), U_INVALID, }
 
 #define SHADER_DESCRIPTION_COMMON_SKINNING \
     { SHADER_DESCRIPTION_VERTEX_INPUT,  1, 4, U_SKINNING, }, \
     { SHADER_DESCRIPTION_VERTEX_INPUT, 15, 4, U_SKINNING, }, \
-    { SHADER_DESCRIPTION_STORAGE, 0, sizeof(obj_skinning_shader_data), U_SKINNING, }
+    { SHADER_DESCRIPTION_STORAGE, 0, SHADER_DESCRIPTION_STORAGE_READ_ONLY \
+        | sizeof(obj_skinning_shader_data), U_SKINNING, }
 
 #define SHADER_DESCRIPTION_COMMON_QUAD \
-    { SHADER_DESCRIPTION_UNIFORM, 0, sizeof(quad_shader_data), U_INVALID, }
+    { SHADER_DESCRIPTION_UNIFORM, 0, SHADER_DESCRIPTION_UNIFORM_READ_ONLY \
+        | sizeof(quad_shader_data), U_INVALID, }
 
 static const shader_description convert_ycbcr_bt709_vpt_desc[] = {
     SHADER_DESCRIPTION_COMMON_QUAD,
@@ -107,13 +112,15 @@ static const shader_description convert_rgb_fpt_desc[] = {
 #if DISPLAY_IBL
 static const shader_description cubemap_display_vpt_desc[] = {
     { SHADER_DESCRIPTION_VERTEX_INPUT, 0, 3, U_INVALID, },
-    { SHADER_DESCRIPTION_UNIFORM, 3, sizeof(vec4) * 5, U_INVALID, },
+    { SHADER_DESCRIPTION_UNIFORM, 3, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | sizeof(vec4) * 5, U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
 
 static const shader_description cubemap_display_fpt_desc[] = {
     { SHADER_DESCRIPTION_SAMPLER, 0, 0, U_INVALID, },
-    { SHADER_DESCRIPTION_UNIFORM, 3, sizeof(vec4) * 5, U_INVALID, },
+    { SHADER_DESCRIPTION_UNIFORM, 3, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | sizeof(vec4) * 5, U_INVALID, },
     { SHADER_DESCRIPTION_FRAGMENT_OUTPUT, 0, 4, U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };

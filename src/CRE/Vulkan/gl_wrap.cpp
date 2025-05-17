@@ -267,14 +267,14 @@ namespace Vulkan {
 
     void gl_buffer::set_buffer(const VkDeviceSize size, const VkDeviceSize alignment,
         Vulkan::Buffer& buffer, bool& copy_working_buffer, Vulkan::WorkingBuffer& working_buffer) {
-        if (flags & Vulkan::GL_BUFFER_FLAG_UPDATE_DATA) {
+        if (flags & Vulkan::GL_BUFFER_FLAG_WRITE_DATA) {
             const uint64_t hash = hash_xxh3_64bits(data.data(), size);
             if (copy_working_buffer && working_buffer.FindBuffer(hash, size))
                 return;
 
             Vulkan::Buffer dynamic_buffer = Vulkan::manager_get_dynamic_buffer(size, alignment);
             dynamic_buffer.WriteMemory(dynamic_buffer.GetOffset(), size, data.data());
-            enum_and(flags, ~Vulkan::GL_BUFFER_FLAG_UPDATE_DATA);
+            enum_and(flags, ~Vulkan::GL_BUFFER_FLAG_WRITE_DATA);
 
             working_buffer.AddBuffer(hash, dynamic_buffer);
             copy_working_buffer = true;
@@ -884,7 +884,7 @@ namespace Vulkan {
         viewport_set = false;
     }
 
-    gl_storage_buffer::gl_storage_buffer() : copy_working_buffer() {
+    gl_storage_buffer::gl_storage_buffer() : copy_working_buffer(), shader_write(), shader_write_flags() {
 
     }
 
@@ -1075,7 +1075,7 @@ namespace Vulkan {
         return vk_tex;
     }
 
-    gl_uniform_buffer::gl_uniform_buffer() : copy_working_buffer() {
+    gl_uniform_buffer::gl_uniform_buffer() : copy_working_buffer(), shader_write(), shader_write_flags() {
 
     }
 
@@ -2313,6 +2313,8 @@ namespace Vulkan {
                 vk_sb->copy_working_buffer = false;
             }
             vk_sb->working_buffer.Reset();
+            vk_sb->shader_write = false;
+            vk_sb->shader_write_flags = 0;
         }
 
         for (auto& i : gl_uniform_buffers) {
@@ -2341,6 +2343,8 @@ namespace Vulkan {
                 vk_ub->copy_working_buffer = false;
             }
             vk_ub->working_buffer.Reset();
+            vk_ub->shader_write = false;
+            vk_ub->shader_write_flags = 0;
         }
 
         for (auto& i : gl_vertex_buffers) {
@@ -2628,7 +2632,9 @@ namespace Vulkan {
             + sizeof(uint32_t) * ((size_t)sampler_count + uniform_count + storage_count);
         void* descriptor_infos = force_malloc(descriptor_infos_size
             + sizeof(std::pair<uint32_t, uint32_t>) * ((size_t)uniform_count + storage_count)
-            + sizeof(uint32_t) * ((size_t)uniform_count + storage_count));
+            + sizeof(uint32_t) * ((size_t)uniform_count + storage_count)
+            + sizeof(std::pair<uint32_t, VkBufferMemoryBarrier>) * ((size_t)uniform_count + storage_count)
+            + sizeof(VkBufferMemoryBarrier) * ((size_t)uniform_count + storage_count));
 
         VkDescriptorImageInfo* sampler_infos = (VkDescriptorImageInfo*)descriptor_infos;
         VkDescriptorImageInfo* sampler_info = sampler_infos;
@@ -2653,6 +2659,13 @@ namespace Vulkan {
         std::pair<uint32_t, uint32_t>* dynamic_info = dynamic_infos;
 
         uint32_t* dynamic_offsets = (uint32_t*)(dynamic_infos + uniform_count + storage_count);
+
+        std::pair<uint32_t, VkBufferMemoryBarrier>* flags_buffer_memory_barriers
+            = (std::pair<uint32_t, VkBufferMemoryBarrier>*)(dynamic_offsets + uniform_count + storage_count);
+        std::pair<uint32_t, VkBufferMemoryBarrier>* flags_buffer_memory_barrier = flags_buffer_memory_barriers;
+
+        VkBufferMemoryBarrier* buffer_memory_barriers
+            = (VkBufferMemoryBarrier*)(flags_buffer_memory_barriers + uniform_count + storage_count);
 
         uint8_t* push_constant_data = 0;
         uint32_t push_constant_data_size = 0;
@@ -2767,6 +2780,42 @@ namespace Vulkan {
                     dynamic_info->first = desc->binding & 0x7FFFFFFF;
                     dynamic_info->second = (uint32_t)offset;
                     dynamic_info++;
+
+                    VkAccessFlags dst_access_mask = 0;
+                    switch (desc->data & SHADER_DESCRIPTION_UNIFORM_ACCESS_MASK) {
+                    case SHADER_DESCRIPTION_UNIFORM_READ_ONLY:
+                        dst_access_mask = VK_ACCESS_SHADER_READ_BIT;
+                        break;
+                    case SHADER_DESCRIPTION_UNIFORM_WRITE_ONLY:
+                        dst_access_mask = VK_ACCESS_SHADER_WRITE_BIT;
+                        break;
+                    case SHADER_DESCRIPTION_UNIFORM_READ_WRITE:
+                        dst_access_mask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
+                        break;
+                    }
+
+                    if (vk_ub->shader_write) {
+                        flags_buffer_memory_barrier->first = vk_ub->shader_write_flags;
+                        flags_buffer_memory_barrier->second.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+                        flags_buffer_memory_barrier->second.pNext = 0;
+                        flags_buffer_memory_barrier->second.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+                        flags_buffer_memory_barrier->second.dstAccessMask = dst_access_mask;
+                        flags_buffer_memory_barrier->second.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                        flags_buffer_memory_barrier->second.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                        flags_buffer_memory_barrier->second.buffer = vk_ub->working_buffer;
+                        flags_buffer_memory_barrier->second.offset = offset;
+                        flags_buffer_memory_barrier->second.size = range;
+                        flags_buffer_memory_barrier++;
+                    }
+
+                    switch (desc->data & SHADER_DESCRIPTION_UNIFORM_ACCESS_MASK) {
+                    case SHADER_DESCRIPTION_UNIFORM_WRITE_ONLY:
+                    case SHADER_DESCRIPTION_UNIFORM_READ_WRITE:
+                        vk_ub->shader_write = true;
+                        vk_ub->shader_write_flags = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
+                            | VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
+                        break;
+                    }
                 }
                 break;
             case SHADER_DESCRIPTION_STORAGE:
@@ -2798,6 +2847,42 @@ namespace Vulkan {
                     dynamic_info->first = 0x80000000 | (desc->binding & 0x7FFFFFFF);
                     dynamic_info->second = (uint32_t)offset;
                     dynamic_info++;
+
+                    VkAccessFlags dst_access_mask = 0;
+                    switch (desc->data & SHADER_DESCRIPTION_STORAGE_ACCESS_MASK) {
+                    case SHADER_DESCRIPTION_STORAGE_READ_ONLY:
+                        dst_access_mask = VK_ACCESS_SHADER_READ_BIT;
+                        break;
+                    case SHADER_DESCRIPTION_STORAGE_WRITE_ONLY:
+                        dst_access_mask = VK_ACCESS_SHADER_WRITE_BIT;
+                        break;
+                    case SHADER_DESCRIPTION_STORAGE_READ_WRITE:
+                        dst_access_mask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
+                        break;
+                    }
+
+                    if (vk_sb->shader_write) {
+                        flags_buffer_memory_barrier->first = vk_sb->shader_write_flags;
+                        flags_buffer_memory_barrier->second.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+                        flags_buffer_memory_barrier->second.pNext = 0;
+                        flags_buffer_memory_barrier->second.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+                        flags_buffer_memory_barrier->second.dstAccessMask = dst_access_mask;
+                        flags_buffer_memory_barrier->second.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                        flags_buffer_memory_barrier->second.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                        flags_buffer_memory_barrier->second.buffer = vk_sb->working_buffer;
+                        flags_buffer_memory_barrier->second.offset = offset;
+                        flags_buffer_memory_barrier->second.size = range;
+                        flags_buffer_memory_barrier++;
+                    }
+
+                    switch (desc->data & SHADER_DESCRIPTION_STORAGE_ACCESS_MASK) {
+                    case SHADER_DESCRIPTION_STORAGE_WRITE_ONLY:
+                    case SHADER_DESCRIPTION_STORAGE_READ_WRITE:
+                        vk_sb->shader_write = true;
+                        vk_sb->shader_write_flags = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
+                            | VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
+                        break;
+                    }
                 }
                 break;
             }
@@ -2912,6 +2997,42 @@ namespace Vulkan {
                     dynamic_info->first = desc->binding & 0x7FFFFFFF;
                     dynamic_info->second = (uint32_t)offset;
                     dynamic_info++;
+
+                    VkAccessFlags dst_access_mask = 0;
+                    switch (desc->data & SHADER_DESCRIPTION_UNIFORM_ACCESS_MASK) {
+                    case SHADER_DESCRIPTION_UNIFORM_READ_ONLY:
+                        dst_access_mask = VK_ACCESS_SHADER_READ_BIT;
+                        break;
+                    case SHADER_DESCRIPTION_UNIFORM_WRITE_ONLY:
+                        dst_access_mask = VK_ACCESS_SHADER_WRITE_BIT;
+                        break;
+                    case SHADER_DESCRIPTION_UNIFORM_READ_WRITE:
+                        dst_access_mask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
+                        break;
+                    }
+
+                    if (vk_ub->shader_write) {
+                        flags_buffer_memory_barrier->first = vk_ub->shader_write_flags;
+                        flags_buffer_memory_barrier->second.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+                        flags_buffer_memory_barrier->second.pNext = 0;
+                        flags_buffer_memory_barrier->second.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+                        flags_buffer_memory_barrier->second.dstAccessMask = dst_access_mask;
+                        flags_buffer_memory_barrier->second.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                        flags_buffer_memory_barrier->second.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                        flags_buffer_memory_barrier->second.buffer = vk_ub->working_buffer;
+                        flags_buffer_memory_barrier->second.offset = offset;
+                        flags_buffer_memory_barrier->second.size = range;
+                        flags_buffer_memory_barrier++;
+                    }
+
+                    switch (desc->data & SHADER_DESCRIPTION_UNIFORM_ACCESS_MASK) {
+                    case SHADER_DESCRIPTION_UNIFORM_WRITE_ONLY:
+                    case SHADER_DESCRIPTION_UNIFORM_READ_WRITE:
+                        vk_ub->shader_write = true;
+                        vk_ub->shader_write_flags = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
+                            | VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
+                        break;
+                    }
                 }
                 break;
             case SHADER_DESCRIPTION_STORAGE:
@@ -2943,6 +3064,42 @@ namespace Vulkan {
                     dynamic_info->first = 0x80000000 | (desc->binding & 0x7FFFFFFF);
                     dynamic_info->second = (uint32_t)offset;
                     dynamic_info++;
+
+                    VkAccessFlags dst_access_mask = 0;
+                    switch (desc->data & SHADER_DESCRIPTION_STORAGE_ACCESS_MASK) {
+                    case SHADER_DESCRIPTION_STORAGE_READ_ONLY:
+                        dst_access_mask = VK_ACCESS_SHADER_READ_BIT;
+                        break;
+                    case SHADER_DESCRIPTION_STORAGE_WRITE_ONLY:
+                        dst_access_mask = VK_ACCESS_SHADER_WRITE_BIT;
+                        break;
+                    case SHADER_DESCRIPTION_STORAGE_READ_WRITE:
+                        dst_access_mask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
+                        break;
+                    }
+
+                    if (vk_sb->shader_write) {
+                        flags_buffer_memory_barrier->first = vk_sb->shader_write_flags;
+                        flags_buffer_memory_barrier->second.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+                        flags_buffer_memory_barrier->second.pNext = 0;
+                        flags_buffer_memory_barrier->second.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+                        flags_buffer_memory_barrier->second.dstAccessMask = dst_access_mask;
+                        flags_buffer_memory_barrier->second.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                        flags_buffer_memory_barrier->second.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                        flags_buffer_memory_barrier->second.buffer = vk_sb->working_buffer;
+                        flags_buffer_memory_barrier->second.offset = offset;
+                        flags_buffer_memory_barrier->second.size = range;
+                        flags_buffer_memory_barrier++;
+                    }
+
+                    switch (desc->data & SHADER_DESCRIPTION_STORAGE_ACCESS_MASK) {
+                    case SHADER_DESCRIPTION_STORAGE_WRITE_ONLY:
+                    case SHADER_DESCRIPTION_STORAGE_READ_WRITE:
+                        vk_sb->shader_write = true;
+                        vk_sb->shader_write_flags = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
+                            | VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
+                        break;
+                    }
                 }
                 break;
             }
@@ -3046,6 +3203,20 @@ namespace Vulkan {
             descriptor_set_collection->used = true;
 
             free_def(descriptor_writes);
+        }
+
+        uint32_t buffer_memory_barrier_count = 0;
+        for (uint32_t i = 0; i < flags_buffer_memory_barrier - flags_buffer_memory_barriers; i++)
+            if (flags_buffer_memory_barriers[i].first
+                & (VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_VERTEX_SHADER_BIT))
+                buffer_memory_barriers[buffer_memory_barrier_count++] = flags_buffer_memory_barriers[i].second;
+
+        if (buffer_memory_barrier_count) {
+            Vulkan::end_render_pass(Vulkan::current_command_buffer);
+            vkCmdPipelineBarrier(Vulkan::current_command_buffer,
+                VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_VERTEX_SHADER_BIT,
+                VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, 0,
+                0, 0, buffer_memory_barrier_count, buffer_memory_barriers, 0, 0);
         }
 
         GLuint query = Vulkan::gl_wrap_manager_get_query_samples_passed();
@@ -5680,7 +5851,8 @@ namespace Vulkan {
         if (!vk_buf || (vk_buf->flags & Vulkan::GL_BUFFER_FLAG_MAPPED)
             || access == GL_READ_ONLY && !(vk_buf->flags & Vulkan::GL_BUFFER_FLAG_MAP_READ_BIT)
             || access == GL_WRITE_ONLY && !(vk_buf->flags & Vulkan::GL_BUFFER_FLAG_MAP_WRITE_BIT)
-            || access == GL_READ_WRITE && (!(vk_buf->flags & Vulkan::GL_BUFFER_FLAG_MAP_READ_BIT)
+            || access == GL_READ_WRITE && (!(vk_buf->flags & (Vulkan::GL_BUFFER_FLAG_MAP_READ_BIT
+                | Vulkan::GL_BUFFER_FLAG_MAP_WRITE_BIT))
                 || !(vk_buf->flags & Vulkan::GL_BUFFER_FLAG_MAP_WRITE_BIT))) {
             gl_wrap_manager_ptr->push_error(GL_INVALID_OPERATION);
             return 0;
@@ -5689,6 +5861,52 @@ namespace Vulkan {
             gl_wrap_manager_ptr->push_error(GL_OUT_OF_MEMORY);
             return 0;
         }
+
+        if (access == GL_READ_ONLY || access == GL_READ_WRITE) {
+            Vulkan::Buffer dynamic_buffer = Vulkan::manager_get_dynamic_buffer(vk_buf->data.size(), 0x40);
+
+            Vulkan::Buffer* src_buffer;
+            switch (vk_buf->target) {
+            case 0:
+                src_buffer = &Vulkan::gl_unknown_buffer::get(buffer)->unknown_buffer;
+                break;
+            case GL_ARRAY_BUFFER:
+                src_buffer = &Vulkan::gl_vertex_buffer::get(buffer)->vertex_buffer;
+                break;
+            case GL_ELEMENT_ARRAY_BUFFER:
+                src_buffer = &Vulkan::gl_index_buffer::get(buffer)->index_buffer;
+                break;
+            case GL_UNIFORM_BUFFER:
+                src_buffer = &Vulkan::gl_uniform_buffer::get(buffer)->uniform_buffer;
+                break;
+            case GL_SHADER_STORAGE_BUFFER:
+                src_buffer = &Vulkan::gl_storage_buffer::get(buffer)->storage_buffer;
+                break;
+            default:
+                gl_wrap_manager_ptr->push_error(GL_INVALID_OPERATION);
+                return 0;
+            }
+
+            Vulkan::CommandBuffer cb;
+            cb.Create(Vulkan::current_device, Vulkan::current_command_pool);
+
+            cb.BeginOneTimeSubmit();
+            cb.CopyBuffer(*src_buffer, dynamic_buffer, 0, dynamic_buffer.GetOffset(), vk_buf->data.size());
+            cb.End();
+
+            Vulkan::Fence fence;
+            fence.Create(Vulkan::current_device, VK_FENCE_CREATE_SIGNALED_BIT);
+            fence.Reset();
+            cb.Sumbit(Vulkan::current_graphics_queue, fence);
+            fence.Destroy();
+
+            cb.Destroy();
+
+            dynamic_buffer.ReadMemory(dynamic_buffer.GetOffset(), vk_buf->data.size(), vk_buf->data.data());
+        }
+
+        if (access == GL_WRITE_ONLY || access == GL_READ_WRITE)
+            enum_or(vk_buf->flags, Vulkan::GL_BUFFER_FLAG_WRITE_DATA);
 
         enum_or(vk_buf->flags, Vulkan::GL_BUFFER_FLAG_MAPPED);
         return vk_buf->data.data();
@@ -5731,7 +5949,7 @@ namespace Vulkan {
             vk_buf->data.assign((const uint8_t*)data, (const uint8_t*)data + size);
         else
             vk_buf->data.assign(size, 0);
-        enum_or(vk_buf->flags, Vulkan::GL_BUFFER_FLAG_UPDATE_DATA);
+        enum_or(vk_buf->flags, Vulkan::GL_BUFFER_FLAG_WRITE_DATA);
     }
 
     static void gl_wrap_manager_named_buffer_storage(
@@ -5763,7 +5981,7 @@ namespace Vulkan {
             vk_buf->data.assign((const uint8_t*)data, (const uint8_t*)data + size);
         else
             vk_buf->data.assign(size, 0);
-        enum_or(vk_buf->flags, Vulkan::GL_BUFFER_FLAG_UPDATE_DATA);
+        enum_or(vk_buf->flags, Vulkan::GL_BUFFER_FLAG_WRITE_DATA);
     }
 
     static void gl_wrap_manager_named_buffer_sub_data(
@@ -5781,7 +5999,7 @@ namespace Vulkan {
         }
 
         memcpy(vk_buf->data.data() + offset, data, size);
-        enum_or(vk_buf->flags, Vulkan::GL_BUFFER_FLAG_UPDATE_DATA);
+        enum_or(vk_buf->flags, Vulkan::GL_BUFFER_FLAG_WRITE_DATA);
     }
 
     static void gl_wrap_manager_pixel_store(GLenum pname, GLint param) {
@@ -6669,7 +6887,6 @@ namespace Vulkan {
         }
 
         enum_and(vk_buf->flags, ~Vulkan::GL_BUFFER_FLAG_MAPPED);
-        enum_or(vk_buf->flags, Vulkan::GL_BUFFER_FLAG_UPDATE_DATA);
         return GL_TRUE;
     }
 
