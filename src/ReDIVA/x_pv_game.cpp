@@ -4858,7 +4858,7 @@ pvsr_auth_2d* x_pv_game_stage_env::get_aet(int32_t env_index, int32_t type, int3
 
     pvsr_stage_effect_env* env = &stage_resource->stage_effect_env[env_index];
 
-    switch (type)  {
+    switch (type) {
     case 0:
     default:
         if (index < env->aet_front.size())

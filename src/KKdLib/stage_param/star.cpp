@@ -42,7 +42,7 @@ void stage_param_star_utc::get_current_time() {
     second = 0.0f;
 }
 
-double_t stage_param_star_utc::to_julian_date() const  {
+double_t stage_param_star_utc::to_julian_date() const {
     int64_t year = this->year;
     int64_t month = this->month;
     if (month == 1 || month == 2) {

@@ -15309,7 +15309,7 @@ void RobSubAction::SetSubActParam(SubActParam* value) {
     data.param = value;
 }
 
-RobPartialMotion::RobPartialMotion()  {
+RobPartialMotion::RobPartialMotion() {
 
 }
 

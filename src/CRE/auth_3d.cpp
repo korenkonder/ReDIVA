@@ -2039,7 +2039,7 @@ void auth_3d_object_hrc::reset() {
     uid_name.shrink_to_fit();
 }
 
-auth_3d_object_instance::auth_3d_object_instance() : object_info(), object_hash(), shadow()  {
+auth_3d_object_instance::auth_3d_object_instance() : object_info(), object_hash(), shadow() {
     reset();
 }
 
@@ -3067,7 +3067,7 @@ void task_auth_3d_free() {
     }
 }
 
-namespace auth_3d_detail  {
+namespace auth_3d_detail {
     TaskAuth3d::TaskAuth3d() {
 
     }

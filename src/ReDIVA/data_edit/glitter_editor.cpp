@@ -333,7 +333,7 @@ input_reset_next_frame(), effect_group_add(), show_grid(), draw_flags(), resourc
 emitter_flags(), particle_flags(), load_glt_type(), save_glt_type(), load_data_type(), frame_counter(),
 old_frame_counter(), start_frame(), end_frame(), counter(), effect_group(), scene(), hash(),
 selected_type(), selected_resource(), selected_effect(), selected_emitter(), selected_particle(),
-selected_edit_resource(), selected_edit_effect(), selected_edit_emitter(), selected_edit_particle()  {
+selected_edit_resource(), selected_edit_effect(), selected_edit_emitter(), selected_edit_particle() {
 
 }
 

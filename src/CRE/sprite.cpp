@@ -66,7 +66,7 @@ struct sprite_draw_param_attrib_member {
     uint32_t sampler : 2;
 };
 
-union sprite_draw_param_attrib  {
+union sprite_draw_param_attrib {
     sprite_draw_param_attrib_member m;
     uint32_t w;
 };

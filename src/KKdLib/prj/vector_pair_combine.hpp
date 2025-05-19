@@ -157,7 +157,7 @@ namespace prj {
             return data.rbegin();
         }
 
-        inline auto rbegin() const  {
+        inline auto rbegin() const {
             return data.rbegin();
         }
 
@@ -201,7 +201,7 @@ namespace prj {
             new_data.push_back(value);
         }
 
-        inline auto erase(const_iterator where) noexcept  {
+        inline auto erase(const_iterator where) noexcept {
             return data.erase(where);
         }
 
@@ -247,11 +247,11 @@ namespace prj {
             return data.front();
         }
 
-        inline const value_pair& front() const noexcept  {
+        inline const value_pair& front() const noexcept {
             return data.front();
         }
 
-        inline value_pair& back() noexcept  {
+        inline value_pair& back() noexcept {
             return data.back();
         }
 
