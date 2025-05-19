@@ -13562,7 +13562,7 @@ static void x_pv_game_write_object_set(obj_set* obj_set, const std::string& name
             std::string itmpv_name;
             pos = name.find("EFFPV8");
             if (pos != -1) {
-                itmpv_name.assign(set_name);
+                itmpv_name.assign(name);
                 itmpv_name.replace(pos, 3, "ITM");
             }
 
