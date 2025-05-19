@@ -813,6 +813,13 @@ namespace spr {
         for (int32_t i = 0; i < 2; i++) {
             auto reqlist = this->reqlist[index][i];
 
+            size_t count = 0;
+            for (uint32_t j = SPR_PRIO_MAX, k = 0; j; j--, k++)
+                count += reqlist[k].size();
+
+            if (!count)
+                continue;
+
             int32_t x_min;
             int32_t y_min;
             int32_t x_max;
