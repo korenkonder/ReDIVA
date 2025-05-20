@@ -319,6 +319,9 @@ VkSurfaceKHR vulkan_surface;
 VkPhysicalDevice vulkan_physical_device;
 VkDevice vulkan_device;
 
+VkPhysicalDeviceLimits vulkan_physical_device_limits;
+char vulkan_device_name[VK_MAX_PHYSICAL_DEVICE_NAME_SIZE];
+
 std::pair<uint32_t, uint32_t> vulkan_queue_family;
 VkQueue vulkan_graphics_queue;
 VkQueue vulkan_present_queue;
@@ -410,37 +413,23 @@ int32_t app_main(const app_init_struct& ais) {
                 glfwTerminate();
                 return ret;
             }
-
-            VkPhysicalDeviceProperties device_properties;
-            vkGetPhysicalDeviceProperties(vulkan_physical_device, &device_properties);
-            VkPhysicalDeviceLimits& supported_limits = device_properties.limits;
-            sv_max_texture_size = supported_limits.maxImageDimension2D;
-            sv_max_texture_max_anisotropy = (int32_t)supported_limits.maxSamplerAnisotropy;
-            sv_max_uniform_buffer_size = (int32_t)supported_limits.maxUniformBufferRange;
-            sv_max_storage_buffer_size = (int32_t)supported_limits.maxStorageBufferRange;
-            sv_min_uniform_buffer_alignment = (int32_t)supported_limits.minUniformBufferOffsetAlignment;
-            sv_min_storage_buffer_alignment = (int32_t)supported_limits.minStorageBufferOffsetAlignment;
         }
-#ifdef USE_OPENGL
-        else {
 #if RENDER_DEBUG
-            if (GLAD_GL_VERSION_4_3) {
-                glEnable(GL_DEBUG_OUTPUT);
-                glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-                glDebugMessageCallback(render_debug_output, 0);
-                glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, 0, GL_TRUE);
-            }
-#endif
-            glGetIntegerv(GL_MAX_TEXTURE_SIZE, &sv_max_texture_size);
-            glGetIntegerv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &sv_max_texture_max_anisotropy);
-            glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &sv_max_uniform_buffer_size);
-            if (GLAD_GL_VERSION_4_3)
-                glGetIntegerv(GL_MAX_SHADER_STORAGE_BLOCK_SIZE, &sv_max_storage_buffer_size);
-            glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &sv_min_uniform_buffer_alignment);
-            if (GLAD_GL_VERSION_4_3)
-                glGetIntegerv(GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT, &sv_min_storage_buffer_alignment);
+        else if (GLAD_GL_VERSION_4_3) {
+            glEnable(GL_DEBUG_OUTPUT);
+            glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+            glDebugMessageCallback(render_debug_output, 0);
+            glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, 0, GL_TRUE);
         }
 #endif
+        glGetIntegerv(GL_MAX_TEXTURE_SIZE, &sv_max_texture_size);
+        glGetIntegerv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &sv_max_texture_max_anisotropy);
+        glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &sv_max_uniform_buffer_size);
+        if (GLAD_GL_VERSION_4_3)
+            glGetIntegerv(GL_MAX_SHADER_STORAGE_BLOCK_SIZE, &sv_max_storage_buffer_size);
+        glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &sv_min_uniform_buffer_alignment);
+        if (GLAD_GL_VERSION_4_3)
+            glGetIntegerv(GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT, &sv_min_storage_buffer_alignment);
 
         do {
             close = false;
@@ -2477,6 +2466,12 @@ static int32_t app_pick_physical_device() {
 
     if (vulkan_physical_device == 0)
         return -8;
+
+    VkPhysicalDeviceProperties properties;
+    vkGetPhysicalDeviceProperties(vulkan_physical_device, &properties);
+
+    vulkan_physical_device_limits = properties.limits;
+    memcpy(vulkan_device_name, properties.deviceName, VK_MAX_PHYSICAL_DEVICE_NAME_SIZE);
 
     VkPhysicalDeviceMemoryProperties memory_properties;
     vkGetPhysicalDeviceMemoryProperties(vulkan_physical_device, &memory_properties);

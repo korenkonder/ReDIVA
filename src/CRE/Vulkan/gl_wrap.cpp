@@ -20,6 +20,7 @@
 
 extern bool cpu_caps_avx2;
 
+extern VkPhysicalDeviceLimits vulkan_physical_device_limits;
 extern VkRenderPassBeginInfo vulkan_swapchain_render_pass_info;
 
 namespace Vulkan {
@@ -5466,6 +5467,24 @@ namespace Vulkan {
             break;
         case GL_SHADER_STORAGE_BUFFER_BINDING:
             *data = gl_state.shader_storage_buffer_binding;
+            break;
+        case GL_MAX_TEXTURE_SIZE:
+            *data = (int32_t)vulkan_physical_device_limits.maxImageDimension2D;
+            break;
+        case GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT:
+            *data = (int32_t)vulkan_physical_device_limits.maxSamplerAnisotropy;
+            break;
+        case GL_MAX_UNIFORM_BLOCK_SIZE:
+            *data = (int32_t)vulkan_physical_device_limits.maxUniformBufferRange;
+            break;
+        case GL_MAX_SHADER_STORAGE_BLOCK_SIZE:
+            *data = (int32_t)vulkan_physical_device_limits.maxStorageBufferRange;
+            break;
+        case GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT:
+            *data = (int32_t)vulkan_physical_device_limits.minUniformBufferOffsetAlignment;
+            break;
+        case GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT:
+            *data = (int32_t)vulkan_physical_device_limits.minStorageBufferOffsetAlignment;
             break;
         default:
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
