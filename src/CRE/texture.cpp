@@ -318,11 +318,11 @@ void texture_get_format_type_by_internal_format(GLenum internal_format, GLenum* 
         break;
     case GL_DEPTH_COMPONENT16:
     case GL_DEPTH_COMPONENT24:
-    case GL_DEPTH_COMPONENT32F:
+    case GL_DEPTH_COMPONENT32:
         _format = GL_DEPTH_COMPONENT;
         _type = GL_FLOAT;
         break;
-    case GL_R8:
+    case GL_R8: // Added
         _format = GL_RED;
         _type = GL_UNSIGNED_BYTE;
         break;
@@ -334,7 +334,7 @@ void texture_get_format_type_by_internal_format(GLenum internal_format, GLenum* 
         _format = GL_RED;
         _type = GL_FLOAT;
         break;
-    case GL_RG16F:
+    case GL_RG16F: // Added
         _format = GL_RG;
         _type = GL_HALF_FLOAT;
         break;
@@ -371,6 +371,10 @@ void texture_get_format_type_by_internal_format(GLenum internal_format, GLenum* 
     case GL_RGB9_E5:
         _format = GL_RGB;
         _type = GL_UNSIGNED_INT_5_9_9_9_REV;
+        break;
+    case GL_DEPTH_COMPONENT32F:
+        _format = GL_DEPTH_COMPONENT;
+        _type = GL_FLOAT;
         break;
     case GL_COMPRESSED_RED_RGTC1:
         _format = GL_RED;
@@ -410,6 +414,7 @@ int32_t texture_get_size(GLenum internal_format, int32_t width, int32_t height) 
     case GL_RGB8:
     case GL_RGBA8:
     case GL_DEPTH_COMPONENT24:
+    case GL_DEPTH_COMPONENT32:
     case GL_R32F:
     case GL_RG16F:
     case GL_DEPTH24_STENCIL8:

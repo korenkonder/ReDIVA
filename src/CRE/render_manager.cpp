@@ -1182,8 +1182,10 @@ namespace rndr {
         rndr::Render* rend = render;
         rend_data_ctx.state.set_viewport(0, 0, width, height);
 
+        if (Vulkan::use)
+            rctx->screen_buffer.Bind(rend_data_ctx.state);
 #ifdef USE_OPENGL
-        if (!Vulkan::use && multisample && multisample_framebuffer) {
+        else if (multisample && multisample_framebuffer) {
             rend_data_ctx.state.bind_framebuffer(multisample_framebuffer);
             rend_data_ctx.state.enable_multisample();
             rend_data_ctx.state.clear_color(0.0f, 0.0f, 0.0f, 0.0f);

@@ -745,6 +745,12 @@ void compile_shaders(farc* f, farc* of, const shader_table* shaders_table, const
 }
 
 void compile_all_shaders(bool debug) {
+    GLAD_GL_VERSION_4_1 = 1;
+    GLAD_GL_VERSION_4_2 = 1;
+    GLAD_GL_VERSION_4_3 = 1;
+    GLAD_GL_VERSION_4_4 = 1;
+    GLAD_GL_VERSION_4_5 = 1;
+    GLAD_GL_VERSION_4_6 = 1;
     {
         farc f;
         f.read("rom\\ft_shaders.farc", true, false);
@@ -762,6 +768,12 @@ void compile_all_shaders(bool debug) {
         compile_shaders(&f, &of, shader_dev_table, shader_dev_table_size, debug);
         of.write("rom\\dev_shaders_spirv.farc", FARC_FArC, FARC_NONE, false, false);
     }
+    GLAD_GL_VERSION_4_1 = 0;
+    GLAD_GL_VERSION_4_2 = 0;
+    GLAD_GL_VERSION_4_3 = 0;
+    GLAD_GL_VERSION_4_4 = 0;
+    GLAD_GL_VERSION_4_5 = 0;
+    GLAD_GL_VERSION_4_6 = 0;
 }
 
 /*void process_edit_dsc(const char* path, const char* file,
