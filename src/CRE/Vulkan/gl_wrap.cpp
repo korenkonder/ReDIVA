@@ -18,7 +18,7 @@
 #include <list>
 #include <unordered_map>
 
-extern bool cpu_caps_avx;
+extern bool cpu_caps_avx2;
 
 extern VkRenderPassBeginInfo vulkan_swapchain_render_pass_info;
 
@@ -5926,12 +5926,12 @@ namespace Vulkan {
     inline static bool check_for_zero(const uint8_t* data, const size_t size) {
         const uint8_t* d = data;
         size_t s = size;
-        if (cpu_caps_avx && s >= 0x20) {
-            __m256 zero = {};
+        if (cpu_caps_avx2 && s >= 0x20) {
+            __m256i zero = {};
             size_t s32 = s / 0x20;
             while (s32)
-                if (_mm256_movemask_ps(_mm256_cmp_ps(
-                    _mm256_loadu_ps((const float*)d), zero, _CMP_EQ_OS)) != 0xFF)
+                if (_mm256_movemask_ps(_mm256_cvtepi32_ps(_mm256_cmpeq_epi32(
+                    _mm256_loadu_epi32(d), zero))) != 0xFF)
                     return false;
                 else {
                     d += 0x20;
@@ -5940,11 +5940,11 @@ namespace Vulkan {
                 }
         }
 
-        __m128 zero = {};
+        __m128i zero = {};
         size_t s16 = s / 0x10;
         while (s16)
-            if (_mm_movemask_ps(_mm_cmpeq_ps(
-                _mm_loadu_ps((const float*)d), zero)) != 0x0F)
+            if (_mm_movemask_ps(_mm_cvtepi32_ps(
+                _mm_cmpeq_epi32(_mm_loadu_epi32(d), zero))) != 0x0F)
                 return false;
             else {
                 d += 0x10;
