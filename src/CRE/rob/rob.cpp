@@ -14120,7 +14120,7 @@ void rob_chara_item_equip::disp(int32_t chara_id, render_context* rctx) {
     else {
         for (int32_t i = ITEM_ATAMA; i < ITEM_MAX; i++) {
             mdl::ObjFlags chara_flags = (mdl::ObjFlags)0;
-            if (!field_18[i]) {
+            if (!(field_18[i] & 0x02)) {
                 if (rctx->chara_reflect)
                     enum_or(chara_flags, mdl::OBJ_CHARA_REFLECT);
                 if (rctx->chara_refract)
