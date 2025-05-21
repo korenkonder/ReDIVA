@@ -894,10 +894,16 @@ namespace Vulkan {
         viewport = {};
         polygon_mode = GL_FILL;
 
+        line_width_set = false;
         scissor_set = false;
+        stencil_set = false;
         viewport_set = false;
 
         curr_scissor = {};
+        curr_line_width = 1.0f;
+        curr_stencil_mask = 0x01;
+        curr_stencil_ref = 0x00;
+        curr_stencil_value_mask = 0x01;
         curr_viewport = {};
     }
 
@@ -2413,7 +2419,9 @@ namespace Vulkan {
                     i++;
         }
 
+        gl_state.line_width_set = false;
         gl_state.scissor_set = false;
+        gl_state.stencil_set = false;
         gl_state.viewport_set = false;
     }
 
@@ -2564,7 +2572,7 @@ namespace Vulkan {
         rasterization_state.depthClampEnable = VK_FALSE;
         rasterization_state.rasterizerDiscardEnable = VK_FALSE;
         rasterization_state.polygonMode = Vulkan::get_polygon_mode(gl_state.polygon_mode);
-        rasterization_state.lineWidth = gl_state.line_width;
+        rasterization_state.lineWidth = 1.0f;
         rasterization_state.cullMode = Vulkan::get_cull_mode_flags(
             gl_state.cull_face ? gl_state.cull_face_mode : GL_NONE);
         rasterization_state.frontFace = VK_FRONT_FACE_CLOCKWISE;
@@ -2582,16 +2590,16 @@ namespace Vulkan {
         depth_stencil_state.front.passOp = Vulkan::get_stencil_op(gl_state.stencil_dppass);
         depth_stencil_state.front.depthFailOp = Vulkan::get_stencil_op(gl_state.stencil_dpfail);
         depth_stencil_state.front.compareOp = Vulkan::get_compare_op(gl_state.stencil_func);
-        depth_stencil_state.front.compareMask = gl_state.stencil_value_mask;
-        depth_stencil_state.front.writeMask = gl_state.stencil_mask;
-        depth_stencil_state.front.reference = gl_state.stencil_ref;
+        depth_stencil_state.front.compareMask = 0x01;
+        depth_stencil_state.front.writeMask = 0x01;
+        depth_stencil_state.front.reference = 0x00;
         depth_stencil_state.back.failOp = Vulkan::get_stencil_op(gl_state.stencil_fail);
         depth_stencil_state.back.passOp = Vulkan::get_stencil_op(gl_state.stencil_dppass);
         depth_stencil_state.back.depthFailOp = Vulkan::get_stencil_op(gl_state.stencil_dpfail);
         depth_stencil_state.back.compareOp = Vulkan::get_compare_op(gl_state.stencil_func);
-        depth_stencil_state.back.compareMask = gl_state.stencil_value_mask;
-        depth_stencil_state.back.writeMask = gl_state.stencil_mask;
-        depth_stencil_state.back.reference = gl_state.stencil_ref;
+        depth_stencil_state.back.compareMask = 0x01;
+        depth_stencil_state.back.writeMask = 0x01;
+        depth_stencil_state.back.reference = 0x00;
         depth_stencil_state.minDepthBounds = 0.0f;
         depth_stencil_state.maxDepthBounds = 1.0f;
 
@@ -2633,11 +2641,13 @@ namespace Vulkan {
         if (Vulkan::current_render_pass != render_pass)
             Vulkan::end_render_pass(Vulkan::current_command_buffer);
 
+        const bool line_width = gl_state.polygon_mode == GL_LINE || mode == GL_LINES || mode == GL_LINE_STRIP;
         VkPipeline pipeline = *Vulkan::manager_get_pipeline(2, shader_stages,
             binding_description_count, binding_descriptions,
             attribute_description_count, attribute_descriptions, &input_assembly_state,
-            &rasterization_state, &depth_stencil_state, color_blend_attachment_count,
-            color_blend_attachments, pipeline_layout, render_pass).get();
+            &rasterization_state, &depth_stencil_state,
+            color_blend_attachment_count, color_blend_attachments,
+            line_width, gl_state.stencil_test, pipeline_layout, render_pass).get();
 
         free_def(color_blend_attachments);
 
@@ -3403,6 +3413,28 @@ namespace Vulkan {
             gl_state.curr_scissor = gl_state.viewport;
             vkCmdSetScissor(Vulkan::current_command_buffer, 0, 1, (VkRect2D*)&gl_state.viewport);
             gl_state.scissor_set = true;
+        }
+
+        if (line_width && (!gl_state.line_width_set || gl_state.curr_line_width != gl_state.line_width)) {
+            gl_state.curr_line_width = gl_state.line_width;
+            vkCmdSetLineWidth(Vulkan::current_command_buffer, gl_state.line_width);
+            gl_state.line_width_set = true;
+        }
+
+        if (gl_state.stencil_test && (!gl_state.stencil_set
+            || gl_state.curr_stencil_mask != gl_state.stencil_mask
+            || gl_state.curr_stencil_ref != gl_state.stencil_ref
+            || gl_state.curr_stencil_value_mask != gl_state.stencil_value_mask)) {
+            gl_state.curr_stencil_mask = gl_state.stencil_mask;
+            gl_state.curr_stencil_ref = gl_state.stencil_ref;
+            gl_state.curr_stencil_value_mask = gl_state.stencil_value_mask;
+            vkCmdSetStencilWriteMask(Vulkan::current_command_buffer,
+                VK_STENCIL_FACE_FRONT_AND_BACK, gl_state.stencil_mask);
+            vkCmdSetStencilReference(Vulkan::current_command_buffer,
+                VK_STENCIL_FACE_FRONT_AND_BACK, gl_state.stencil_ref);
+            vkCmdSetStencilCompareMask(Vulkan::current_command_buffer,
+                VK_STENCIL_FACE_FRONT_AND_BACK, gl_state.stencil_value_mask);
+            gl_state.stencil_set = true;
         }
 
         if (query)
@@ -6293,6 +6325,8 @@ namespace Vulkan {
         }
 
         gl_state.stencil_func = func;
+        gl_state.stencil_ref = ref;
+        gl_state.stencil_value_mask = mask;
     }
 
     static void gl_wrap_manager_stencil_mask(GLuint mask) {

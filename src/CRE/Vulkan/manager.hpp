@@ -34,7 +34,7 @@ namespace Vulkan {
         const VkPipelineDepthStencilStateCreateInfo* depth_stencil_state,
         uint32_t color_blend_attachment_count,
         const VkPipelineColorBlendAttachmentState* color_blend_attachments,
-        VkPipelineLayout layout, VkRenderPass render_pass);
+        bool line_width, bool stencil, VkPipelineLayout layout, VkRenderPass render_pass);
     extern prj::shared_ptr<class RenderPass> manager_get_render_pass(
         GLenum* color_formats, uint32_t color_format_count,
         GLenum depth_format, bool depth_read_only);

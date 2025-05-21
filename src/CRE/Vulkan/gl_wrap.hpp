@@ -219,10 +219,16 @@ namespace Vulkan {
         GLuint stencil_value_mask;
         gl_state_rect viewport;
 
+        bool line_width_set;
         bool scissor_set;
+        bool stencil_set;
         bool viewport_set;
 
         gl_state_rect curr_scissor;
+        GLfloat curr_line_width;
+        GLuint curr_stencil_mask;
+        GLint curr_stencil_ref;
+        GLuint curr_stencil_value_mask;
         gl_state_rect curr_viewport;
 
         gl_state_struct();

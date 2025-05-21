@@ -20,7 +20,7 @@ namespace Vulkan {
         const VkPipelineDepthStencilStateCreateInfo* depth_stencil_state,
         uint32_t color_blend_attachment_count,
         const VkPipelineColorBlendAttachmentState* color_blend_attachments,
-        VkPipelineLayout layout, VkRenderPass render_pass) {
+        bool line_width, bool stencil, VkPipelineLayout layout, VkRenderPass render_pass) {
         VkPipelineVertexInputStateCreateInfo vertex_input_state = {};
         vertex_input_state.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
         vertex_input_state.vertexBindingDescriptionCount = vertex_input_binding_description_count;
@@ -44,14 +44,23 @@ namespace Vulkan {
         color_blend_state.blendConstants[2] = 0.0f;
         color_blend_state.blendConstants[3] = 0.0f;
 
-        VkDynamicState dynamic_states[] = {
-            VK_DYNAMIC_STATE_VIEWPORT,
-            VK_DYNAMIC_STATE_SCISSOR,
-        };
+        uint32_t dynamic_state_count = 0;
+        VkDynamicState dynamic_states[6];
+        dynamic_states[dynamic_state_count++] = VK_DYNAMIC_STATE_VIEWPORT;
+        dynamic_states[dynamic_state_count++] = VK_DYNAMIC_STATE_SCISSOR;
+
+        if (line_width)
+            dynamic_states[dynamic_state_count++] = VK_DYNAMIC_STATE_LINE_WIDTH;
+
+        if (stencil) {
+            dynamic_states[dynamic_state_count++] = VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK;
+            dynamic_states[dynamic_state_count++] = VK_DYNAMIC_STATE_STENCIL_WRITE_MASK;
+            dynamic_states[dynamic_state_count++] = VK_DYNAMIC_STATE_STENCIL_REFERENCE;
+        }
 
         VkPipelineDynamicStateCreateInfo dynamic_state = {};
         dynamic_state.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-        dynamic_state.dynamicStateCount = sizeof(dynamic_states) / sizeof(VkDynamicState);
+        dynamic_state.dynamicStateCount = dynamic_state_count;
         dynamic_state.pDynamicStates = dynamic_states;
 
         VkGraphicsPipelineCreateInfo graphics_pipeline_create_info;

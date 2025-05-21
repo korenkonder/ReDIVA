@@ -2582,6 +2582,7 @@ static int32_t app_create_logical_device() {
     }
 
     VkPhysicalDeviceFeatures device_features = {};
+    device_features.wideLines = VK_TRUE;
     device_features.samplerAnisotropy = VK_TRUE;
     device_features.textureCompressionBC = VK_TRUE;
     device_features.shaderImageGatherExtended = VK_TRUE;

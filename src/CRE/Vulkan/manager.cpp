@@ -64,13 +64,16 @@ struct pipeline_data {
     uint64_t rasterization_state_hash;
     uint64_t depth_stencil_state_hash;
     uint64_t color_blend_attachmen_hash;
+    bool line_width;
+    bool stencil;
+    uint8_t pad[6];
     VkPipelineLayout layout;
     VkRenderPass render_pass;
 
     inline pipeline_data() : stages_hash(), vertex_input_info_binding_hash(),
         vertex_input_info_attribute_hash(), input_assembly_state_hash(),
-        rasterization_state_hash(), depth_stencil_state_hash(),
-        color_blend_attachmen_hash(), layout(), render_pass() {
+        rasterization_state_hash(), depth_stencil_state_hash(), color_blend_attachmen_hash(),
+        line_width(), stencil(), pad(), layout(), render_pass() {
 
     }
 
@@ -78,7 +81,7 @@ struct pipeline_data {
         uint64_t vertex_input_info_binding_hash, uint64_t vertex_input_info_attribute_hash,
         uint64_t input_assembly_state_hash, uint64_t rasterization_state_hash,
         uint64_t depth_stencil_state_hash, uint64_t color_blend_attachmen_hash,
-        VkPipelineLayout layout, VkRenderPass render_pass) {
+        bool line_width, bool stencil, VkPipelineLayout layout, VkRenderPass render_pass) : pad() {
         this->stages_hash = stages_hash;
         this->vertex_input_info_binding_hash = vertex_input_info_binding_hash;
         this->vertex_input_info_attribute_hash = vertex_input_info_attribute_hash;
@@ -86,6 +89,8 @@ struct pipeline_data {
         this->rasterization_state_hash = rasterization_state_hash;
         this->depth_stencil_state_hash = depth_stencil_state_hash;
         this->color_blend_attachmen_hash = color_blend_attachmen_hash;
+        this->line_width = line_width;
+        this->stencil = stencil;
         this->layout = layout;
         this->render_pass = render_pass;
     }
@@ -220,7 +225,7 @@ namespace Vulkan {
             const VkPipelineDepthStencilStateCreateInfo* depth_stencil_state,
             uint32_t color_blend_attachment_count,
             const VkPipelineColorBlendAttachmentState* color_blend_attachments,
-            VkPipelineLayout layout, VkRenderPass render_pass);
+            bool line_width, bool stencil, VkPipelineLayout layout, VkRenderPass render_pass);
         prj::shared_ptr<Vulkan::RenderPass> get_render_pass(GLenum* color_formats,
             uint32_t color_format_count, GLenum depth_format, bool depth_read_only);
         prj::shared_ptr<Vulkan::Sampler> get_sampler(const gl_sampler& sampler_data);
@@ -286,12 +291,13 @@ namespace Vulkan {
         const VkPipelineDepthStencilStateCreateInfo* depth_stencil_state,
         uint32_t color_blend_attachment_count,
         const VkPipelineColorBlendAttachmentState* color_blend_attachments,
-        VkPipelineLayout layout, VkRenderPass render_pass) {
+        bool line_width, bool stencil, VkPipelineLayout layout, VkRenderPass render_pass) {
         return manager_ptr->get_pipeline(stage_count, stages,
             vertex_input_binding_description_count, vertex_input_binding_descriptions,
             vertex_input_attribute_description_count, vertex_input_attribute_descriptions,
             input_assembly_state, rasterization_state, depth_stencil_state,
-            color_blend_attachment_count, color_blend_attachments, layout, render_pass);
+            color_blend_attachment_count, color_blend_attachments,
+            line_width, stencil, layout, render_pass);
     }
 
     prj::shared_ptr<Vulkan::RenderPass> manager_get_render_pass(
@@ -456,7 +462,7 @@ namespace Vulkan {
         const VkPipelineDepthStencilStateCreateInfo* depth_stencil_state,
         uint32_t color_blend_attachment_count,
         const VkPipelineColorBlendAttachmentState* color_blend_attachments,
-        VkPipelineLayout layout, VkRenderPass render_pass) {
+        bool line_width, bool stencil, VkPipelineLayout layout, VkRenderPass render_pass) {
         uint64_t stages_hash = hash_xxh3_64bits(stages,
             sizeof(VkPipelineShaderStageCreateInfo) * stage_count);
         uint64_t vertex_input_info_binding_hash = hash_xxh3_64bits(vertex_input_binding_descriptions,
@@ -474,7 +480,8 @@ namespace Vulkan {
 
         auto elem = pipelines.find({ stages_hash, vertex_input_info_binding_hash, vertex_input_info_attribute_hash,
             input_assembly_state_hash, rasterization_state_hash,
-            depth_stencil_state_hash, color_blend_attachmen_hash, layout, render_pass });
+            depth_stencil_state_hash, color_blend_attachmen_hash,
+            line_width, stencil, layout, render_pass });
         if (elem != pipelines.end())
             return elem->second;
 
@@ -487,10 +494,11 @@ namespace Vulkan {
             stage_count, stages, vertex_input_binding_description_count, vertex_input_binding_descriptions,
             vertex_input_attribute_description_count, vertex_input_attribute_descriptions,
             input_assembly_state, &viewport_state, rasterization_state, depth_stencil_state,
-            color_blend_attachment_count, color_blend_attachments, layout, render_pass));
+            color_blend_attachment_count, color_blend_attachments, line_width, stencil, layout, render_pass));
         pipelines.insert({ { stages_hash, vertex_input_info_binding_hash, vertex_input_info_attribute_hash,
             input_assembly_state_hash, rasterization_state_hash,
-            depth_stencil_state_hash, color_blend_attachmen_hash, layout, render_pass }, pipeline });
+            depth_stencil_state_hash, color_blend_attachmen_hash,
+            line_width, stencil, layout, render_pass }, pipeline });
         return pipeline;
     }
 

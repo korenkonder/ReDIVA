@@ -26,7 +26,7 @@ namespace Vulkan {
             const VkPipelineDepthStencilStateCreateInfo* depth_stencil_state,
             uint32_t color_blend_attachment_count,
             const VkPipelineColorBlendAttachmentState* color_blend_attachments,
-            VkPipelineLayout layout, VkRenderPass render_pass);
+            bool line_width, bool stencil, VkPipelineLayout layout, VkRenderPass render_pass);
         ~Pipeline();
 
         inline operator VkPipeline() const {
