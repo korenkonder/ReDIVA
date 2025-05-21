@@ -277,7 +277,7 @@ namespace Vulkan {
 
             Vulkan::Buffer dynamic_buffer = Vulkan::manager_get_dynamic_buffer(size, alignment);
             dynamic_buffer.WriteMemory(dynamic_buffer.GetOffset(), size, data.data());
-            enum_and(flags, ~Vulkan::GL_BUFFER_FLAG_WRITE_DATA);
+            enum_and(flags, ~Vulkan::GL_BUFFER_FLAG_UPDATE_DATA);
 
             working_buffer.AddBuffer(hash, dynamic_buffer);
             copy_working_buffer = true;
@@ -286,7 +286,7 @@ namespace Vulkan {
             Vulkan::end_render_pass(Vulkan::current_command_buffer);
 
             vkCmdFillBuffer(Vulkan::current_command_buffer, buffer, 0, size, 0);
-            enum_and(flags, ~Vulkan::GL_BUFFER_FLAG_CLEAR_DATA);
+            enum_and(flags, ~Vulkan::GL_BUFFER_FLAG_UPDATE_DATA);
 
             working_buffer.SetBuffer(buffer);
             copy_working_buffer = false;
@@ -6967,8 +6967,8 @@ namespace Vulkan {
             return GL_FALSE;
         }
 
-        if (vk_buf->flags & Vulkan::GL_BUFFER_FLAG_WRITE_DATA) {
-            enum_and(vk_buf->flags, ~Vulkan::GL_BUFFER_FLAG_CLEAR_DATA);
+        if (vk_buf->flags & Vulkan::GL_BUFFER_FLAG_UPDATE_DATA) {
+            enum_and(vk_buf->flags, ~Vulkan::GL_BUFFER_FLAG_UPDATE_DATA);
 
             if (check_for_zero(vk_buf->data.data(), vk_buf->data.size()))
                 enum_or(vk_buf->flags, Vulkan::GL_BUFFER_FLAG_CLEAR_DATA);

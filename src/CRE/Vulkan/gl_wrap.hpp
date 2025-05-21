@@ -43,6 +43,8 @@ namespace Vulkan {
         GL_BUFFER_FLAG_MAP_READ_BIT        = (1 << 5u),
         GL_BUFFER_FLAG_MAP_WRITE_BIT       = (1 << 6u),
         GL_BUFFER_FLAG_DYNAMIC_STORAGE_BIT = (1 << 7u),
+
+        GL_BUFFER_FLAG_UPDATE_DATA = GL_BUFFER_FLAG_CLEAR_DATA | GL_BUFFER_FLAG_WRITE_DATA,
     };
 
     enum gl_texture_flags {
