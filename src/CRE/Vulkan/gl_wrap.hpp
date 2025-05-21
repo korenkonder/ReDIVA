@@ -159,6 +159,8 @@ namespace Vulkan {
         GLint y;
         GLsizei width;
         GLsizei height;
+
+        gl_state_rect();
     };
 
     struct gl_state_struct {
@@ -216,7 +218,12 @@ namespace Vulkan {
         GLint stencil_ref;
         GLuint stencil_value_mask;
         gl_state_rect viewport;
+
+        bool scissor_set;
         bool viewport_set;
+
+        gl_state_rect curr_scissor;
+        gl_state_rect curr_viewport;
 
         gl_state_struct();
     };

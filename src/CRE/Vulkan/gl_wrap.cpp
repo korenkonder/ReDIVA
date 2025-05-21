@@ -817,6 +817,13 @@ namespace Vulkan {
         return 0;
     }
 
+    gl_state_rect::gl_state_rect() {
+        x = 0;
+        y = 0;
+        width = 0;
+        height = 0;
+    }
+
     gl_state_struct::gl_state_struct() {
         clear_color = 0.0f;
         clear_depth = 1.0f;
@@ -874,10 +881,7 @@ namespace Vulkan {
         multisample = GL_FALSE;
         primitive_restart = GL_FALSE;
         primitive_restart_index = 0;
-        scissor_box.x = 0;
-        scissor_box.y = 0;
-        scissor_box.width = 0;
-        scissor_box.height = 0;
+        scissor_box = {};
         scissor_test = GL_FALSE;
         stencil_test = GL_FALSE;
         stencil_func = GL_ALWAYS;
@@ -887,13 +891,14 @@ namespace Vulkan {
         stencil_mask = 0x01;
         stencil_ref = 0x00;
         stencil_value_mask = 0x01;
-        viewport.x = 0;
-        viewport.y = 0;
-        viewport.width = 0;
-        viewport.height = 0;
+        viewport = {};
         polygon_mode = GL_FILL;
 
+        scissor_set = false;
         viewport_set = false;
+
+        curr_scissor = {};
+        curr_viewport = {};
     }
 
     gl_storage_buffer::gl_storage_buffer() : copy_working_buffer(), shader_write(), shader_write_flags() {
@@ -2408,6 +2413,7 @@ namespace Vulkan {
                     i++;
         }
 
+        gl_state.scissor_set = false;
         gl_state.viewport_set = false;
     }
 
@@ -3370,9 +3376,34 @@ namespace Vulkan {
 
         vkCmdBindPipeline(Vulkan::current_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
-        if (!gl_state.viewport_set)
-            gl_wrap_manager_viewport(gl_state.viewport.x, gl_state.viewport.y,
-                gl_state.viewport.width, gl_state.viewport.height);
+        if (!gl_state.viewport_set
+            || memcmp(&gl_state.curr_viewport, &gl_state.viewport, sizeof(gl_state_rect))) {
+            gl_state.curr_viewport = gl_state.viewport;
+
+            VkViewport viewport;
+            viewport.x = (float_t)gl_state.viewport.x;
+            viewport.y = (float_t)gl_state.viewport.y;
+            viewport.width = (float_t)gl_state.viewport.width;
+            viewport.height = (float_t)gl_state.viewport.height;
+            viewport.minDepth = 0.0f;
+            viewport.maxDepth = 1.0f;
+
+            vkCmdSetViewport(Vulkan::current_command_buffer, 0, 1, &viewport);
+            gl_state.viewport_set = true;
+        }
+
+        if (gl_state.scissor_test && (!gl_state.scissor_set
+            || memcmp(&gl_state.curr_scissor, &gl_state.scissor_box, sizeof(gl_state_rect)))) {
+            gl_state.curr_scissor = gl_state.scissor_box;
+            vkCmdSetScissor(Vulkan::current_command_buffer, 0, 1, (VkRect2D*)&gl_state.scissor_box);
+            gl_state.scissor_set = true;
+        }
+        else if (!gl_state.scissor_test && (!gl_state.scissor_set
+            || memcmp(&gl_state.curr_scissor, &gl_state.viewport, sizeof(gl_state_rect)))) {
+            gl_state.curr_scissor = gl_state.viewport;
+            vkCmdSetScissor(Vulkan::current_command_buffer, 0, 1, (VkRect2D*)&gl_state.viewport);
+            gl_state.scissor_set = true;
+        }
 
         if (query)
             Vulkan::gl_query::get(query)->query.Begin(Vulkan::current_command_buffer);
@@ -4869,11 +4900,6 @@ namespace Vulkan {
             break;
         case GL_SCISSOR_TEST:
             gl_state.scissor_test = GL_FALSE;
-
-            if (memcmp(&gl_state.viewport, &gl_state.scissor_box, sizeof(gl_state_rect))) {
-                VkRect2D scissor = *(VkRect2D*)&gl_state.viewport;
-                vkCmdSetScissor(Vulkan::current_command_buffer, 0, 1, &scissor);
-            }
             break;
         case GL_MULTISAMPLE:
             gl_state.multisample = GL_FALSE;
@@ -4975,12 +5001,7 @@ namespace Vulkan {
             break;
         case GL_SCISSOR_TEST:
             gl_state.scissor_test = GL_TRUE;
-
-            if (memcmp(&gl_state.viewport, &gl_state.scissor_box, sizeof(gl_state_rect))) {
-                VkRect2D scissor = *(VkRect2D*)&gl_state.scissor_box;
-                vkCmdSetScissor(Vulkan::current_command_buffer, 0, 1, &scissor);
-            }
-        break;
+            break;
         case GL_MULTISAMPLE:
             gl_state.multisample = GL_TRUE;
             break;
@@ -6253,11 +6274,6 @@ namespace Vulkan {
         gl_state.scissor_box.y = y;
         gl_state.scissor_box.width = width;
         gl_state.scissor_box.height = height;
-
-        if (gl_state.scissor_test) {
-            VkRect2D scissor = *(VkRect2D*)&gl_state.scissor_box;
-            vkCmdSetScissor(Vulkan::current_command_buffer, 0, 1, &scissor);
-        }
     }
 
     static void gl_wrap_manager_stencil_func(GLenum func, GLint ref, GLuint mask) {
@@ -7301,22 +7317,5 @@ namespace Vulkan {
         gl_state.viewport.y = y;
         gl_state.viewport.width = width;
         gl_state.viewport.height = height;
-
-        VkViewport viewport;
-        viewport.x = (float_t)gl_state.viewport.x;
-        viewport.y = (float_t)gl_state.viewport.y;
-        viewport.width = (float_t)gl_state.viewport.width;
-        viewport.height = (float_t)gl_state.viewport.height;
-        viewport.minDepth = 0.0f;
-        viewport.maxDepth = 1.0f;
-
-        vkCmdSetViewport(Vulkan::current_command_buffer, 0, 1, &viewport);
-        gl_state.viewport_set = true;
-
-        if (!gl_state.scissor_test
-            && memcmp(&gl_state.viewport, &gl_state.scissor_box, sizeof(gl_state_rect))) {
-            VkRect2D scissor = *(VkRect2D*)&gl_state.viewport;
-            vkCmdSetScissor(Vulkan::current_command_buffer, 0, 1, &scissor);
-        }
     }
 };
