@@ -1907,7 +1907,10 @@ static const shader_description glitter_particle_vpt_desc[] = {
     { SHADER_DESCRIPTION_VERTEX_INPUT, 1, 4, U_INVALID, },
     { SHADER_DESCRIPTION_VERTEX_INPUT, 2, 4, U_INVALID, },
     SHADER_DESCRIPTION_EFFECT_TEXTURE_SAMPLER,
-    SHADER_DESCRIPTION_COMMON_SCENE,
+    { SHADER_DESCRIPTION_UNIFORM, -1, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | sizeof(render_data::obj_shader_data), U_INVALID, },
+    { SHADER_DESCRIPTION_UNIFORM, 1, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | sizeof(render_data::obj_scene_data), U_INVALID, },
     { SHADER_DESCRIPTION_UNIFORM, 3, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
         | sizeof(glitter_batch_shader_data), U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
@@ -1916,7 +1919,10 @@ static const shader_description glitter_particle_vpt_desc[] = {
 static const shader_description glitter_particle_fpt_desc[] = {
     { SHADER_DESCRIPTION_SAMPLER, 0, 0, U_INVALID, },
     { SHADER_DESCRIPTION_SAMPLER, 1, 0, U_INVALID, },
-    SHADER_DESCRIPTION_COMMON_SCENE,
+    { SHADER_DESCRIPTION_UNIFORM, -1, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | sizeof(render_data::obj_shader_data), U_INVALID, },
+    { SHADER_DESCRIPTION_UNIFORM, 1, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
+        | sizeof(render_data::obj_scene_data), U_INVALID, },
     { SHADER_DESCRIPTION_UNIFORM, 3, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
         | sizeof(glitter_batch_shader_data), U_INVALID, },
     { SHADER_DESCRIPTION_FRAGMENT_OUTPUT, 0, 4, U_INVALID, },
