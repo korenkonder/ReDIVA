@@ -2425,6 +2425,253 @@ namespace Vulkan {
         gl_state.viewport_set = false;
     }
 
+    inline static void populate_bindings(const shader_table* shader,
+        const uint32_t* unival_arr, const shader_description* _desc,
+        VkShaderStageFlags shader_stage_flags, VkPipelineStageFlags pipeline_stage_flags,
+        VkDescriptorImageInfo* sampler_infos, VkDescriptorImageInfo*& sampler_info,
+        VkDescriptorBufferInfo* uniform_infos, VkDescriptorBufferInfo*& uniform_info,
+        VkDescriptorBufferInfo* storage_infos, VkDescriptorBufferInfo*& storage_info,
+        uint32_t* sampler_info_bindings, uint32_t*& sampler_info_binding,
+        uint32_t* uniform_info_bindings, uint32_t*& uniform_info_binding,
+        uint32_t* storage_info_bindings, uint32_t*& storage_info_binding,
+        std::pair<uint32_t, uint32_t>* dynamic_infos, std::pair<uint32_t, uint32_t>*& dynamic_info,
+        std::pair<uint32_t, VkBufferMemoryBarrier>* flags_buffer_memory_barriers,
+        std::pair<uint32_t, VkBufferMemoryBarrier>*& flags_buffer_memory_barrier,
+        uint8_t*& push_constant_data, uint32_t& push_constant_data_size,
+        VkShaderStageFlags& push_constant_stage_flags) {
+        while (_desc->type != SHADER_DESCRIPTION_NONE && _desc->type != SHADER_DESCRIPTION_END
+            && _desc->type != SHADER_DESCRIPTION_MAX) {
+            const shader_description* desc = _desc++;
+            if (!get_use_binding(desc->use_uniform, shader, unival_arr))
+                continue;
+
+            bool found = false;
+            switch (desc->type) {
+            case SHADER_DESCRIPTION_SAMPLER: {
+                uint32_t sampler_count = (uint32_t)(sampler_info - sampler_infos);
+                for (uint32_t i = 0; i < sampler_count; i++)
+                    if (sampler_info_bindings[i] == desc->binding) {
+                        found = true;
+                        break;
+                    }
+
+                if (!found) {
+                    GLuint texture = 0;
+                    switch (desc->data) {
+                    case 0:
+                        texture = gl_state.texture_binding_2d[desc->binding];
+                        break;
+                    case 1:
+                        texture = gl_state.texture_binding_cube_map[desc->binding];
+                        break;
+                    }
+
+                    Vulkan::gl_texture* vk_tex = Vulkan::gl_texture::get(texture);
+                    if (!vk_tex)
+                        break;
+
+                    Vulkan::gl_sampler* sampler_data = &vk_tex->sampler_data;
+                    GLuint sampler = gl_state.sampler_binding[desc->binding];
+                    if (sampler) {
+                        Vulkan::gl_sampler* vk_samp = Vulkan::gl_sampler::get(sampler);
+                        if (vk_samp)
+                            sampler_data = vk_samp;
+                    }
+
+                    const VkImageAspectFlags aspect_mask = Vulkan::get_aspect_mask(vk_tex->internal_format);
+                    const int32_t level_count = vk_tex->get_level_count();
+                    const int32_t layer_count = vk_tex->get_layer_count();
+
+                    const VkFormat format = Vulkan::get_format(vk_tex->internal_format);
+
+                    VkImageLayout layout;
+                    switch (format) {
+                    case VK_FORMAT_D24_UNORM_S8_UINT:
+                    case VK_FORMAT_D32_SFLOAT:
+                        layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+                        break;
+                    default:
+                        layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                        break;
+                    }
+
+                    Vulkan::Image::PipelineBarrier(Vulkan::current_command_buffer, vk_tex->image,
+                        aspect_mask, level_count, layer_count, layout);
+
+                    sampler_info->sampler = *Vulkan::manager_get_sampler(*sampler_data).get();
+                    sampler_info->imageView = vk_tex->get_image_view();
+                    sampler_info->imageLayout = vk_tex->image.GetImageLayout(0, 0);
+                    sampler_info++;
+                    *sampler_info_binding++ = desc->binding;
+                }
+            } break;
+            case SHADER_DESCRIPTION_UNIFORM: {
+                if (desc->binding == -1) {
+                    Vulkan::gl_buffer* vk_buf = Vulkan::gl_buffer::get(gl_state.uniform_buffer_bindings[0]);
+                    if (!vk_buf)
+                        break;
+
+                    if (!push_constant_data) {
+                        push_constant_data = vk_buf->data.data();
+                        push_constant_data_size = (uint32_t)vk_buf->data.size();
+                    }
+                    push_constant_stage_flags |= shader_stage_flags;
+                    break;
+                }
+
+                uint32_t uniform_count = (uint32_t)(uniform_info - uniform_infos);
+                for (uint32_t i = 0; i < uniform_count; i++)
+                    if (uniform_info_bindings[i] == desc->binding) {
+                        Vulkan::gl_uniform_buffer* vk_ub = Vulkan::gl_uniform_buffer::get(
+                            gl_state.uniform_buffer_bindings[desc->binding]);
+                        switch (desc->data & SHADER_DESCRIPTION_UNIFORM_ACCESS_MASK) {
+                        case SHADER_DESCRIPTION_UNIFORM_WRITE_ONLY:
+                        case SHADER_DESCRIPTION_UNIFORM_READ_WRITE:
+                            vk_ub->shader_write_flags |= pipeline_stage_flags;
+                            break;
+                        }
+
+                        found = true;
+                        break;
+                    }
+
+                if (!found) {
+                    Vulkan::gl_uniform_buffer* vk_ub = Vulkan::gl_uniform_buffer::get(
+                        gl_state.uniform_buffer_bindings[desc->binding]);
+                    if (!vk_ub)
+                        break;
+
+                    const GLintptr gl_offset = gl_state.uniform_buffer_offsets[desc->binding];
+                    const GLsizeiptr gl_size = gl_state.uniform_buffer_sizes[desc->binding];
+
+                    VkDeviceSize offset = vk_ub->working_buffer.GetOffset() + (VkDeviceSize)gl_offset;
+                    VkDeviceSize range = gl_size != -1 ? (VkDeviceSize)gl_size : vk_ub->working_buffer.GetSize();
+
+                    uniform_info->buffer = vk_ub->working_buffer;
+                    uniform_info->offset = 0;
+                    uniform_info->range = range;
+                    uniform_info++;
+                    *uniform_info_binding++ = desc->binding;
+
+                    dynamic_info->first = desc->binding & 0x7FFFFFFF;
+                    dynamic_info->second = (uint32_t)offset;
+                    dynamic_info++;
+
+                    VkAccessFlags dst_access_mask = 0;
+                    switch (desc->data & SHADER_DESCRIPTION_UNIFORM_ACCESS_MASK) {
+                    case SHADER_DESCRIPTION_UNIFORM_READ_ONLY:
+                        dst_access_mask = VK_ACCESS_SHADER_READ_BIT;
+                        break;
+                    case SHADER_DESCRIPTION_UNIFORM_WRITE_ONLY:
+                        dst_access_mask = VK_ACCESS_SHADER_WRITE_BIT;
+                        break;
+                    case SHADER_DESCRIPTION_UNIFORM_READ_WRITE:
+                        dst_access_mask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
+                        break;
+                    }
+
+                    if (vk_ub->shader_write) {
+                        flags_buffer_memory_barrier->first = vk_ub->shader_write_flags;
+                        flags_buffer_memory_barrier->second.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+                        flags_buffer_memory_barrier->second.pNext = 0;
+                        flags_buffer_memory_barrier->second.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+                        flags_buffer_memory_barrier->second.dstAccessMask = dst_access_mask;
+                        flags_buffer_memory_barrier->second.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                        flags_buffer_memory_barrier->second.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                        flags_buffer_memory_barrier->second.buffer = vk_ub->working_buffer;
+                        flags_buffer_memory_barrier->second.offset = offset;
+                        flags_buffer_memory_barrier->second.size = range;
+                        flags_buffer_memory_barrier++;
+                    }
+
+                    switch (desc->data & SHADER_DESCRIPTION_UNIFORM_ACCESS_MASK) {
+                    case SHADER_DESCRIPTION_UNIFORM_WRITE_ONLY:
+                    case SHADER_DESCRIPTION_UNIFORM_READ_WRITE:
+                        vk_ub->shader_write = true;
+                        vk_ub->shader_write_flags = pipeline_stage_flags;
+                        break;
+                    }
+                }
+            } break;
+            case SHADER_DESCRIPTION_STORAGE: {
+                uint32_t storage_count = (uint32_t)(storage_info - storage_infos);
+                for (uint32_t i = 0; i < storage_count; i++)
+                    if (storage_info_bindings[i] == desc->binding) {
+                        Vulkan::gl_storage_buffer* vk_sb = Vulkan::gl_storage_buffer::get(
+                            gl_state.shader_storage_buffer_bindings[desc->binding]);
+                        switch (desc->data & SHADER_DESCRIPTION_UNIFORM_ACCESS_MASK) {
+                        case SHADER_DESCRIPTION_UNIFORM_WRITE_ONLY:
+                        case SHADER_DESCRIPTION_UNIFORM_READ_WRITE:
+                            vk_sb->shader_write_flags |= pipeline_stage_flags;
+                            break;
+                        }
+
+                        found = true;
+                        break;
+                    }
+
+                if (!found) {
+                    Vulkan::gl_storage_buffer* vk_sb = Vulkan::gl_storage_buffer::get(
+                        gl_state.shader_storage_buffer_bindings[desc->binding]);
+                    if (!vk_sb)
+                        break;
+
+                    const GLintptr gl_offset = gl_state.shader_storage_buffer_offsets[desc->binding];
+                    const GLsizeiptr gl_size = gl_state.shader_storage_buffer_sizes[desc->binding];
+
+                    VkDeviceSize offset = vk_sb->working_buffer.GetOffset() + (VkDeviceSize)gl_offset;
+                    VkDeviceSize range = gl_size != -1 ? (VkDeviceSize)gl_size : vk_sb->working_buffer.GetSize();
+
+                    storage_info->buffer = vk_sb->working_buffer;
+                    storage_info->offset = 0;
+                    storage_info->range = range;
+                    storage_info++;
+                    *storage_info_binding++ = desc->binding;
+
+                    dynamic_info->first = 0x80000000 | (desc->binding & 0x7FFFFFFF);
+                    dynamic_info->second = (uint32_t)offset;
+                    dynamic_info++;
+
+                    VkAccessFlags dst_access_mask = 0;
+                    switch (desc->data & SHADER_DESCRIPTION_STORAGE_ACCESS_MASK) {
+                    case SHADER_DESCRIPTION_STORAGE_READ_ONLY:
+                        dst_access_mask = VK_ACCESS_SHADER_READ_BIT;
+                        break;
+                    case SHADER_DESCRIPTION_STORAGE_WRITE_ONLY:
+                        dst_access_mask = VK_ACCESS_SHADER_WRITE_BIT;
+                        break;
+                    case SHADER_DESCRIPTION_STORAGE_READ_WRITE:
+                        dst_access_mask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
+                        break;
+                    }
+
+                    if (vk_sb->shader_write) {
+                        flags_buffer_memory_barrier->first = vk_sb->shader_write_flags;
+                        flags_buffer_memory_barrier->second.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+                        flags_buffer_memory_barrier->second.pNext = 0;
+                        flags_buffer_memory_barrier->second.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+                        flags_buffer_memory_barrier->second.dstAccessMask = dst_access_mask;
+                        flags_buffer_memory_barrier->second.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                        flags_buffer_memory_barrier->second.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                        flags_buffer_memory_barrier->second.buffer = vk_sb->working_buffer;
+                        flags_buffer_memory_barrier->second.offset = offset;
+                        flags_buffer_memory_barrier->second.size = range;
+                        flags_buffer_memory_barrier++;
+                    }
+
+                    switch (desc->data & SHADER_DESCRIPTION_STORAGE_ACCESS_MASK) {
+                    case SHADER_DESCRIPTION_STORAGE_WRITE_ONLY:
+                    case SHADER_DESCRIPTION_STORAGE_READ_WRITE:
+                        vk_sb->shader_write = true;
+                        vk_sb->shader_write_flags = pipeline_stage_flags;
+                        break;
+                    }
+                }
+            } break;
+            }
+        }
+    }
+
     static bool gl_wrap_manager_prepare_pipeline_draw(GLenum mode, GLenum type, const void* indices) {
         Vulkan::gl_program* vk_program = Vulkan::gl_program::get(gl_state.program);
         if (!vk_program) {
@@ -2699,439 +2946,20 @@ namespace Vulkan {
         uint32_t push_constant_data_size = 0;
         VkShaderStageFlags push_constant_stage_flags = 0;
 
-        const shader_description* vp_desc = sub_shader->vp_desc;
-        while (vp_desc->type != SHADER_DESCRIPTION_NONE && vp_desc->type != SHADER_DESCRIPTION_END
-            && vp_desc->type != SHADER_DESCRIPTION_MAX) {
-            const shader_description* desc = vp_desc++;
-            if (!get_use_binding(desc->use_uniform, shader, unival_arr))
-                continue;
-
-            bool found = false;
-            switch (desc->type) {
-            case SHADER_DESCRIPTION_SAMPLER:
-                sampler_count = (uint32_t)(sampler_info - sampler_infos);
-                for (uint32_t i = 0; i < sampler_count; i++)
-                    if (sampler_info_bindings[i] == desc->binding) {
-                        found = true;
-                        break;
-                    }
-
-                if (!found) {
-                    GLuint texture = 0;
-                    switch (desc->data) {
-                    case 0:
-                        texture = gl_state.texture_binding_2d[desc->binding];
-                        break;
-                    case 1:
-                        texture = gl_state.texture_binding_cube_map[desc->binding];
-                        break;
-                    }
-
-                    Vulkan::gl_texture* vk_tex = Vulkan::gl_texture::get(texture);
-                    if (!vk_tex)
-                        break;
-
-                    Vulkan::gl_sampler* sampler_data = &vk_tex->sampler_data;
-                    GLuint sampler = gl_state.sampler_binding[desc->binding];
-                    if (sampler) {
-                        Vulkan::gl_sampler* vk_samp = Vulkan::gl_sampler::get(sampler);
-                        if (vk_samp)
-                            sampler_data = vk_samp;
-                    }
-
-                    const VkImageAspectFlags aspect_mask = Vulkan::get_aspect_mask(vk_tex->internal_format);
-                    const int32_t level_count = vk_tex->get_level_count();
-                    const int32_t layer_count = vk_tex->get_layer_count();
-
-                    const VkFormat format = Vulkan::get_format(vk_tex->internal_format);
-
-                    VkImageLayout layout;
-                    switch (format) {
-                    case VK_FORMAT_D24_UNORM_S8_UINT:
-                    case VK_FORMAT_D32_SFLOAT:
-                        layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
-                        break;
-                    default:
-                        layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                        break;
-                    }
-
-                    Vulkan::Image::PipelineBarrier(Vulkan::current_command_buffer, vk_tex->image,
-                        aspect_mask, level_count, layer_count, layout);
-
-                    sampler_info->sampler = *Vulkan::manager_get_sampler(*sampler_data).get();
-                    sampler_info->imageView = vk_tex->get_image_view();
-                    sampler_info->imageLayout = vk_tex->image.GetImageLayout(0, 0);
-                    sampler_info++;
-                    *sampler_info_binding++ = desc->binding;
-                }
-                break;
-            case SHADER_DESCRIPTION_UNIFORM:
-                if (desc->binding == -1) {
-                    Vulkan::gl_buffer* vk_buf = Vulkan::gl_buffer::get(gl_state.uniform_buffer_bindings[0]);
-                    if (!vk_buf)
-                        break;
-
-                    if (!push_constant_data) {
-                        push_constant_data = vk_buf->data.data();
-                        push_constant_data_size = (uint32_t)vk_buf->data.size();
-                    }
-                    push_constant_stage_flags |= VK_SHADER_STAGE_VERTEX_BIT;
-                    break;
-                }
-
-                uniform_count = (uint32_t)(uniform_info - uniform_infos);
-                for (uint32_t i = 0; i < uniform_count; i++)
-                    if (uniform_info_bindings[i] == desc->binding) {
-                        found = true;
-                        break;
-                    }
-
-                if (!found) {
-                    Vulkan::gl_uniform_buffer* vk_ub = Vulkan::gl_uniform_buffer::get(
-                        gl_state.uniform_buffer_bindings[desc->binding]);
-                    if (!vk_ub)
-                        break;
-
-                    const GLintptr gl_offset = gl_state.uniform_buffer_offsets[desc->binding];
-                    const GLsizeiptr gl_size = gl_state.uniform_buffer_sizes[desc->binding];
-
-                    VkDeviceSize offset = vk_ub->working_buffer.GetOffset() + (VkDeviceSize)gl_offset;
-                    VkDeviceSize range = gl_size != -1 ? (VkDeviceSize)gl_size : vk_ub->working_buffer.GetSize();
-
-                    uniform_info->buffer = vk_ub->working_buffer;
-                    uniform_info->offset = 0;
-                    uniform_info->range = range;
-                    uniform_info++;
-                    *uniform_info_binding++ = desc->binding;
-
-                    dynamic_info->first = desc->binding & 0x7FFFFFFF;
-                    dynamic_info->second = (uint32_t)offset;
-                    dynamic_info++;
-
-                    VkAccessFlags dst_access_mask = 0;
-                    switch (desc->data & SHADER_DESCRIPTION_UNIFORM_ACCESS_MASK) {
-                    case SHADER_DESCRIPTION_UNIFORM_READ_ONLY:
-                        dst_access_mask = VK_ACCESS_SHADER_READ_BIT;
-                        break;
-                    case SHADER_DESCRIPTION_UNIFORM_WRITE_ONLY:
-                        dst_access_mask = VK_ACCESS_SHADER_WRITE_BIT;
-                        break;
-                    case SHADER_DESCRIPTION_UNIFORM_READ_WRITE:
-                        dst_access_mask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
-                        break;
-                    }
-
-                    if (vk_ub->shader_write) {
-                        flags_buffer_memory_barrier->first = vk_ub->shader_write_flags;
-                        flags_buffer_memory_barrier->second.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-                        flags_buffer_memory_barrier->second.pNext = 0;
-                        flags_buffer_memory_barrier->second.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-                        flags_buffer_memory_barrier->second.dstAccessMask = dst_access_mask;
-                        flags_buffer_memory_barrier->second.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                        flags_buffer_memory_barrier->second.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                        flags_buffer_memory_barrier->second.buffer = vk_ub->working_buffer;
-                        flags_buffer_memory_barrier->second.offset = offset;
-                        flags_buffer_memory_barrier->second.size = range;
-                        flags_buffer_memory_barrier++;
-                    }
-
-                    switch (desc->data & SHADER_DESCRIPTION_UNIFORM_ACCESS_MASK) {
-                    case SHADER_DESCRIPTION_UNIFORM_WRITE_ONLY:
-                    case SHADER_DESCRIPTION_UNIFORM_READ_WRITE:
-                        vk_ub->shader_write = true;
-                        vk_ub->shader_write_flags = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
-                            | VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
-                        break;
-                    }
-                }
-                break;
-            case SHADER_DESCRIPTION_STORAGE:
-                storage_count = (uint32_t)(storage_info - storage_infos);
-                for (uint32_t i = 0; i < storage_count; i++)
-                    if (storage_info_bindings[i] == desc->binding) {
-                        found = true;
-                        break;
-                    }
-
-                if (!found) {
-                    GLuint buffer = gl_state.shader_storage_buffer_bindings[desc->binding];
-                    Vulkan::gl_storage_buffer* vk_sb = Vulkan::gl_storage_buffer::get(buffer);
-                    if (!vk_sb)
-                        break;
-
-                    const GLintptr gl_offset = gl_state.shader_storage_buffer_offsets[desc->binding];
-                    const GLsizeiptr gl_size = gl_state.shader_storage_buffer_sizes[desc->binding];
-
-                    VkDeviceSize offset = vk_sb->working_buffer.GetOffset() + (VkDeviceSize)gl_offset;
-                    VkDeviceSize range = gl_size != -1 ? (VkDeviceSize)gl_size : vk_sb->working_buffer.GetSize();
-
-                    storage_info->buffer = vk_sb->working_buffer;
-                    storage_info->offset = 0;
-                    storage_info->range = range;
-                    storage_info++;
-                    *storage_info_binding++ = desc->binding;
-
-                    dynamic_info->first = 0x80000000 | (desc->binding & 0x7FFFFFFF);
-                    dynamic_info->second = (uint32_t)offset;
-                    dynamic_info++;
-
-                    VkAccessFlags dst_access_mask = 0;
-                    switch (desc->data & SHADER_DESCRIPTION_STORAGE_ACCESS_MASK) {
-                    case SHADER_DESCRIPTION_STORAGE_READ_ONLY:
-                        dst_access_mask = VK_ACCESS_SHADER_READ_BIT;
-                        break;
-                    case SHADER_DESCRIPTION_STORAGE_WRITE_ONLY:
-                        dst_access_mask = VK_ACCESS_SHADER_WRITE_BIT;
-                        break;
-                    case SHADER_DESCRIPTION_STORAGE_READ_WRITE:
-                        dst_access_mask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
-                        break;
-                    }
-
-                    if (vk_sb->shader_write) {
-                        flags_buffer_memory_barrier->first = vk_sb->shader_write_flags;
-                        flags_buffer_memory_barrier->second.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-                        flags_buffer_memory_barrier->second.pNext = 0;
-                        flags_buffer_memory_barrier->second.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-                        flags_buffer_memory_barrier->second.dstAccessMask = dst_access_mask;
-                        flags_buffer_memory_barrier->second.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                        flags_buffer_memory_barrier->second.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                        flags_buffer_memory_barrier->second.buffer = vk_sb->working_buffer;
-                        flags_buffer_memory_barrier->second.offset = offset;
-                        flags_buffer_memory_barrier->second.size = range;
-                        flags_buffer_memory_barrier++;
-                    }
-
-                    switch (desc->data & SHADER_DESCRIPTION_STORAGE_ACCESS_MASK) {
-                    case SHADER_DESCRIPTION_STORAGE_WRITE_ONLY:
-                    case SHADER_DESCRIPTION_STORAGE_READ_WRITE:
-                        vk_sb->shader_write = true;
-                        vk_sb->shader_write_flags = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
-                            | VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
-                        break;
-                    }
-                }
-                break;
-            }
-        }
-
-        const shader_description* fp_desc = sub_shader->fp_desc;
-        while (fp_desc->type != SHADER_DESCRIPTION_NONE && fp_desc->type != SHADER_DESCRIPTION_END
-            && fp_desc->type != SHADER_DESCRIPTION_MAX) {
-            const shader_description* desc = fp_desc++;
-            if (!get_use_binding(desc->use_uniform, shader, unival_arr))
-                continue;
-
-            bool found = false;
-            switch (desc->type) {
-            case SHADER_DESCRIPTION_SAMPLER:
-                sampler_count = (uint32_t)(sampler_info - sampler_infos);
-                for (uint32_t i = 0; i < sampler_count; i++)
-                    if (sampler_info_bindings[i] == desc->binding) {
-                        found = true;
-                        break;
-                    }
-
-                if (!found) {
-                    GLuint texture = 0;
-                    switch (desc->data) {
-                    case 0:
-                        texture = gl_state.texture_binding_2d[desc->binding];
-                        break;
-                    case 1:
-                        texture = gl_state.texture_binding_cube_map[desc->binding];
-                        break;
-                    }
-
-                    Vulkan::gl_texture* vk_tex = Vulkan::gl_texture::get(texture);
-                    if (!vk_tex)
-                        break;
-
-                    Vulkan::gl_sampler* sampler_data = &vk_tex->sampler_data;
-                    GLuint sampler = gl_state.sampler_binding[desc->binding];
-                    if (sampler) {
-                        Vulkan::gl_sampler* vk_samp = Vulkan::gl_sampler::get(sampler);
-                        if (vk_samp)
-                            sampler_data = vk_samp;
-                    }
-
-                    const VkImageAspectFlags aspect_mask = Vulkan::get_aspect_mask(vk_tex->internal_format);
-                    const int32_t level_count = vk_tex->get_level_count();
-                    const int32_t layer_count = vk_tex->get_layer_count();
-
-                    const VkFormat format = Vulkan::get_format(vk_tex->internal_format);
-
-                    VkImageLayout layout;
-                    switch (format) {
-                    case VK_FORMAT_D24_UNORM_S8_UINT:
-                    case VK_FORMAT_D32_SFLOAT:
-                        layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
-                        break;
-                    default:
-                        layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                        break;
-                    }
-
-                    Vulkan::Image::PipelineBarrier(Vulkan::current_command_buffer, vk_tex->image,
-                        aspect_mask, level_count, layer_count, layout);
-
-                    sampler_info->sampler = *Vulkan::manager_get_sampler(*sampler_data).get();
-                    sampler_info->imageView = vk_tex->get_image_view();
-                    sampler_info->imageLayout = vk_tex->image.GetImageLayout(0, 0);
-                    sampler_info++;
-                    *sampler_info_binding++ = desc->binding;
-                }
-                break;
-            case SHADER_DESCRIPTION_UNIFORM:
-                if (desc->binding == -1) {
-                    Vulkan::gl_buffer* vk_buf = Vulkan::gl_buffer::get(gl_state.uniform_buffer_bindings[0]);
-                    if (!vk_buf)
-                        break;
-
-                    if (!push_constant_data) {
-                        push_constant_data = vk_buf->data.data();
-                        push_constant_data_size = (uint32_t)vk_buf->data.size();
-                    }
-                    push_constant_stage_flags |= VK_SHADER_STAGE_FRAGMENT_BIT;
-                    break;
-                }
-
-                uniform_count = (uint32_t)(uniform_info - uniform_infos);
-                for (uint32_t i = 0; i < uniform_count; i++)
-                    if (uniform_info_bindings[i] == desc->binding) {
-                        found = true;
-                        break;
-                    }
-
-                if (!found) {
-                    Vulkan::gl_uniform_buffer* vk_ub = Vulkan::gl_uniform_buffer::get(
-                        gl_state.uniform_buffer_bindings[desc->binding]);
-                    if (!vk_ub)
-                        break;
-
-                    const GLintptr gl_offset = gl_state.uniform_buffer_offsets[desc->binding];
-                    const GLsizeiptr gl_size = gl_state.uniform_buffer_sizes[desc->binding];
-
-                    VkDeviceSize offset = vk_ub->working_buffer.GetOffset() + (VkDeviceSize)gl_offset;
-                    VkDeviceSize range = gl_size != -1 ? (VkDeviceSize)gl_size : vk_ub->working_buffer.GetSize();
-
-                    uniform_info->buffer = vk_ub->working_buffer;
-                    uniform_info->offset = 0;
-                    uniform_info->range = range;
-                    uniform_info++;
-                    *uniform_info_binding++ = desc->binding;
-
-                    dynamic_info->first = desc->binding & 0x7FFFFFFF;
-                    dynamic_info->second = (uint32_t)offset;
-                    dynamic_info++;
-
-                    VkAccessFlags dst_access_mask = 0;
-                    switch (desc->data & SHADER_DESCRIPTION_UNIFORM_ACCESS_MASK) {
-                    case SHADER_DESCRIPTION_UNIFORM_READ_ONLY:
-                        dst_access_mask = VK_ACCESS_SHADER_READ_BIT;
-                        break;
-                    case SHADER_DESCRIPTION_UNIFORM_WRITE_ONLY:
-                        dst_access_mask = VK_ACCESS_SHADER_WRITE_BIT;
-                        break;
-                    case SHADER_DESCRIPTION_UNIFORM_READ_WRITE:
-                        dst_access_mask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
-                        break;
-                    }
-
-                    if (vk_ub->shader_write) {
-                        flags_buffer_memory_barrier->first = vk_ub->shader_write_flags;
-                        flags_buffer_memory_barrier->second.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-                        flags_buffer_memory_barrier->second.pNext = 0;
-                        flags_buffer_memory_barrier->second.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-                        flags_buffer_memory_barrier->second.dstAccessMask = dst_access_mask;
-                        flags_buffer_memory_barrier->second.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                        flags_buffer_memory_barrier->second.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                        flags_buffer_memory_barrier->second.buffer = vk_ub->working_buffer;
-                        flags_buffer_memory_barrier->second.offset = offset;
-                        flags_buffer_memory_barrier->second.size = range;
-                        flags_buffer_memory_barrier++;
-                    }
-
-                    switch (desc->data & SHADER_DESCRIPTION_UNIFORM_ACCESS_MASK) {
-                    case SHADER_DESCRIPTION_UNIFORM_WRITE_ONLY:
-                    case SHADER_DESCRIPTION_UNIFORM_READ_WRITE:
-                        vk_ub->shader_write = true;
-                        vk_ub->shader_write_flags = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
-                            | VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
-                        break;
-                    }
-                }
-                break;
-            case SHADER_DESCRIPTION_STORAGE:
-                storage_count = (uint32_t)(storage_info - storage_infos);
-                for (uint32_t i = 0; i < storage_count; i++)
-                    if (storage_info_bindings[i] == desc->binding) {
-                        found = true;
-                        break;
-                    }
-
-                if (!found) {
-                    GLuint buffer = gl_state.shader_storage_buffer_bindings[desc->binding];
-                    Vulkan::gl_storage_buffer* vk_sb = Vulkan::gl_storage_buffer::get(buffer);
-                    if (!vk_sb)
-                        break;
-
-                    const GLintptr gl_offset = gl_state.shader_storage_buffer_offsets[desc->binding];
-                    const GLsizeiptr gl_size = gl_state.shader_storage_buffer_sizes[desc->binding];
-
-                    VkDeviceSize offset = vk_sb->working_buffer.GetOffset() + (VkDeviceSize)gl_offset;
-                    VkDeviceSize range = gl_size != -1 ? (VkDeviceSize)gl_size : vk_sb->working_buffer.GetSize();
-
-                    storage_info->buffer = vk_sb->working_buffer;
-                    storage_info->offset = 0;
-                    storage_info->range = range;
-                    storage_info++;
-                    *storage_info_binding++ = desc->binding;
-
-                    dynamic_info->first = 0x80000000 | (desc->binding & 0x7FFFFFFF);
-                    dynamic_info->second = (uint32_t)offset;
-                    dynamic_info++;
-
-                    VkAccessFlags dst_access_mask = 0;
-                    switch (desc->data & SHADER_DESCRIPTION_STORAGE_ACCESS_MASK) {
-                    case SHADER_DESCRIPTION_STORAGE_READ_ONLY:
-                        dst_access_mask = VK_ACCESS_SHADER_READ_BIT;
-                        break;
-                    case SHADER_DESCRIPTION_STORAGE_WRITE_ONLY:
-                        dst_access_mask = VK_ACCESS_SHADER_WRITE_BIT;
-                        break;
-                    case SHADER_DESCRIPTION_STORAGE_READ_WRITE:
-                        dst_access_mask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
-                        break;
-                    }
-
-                    if (vk_sb->shader_write) {
-                        flags_buffer_memory_barrier->first = vk_sb->shader_write_flags;
-                        flags_buffer_memory_barrier->second.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-                        flags_buffer_memory_barrier->second.pNext = 0;
-                        flags_buffer_memory_barrier->second.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-                        flags_buffer_memory_barrier->second.dstAccessMask = dst_access_mask;
-                        flags_buffer_memory_barrier->second.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                        flags_buffer_memory_barrier->second.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                        flags_buffer_memory_barrier->second.buffer = vk_sb->working_buffer;
-                        flags_buffer_memory_barrier->second.offset = offset;
-                        flags_buffer_memory_barrier->second.size = range;
-                        flags_buffer_memory_barrier++;
-                    }
-
-                    switch (desc->data & SHADER_DESCRIPTION_STORAGE_ACCESS_MASK) {
-                    case SHADER_DESCRIPTION_STORAGE_WRITE_ONLY:
-                    case SHADER_DESCRIPTION_STORAGE_READ_WRITE:
-                        vk_sb->shader_write = true;
-                        vk_sb->shader_write_flags = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
-                            | VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
-                        break;
-                    }
-                }
-                break;
-            }
-        }
+        populate_bindings(shader, unival_arr, sub_shader->vp_desc,
+            VK_SHADER_STAGE_VERTEX_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT,
+            sampler_infos, sampler_info, uniform_infos, uniform_info, storage_infos, storage_info,
+            sampler_info_bindings, sampler_info_binding, uniform_info_bindings, uniform_info_binding,
+            storage_info_bindings, storage_info_binding, dynamic_infos, dynamic_info,
+            flags_buffer_memory_barriers, flags_buffer_memory_barrier,
+            push_constant_data, push_constant_data_size, push_constant_stage_flags);
+        populate_bindings(shader, unival_arr, sub_shader->fp_desc,
+            VK_SHADER_STAGE_FRAGMENT_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+            sampler_infos, sampler_info, uniform_infos, uniform_info, storage_infos, storage_info,
+            sampler_info_bindings, sampler_info_binding, uniform_info_bindings, uniform_info_binding,
+            storage_info_bindings, storage_info_binding, dynamic_infos, dynamic_info,
+            flags_buffer_memory_barriers, flags_buffer_memory_barrier,
+            push_constant_data, push_constant_data_size, push_constant_stage_flags);
 
         sampler_count = (uint32_t)(sampler_info - sampler_infos);
         uniform_count = (uint32_t)(uniform_info - uniform_infos);
