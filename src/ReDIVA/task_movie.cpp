@@ -205,7 +205,7 @@ void TaskMovie::Player::UpdateInteropTexture(TaskMovie::PlayerVideoParams* playe
 }
 
 TaskMovie::TaskMovie() : player(), player_video_params(), tex(), pause(), wait_play() {
-    disp_state = TaskMovie::DispState::Disp;
+    disp_type = TaskMovie::DispType::SpriteTextute;
     state = TaskMovie::State::Wait;
 }
 
@@ -242,12 +242,16 @@ bool TaskMovie::ctrl() {
             if (!tex)
                 tex = sub_14041E560();
 
-            if (disp_state != TaskMovie::DispState::None)
+            if (disp_type != TaskMovie::DispType::None)
                 player->GetInteropTexture(tex);
         }
 
-        if (!player->interop_texture && !no_interop)
-            task_movie_player_no_interop.insert({ player, {} }).first->second.Create();
+        if (player && !player->interop_texture
+            && !no_interop && disp_type != TaskMovie::DispType::None) {
+            HRESULT hr = player->player->GetGLDXIntreropTexture(&player->interop_texture);
+            if (hr < S_FALSE)
+                task_movie_player_no_interop.insert({ player, {} }).first->second.Create();
+        }
     }
     return false;
 }
@@ -273,7 +277,7 @@ bool TaskMovie::dest() {
 }
 
 void TaskMovie::disp() {
-    if (state != TaskMovie::State::Disp || disp_state != TaskMovie::DispState::Disp || !tex)
+    if (state != TaskMovie::State::Disp || disp_type != TaskMovie::DispType::SpriteTextute || !tex)
         return;
 
     float_t width = (float_t)player_video_params->width;
@@ -512,7 +516,7 @@ void TaskMovie::Start(const std::string& path) {
 
 bool TaskMovie::Unload() {
     bool res = TaskMovie::Shutdown();
-    disp_state = TaskMovie::DispState::Disp;
+    disp_type = TaskMovie::DispType::SpriteTextute;
     return res;
 }
 
@@ -575,7 +579,7 @@ void TaskMoviePlayerNoInterop::Ctrl(TaskMovie* task_movie,
         if (!task_movie->tex)
             task_movie->tex = sub_14041E560();
 
-        if (task_movie->disp_state != TaskMovie::DispState::None)
+        if (task_movie->disp_type != TaskMovie::DispType::None)
             GetD3D11Texture(player, task_movie->tex);
     }
 }

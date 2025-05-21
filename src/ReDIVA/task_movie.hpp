@@ -21,10 +21,10 @@ public:
         Max,
     };
 
-    enum class DispState {
+    enum class DispType {
         None = 0,
-        Disp,
-        Hide,
+        SpriteTextute,
+        Textute,
         Max,
     };
 
@@ -83,7 +83,7 @@ public:
     };
 
     std::string path;
-    DispState disp_state;
+    DispType disp_type;
     SprParams spr_params;
     State state;
     Player* player;
