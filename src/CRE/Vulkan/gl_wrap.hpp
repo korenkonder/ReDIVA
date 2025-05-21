@@ -356,6 +356,7 @@ namespace Vulkan {
     extern VkBuffer gl_wrap_manager_get_dummy_vertex_buffer();
     extern GLuint gl_wrap_manager_get_query_samples_passed();
     extern void gl_wrap_manager_update_buffers();
+    extern void gl_wrap_manager_update_images();
     extern void gl_wrap_manager_load_funcs();
     extern void gl_wrap_manager_free();
 

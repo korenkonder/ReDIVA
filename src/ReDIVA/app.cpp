@@ -1527,6 +1527,9 @@ static void render_context_ctrl(render_context* rctx) {
             rctx->ctrl();
         }
 
+    if (Vulkan::use)
+        Vulkan::gl_wrap_manager_update_images();
+
     char buf[0x200];
     game_state_print(buf, sizeof(buf));
     glfwSetWindowTitle(window, buf);

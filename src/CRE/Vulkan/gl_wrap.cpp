@@ -50,6 +50,7 @@ namespace Vulkan {
         GLsizei height;
         uint32_t level_count;
         int32_t alive_time;
+        bool update_data;
         std::vector<tex_data> data[6];
 
         gl_texture_data();
@@ -108,6 +109,7 @@ namespace Vulkan {
         void release_texture(GLuint texture);
         void release_vertex_array(GLuint array);
         void update_buffers();
+        void update_images();
     };
 
     gl_state_struct gl_state;
@@ -976,12 +978,8 @@ namespace Vulkan {
             return vk_tex;
 
         bool create = false;
-        if (!vk_tex->image) {
-            if (!vk_tex_data || !vk_tex_data->valid())
-                return vk_tex;
-
+        if (!vk_tex->image)
             create = true;
-        }
 
         if (vk_tex_data && (vk_tex->internal_format != vk_tex_data->internal_format
             || vk_tex->width != vk_tex_data->width
@@ -1001,30 +999,26 @@ namespace Vulkan {
             }
 
             vk_tex->flags = flags;
+        }
 
-            const VkImageViewType image_view_type = Vulkan::get_image_view_type(vk_tex->target);
-            const VkFormat format = Vulkan::get_format(vk_tex->internal_format);
-            const VkImageAspectFlags aspect_mask = Vulkan::get_aspect_mask(vk_tex->internal_format);
+        const VkImageViewType image_view_type = Vulkan::get_image_view_type(vk_tex->target);
+        const VkFormat format = Vulkan::get_format(vk_tex->internal_format);
+        const VkImageAspectFlags aspect_mask = Vulkan::get_aspect_mask(vk_tex->internal_format);
 
+        const int32_t level_count = vk_tex->get_level_count();
+        const int32_t layer_count = vk_tex->get_layer_count();
+
+        if (create && update_data) {
             VkImageUsageFlags usage = 0;
-            VkImageLayout layout;
             switch (format) {
             case VK_FORMAT_D24_UNORM_S8_UINT:
             case VK_FORMAT_D32_SFLOAT:
-                if (vk_tex->flags & Vulkan::GL_TEXTURE_ATTACHMENT) {
+                if (vk_tex->flags & Vulkan::GL_TEXTURE_ATTACHMENT)
                     usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-                    layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-                }
-                else
-                    layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
                 break;
             default:
-                if (vk_tex->flags & Vulkan::GL_TEXTURE_ATTACHMENT) {
+                if (vk_tex->flags & Vulkan::GL_TEXTURE_ATTACHMENT)
                     usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-                    layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-                }
-                else
-                    layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                 break;
             }
 
@@ -1034,58 +1028,120 @@ namespace Vulkan {
 
             const VkImageCreateFlags flags = vk_tex->target == GL_TEXTURE_CUBE_MAP
                 ? VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT : 0;
-            const int32_t level_count = vk_tex->get_level_count();
-            const int32_t layer_count = vk_tex->get_layer_count();
             vk_tex->image.Create(Vulkan::current_allocator,
                 flags, vk_tex->width, vk_tex->height, level_count, layer_count, format,
                 VK_IMAGE_TILING_OPTIMAL, usage, VMA_MEMORY_USAGE_AUTO,
                 (vk_tex->flags & Vulkan::GL_TEXTURE_ATTACHMENT) ? VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT : 0);
             vk_tex->image_view.Create(Vulkan::current_device, 0, vk_tex->image,
                 image_view_type, format, aspect_mask, 0, level_count, 0, layer_count);
+        }
+
+        if (vk_tex_data && update_data && vk_tex_data->alive_time > 0) {
+            const VkImageLayout layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+
+            uint32_t region_max_count = 0;
+            for (int32_t i = 0; i < layer_count; i++)
+                for (int32_t j = 0; j < level_count; j++) {
+                    gl_texture_data::tex_data* tex_data = vk_tex_data->get_tex_data(j, i);
+                    if (tex_data && tex_data->data && tex_data->size)
+                        region_max_count++;
+                }
+
+            if (region_max_count) {
+                Vulkan::Image::PipelineBarrier(Vulkan::current_command_buffer, vk_tex->image,
+                    aspect_mask, level_count, layer_count, layout);
+
+                void* buffer_copy_regions = force_malloc(
+                    sizeof(std::pair<VkBuffer, VkBufferImageCopy>) * region_max_count
+                    + sizeof(VkBufferImageCopy) * region_max_count);
+
+                std::pair<VkBuffer, VkBufferImageCopy>* buffer_regions
+                    = (std::pair<VkBuffer, VkBufferImageCopy>*)buffer_copy_regions;
+                std::pair<VkBuffer, VkBufferImageCopy>* buffer_region = buffer_regions;
+                bool sort_buffer_regions = false;
+
+                VkBufferImageCopy* regions = (VkBufferImageCopy*)(buffer_regions + region_max_count);
+
+                for (int32_t i = 0; i < layer_count; i++)
+                    for (int32_t j = 0; j < level_count; j++) {
+                        gl_texture_data::tex_data* tex_data = vk_tex_data->get_tex_data(j, i);
+                        if (!tex_data || !tex_data->data || !tex_data->size)
+                            continue;
+
+                        const void* data = tex_data->data;
+                        const VkDeviceSize size = tex_data->size;
+                        Vulkan::Buffer staging_buffer = Vulkan::manager_get_staging_buffer(size);
+                        staging_buffer.WriteMemory(staging_buffer.GetOffset(), size, data);
+                        tex_data->size = 0;
+
+                        Vulkan::CommandBuffer cb(Vulkan::current_device,
+                            Vulkan::current_command_pool, Vulkan::current_command_buffer);
+
+                        if (buffer_region != buffer_regions && buffer_region[-1].first != staging_buffer)
+                            sort_buffer_regions = true;
+
+                        buffer_region->first = staging_buffer;
+                        buffer_region->second.bufferOffset = staging_buffer.GetOffset();
+                        buffer_region->second.bufferRowLength = 0;
+                        buffer_region->second.bufferImageHeight = 0;
+                        buffer_region->second.imageSubresource.aspectMask = aspect_mask;
+                        buffer_region->second.imageSubresource.mipLevel = j;
+                        buffer_region->second.imageSubresource.baseArrayLayer = i;
+                        buffer_region->second.imageSubresource.layerCount = 1;
+                        buffer_region->second.imageOffset = { 0, 0, 0 };
+                        buffer_region->second.imageExtent.width = max_def(vk_tex->width >> j, 1);
+                        buffer_region->second.imageExtent.height = max_def(vk_tex->height >> j, 1);
+                        buffer_region->second.imageExtent.depth = 1;
+                        buffer_region++;
+                    }
+
+                if (buffer_region - buffer_regions) {
+                    if (sort_buffer_regions)
+                        std::sort(buffer_regions, buffer_region,
+                            [](const std::pair<VkBuffer, VkBufferImageCopy>& left,
+                                const std::pair<VkBuffer, VkBufferImageCopy>& right) {
+                                    return left.first <= right.first; });
+
+                    VkBuffer curr_staging_buffer = 0;
+                    uint32_t region_count = 0;
+                    for (uint32_t i = 0; i < region_max_count; i++) {
+                        if (region_count && curr_staging_buffer != buffer_regions[i].first) {
+                            vkCmdCopyBufferToImage(Vulkan::current_command_buffer,
+                                curr_staging_buffer, vk_tex->image, layout, region_count, regions);
+                            region_count = 0;
+                        }
+
+                        curr_staging_buffer = buffer_regions[i].first;
+                        regions[region_count++] = buffer_regions[i].second;
+                    }
+
+                    if (region_count)
+                        vkCmdCopyBufferToImage(Vulkan::current_command_buffer,
+                            curr_staging_buffer, vk_tex->image, layout, region_count, regions);
+                }
+                free_def(buffer_copy_regions);
+            }
+
+            vk_tex_data->update_data = false;
+        }
+
+        if (vk_tex->image && update_data) {
+            VkImageLayout layout;
+            switch (format) {
+            case VK_FORMAT_D24_UNORM_S8_UINT:
+            case VK_FORMAT_D32_SFLOAT:
+                layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+                break;
+            default:
+                layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                break;
+            }
+
             Vulkan::Image::PipelineBarrier(Vulkan::current_command_buffer, vk_tex->image,
                 aspect_mask, level_count, layer_count, layout);
         }
 
-        if (vk_tex_data && update_data && vk_tex_data->alive_time > 0) {
-            const int32_t level_count = vk_tex->get_level_count();
-            const int32_t layer_count = vk_tex->get_layer_count();
-            for (int32_t i = 0; i < layer_count; i++)
-                for (int32_t j = 0; j < level_count; j++) {
-                    gl_texture_data::tex_data* tex_data = vk_tex_data->get_tex_data(j, i);
-                    if (!tex_data || !tex_data->data || !tex_data->size)
-                        continue;
-
-                    const void* data = tex_data->data;
-                    const VkDeviceSize size = tex_data->size;
-                    Vulkan::Buffer staging_buffer = Vulkan::manager_get_staging_buffer(size);
-                    staging_buffer.WriteMemory(staging_buffer.GetOffset(), size, data);
-                    tex_data->size = 0;
-
-                    const VkImageViewType image_view_type = Vulkan::get_image_view_type(vk_tex->target);
-                    const VkFormat format = Vulkan::get_format(vk_tex->internal_format);
-                    const VkImageAspectFlags aspect_mask = Vulkan::get_aspect_mask(vk_tex->internal_format);
-
-                    Vulkan::CommandBuffer cb(Vulkan::current_device,
-                        Vulkan::current_command_pool, Vulkan::current_command_buffer);
-
-                    const VkImageLayout old_layout = vk_tex->image.GetImageLayout(j, i);
-                    const VkImageLayout new_layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-
-                    Vulkan::Image::PipelineBarrierSingle(Vulkan::current_command_buffer,
-                        vk_tex->image, aspect_mask, j, i, new_layout);
-                    cb.CopyBufferToImage(staging_buffer, staging_buffer.GetOffset(),
-                        vk_tex->image, aspect_mask, j, i, 0, 0,
-                        max_def(vk_tex->width >> j, 1), max_def(vk_tex->height >> j, 1));
-                    Vulkan::Image::PipelineBarrierSingle(Vulkan::current_command_buffer,
-                        vk_tex->image, aspect_mask, j, i, old_layout);
-                }
-        }
-
         if (vk_tex->image && !vk_tex->sample_image_view) {
-            const VkImageViewType image_view_type = Vulkan::get_image_view_type(vk_tex->target);
-            const VkFormat format = Vulkan::get_format(vk_tex->internal_format);
-            const VkImageAspectFlags aspect_mask = Vulkan::get_aspect_mask(vk_tex->internal_format);
-
             const uint32_t base_mipmap_level = vk_tex->base_mipmap_level;
             const uint32_t level_count = min_def((uint32_t)(vk_tex->max_mipmap_level
                 - base_mipmap_level) + 1, vk_tex->get_level_count());
@@ -1349,6 +1405,10 @@ namespace Vulkan {
 
     void gl_wrap_manager_update_buffers() {
         gl_wrap_manager_ptr->update_buffers();
+    }
+
+    void gl_wrap_manager_update_images() {
+        gl_wrap_manager_ptr->update_images();
     }
 
     void gl_wrap_manager_load_funcs() {
@@ -2009,7 +2069,8 @@ namespace Vulkan {
         return *this;
     }
 
-    gl_texture_data::gl_texture_data() : target(), internal_format(), width(), height(), level_count(), alive_time() {
+    gl_texture_data::gl_texture_data() : target(), internal_format(),
+        width(), height(), level_count(), alive_time(), update_data() {
 
     }
 
@@ -2020,6 +2081,7 @@ namespace Vulkan {
         height = other.height;
         level_count = other.level_count;
         alive_time = other.alive_time;
+        update_data = other.update_data;
         for (uint32_t i = 0; i < 6; i++)
             data[i].assign(other.data[i].begin(), other.data[i].end());
     }
@@ -2054,6 +2116,7 @@ namespace Vulkan {
         level_count = other.level_count;
         internal_format = other.internal_format;
         alive_time = other.alive_time;
+        update_data = other.update_data;
         for (uint32_t i = 0; i < 6; i++)
             data[i].assign(other.data[i].begin(), other.data[i].end());
         return *this;
@@ -2423,6 +2486,12 @@ namespace Vulkan {
         gl_state.scissor_set = false;
         gl_state.stencil_set = false;
         gl_state.viewport_set = false;
+    }
+
+    void gl_wrap_manager::update_images() {
+        for (auto& i : gl_texture_datas)
+            if (i.second.alive_time >= 0 && i.second.update_data)
+                gl_texture::get(i.first);
     }
 
     inline static void populate_bindings(const shader_table* shader,
@@ -4296,6 +4365,7 @@ namespace Vulkan {
         if (tex_data) {
             tex_data->set_data(internal_format, 0, 0, width, height, format, type, data);
             vk_tex_data->alive_time = 2;
+            vk_tex_data->update_data = true;
         }
     }
 
@@ -4418,6 +4488,7 @@ namespace Vulkan {
             tex_data->set_data(vk_tex->internal_format,
                 xoffset, yoffset, width, height, _format, _type, data);
             vk_tex_data->alive_time = 2;
+            vk_tex_data->update_data = true;
         }
     }
 
@@ -6351,6 +6422,7 @@ namespace Vulkan {
         if (tex_data) {
             tex_data->set_data(internal_format, 0, 0, width, height, format, type, pixels);
             vk_tex_data->alive_time = 2;
+            vk_tex_data->update_data = true;
         }
     }
 
@@ -6560,6 +6632,7 @@ namespace Vulkan {
             tex_data->set_data(vk_tex->internal_format,
                 xoffset, yoffset, width, height, format, type, pixels);
             vk_tex_data->alive_time = 2;
+            vk_tex_data->update_data = true;
         }
     }
 
@@ -6816,9 +6889,10 @@ namespace Vulkan {
 
         gl_texture_data::tex_data* tex_data = vk_tex_data->get_tex_data(level, 0);
         if (tex_data) {
-            tex_data->set_data(vk_tex_data->internal_format,
+            tex_data->set_data(vk_tex->internal_format,
                 xoffset, yoffset, width, height, format, type, pixels);
             vk_tex_data->alive_time = 2;
+            vk_tex_data->update_data = true;
         }
     }
 
