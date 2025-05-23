@@ -50,7 +50,7 @@ namespace renderer {
         GLuint samplers[2];
         GLuint vao;
         GL::UniformBuffer common_ubo;
-        GL::UniformBuffer texcoords_ubo;
+        GL::UniformBuffer texcoords_ubo[7];
 
     public:
         DOF3(int32_t width, int32_t height);
@@ -84,7 +84,8 @@ namespace renderer {
             float_t min_dist, float_t max_dist, float_t fov, float_t dist, float_t focal_length,
             float_t f_number, float_t focus_range, float_t fuzzing_range, float_t ratio);
 
-        static void calculate_texcoords(vec2* data, float_t size);
+        template <int32_t sample_division>
+        static void calculate_texcoords(GL::UniformBuffer& buffer, const float_t size);
     };
 }
 
