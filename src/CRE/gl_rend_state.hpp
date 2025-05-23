@@ -70,6 +70,7 @@ struct p_gl_rend_state {
     void disable_scissor_test();
     void disable_stencil_test();
     void draw_arrays(GLenum mode, GLint first, GLsizei count);
+    void draw_arrays_instanced(GLenum mode, GLint first, GLsizei count, GLsizei instancecount);
     void draw_elements(GLenum mode,
         GLsizei count, GLenum type, const void* indices);
     void draw_range_elements(GLenum mode,
@@ -109,6 +110,8 @@ struct p_gl_rend_state {
     void set_stencil_mask(GLuint mask);
     void set_stencil_op(GLenum sfail, GLenum dpfail, GLenum dppass);
     void set_viewport(const gl_rend_state_rect& rect);
+    void tex_sub_image_2d(GLenum target, GLint level, GLint xoffset, GLint yoffset,
+        GLsizei width, GLsizei height, GLenum format, GLenum type, const void* pixels);
     void set_viewport(GLint x, GLint y, GLsizei width, GLsizei height);
     void update();
     void use_program(GLuint program);

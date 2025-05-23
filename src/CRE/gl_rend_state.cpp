@@ -219,6 +219,7 @@ struct gl_rend_state {
     void disable_scissor_test();
     void disable_stencil_test();
     void draw_arrays(GLenum mode, GLint first, GLsizei count);
+    void draw_arrays_instanced(GLenum mode, GLint first, GLsizei count, GLsizei instancecount);
     void draw_elements(GLenum mode,
         GLsizei count, GLenum type, const void* indices);
     void draw_range_elements(GLenum mode,
@@ -259,6 +260,8 @@ struct gl_rend_state {
     void set_stencil_op(GLenum sfail, GLenum dpfail, GLenum dppass);
     void set_viewport(const gl_rend_state_rect& rect);
     void set_viewport(GLint x, GLint y, GLsizei width, GLsizei height);
+    void tex_sub_image_2d(GLenum target, GLint level, GLint xoffset, GLint yoffset,
+        GLsizei width, GLsizei height, GLenum format, GLenum type, const void* pixels);
     void update();
     void update_program();
     void update_active_texture();
@@ -458,6 +461,10 @@ void p_gl_rend_state::draw_arrays(GLenum mode, GLint first, GLsizei count) {
     ptr.draw_arrays(mode, first, count);
 }
 
+void p_gl_rend_state::draw_arrays_instanced(GLenum mode, GLint first, GLsizei count, GLsizei instancecount) {
+    ptr.draw_arrays_instanced(mode, first, count, instancecount);
+}
+
 void p_gl_rend_state::draw_elements(GLenum mode,
     GLsizei count, GLenum type, const void* indices) {
     ptr.draw_elements(mode, count, type, indices);
@@ -600,6 +607,11 @@ void p_gl_rend_state::set_stencil_op(GLenum sfail, GLenum dpfail, GLenum dppass)
 
 void p_gl_rend_state::set_viewport(const gl_rend_state_rect& rect) {
     ptr.set_viewport(rect);
+}
+
+void p_gl_rend_state::tex_sub_image_2d(GLenum target, GLint level, GLint xoffset, GLint yoffset,
+    GLsizei width, GLsizei height, GLenum format, GLenum type, const void* pixels) {
+    ptr.tex_sub_image_2d(target, level, xoffset, yoffset, width, height, format, type, pixels);
 }
 
 void p_gl_rend_state::set_viewport(GLint x, GLint y, GLsizei width, GLsizei height) {
@@ -890,6 +902,11 @@ inline void gl_rend_state::disable_stencil_test() {
 inline void gl_rend_state::draw_arrays(GLenum mode, GLint first, GLsizei count) {
     update();
     glDrawArrays(mode, first, count);
+}
+
+inline void gl_rend_state::draw_arrays_instanced(GLenum mode, GLint first, GLsizei count, GLsizei instancecount) {
+    update();
+    glDrawArraysInstanced(mode, first, count, instancecount);
 }
 
 inline void gl_rend_state::draw_elements(GLenum mode,
@@ -1320,6 +1337,13 @@ inline void gl_rend_state::set_viewport(GLint x, GLint y, GLsizei width, GLsizei
     viewport.width = width;
     viewport.height = height;
     enum_or(update_flags, GL_REND_STATE_UPDATE_VIEWPORT);
+}
+
+inline void gl_rend_state::tex_sub_image_2d(GLenum target, GLint level, GLint xoffset, GLint yoffset,
+    GLsizei width, GLsizei height, GLenum format, GLenum type, const void* pixels) {
+    update_curr_active_texture();
+    glTexSubImage2D(target, level, xoffset, yoffset, width, height, format, type, pixels);
+    enum_or(flags, GL_REND_STATE_EXECUTE);
 }
 
 void gl_rend_state::update() {
