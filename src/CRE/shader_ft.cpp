@@ -2018,7 +2018,7 @@ static const shader_description dof_common_vpt_desc[] = {
 static const shader_description dof_render_tile_fpt_desc[] = {
     { SHADER_DESCRIPTION_SAMPLER, 0, 0, U_INVALID, },
     { SHADER_DESCRIPTION_UNIFORM, 0, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
-        | 0x30, U_INVALID, }, // sizeof(dof_common_shader_data)
+        | 0x40, U_INVALID, }, // sizeof(dof_common_shader_data)
     { SHADER_DESCRIPTION_FRAGMENT_OUTPUT, 0, 4, U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
@@ -2034,7 +2034,7 @@ static const shader_description dof_downsample_fpt_desc[] = {
     { SHADER_DESCRIPTION_SAMPLER, 1, 0, U_INVALID, },
     { SHADER_DESCRIPTION_SAMPLER, 2, 0, U_INVALID, },
     { SHADER_DESCRIPTION_UNIFORM, 0, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
-        | 0x30, U_INVALID, }, // sizeof(dof_common_shader_data)
+        | 0x40, U_INVALID, }, // sizeof(dof_common_shader_data)
     { SHADER_DESCRIPTION_FRAGMENT_OUTPUT, 0, 3, U_INVALID, },
     { SHADER_DESCRIPTION_FRAGMENT_OUTPUT, 1, 3, U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
@@ -2045,9 +2045,9 @@ static const shader_description dof_main_filter_fpt_desc[] = {
     { SHADER_DESCRIPTION_SAMPLER, 1, 0, U_INVALID, },
     { SHADER_DESCRIPTION_SAMPLER, 2, 0, U_INVALID, },
     { SHADER_DESCRIPTION_UNIFORM, 0, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
-        | 0x30, U_INVALID, }, // sizeof(dof_common_shader_data)
+        | 0x40, U_INVALID, }, // sizeof(dof_common_shader_data)
     { SHADER_DESCRIPTION_UNIFORM, 1, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
-        | 0x190, U_INVALID, }, // sizeof(vec2) * 50
+        | 0x320, U_INVALID, }, // sizeof(vec4) * 50
     { SHADER_DESCRIPTION_FRAGMENT_OUTPUT, 0, 4, U_INVALID, },
     { SHADER_DESCRIPTION_FRAGMENT_OUTPUT, 0, 1, U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
@@ -2060,7 +2060,7 @@ static const shader_description dof_upsample_fpt_desc[] = {
     { SHADER_DESCRIPTION_SAMPLER, 3, 0, U_INVALID, },
     { SHADER_DESCRIPTION_SAMPLER, 4, 0, U_INVALID, },
     { SHADER_DESCRIPTION_UNIFORM, 0, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
-        | 0x30, U_INVALID, }, // sizeof(dof_common_shader_data)
+        | 0x40, U_INVALID, }, // sizeof(dof_common_shader_data)
     { SHADER_DESCRIPTION_FRAGMENT_OUTPUT, 0, 4, U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
