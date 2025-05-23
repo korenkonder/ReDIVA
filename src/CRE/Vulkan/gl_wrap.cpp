@@ -108,8 +108,8 @@ namespace Vulkan {
         void release_sampler(GLuint sampler);
         void release_texture(GLuint texture);
         void release_vertex_array(GLuint array);
-        void update_buffers();
-        void update_images();
+        void post_render();
+        void pre_render();
     };
 
     gl_state_struct gl_state;
@@ -255,7 +255,7 @@ namespace Vulkan {
         GLenum type, GLboolean normalized, GLsizei stride, const void* pointer);
     static void gl_wrap_manager_viewport(GLint x, GLint y, GLsizei width, GLsizei height);
 
-    gl_buffer::gl_buffer() : target(), flags() {
+    gl_buffer::gl_buffer() : target(), flags(), size() {
 
     }
 
@@ -266,12 +266,13 @@ namespace Vulkan {
     gl_buffer& gl_buffer::operator=(const gl_buffer& other) {
         target = other.target;
         flags = other.flags;
+        size = other.size;
         data.assign(other.data.begin(), other.data.end());
         return *this;
     }
 
-    void gl_buffer::set_buffer(const VkDeviceSize size, const VkDeviceSize alignment,
-        Vulkan::Buffer& buffer, bool& copy_working_buffer, Vulkan::WorkingBuffer& working_buffer) {
+    void gl_buffer::set_buffer(const VkDeviceSize alignment, Vulkan::Buffer& buffer,
+        bool& copy_working_buffer, Vulkan::WorkingBuffer& working_buffer) {
         if (flags & Vulkan::GL_BUFFER_FLAG_WRITE_DATA) {
             const uint64_t hash = hash_xxh3_64bits(data.data(), size);
             if (copy_working_buffer && working_buffer.FindBuffer(hash, size))
@@ -512,7 +513,7 @@ namespace Vulkan {
 
         gl_index_buffer* vk_ib = &elem->second;
 
-        const VkDeviceSize size = vk_buf->data.size();
+        const VkDeviceSize size = vk_buf->size;
         const VkDeviceSize alignment = 0x40;
         if (!vk_ib->index_buffer || vk_ib->index_buffer.GetSize() < size)
             vk_ib->index_buffer.Create(Vulkan::current_allocator, size);
@@ -528,8 +529,8 @@ namespace Vulkan {
             gl_wrap_manager_ptr->gl_unknown_buffers.erase(elem_unknown);
         }
 
-        vk_buf->set_buffer(size, alignment,
-            vk_ib->index_buffer, vk_ib->copy_working_buffer, vk_ib->working_buffer);
+        vk_buf->set_buffer(alignment, vk_ib->index_buffer,
+            vk_ib->copy_working_buffer, vk_ib->working_buffer);
         return vk_ib;
     }
 
@@ -934,7 +935,7 @@ namespace Vulkan {
 
         gl_storage_buffer* vk_sb = &elem->second;
 
-        const VkDeviceSize size = vk_buf->data.size();
+        const VkDeviceSize size = vk_buf->size;
         const VkDeviceSize alignment = sv_min_storage_buffer_alignment;
         if (!vk_sb->storage_buffer || vk_sb->storage_buffer.GetSize() < size)
             vk_sb->storage_buffer.Create(Vulkan::current_allocator, size);
@@ -950,8 +951,8 @@ namespace Vulkan {
             gl_wrap_manager_ptr->gl_unknown_buffers.erase(elem_unknown);
         }
 
-        vk_buf->set_buffer(size, alignment,
-            vk_sb->storage_buffer, vk_sb->copy_working_buffer, vk_sb->working_buffer);
+        vk_buf->set_buffer(alignment, vk_sb->storage_buffer,
+            vk_sb->copy_working_buffer, vk_sb->working_buffer);
         return vk_sb;
     }
 
@@ -1179,7 +1180,7 @@ namespace Vulkan {
 
         gl_uniform_buffer* vk_ub = &elem->second;
 
-        const VkDeviceSize size = vk_buf->data.size();
+        const VkDeviceSize size = vk_buf->size;
         const VkDeviceSize alignment = sv_min_uniform_buffer_alignment;
         if (!vk_ub->uniform_buffer || vk_ub->uniform_buffer.GetSize() < size)
             vk_ub->uniform_buffer.Create(Vulkan::current_allocator, size);
@@ -1195,8 +1196,8 @@ namespace Vulkan {
             gl_wrap_manager_ptr->gl_unknown_buffers.erase(elem_unknown);
         }
 
-        vk_buf->set_buffer(size, alignment,
-            vk_ub->uniform_buffer, vk_ub->copy_working_buffer, vk_ub->working_buffer);
+        vk_buf->set_buffer(alignment, vk_ub->uniform_buffer,
+            vk_ub->copy_working_buffer, vk_ub->working_buffer);
         return vk_ub;
     }
 
@@ -1224,7 +1225,7 @@ namespace Vulkan {
 
         gl_unknown_buffer* vk_unb = &elem->second;
 
-        const VkDeviceSize size = vk_buf->data.size();
+        const VkDeviceSize size = vk_buf->size;
         const VkDeviceSize alignment = sv_min_uniform_buffer_alignment;
         if (!vk_unb->unknown_buffer || vk_unb->unknown_buffer.GetSize() < size)
             vk_unb->unknown_buffer.Create(Vulkan::current_allocator, size);
@@ -1354,7 +1355,7 @@ namespace Vulkan {
 
         gl_vertex_buffer* vk_vb = &elem->second;
 
-        const VkDeviceSize size = vk_buf->data.size();
+        const VkDeviceSize size = vk_buf->size;
         const VkDeviceSize alignment = 0x40;
         if (!vk_vb->vertex_buffer || vk_vb->vertex_buffer.GetSize() < size)
             vk_vb->vertex_buffer.Create(Vulkan::current_allocator, size);
@@ -1370,8 +1371,8 @@ namespace Vulkan {
             gl_wrap_manager_ptr->gl_unknown_buffers.erase(elem_unknown);
         }
 
-        vk_buf->set_buffer(size, alignment,
-            vk_vb->vertex_buffer, vk_vb->copy_working_buffer, vk_vb->working_buffer);
+        vk_buf->set_buffer(alignment, vk_vb->vertex_buffer,
+            vk_vb->copy_working_buffer, vk_vb->working_buffer);
         return vk_vb;
     }
 
@@ -1403,12 +1404,12 @@ namespace Vulkan {
         return gl_state.query_samples_passed;
     }
 
-    void gl_wrap_manager_update_buffers() {
-        gl_wrap_manager_ptr->update_buffers();
+    void gl_wrap_manager_post_render() {
+        gl_wrap_manager_ptr->post_render();
     }
 
-    void gl_wrap_manager_update_images() {
-        gl_wrap_manager_ptr->update_images();
+    void gl_wrap_manager_pre_render() {
+        gl_wrap_manager_ptr->pre_render();
     }
 
     void gl_wrap_manager_load_funcs() {
@@ -2343,7 +2344,7 @@ namespace Vulkan {
             gl_vertex_arrays.erase(elem);
     }
 
-    void gl_wrap_manager::update_buffers() {
+    void gl_wrap_manager::post_render() {
         std::vector<VkBufferMemoryBarrier> buffer_memory_barriers;
         for (auto& i : gl_index_buffers) {
             gl_index_buffer* vk_ib = &i.second;
@@ -2488,10 +2489,135 @@ namespace Vulkan {
         gl_state.viewport_set = false;
     }
 
-    void gl_wrap_manager::update_images() {
+    void gl_wrap_manager::pre_render() {
         for (auto& i : gl_texture_datas)
             if (i.second.alive_time >= 0 && i.second.update_data)
                 gl_texture::get(i.first);
+
+        for (auto& i : gl_index_buffers) {
+            gl_buffer* vk_buf = gl_buffer::get(i.first);
+            if (!vk_buf || !(vk_buf->flags & Vulkan::GL_BUFFER_FLAG_INIT_DATA))
+                continue;
+
+            gl_index_buffer* vk_ib = &i.second;
+
+            const VkDeviceSize size = vk_buf->size;
+            if (!vk_ib->index_buffer || vk_ib->index_buffer.GetSize() < size)
+                vk_ib->index_buffer.Create(Vulkan::current_allocator, size);
+
+            if (vk_buf->flags & Vulkan::GL_BUFFER_FLAG_WRITE_DATA) {
+                Vulkan::Buffer staging_buffer = Vulkan::manager_get_staging_buffer(vk_buf->size);
+                staging_buffer.WriteMemory(staging_buffer.GetOffset(), vk_buf->size, vk_buf->data.data());
+                Vulkan::Buffer::Copy(Vulkan::current_command_buffer, staging_buffer,
+                    vk_ib->index_buffer, staging_buffer.GetOffset(), 0, vk_buf->size);
+            }
+            else if (vk_buf->flags & Vulkan::GL_BUFFER_FLAG_CLEAR_DATA)
+                vkCmdFillBuffer(Vulkan::current_command_buffer, vk_ib->index_buffer, 0, size, 0);
+
+            vk_buf->data.clear();
+            vk_buf->data.shrink_to_fit();
+            enum_and(vk_buf->flags, ~Vulkan::GL_BUFFER_FLAG_UPDATE_INIT_DATA);
+        }
+
+        for (auto& i : gl_storage_buffers) {
+            gl_buffer* vk_buf = gl_buffer::get(i.first);
+            if (!vk_buf || !(vk_buf->flags & Vulkan::GL_BUFFER_FLAG_INIT_DATA))
+                continue;
+
+            gl_storage_buffer* vk_sb = &i.second;
+
+            const VkDeviceSize size = vk_buf->size;
+            if (!vk_sb->storage_buffer || vk_sb->storage_buffer.GetSize() < size)
+                vk_sb->storage_buffer.Create(Vulkan::current_allocator, size);
+
+            if (vk_buf->flags & Vulkan::GL_BUFFER_FLAG_WRITE_DATA) {
+                Vulkan::Buffer staging_buffer = Vulkan::manager_get_staging_buffer(vk_buf->size);
+                staging_buffer.WriteMemory(staging_buffer.GetOffset(), vk_buf->size, vk_buf->data.data());
+                Vulkan::Buffer::Copy(Vulkan::current_command_buffer, staging_buffer,
+                    vk_sb->storage_buffer, staging_buffer.GetOffset(), 0, vk_buf->size);
+            }
+            else if(vk_buf->flags & Vulkan::GL_BUFFER_FLAG_CLEAR_DATA)
+                vkCmdFillBuffer(Vulkan::current_command_buffer, vk_sb->storage_buffer, 0, size, 0);
+
+            vk_buf->data.clear();
+            vk_buf->data.shrink_to_fit();
+            enum_and(vk_buf->flags, ~Vulkan::GL_BUFFER_FLAG_UPDATE_INIT_DATA);
+        }
+
+        for (auto& i : gl_uniform_buffers) {
+            gl_buffer* vk_buf = gl_buffer::get(i.first);
+            if (!vk_buf || !(vk_buf->flags & Vulkan::GL_BUFFER_FLAG_INIT_DATA))
+                continue;
+
+            gl_uniform_buffer* vk_ub = &i.second;
+
+            const VkDeviceSize size = vk_buf->size;
+            if (!vk_ub->uniform_buffer || vk_ub->uniform_buffer.GetSize() < size)
+                vk_ub->uniform_buffer.Create(Vulkan::current_allocator, size);
+
+            if (vk_buf->flags & Vulkan::GL_BUFFER_FLAG_WRITE_DATA) {
+                Vulkan::Buffer staging_buffer = Vulkan::manager_get_staging_buffer(vk_buf->size);
+                staging_buffer.WriteMemory(staging_buffer.GetOffset(), vk_buf->size, vk_buf->data.data());
+                Vulkan::Buffer::Copy(Vulkan::current_command_buffer, staging_buffer,
+                    vk_ub->uniform_buffer, staging_buffer.GetOffset(), 0, vk_buf->size);
+            }
+            else if (vk_buf->flags & Vulkan::GL_BUFFER_FLAG_CLEAR_DATA)
+                vkCmdFillBuffer(Vulkan::current_command_buffer, vk_ub->uniform_buffer, 0, size, 0);
+
+            vk_buf->data.clear();
+            vk_buf->data.shrink_to_fit();
+            enum_and(vk_buf->flags, ~Vulkan::GL_BUFFER_FLAG_UPDATE_INIT_DATA);
+        }
+
+        for (auto& i : gl_unknown_buffers) {
+            gl_buffer* vk_buf = gl_buffer::get(i.first);
+            if (!vk_buf || !(vk_buf->flags & Vulkan::GL_BUFFER_FLAG_INIT_DATA))
+                continue;
+
+            gl_unknown_buffer* vk_unb = &i.second;
+
+            const VkDeviceSize size = vk_buf->size;
+            if (!vk_unb->unknown_buffer || vk_unb->unknown_buffer.GetSize() < size)
+                vk_unb->unknown_buffer.Create(Vulkan::current_allocator, size);
+
+            if (vk_buf->flags & Vulkan::GL_BUFFER_FLAG_WRITE_DATA) {
+                Vulkan::Buffer staging_buffer = Vulkan::manager_get_staging_buffer(vk_buf->size);
+                staging_buffer.WriteMemory(staging_buffer.GetOffset(), vk_buf->size, vk_buf->data.data());
+                Vulkan::Buffer::Copy(Vulkan::current_command_buffer, staging_buffer,
+                    vk_unb->unknown_buffer, staging_buffer.GetOffset(), 0, vk_buf->size);
+            }
+            else if (vk_buf->flags & Vulkan::GL_BUFFER_FLAG_CLEAR_DATA)
+                vkCmdFillBuffer(Vulkan::current_command_buffer, vk_unb->unknown_buffer, 0, size, 0);
+
+            vk_buf->data.clear();
+            vk_buf->data.shrink_to_fit();
+            enum_and(vk_buf->flags, ~Vulkan::GL_BUFFER_FLAG_UPDATE_INIT_DATA);
+        }
+
+        for (auto& i : gl_vertex_buffers) {
+            gl_buffer* vk_buf = gl_buffer::get(i.first);
+            if (!vk_buf || !(vk_buf->flags & Vulkan::GL_BUFFER_FLAG_INIT_DATA))
+                continue;
+
+            gl_vertex_buffer* vk_vb = &i.second;
+
+            const VkDeviceSize size = vk_buf->size;
+            if (!vk_vb->vertex_buffer || vk_vb->vertex_buffer.GetSize() < size)
+                vk_vb->vertex_buffer.Create(Vulkan::current_allocator, size);
+
+            if (vk_buf->flags & Vulkan::GL_BUFFER_FLAG_WRITE_DATA) {
+                Vulkan::Buffer staging_buffer = Vulkan::manager_get_staging_buffer(vk_buf->size);
+                staging_buffer.WriteMemory(staging_buffer.GetOffset(), vk_buf->size, vk_buf->data.data());
+                Vulkan::Buffer::Copy(Vulkan::current_command_buffer, staging_buffer,
+                    vk_vb->vertex_buffer, staging_buffer.GetOffset(), 0, vk_buf->size);
+            }
+            else if (vk_buf->flags & Vulkan::GL_BUFFER_FLAG_CLEAR_DATA)
+                vkCmdFillBuffer(Vulkan::current_command_buffer, vk_vb->vertex_buffer, 0, size, 0);
+
+            vk_buf->data.clear();
+            vk_buf->data.shrink_to_fit();
+            enum_and(vk_buf->flags, ~Vulkan::GL_BUFFER_FLAG_UPDATE_INIT_DATA);
+        }
     }
 
     inline static void populate_bindings(const shader_table* shader,
@@ -2582,7 +2708,7 @@ namespace Vulkan {
 
                     if (!push_constant_data) {
                         push_constant_data = vk_buf->data.data();
-                        push_constant_data_size = (uint32_t)vk_buf->data.size();
+                        push_constant_data_size = (uint32_t)vk_buf->size;
                     }
                     push_constant_stage_flags |= shader_stage_flags;
                     break;
@@ -3539,8 +3665,8 @@ namespace Vulkan {
                 }
 
                 gl_buffer* vk_buf = gl_buffer::get(buffer);
-                if (!vk_buf || vk_buf->target != target || !vk_buf->data.size()
-                    || offset < 0 || (size_t)(offset + size) > vk_buf->data.size()) {
+                if (!vk_buf || vk_buf->target != target || !vk_buf->size
+                    || offset < 0 || (size_t)(offset + size) > vk_buf->size) {
                     gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
                     return;
                 }
@@ -3580,8 +3706,8 @@ namespace Vulkan {
                 }
 
                 gl_buffer* vk_buf = gl_buffer::get(buffer);
-                if (!vk_buf || vk_buf->target != target || !vk_buf->data.size()
-                    || offset < 0 || (size_t)(offset + size) > vk_buf->data.size()) {
+                if (!vk_buf || vk_buf->target != target || !vk_buf->size
+                    || offset < 0 || (size_t)(offset + size) > vk_buf->size) {
                     gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
                     return;
                 }
@@ -5839,13 +5965,13 @@ namespace Vulkan {
             gl_wrap_manager_ptr->push_error(GL_INVALID_OPERATION);
             return 0;
         }
-        else if (!vk_buf->data.size()) {
+        else if (!vk_buf->size) {
             gl_wrap_manager_ptr->push_error(GL_OUT_OF_MEMORY);
             return 0;
         }
 
         if (access == GL_READ_ONLY || access == GL_READ_WRITE) {
-            Vulkan::Buffer dynamic_buffer = Vulkan::manager_get_dynamic_buffer(vk_buf->data.size(), 0x40);
+            Vulkan::Buffer dynamic_buffer = Vulkan::manager_get_dynamic_buffer(vk_buf->size, 0x40);
 
             Vulkan::Buffer* src_buffer;
             switch (vk_buf->target) {
@@ -5873,7 +5999,7 @@ namespace Vulkan {
             cb.Create(Vulkan::current_device, Vulkan::current_command_pool);
 
             cb.BeginOneTimeSubmit();
-            cb.CopyBuffer(*src_buffer, dynamic_buffer, 0, dynamic_buffer.GetOffset(), vk_buf->data.size());
+            cb.CopyBuffer(*src_buffer, dynamic_buffer, 0, dynamic_buffer.GetOffset(), vk_buf->size);
             cb.End();
 
             Vulkan::Fence fence;
@@ -5884,13 +6010,15 @@ namespace Vulkan {
 
             cb.Destroy();
 
-            dynamic_buffer.ReadMemory(dynamic_buffer.GetOffset(), vk_buf->data.size(), vk_buf->data.data());
+            vk_buf->data.resize(vk_buf->size);
+            dynamic_buffer.ReadMemory(dynamic_buffer.GetOffset(), vk_buf->size, vk_buf->data.data());
         }
 
         if (access == GL_WRITE_ONLY || access == GL_READ_WRITE)
             enum_or(vk_buf->flags, Vulkan::GL_BUFFER_FLAG_WRITE_DATA);
 
         enum_or(vk_buf->flags, Vulkan::GL_BUFFER_FLAG_MAPPED);
+        vk_buf->data.resize(vk_buf->size);
         return vk_buf->data.data();
     }
 
@@ -5966,15 +6094,17 @@ namespace Vulkan {
             | Vulkan::GL_BUFFER_FLAG_MAP_WRITE_BIT
             | Vulkan::GL_BUFFER_FLAG_MAP_READ_BIT);
 
-        if (data)
+        vk_buf->size = size;
+        if (data) {
             vk_buf->data.assign((const uint8_t*)data, (const uint8_t*)data + size);
+            if (check_for_zero(vk_buf->data.data(), vk_buf->size))
+                enum_or(vk_buf->flags, Vulkan::GL_BUFFER_FLAG_CLEAR_DATA);
+            else
+                enum_or(vk_buf->flags, Vulkan::GL_BUFFER_FLAG_WRITE_DATA);
+        }
         else
-            vk_buf->data.assign(size, 0);
-
-        if (check_for_zero(vk_buf->data.data(), vk_buf->data.size()))
             enum_or(vk_buf->flags, Vulkan::GL_BUFFER_FLAG_CLEAR_DATA);
-        else
-            enum_or(vk_buf->flags, Vulkan::GL_BUFFER_FLAG_WRITE_DATA);
+        enum_or(vk_buf->flags, Vulkan::GL_BUFFER_FLAG_INIT_DATA);
     }
 
     static void gl_wrap_manager_named_buffer_storage(
@@ -6002,15 +6132,17 @@ namespace Vulkan {
         if (flags & GL_DYNAMIC_STORAGE_BIT)
             enum_or(vk_buf->flags, Vulkan::GL_BUFFER_FLAG_DYNAMIC_STORAGE_BIT);
 
-        if (data)
+        vk_buf->size = size;
+        if (data) {
             vk_buf->data.assign((const uint8_t*)data, (const uint8_t*)data + size);
+            if (check_for_zero(vk_buf->data.data(), vk_buf->size))
+                enum_or(vk_buf->flags, Vulkan::GL_BUFFER_FLAG_CLEAR_DATA);
+            else
+                enum_or(vk_buf->flags, Vulkan::GL_BUFFER_FLAG_WRITE_DATA);
+        }
         else
-            vk_buf->data.assign(size, 0);
-
-        if (check_for_zero(vk_buf->data.data(), vk_buf->data.size()))
             enum_or(vk_buf->flags, Vulkan::GL_BUFFER_FLAG_CLEAR_DATA);
-        else
-            enum_or(vk_buf->flags, Vulkan::GL_BUFFER_FLAG_WRITE_DATA);
+        enum_or(vk_buf->flags, Vulkan::GL_BUFFER_FLAG_INIT_DATA);
     }
 
     static void gl_wrap_manager_named_buffer_sub_data(
@@ -6022,14 +6154,15 @@ namespace Vulkan {
             gl_wrap_manager_ptr->push_error(GL_INVALID_OPERATION);
             return;
         }
-        else if (offset < 0 || size < 0 || offset + size > (ssize_t)vk_buf->data.size()) {
+        else if (offset < 0 || size < 0 || offset + size > (ssize_t)vk_buf->size) {
             gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
             return;
         }
 
+        vk_buf->data.resize(vk_buf->size);
         memcpy(vk_buf->data.data() + offset, data, size);
 
-        if (check_for_zero(vk_buf->data.data(), vk_buf->data.size()))
+        if (check_for_zero(vk_buf->data.data(), vk_buf->size))
             enum_or(vk_buf->flags, Vulkan::GL_BUFFER_FLAG_CLEAR_DATA);
         else
             enum_or(vk_buf->flags, Vulkan::GL_BUFFER_FLAG_WRITE_DATA);
@@ -6922,7 +7055,7 @@ namespace Vulkan {
         if (vk_buf->flags & Vulkan::GL_BUFFER_FLAG_UPDATE_DATA) {
             enum_and(vk_buf->flags, ~Vulkan::GL_BUFFER_FLAG_UPDATE_DATA);
 
-            if (check_for_zero(vk_buf->data.data(), vk_buf->data.size()))
+            if (check_for_zero(vk_buf->data.data(), vk_buf->size))
                 enum_or(vk_buf->flags, Vulkan::GL_BUFFER_FLAG_CLEAR_DATA);
             else
                 enum_or(vk_buf->flags, Vulkan::GL_BUFFER_FLAG_WRITE_DATA);

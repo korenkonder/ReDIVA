@@ -40,11 +40,13 @@ namespace Vulkan {
         GL_BUFFER_FLAG_READ_DATA           = (1 << 2u),
         GL_BUFFER_FLAG_WRITE_DATA          = (1 << 3u),
         GL_BUFFER_FLAG_CLEAR_DATA          = (1 << 4u),
-        GL_BUFFER_FLAG_MAP_READ_BIT        = (1 << 5u),
-        GL_BUFFER_FLAG_MAP_WRITE_BIT       = (1 << 6u),
-        GL_BUFFER_FLAG_DYNAMIC_STORAGE_BIT = (1 << 7u),
-
-        GL_BUFFER_FLAG_UPDATE_DATA = GL_BUFFER_FLAG_CLEAR_DATA | GL_BUFFER_FLAG_WRITE_DATA,
+        GL_BUFFER_FLAG_INIT_DATA           = (1 << 5u),
+        GL_BUFFER_FLAG_MAP_READ_BIT        = (1 << 6u),
+        GL_BUFFER_FLAG_MAP_WRITE_BIT       = (1 << 7u),
+        GL_BUFFER_FLAG_DYNAMIC_STORAGE_BIT = (1 << 8u),
+        
+        GL_BUFFER_FLAG_UPDATE_DATA      = GL_BUFFER_FLAG_CLEAR_DATA | GL_BUFFER_FLAG_WRITE_DATA,
+        GL_BUFFER_FLAG_UPDATE_INIT_DATA = GL_BUFFER_FLAG_INIT_DATA | GL_BUFFER_FLAG_UPDATE_DATA,
     };
 
     enum gl_texture_flags {
@@ -55,13 +57,14 @@ namespace Vulkan {
     struct gl_buffer {
         GLenum target;
         gl_buffer_flags flags;
+        size_t size;
         std::vector<uint8_t> data;
 
         gl_buffer();
         ~gl_buffer();
 
-        void set_buffer(const VkDeviceSize size, const VkDeviceSize alignment,
-            Vulkan::Buffer& buffer, bool& copy_working_buffer, Vulkan::WorkingBuffer& working_buffer);
+        void set_buffer(const VkDeviceSize alignment, Vulkan::Buffer& buffer,
+            bool& copy_working_buffer, Vulkan::WorkingBuffer& working_buffer);
 
         gl_buffer& operator=(const gl_buffer& other);
 
@@ -355,8 +358,8 @@ namespace Vulkan {
     extern void gl_wrap_manager_init(Vulkan::CommandBuffer& command_buffer);
     extern VkBuffer gl_wrap_manager_get_dummy_vertex_buffer();
     extern GLuint gl_wrap_manager_get_query_samples_passed();
-    extern void gl_wrap_manager_update_buffers();
-    extern void gl_wrap_manager_update_images();
+    extern void gl_wrap_manager_post_render();
+    extern void gl_wrap_manager_pre_render();
     extern void gl_wrap_manager_load_funcs();
     extern void gl_wrap_manager_free();
 

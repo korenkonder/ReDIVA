@@ -1528,7 +1528,7 @@ static void render_context_ctrl(render_context* rctx) {
         }
 
     if (Vulkan::use)
-        Vulkan::gl_wrap_manager_update_images();
+        Vulkan::gl_wrap_manager_pre_render();
 
     char buf[0x200];
     game_state_print(buf, sizeof(buf));
@@ -1628,7 +1628,7 @@ static void render_context_disp(render_context* rctx) {
 
     if (Vulkan::use) {
         Vulkan::end_render_pass(Vulkan::current_command_buffer);
-        Vulkan::gl_wrap_manager_update_buffers();
+        Vulkan::gl_wrap_manager_post_render();
 
         vkEndCommandBuffer(Vulkan::current_command_buffer);
 
@@ -1730,11 +1730,15 @@ static void render_context_dispose(render_context* rctx) {
         app::TaskWork::ctrl();
         sound_ctrl();
         file_handler_storage_ctrl();
+
+        if (Vulkan::use)
+            Vulkan::gl_wrap_manager_pre_render();
+
         app::TaskWork::basic();
 
         if (Vulkan::use) {
             Vulkan::end_render_pass(Vulkan::current_command_buffer);
-            Vulkan::gl_wrap_manager_update_buffers();
+            Vulkan::gl_wrap_manager_post_render();
 
             vkEndCommandBuffer(Vulkan::current_command_buffer);
 
