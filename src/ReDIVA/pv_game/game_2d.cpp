@@ -385,7 +385,7 @@ void Game2dEnergyUnit::disp_inner() {
 
     spr::SprArgs v47;
     v47.SetSpriteSize({ (life_gauge_prev - life_gauge_stable) * field_1E0.x * (1.0f / max_value), field_1D8.y });
-    v47.kind = spr::SPR_KIND_RECT;
+    v47.kind = spr::SPR_KIND_RECT_FILL;
     v47.trans.z = field_8[0].position.z;
     v47.trans.x = field_8[0].position.x + field_1E0.x * life_gauge_stable * (1.0f / max_value);
     v47.trans.y = field_8[0].position.y + (float_t)field_1D4;

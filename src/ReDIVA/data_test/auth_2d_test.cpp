@@ -268,7 +268,7 @@ void DtmAet::disp() {
         v34.SetSpriteSize({ 10.0f, 10.0f});
         v34.trans = pos;
         v34.center = { 5.0f, 5.0f, 0.0f };
-        v34.kind = spr::SPR_KIND_LINES;
+        v34.kind = spr::SPR_KIND_LINE;
         v34.resolution_mode_screen = i.second.mode;
 
         spr::SprArgs v35 = v34;
