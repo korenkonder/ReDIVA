@@ -53,10 +53,10 @@ public:
     bool UnloadTexture();
 };
 
-struct sprite_draw_vertex {
+struct sprite_vertex_data {
     vec3 pos;
-    vec2 uv[2];
     color4u8 color;
+    vec2 uv[2];
 };
 
 struct sprite_draw_param_attrib_member {
@@ -104,6 +104,10 @@ namespace spr {
             inline UV() : u(), v() {
 
             }
+
+            inline operator vec2() const {
+                return { u, v };
+            }
         };
 
         UV uv[4];
@@ -126,7 +130,7 @@ namespace spr {
     struct SpriteManager {
         struct RenderData {
             std::vector<sprite_draw_param> draw_param_buffer;
-            std::vector<sprite_draw_vertex> vertex_buffer;
+            std::vector<sprite_vertex_data> vertex_buffer;
             std::vector<uint32_t> index_buffer;
             GLuint vao;
             GL::ArrayBuffer vbo;
@@ -184,18 +188,19 @@ namespace spr {
         void UnloadSetModern(uint32_t index, sprite_database* spr_db);
     };
 
-    static void calc_sprite_vertex(spr::SprArgs* args, vec3* vtx, mat4* mat, bool font);
-    static int32_t calc_sprite_texture_param(SprArgs* args, spr::TexParam* param, vec3* vtx, bool font);
+    static void calc_sprite_vertex(spr::SprArgs* args, vec3 vtx[4], mat4* mat, bool font);
+    static int32_t calc_sprite_texture_param(SprArgs* args, spr::TexParam* param, vec3 vtx[4], bool font);
+    static int32_t calc_sprite_vertex_texture_param(SprArgs& args, vec3 vtx[4], spr::TexParam* param, bool font);
 
     static void add_draw_sprite(spr::SprArgs** args_array, int32_t count, bool font,
         spr::SprArgsInner& args_inner, std::vector<sprite_draw_param>& draw_param_buffer,
-        std::vector<sprite_draw_vertex>& vertex_buffer, std::vector<uint32_t>& index_buffer);
+        std::vector<sprite_vertex_data>& vertex_buffer, std::vector<uint32_t>& index_buffer);
     static void draw_sprite(render_data_context& rend_data_ctx,
         spr::SpriteManager* sprite_manager, const SprArgs& args, const mat4& mat,
         int32_t x_min, int32_t y_min, int32_t x_max, int32_t y_max, texture* overlay_tex);
     static void draw_sprite_begin(render_data_context& rend_data_ctx);
     static void draw_sprite_copy_overlay_texture(
-        render_data_context& rend_data_ctx, const SprArgs& args, const mat4& mat, const vec3* vtx,
+        render_data_context& rend_data_ctx, const SprArgs& args, const mat4& mat, const vec3 vtx[4],
         int32_t overlay_x_min, int32_t overlay_y_min, int32_t overlay_x_max, int32_t overlay_y_max);
     static void draw_sprite_end(render_data_context& rend_data_ctx);
     static void draw_sprite_scale(spr::SprArgs* args);
@@ -617,20 +622,20 @@ namespace spr {
 
         vbo_vertex_count = 4096;
 
-        static const GLsizei buffer_size = sizeof(sprite_draw_vertex);
+        static const GLsizei buffer_size = sizeof(sprite_vertex_data);
 
         vbo.Create(gl_state, buffer_size * vbo_vertex_count);
         gl_state.bind_array_buffer(vbo, true);
 
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, buffer_size,
-            (void*)offsetof(sprite_draw_vertex, pos));
+            (void*)offsetof(sprite_vertex_data, pos));
         glEnableVertexAttribArray(1);
         glVertexAttribPointer(1, 4, GL_UNSIGNED_BYTE, GL_TRUE, buffer_size,
-            (void*)offsetof(sprite_draw_vertex, color));
+            (void*)offsetof(sprite_vertex_data, color));
         glEnableVertexAttribArray(2);
         glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, buffer_size,
-            (void*)offsetof(sprite_draw_vertex, uv));
+            (void*)offsetof(sprite_vertex_data, uv));
 
         ebo_index_count = 4096;
 
@@ -659,7 +664,7 @@ namespace spr {
     }
 
     void SpriteManager::RenderData::Update() {
-        static const GLsizei buffer_size = sizeof(sprite_draw_vertex);
+        static const GLsizei buffer_size = sizeof(sprite_vertex_data);
 
         if (vbo_vertex_count < vertex_buffer.size()) {
             while (vbo_vertex_count < vertex_buffer.size())
@@ -685,13 +690,13 @@ namespace spr {
 
             glEnableVertexAttribArray(0);
             glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, buffer_size,
-                (void*)offsetof(sprite_draw_vertex, pos));
+                (void*)offsetof(sprite_vertex_data, pos));
             glEnableVertexAttribArray(1);
             glVertexAttribPointer(1, 4, GL_UNSIGNED_BYTE, GL_TRUE, buffer_size,
-                (void*)offsetof(sprite_draw_vertex, color));
+                (void*)offsetof(sprite_vertex_data, color));
             glEnableVertexAttribArray(2);
             glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, buffer_size,
-                (void*)offsetof(sprite_draw_vertex, uv));
+                (void*)offsetof(sprite_vertex_data, uv));
 
             gl_state.bind_array_buffer(0);
             gl_state.bind_vertex_array(0);
@@ -1166,7 +1171,7 @@ namespace spr {
         }
     }
 
-    static void calc_sprite_vertex(spr::SprArgs* args, vec3* vtx, mat4* mat, bool font) {
+    static void calc_sprite_vertex(spr::SprArgs* args, vec3 vtx[4], mat4* mat, bool font) {
         vtx[0].x = 0.0f;
         vtx[0].y = 0.0f;
         vtx[1].x = 0.0f;
@@ -1281,7 +1286,7 @@ namespace spr {
             *mat = m;
     }
 
-    static int32_t calc_sprite_texture_param(SprArgs* args, spr::TexParam* param, vec3* vtx, bool font) {
+    static int32_t calc_sprite_texture_param(SprArgs* args, spr::TexParam* param, vec3 vtx[4], bool font) {
         int32_t tex_param_count = 0;
         const texture* tex = args->texture;
         while (args) {
@@ -1352,9 +1357,21 @@ namespace spr {
         return tex_param_count;
     }
 
+    static int32_t calc_sprite_vertex_texture_param(SprArgs& args, vec3 vtx[4], spr::TexParam* param, bool font) {
+        if (args.flags & SprArgs::SPRITE_SIZE)
+            calc_sprite_vertex(&args, vtx, 0, font);
+
+        int32_t tex_param_count = 0;
+        if ((args.flags & SprArgs::TEXTURE_POS_SIZE) && args.texture) {
+            tex_param_count = calc_sprite_texture_param(&args, param, vtx, font);
+            tex_param_count = min_def(tex_param_count, 2);
+        }
+        return tex_param_count;
+    }
+
     static void add_draw_sprite(spr::SprArgs** args_array, int32_t count, bool font,
         spr::SprArgsInner& args_inner, std::vector<sprite_draw_param>& draw_param_buffer,
-        std::vector<sprite_draw_vertex>& vertex_buffer, std::vector<uint32_t>& index_buffer) {
+        std::vector<sprite_vertex_data>& vertex_buffer, std::vector<uint32_t>& index_buffer) {
         for (int32_t i = 0; i < count; i++) {
             SprArgs& args = *args_array[i];
 
@@ -1368,15 +1385,7 @@ namespace spr {
 
             vec3 vtx[4] = {};
             spr::TexParam tex_param[4] = {};
-
-            if (args.flags & SprArgs::SPRITE_SIZE)
-                calc_sprite_vertex(&args, vtx, 0, font);
-
-            int32_t tex_param_count = 0;
-            if ((args.flags & SprArgs::TEXTURE_POS_SIZE) && args.texture) {
-                tex_param_count = calc_sprite_texture_param(&args, tex_param, vtx, font);
-                tex_param_count = min_def(tex_param_count, 2);
-            }
+            int32_t tex_param_count = spr::calc_sprite_vertex_texture_param(args, vtx, tex_param, font);
 
             draw_param_buffer.push_back({});
             sprite_draw_param& draw_param = draw_param_buffer.back();
@@ -1403,7 +1412,7 @@ namespace spr {
                         continue;
                     }
 
-                    sprite_draw_vertex spr_vtx[2] = {};
+                    sprite_vertex_data spr_vtx[2] = {};
                     spr_vtx[0].pos = vtx[0];
                     spr_vtx[0].color = color;
 
@@ -1424,7 +1433,7 @@ namespace spr {
                         continue;
                     }
 
-                    sprite_draw_vertex spr_vtx[4] = {};
+                    sprite_vertex_data spr_vtx[4] = {};
                     spr_vtx[0].pos = vtx[0];
                     spr_vtx[0].color = color;
 
@@ -1465,7 +1474,7 @@ namespace spr {
                         continue;
                     }
 
-                    sprite_draw_vertex spr_vtx[4] = {};
+                    sprite_vertex_data spr_vtx[4] = {};
                     spr_vtx[0].pos = vtx[0];
                     spr_vtx[0].color = color;
 
@@ -1490,7 +1499,7 @@ namespace spr {
                     vertex_buffer.push_back(spr_vtx[0]);
                 } break;
                 case SPR_KIND_ARROW_B: {
-                    sprite_draw_vertex spr_vtx[2] = {};
+                    sprite_vertex_data spr_vtx[2] = {};
                     spr_vtx[0].color = color;
                     spr_vtx[1].color = color;
 
@@ -1552,7 +1561,7 @@ namespace spr {
 
                     vertex_buffer.reserve(args.num_vertex);
 
-                    sprite_draw_vertex spr_vtx = {};
+                    sprite_vertex_data spr_vtx = {};
                     spr_vtx.color = color;
 
 #if BREAK_SPRITE_VERTEX_LIMIT
@@ -1577,7 +1586,7 @@ namespace spr {
 
                     vertex_buffer.reserve(args.num_vertex);
 
-                    sprite_draw_vertex spr_vtx = {};
+                    sprite_vertex_data spr_vtx = {};
 
 #if BREAK_SPRITE_VERTEX_LIMIT
                     SpriteVertex* vtx = sprite_vertex_array + args.vertex_array;
@@ -1610,7 +1619,7 @@ namespace spr {
 
                         vertex_buffer.reserve(args.num_vertex);
 
-                        sprite_draw_vertex spr_vtx = {};
+                    sprite_vertex_data spr_vtx = {};
 
 #if BREAK_SPRITE_VERTEX_LIMIT
                         SpriteVertex* vtx = sprite_vertex_array + args.vertex_array;
@@ -1619,8 +1628,8 @@ namespace spr {
 #endif
                         for (size_t i = args.num_vertex; i; i--, vtx++) {
                             spr_vtx.pos = vtx->pos;
-                            spr_vtx.uv[0] = vtx->uv;
                             spr_vtx.color = vtx->color;
+                            spr_vtx.uv[0] = vtx->uv;
                             vertex_buffer.push_back(spr_vtx);
                         }
                     }
@@ -1639,7 +1648,7 @@ namespace spr {
                         vertex_buffer.reserve(args.num_vertex);
                         index_buffer.reserve(num_vertex);
 
-                        sprite_draw_vertex spr_vtx[4] = {};
+                        sprite_vertex_data spr_vtx[4] = {};
 
 #if BREAK_SPRITE_VERTEX_LIMIT
                         SpriteVertex* vtx = sprite_vertex_array + args.vertex_array;
@@ -1652,17 +1661,21 @@ namespace spr {
                                 continue;
 
                             spr_vtx[0].pos = vtx[0].pos;
-                            spr_vtx[0].uv[0] = vtx[0].uv;
                             spr_vtx[0].color = vtx[0].color;
+                            spr_vtx[0].uv[0] = vtx[0].uv;
+                            spr_vtx[0].uv[1] = vtx[0].uv;
                             spr_vtx[1].pos = vtx[1].pos;
-                            spr_vtx[1].uv[0] = vtx[1].uv;
                             spr_vtx[1].color = vtx[1].color;
+                            spr_vtx[1].uv[0] = vtx[1].uv;
+                            spr_vtx[1].uv[1] = vtx[1].uv;
                             spr_vtx[2].pos = vtx[2].pos;
-                            spr_vtx[2].uv[0] = vtx[2].uv;
                             spr_vtx[2].color = vtx[2].color;
+                            spr_vtx[2].uv[0] = vtx[2].uv;
+                            spr_vtx[2].uv[1] = vtx[2].uv;
                             spr_vtx[3].pos = vtx[3].pos;
-                            spr_vtx[3].uv[0] = vtx[3].uv;
                             spr_vtx[3].color = vtx[3].color;
+                            spr_vtx[3].uv[0] = vtx[3].uv;
+                            spr_vtx[3].uv[1] = vtx[3].uv;
 
                             vertex_buffer.push_back(spr_vtx[0]); // LB
                             vertex_buffer.push_back(spr_vtx[3]); // RB
@@ -1689,26 +1702,26 @@ namespace spr {
                         continue;
                     }
 
-                    sprite_draw_vertex spr_vtx[4] = {};
+                    sprite_vertex_data spr_vtx[4] = {};
                     spr_vtx[0].pos = vtx[0];
-                    spr_vtx[0].uv[0].x = tex_param[0].texcoord.uv[0].u;
-                    spr_vtx[0].uv[0].y = tex_param[0].texcoord.uv[0].v;
                     spr_vtx[0].color = color;
+                    spr_vtx[0].uv[0] = tex_param[0].texcoord.uv[0];
+                    spr_vtx[0].uv[1] = tex_param[0].texcoord.uv[0];
 
                     spr_vtx[1].pos = vtx[1];
-                    spr_vtx[1].uv[0].x = tex_param[0].texcoord.uv[1].u;
-                    spr_vtx[1].uv[0].y = tex_param[0].texcoord.uv[1].v;
                     spr_vtx[1].color = color;
+                    spr_vtx[1].uv[0] = tex_param[0].texcoord.uv[1];
+                    spr_vtx[1].uv[1] = tex_param[0].texcoord.uv[1];
 
                     spr_vtx[2].pos = vtx[2];
-                    spr_vtx[2].uv[0].x = tex_param[0].texcoord.uv[2].u;
-                    spr_vtx[2].uv[0].y = tex_param[0].texcoord.uv[2].v;
                     spr_vtx[2].color = color;
+                    spr_vtx[2].uv[0] = tex_param[0].texcoord.uv[2];
+                    spr_vtx[2].uv[1] = tex_param[0].texcoord.uv[2];
 
                     spr_vtx[3].pos = vtx[3];
-                    spr_vtx[3].uv[0].x = tex_param[0].texcoord.uv[3].u;
-                    spr_vtx[3].uv[0].y = tex_param[0].texcoord.uv[3].v;
                     spr_vtx[3].color = color;
+                    spr_vtx[3].uv[0] = tex_param[0].texcoord.uv[3];
+                    spr_vtx[3].uv[1] = tex_param[0].texcoord.uv[3];
 
                     draw_param.attrib.m.primitive = GL_TRIANGLES;
                     draw_param.start = (GLuint)vertex_buffer.size();
@@ -1743,34 +1756,26 @@ namespace spr {
                 draw_param.textures[1] = tex_param[1].texture;
                 draw_param.attrib.m.sampler = 2;
 
-                sprite_draw_vertex spr_vtx[4] = {};
+                sprite_vertex_data spr_vtx[4] = {};
                 spr_vtx[0].pos = vtx[0];
-                spr_vtx[0].uv[0].x = tex_param[0].texcoord.uv[0].u;
-                spr_vtx[0].uv[0].y = tex_param[0].texcoord.uv[0].v;
-                spr_vtx[0].uv[1].x = tex_param[1].texcoord.uv[0].u;
-                spr_vtx[0].uv[1].y = tex_param[1].texcoord.uv[0].v;
                 spr_vtx[0].color = color;
+                spr_vtx[0].uv[0] = tex_param[0].texcoord.uv[0];
+                spr_vtx[0].uv[1] = tex_param[1].texcoord.uv[0];
 
                 spr_vtx[1].pos = vtx[1];
-                spr_vtx[1].uv[0].x = tex_param[0].texcoord.uv[1].u;
-                spr_vtx[1].uv[0].y = tex_param[0].texcoord.uv[1].v;
-                spr_vtx[1].uv[1].x = tex_param[1].texcoord.uv[1].u;
-                spr_vtx[1].uv[1].y = tex_param[1].texcoord.uv[1].v;
                 spr_vtx[1].color = color;
+                spr_vtx[1].uv[0] = tex_param[0].texcoord.uv[1];
+                spr_vtx[1].uv[1] = tex_param[0].texcoord.uv[1];
 
                 spr_vtx[2].pos = vtx[2];
-                spr_vtx[2].uv[0].x = tex_param[0].texcoord.uv[2].u;
-                spr_vtx[2].uv[0].y = tex_param[0].texcoord.uv[2].v;
-                spr_vtx[2].uv[1].x = tex_param[1].texcoord.uv[2].u;
-                spr_vtx[2].uv[1].y = tex_param[1].texcoord.uv[2].v;
                 spr_vtx[2].color = color;
+                spr_vtx[2].uv[0] = tex_param[0].texcoord.uv[2];
+                spr_vtx[2].uv[1] = tex_param[1].texcoord.uv[2];
 
                 spr_vtx[3].pos = vtx[3];
-                spr_vtx[3].uv[0].x = tex_param[0].texcoord.uv[3].u;
-                spr_vtx[3].uv[0].y = tex_param[0].texcoord.uv[3].v;
-                spr_vtx[3].uv[1].x = tex_param[1].texcoord.uv[3].u;
-                spr_vtx[3].uv[1].y = tex_param[1].texcoord.uv[3].v;
                 spr_vtx[3].color = color;
+                spr_vtx[3].uv[0] = tex_param[0].texcoord.uv[3];
+                spr_vtx[3].uv[1] = tex_param[1].texcoord.uv[3];
 
                 draw_param.attrib.m.primitive = GL_TRIANGLES;
                 draw_param.start = (GLuint)vertex_buffer.size();
@@ -1916,7 +1921,7 @@ namespace spr {
     }
 
     static void draw_sprite_copy_overlay_texture(
-        render_data_context& rend_data_ctx, const SprArgs& args, const mat4& mat, const vec3* vtx,
+        render_data_context& rend_data_ctx, const SprArgs& args, const mat4& mat, const vec3 vtx[4],
         int32_t overlay_x_min, int32_t overlay_y_min, int32_t overlay_x_max, int32_t overlay_y_max) {
         if (args.num_vertex || args.kind != SPR_KIND_NORMAL)
             return;
