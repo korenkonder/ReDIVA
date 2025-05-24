@@ -25,6 +25,10 @@ Bit / Name
   1   JVS_SERVICE
 
   2   JVS_START
+
+  5   VK_LEFT
+  6   VK_RIGHT
+
   7   JVS_TRIANGLE
   8   JVS_SQUARE
   9   JVS_CROSS
@@ -46,6 +50,7 @@ Bit / Name
  81   VK_SHIFT
  82   VK_CONTROL
  83   VK_MENU
+ 84   VK_PAUSE (guessed, unsure)
 
  91   VK_UP
  92   VK_LEFT  (guessed, unsure)
@@ -466,6 +471,10 @@ static bool sub_140190A30(struc_794* a1, int32_t index) {
         {  1, GLFW_KEY_F2, /*JVS_SERVICE,*/ },
 
         {  2, GLFW_KEY_ENTER, /*JVS_START,*/ },
+
+        {  5, GLFW_KEY_LEFT, },
+        {  6, GLFW_KEY_RIGHT, },
+
         {  7, GLFW_KEY_W, GLFW_KEY_I, /*JVS_TRIANGLE,*/ },
         {  8, GLFW_KEY_A, GLFW_KEY_J, /*JVS_SQUARE,*/ },
         {  9, GLFW_KEY_S, GLFW_KEY_K, /*JVS_CROSS,*/ },
@@ -508,8 +517,9 @@ static bool sub_140190A30(struc_794* a1, int32_t index) {
 
         { 80, GLFW_KEY_ENTER, },
         { 81, GLFW_KEY_LEFT_SHIFT, GLFW_KEY_RIGHT_SHIFT, },
-        { 82, GLFW_KEY_LEFT_CONTROL, GLFW_KEY_LEFT_CONTROL, },
-        { 83, GLFW_KEY_RIGHT_ALT, GLFW_KEY_RIGHT_ALT, },
+        { 82, GLFW_KEY_LEFT_CONTROL, GLFW_KEY_RIGHT_CONTROL, },
+        { 83, GLFW_KEY_LEFT_ALT, GLFW_KEY_RIGHT_ALT, },
+        { 84, GLFW_KEY_PAUSE, },
 
         { 91, GLFW_KEY_UP, },
         { 92, GLFW_KEY_LEFT, },
