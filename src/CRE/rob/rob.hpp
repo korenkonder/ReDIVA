@@ -3290,15 +3290,15 @@ struct rob_chara_data_miku_rot {
     float_t field_10;
     int32_t field_14;
     vec3 position;
-    vec3 field_24;
+    vec3 n_hara_pos;
     vec3 field_30;
     vec3 field_3C;
-    vec3 field_48;
-    vec3 field_54;
+    vec3 n_hara_pos_prev;
+    vec3 n_hara_pos_diff;
     int32_t field_60;
     int32_t field_64;
     int32_t field_68;
-    mat4 field_6C;
+    mat4 mat;
 
     rob_chara_data_miku_rot();
 

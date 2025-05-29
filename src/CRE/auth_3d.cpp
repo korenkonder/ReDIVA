@@ -6367,7 +6367,7 @@ static void auth_3d_object_disp(auth_3d_object* o, auth_3d* auth, render_context
         if (rob_chara_pv_data_array_check_chara_id(auth->chara_id)) {
             rob_chara* rob_chr = rob_chara_array_get(auth->chara_id);
             mat4 m;
-            mat4_mul(&rob_chr->data.miku_rot.field_6C,
+            mat4_mul(&rob_chr->data.miku_rot.mat,
                 auth->chara_item
                     ? &rob_chr->data.adjust_data.item_mat
                     : &rob_chr->data.adjust_data.mat, &m);
@@ -6582,7 +6582,7 @@ static void auth_3d_object_hrc_disp(auth_3d_object_hrc* oh, auth_3d* auth, rende
     if (auth->chara_id >= 0 && auth->chara_id < ROB_CHARA_COUNT) {
         if (rob_chara_pv_data_array_check_chara_id(auth->chara_id)) {
             rob_chara* rob_chr = rob_chara_array_get(auth->chara_id);
-            mat4_mul(&rob_chr->data.miku_rot.field_6C,
+            mat4_mul(&rob_chr->data.miku_rot.mat,
                 auth->chara_item
                     ? &rob_chr->data.adjust_data.item_mat
                     : &rob_chr->data.adjust_data.mat, &mat);

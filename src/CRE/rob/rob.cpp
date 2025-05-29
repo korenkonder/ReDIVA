@@ -3429,12 +3429,12 @@ void rob_chara::load_motion(uint32_t motion_id, bool a3, float_t frame,
     MotionBlendType blend_type, const bone_database* bone_data, const motion_database* mot_db) {
     data.miku_rot.rot_y_int16 = sub_14054FE90(this, false);
     if (!(data.field_1588.field_0.field_20.field_0 & 0x10)) {
-        data.miku_rot.position.x = data.miku_rot.field_24.x;
-        data.miku_rot.position.z = data.miku_rot.field_24.z;
+        data.miku_rot.position.x = data.miku_rot.n_hara_pos.x;
+        data.miku_rot.position.z = data.miku_rot.n_hara_pos.z;
     }
 
     if (data.field_1588.field_0.field_20.field_8 & 0x8000000)
-        data.miku_rot.position.y = data.miku_rot.field_24.y;
+        data.miku_rot.position.y = data.miku_rot.n_hara_pos.y;
 
     if (a3)
         data.motion.field_28 ^= 0x04;
@@ -6427,11 +6427,11 @@ static void mothead_func_6(mothead_func_data* func_data,
 
 static void sub_140551AF0(rob_chara* rob_chr) {
     if (!(rob_chr->data.field_0 & 0x02)) {
-        rob_chr->data.miku_rot.position.y = rob_chr->data.miku_rot.field_24.y;
+        rob_chr->data.miku_rot.position.y = rob_chr->data.miku_rot.n_hara_pos.y;
         rob_chr->data.field_0 |= 0x02;
         if (!(rob_chr->data.field_1588.field_0.field_1E8 & 0x01)) {
-            rob_chr->data.miku_rot.position.x = rob_chr->data.miku_rot.field_24.x;
-            rob_chr->data.miku_rot.position.z = rob_chr->data.miku_rot.field_24.z;
+            rob_chr->data.miku_rot.position.x = rob_chr->data.miku_rot.n_hara_pos.x;
+            rob_chr->data.miku_rot.position.z = rob_chr->data.miku_rot.n_hara_pos.z;
         }
     }
     rob_chr->data.field_1588.field_0.field_20.field_0 |= 0x40;
@@ -6588,7 +6588,7 @@ static void mothead_func_17(mothead_func_data* func_data,
             v9 = v10;
     LABEL_8:
         v11 = &v5->field_1588.field_330.field_20.x;
-        sub_1405357B0(&a1, &v5->miku_rot.field_24, &v5->field_1588.field_330.field_20, v9);
+        sub_1405357B0(&a1, &v5->miku_rot.n_hara_pos, &v5->field_1588.field_330.field_20, v9);
         v5->field_1588.field_330.field_18 = 1;
         goto LABEL_27;
     }
@@ -6642,15 +6642,15 @@ static void mothead_func_17(mothead_func_data* func_data,
     v5->field_1588.field_330.field_20.x = v21;
     v5->field_1588.field_330.field_20.z = v22;
     v23 = func_data->field_10;
-    v24 = v23->miku_rot.field_24.y + v5->field_1588.field_330.field_20.y;
-    v25 = v23->miku_rot.field_24.z + v5->field_1588.field_330.field_20.z;
-    v5->field_1588.field_330.field_20.x = v21 + v23->miku_rot.field_24.x;
+    v24 = v23->miku_rot.n_hara_pos.y + v5->field_1588.field_330.field_20.y;
+    v25 = v23->miku_rot.n_hara_pos.z + v5->field_1588.field_330.field_20.z;
+    v5->field_1588.field_330.field_20.x = v21 + v23->miku_rot.n_hara_pos.x;
     v26 = func_data->rob_chr_data;
     v5->field_1588.field_330.field_20.y = v24;
     v5->field_1588.field_330.field_20.z = v25;
-    v27 = v25 - v26->miku_rot.field_24.z;
-    v28 = v5->field_1588.field_330.field_20.x - v26->miku_rot.field_24.x;
-    v5->field_1588.field_330.field_20.y = v24 - v26->miku_rot.field_24.y;
+    v27 = v25 - v26->miku_rot.n_hara_pos.z;
+    v28 = v5->field_1588.field_330.field_20.x - v26->miku_rot.n_hara_pos.x;
+    v5->field_1588.field_330.field_20.y = v24 - v26->miku_rot.n_hara_pos.y;
     v5->field_1588.field_330.field_20.z = v27;
     v5->field_1588.field_330.field_20.x = v28;
     v5->field_1588.field_330.field_20.y = 0.0f;
@@ -6667,9 +6667,9 @@ static void mothead_func_17(mothead_func_data* func_data,
         v5->field_1588.field_330.field_20.y = v31;
     }
     v32 = func_data->rob_chr_data;
-    v33 = v32->miku_rot.field_24.z + v5->field_1588.field_330.field_20.z;
-    v34 = v32->miku_rot.field_24.y + v5->field_1588.field_330.field_20.y;
-    *v11 = v32->miku_rot.field_24.x + *v11;
+    v33 = v32->miku_rot.n_hara_pos.z + v5->field_1588.field_330.field_20.z;
+    v34 = v32->miku_rot.n_hara_pos.y + v5->field_1588.field_330.field_20.y;
+    *v11 = v32->miku_rot.n_hara_pos.x + *v11;
     v5->field_1588.field_330.field_20.y = v34;
     v5->field_1588.field_330.field_20.z = v33;
 LABEL_27:
@@ -6682,8 +6682,8 @@ LABEL_27:
         v37 = v35 - v36->motion.frame_data.frame;
         if (v37 < 1.0)
             v37 = 1.0;
-        v36->miku_rot.field_30.x = (float_t)(*v11 - v36->miku_rot.field_24.x) * (float_t)(1.0 / v37);
-        v36->miku_rot.field_30.z = (float_t)(v5->field_1588.field_330.field_20.z - v36->miku_rot.field_24.z)
+        v36->miku_rot.field_30.x = (float_t)(*v11 - v36->miku_rot.n_hara_pos.x) * (float_t)(1.0 / v37);
+        v36->miku_rot.field_30.z = (float_t)(v5->field_1588.field_330.field_20.z - v36->miku_rot.n_hara_pos.z)
             * (float_t)(1.0 / v37);
         v36->miku_rot.field_30.y = get_osage_gravity_const() * ((float_t*)data)[6];
         func_data->rob_chr_data->field_8.field_B8.field_10.y = 0.0f;
@@ -8042,8 +8042,8 @@ static mat4* sub_140504E80(rob_chara* rob_chr) {
     mat4 mat;
     mat4_rotate_y((float_t)((double_t)rob_chr->data.miku_rot.rot_y_int16 * M_PI * (1.0 / 32768.0)), &mat);
     mat4_set_translation(&mat, &rob_chr->data.miku_rot.position);
-    rob_chr->data.miku_rot.field_6C = mat;
-    return &rob_chr->data.miku_rot.field_6C;
+    rob_chr->data.miku_rot.mat = mat;
+    return &rob_chr->data.miku_rot.mat;
 }
 
 static void sub_14041DA50(rob_chara_bone_data* rob_bone_data, mat4* mat) {
@@ -8055,16 +8055,16 @@ static void sub_14041DA50(rob_chara_bone_data* rob_bone_data, mat4* mat) {
 
 static void sub_140507F60(rob_chara* rob_chr) {
     sub_14041DA50(rob_chr->bone_data, sub_140504E80(rob_chr));
-    rob_chr->data.miku_rot.field_48 = rob_chr->data.miku_rot.field_24;
+    rob_chr->data.miku_rot.n_hara_pos_prev = rob_chr->data.miku_rot.n_hara_pos;
 
-    mat4* v3 = rob_chr->bone_data->get_mats_mat(ROB_BONE_N_HARA);
-    mat4_get_translation(v3, &rob_chr->data.miku_rot.field_24);
-    rob_chr->data.miku_rot.field_54 = rob_chr->data.miku_rot.field_24
-        - rob_chr->data.miku_rot.field_48;
+    mat4* n_hara_mat = rob_chr->bone_data->get_mats_mat(ROB_BONE_N_HARA);
+    mat4_get_translation(n_hara_mat, &rob_chr->data.miku_rot.n_hara_pos);
+    rob_chr->data.miku_rot.n_hara_pos_diff = rob_chr->data.miku_rot.n_hara_pos
+        - rob_chr->data.miku_rot.n_hara_pos_prev;
 
-    mat4* v8 = rob_chr->bone_data->get_mats_mat(ROB_BONE_N_HARA_CP);
+    mat4* n_hara_cp_mat = rob_chr->bone_data->get_mats_mat(ROB_BONE_N_HARA_CP);
     vec3 v10 = { 0.0f, 0.0f, 1.0f };
-    mat4_transform_vector(v8, &v10, &v10);
+    mat4_transform_vector(n_hara_cp_mat, &v10, &v10);
     rob_chr->data.miku_rot.field_6 = (int32_t)((float_t)(atan2f(v10.x, v10.z) * 32768.0f) * (1.0 / M_PI));
 }
 
@@ -8605,13 +8605,13 @@ static void sub_140504F00(rob_chara* rob_chr) {
 
     if (!(rob_chr->data.field_1588.field_0.field_20.field_0 & 0x08)) {
         rob_chr->data.field_1588.field_0.field_20.field_0 |= 0x08;
-        rob_chr->data.miku_rot.position.x = rob_chr->data.miku_rot.field_24.x - v9.x;
-        rob_chr->data.miku_rot.position.z = rob_chr->data.miku_rot.field_24.z - v9.z;
+        rob_chr->data.miku_rot.position.x = rob_chr->data.miku_rot.n_hara_pos.x - v9.x;
+        rob_chr->data.miku_rot.position.z = rob_chr->data.miku_rot.n_hara_pos.z - v9.z;
     }
 
     if (rob_chr->data.field_1588.field_0.field_20.field_8 & 0x10000000) {
         rob_chr->data.field_1588.field_0.field_20.field_8 &= ~0x10000000;
-        rob_chr->data.miku_rot.position.y = rob_chr->data.miku_rot.field_24.y - v9.y;
+        rob_chr->data.miku_rot.position.y = rob_chr->data.miku_rot.n_hara_pos.y - v9.y;
     }
 }
 
@@ -8722,7 +8722,7 @@ static void sub_140504AC0(rob_chara* rob_chr) {
             - get_osage_gravity_const() * rob_chr->data.field_1588.field_0.field_200;
     }
     else if (!(rob_chr->data.field_1 & 0x80)) {
-        vec3 v20 = rob_chr->data.miku_rot.field_3C;
+        v20 = rob_chr->data.miku_rot.field_3C;
         v20.x += v4.x + rob_chr->data.field_8.field_B8.field_10.x;
         v20.z += v4.z + rob_chr->data.field_8.field_B8.field_10.z;
 
@@ -8768,9 +8768,9 @@ static void sub_140504AC0(rob_chara* rob_chr) {
 
                 float_t v18 = 1.0f / (v17 + 1.0f);
                 v20.x = v18 * (rob_chr->data.field_1588.field_330.field_20.x
-                    - rob_chr->data.miku_rot.field_24.x);
+                    - rob_chr->data.miku_rot.n_hara_pos.x);
                 v20.z = v18 * (rob_chr->data.field_1588.field_330.field_20.z
-                    - rob_chr->data.miku_rot.field_24.z);
+                    - rob_chr->data.miku_rot.n_hara_pos.z);
             }
         }
     }
@@ -15762,15 +15762,15 @@ void rob_chara_data_miku_rot::reset() {
     field_10 = 0.0f;
     field_14 = 0;
     position = 0.0f;
-    field_24 = 0.0f;
+    n_hara_pos = 0.0f;
     field_30 = 0.0f;
     field_3C = 0.0f;
-    field_48 = 0.0f;
-    field_54 = 0.0f;
+    n_hara_pos_prev = 0.0f;
+    n_hara_pos_diff = 0.0f;
     field_60 = 0;
     field_64 = 0;
     field_68 = 0;
-    field_6C = mat4_identity;
+    mat = mat4_identity;
 }
 
 rob_chara_adjust_data::rob_chara_adjust_data() : scale(), height_adjust(), pos_adjust_y(),
