@@ -194,36 +194,48 @@ int32_t light_param_data::load_file(p_file_handler file_handlers[6]) {
         ibl = light_param_ibl();
         ibl.read(file_handlers[0].get_data(), file_handlers[0].get_size());
     }
+    else
+        ibl.ready = true;
 
     light.ready = false;
     if (file_handlers[1].ptr) {
         light = light_param_light();
         light.read(file_handlers[1].get_data(), file_handlers[1].get_size());
     }
+    else
+        light.ready = true;
 
     fog.ready = false;
     if (file_handlers[2].ptr) {
         fog = light_param_fog();
         fog.read(file_handlers[2].get_data(), file_handlers[2].get_size());
     }
+    else
+        fog.ready = true;
 
     glow.ready = false;
     if (file_handlers[3].ptr) {
         glow = light_param_glow();
         glow.read(file_handlers[3].get_data(), file_handlers[3].get_size());
     }
+    else
+        glow.ready = true;
 
     wind.ready = false;
     if (file_handlers[4].ptr) {
         wind = light_param_wind();
         wind.read(file_handlers[4].get_data(), file_handlers[4].get_size());
     }
+    else
+        wind.ready = true;
 
     face.ready = false;
     if (file_handlers[5].ptr) {
         face = light_param_face();
         face.read(file_handlers[5].get_data(), file_handlers[5].get_size());
     }
+    else
+        face.ready = true;
 
     return !(ibl.ready | light.ready | fog.ready | glow.ready | wind.ready | face.ready) ? 1 : 0;
 }
