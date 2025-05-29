@@ -613,6 +613,7 @@ namespace rndr {
             }
 
             draw_pass_sss_filter(rend_data_ctx, rctx, sss);
+            rend_data_ctx.set_npr(this);
             reflect_draw = false;
             rend_data_ctx.state.end_event();
         }
@@ -699,6 +700,7 @@ namespace rndr {
         }
 
         draw_pass_sss_filter(rend_data_ctx, rctx, sss);
+        rend_data_ctx.set_npr(this);
         rend_data_ctx.state.bind_framebuffer(0);
         rend_data_ctx.state.end_event();
     }
@@ -1005,6 +1007,8 @@ namespace rndr {
         }
 
         rctx->sss_data->set_texture(rend_data_ctx.state, 1);
+
+        rend_data_ctx.set_npr(this);
 
         rend_data_ctx.state.bind_sampler(14, rctx->render_samplers[0]);
         rend_data_ctx.state.bind_sampler(15, rctx->render_samplers[0]);
