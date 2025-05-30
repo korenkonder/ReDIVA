@@ -261,8 +261,8 @@ namespace rndr {
         void set_taa(int32_t value);
         void set_tone_map(tone_map_method value);
         void set_tone_trans(const vec3& start, const vec3& end, int32_t index);
-        void transparency_combine(render_data_context& rend_data_ctx, float_t alpha);
-        void transparency_copy(render_data_context& rend_data_ctx);
+        void transparency_combine(render_data_context& rend_data_ctx, RenderTexture* rt, float_t alpha);
+        void transparency_copy(render_data_context& rend_data_ctx, RenderTexture* rt);
         void update_res(bool set, int32_t base_downsample);
 
     private:

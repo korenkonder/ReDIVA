@@ -1474,12 +1474,12 @@ namespace rndr {
         }
     }
 
-    void Render::transparency_combine(render_data_context& rend_data_ctx, float_t alpha) {
-        transparency->combine(rend_data_ctx, rend_texture, alpha);
+    void Render::transparency_combine(render_data_context& rend_data_ctx, RenderTexture* rt, float_t alpha) {
+        transparency->combine(rend_data_ctx, rt, alpha);
     }
 
-    void Render::transparency_copy(render_data_context& rend_data_ctx) {
-        transparency->copy(rend_data_ctx, rend_texture[0].GetColorTex());
+    void Render::transparency_copy(render_data_context& rend_data_ctx, RenderTexture* rt) {
+        transparency->copy(rend_data_ctx, rt->GetColorTex());
     }
 
     void Render::update_res(bool set, int32_t base_downsample) {
