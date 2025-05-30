@@ -55,8 +55,6 @@ namespace renderer {
         rend_data_ctx.state.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
         rend_data_ctx.state.enable_depth_test();
 
-        (rctx_ptr->render_buffer.GetColorTex(), GL_TEXTURE_2D, 0, 0, 0, 0,
-            rt->GetColorTex(), GL_TEXTURE_2D, 0, 0, 0, 0, fbo.width, fbo.height, 1);
         if (GLAD_GL_VERSION_4_3)
             rend_data_ctx.state.copy_image_sub_data(
                 rctx_ptr->render_buffer.GetColorTex(), GL_TEXTURE_2D, 0, 0, 0, 0,
@@ -65,6 +63,7 @@ namespace renderer {
             fbo_blit(rend_data_ctx.state, rctx_ptr->render_buffer.fbos[0], rt->fbos[0],
                 0, 0, fbo.width, fbo.height,
                 0, 0, fbo.width, fbo.height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+        rt->Bind(rend_data_ctx.state);
     }
 
     void Transparency::copy(render_data_context& rend_data_ctx, GLuint texture) {
