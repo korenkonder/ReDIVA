@@ -13433,7 +13433,7 @@ void rob_chara_item_equip_object::disp(const mat4& mat, render_context* rctx) {
     if (fabsf(alpha - 1.0f) > 0.000001f)
         enum_or(chara_flags, obj_flags);
     else
-        enum_and(chara_flags, ~(mdl::OBJ_ALPHA_ORDER_3 | mdl::OBJ_ALPHA_ORDER_2 | mdl::OBJ_ALPHA_ORDER_1));
+        enum_and(chara_flags, ~mdl::OBJ_ALPHA_ORDER);
     rctx->disp_manager->set_obj_flags(chara_flags);
     if (can_disp) {
         rctx->disp_manager->entry_obj_by_object_info_object_skin(obj_info,
@@ -13548,7 +13548,7 @@ void rob_chara_item_equip_object::init_members(size_t index) {
     texture_data.texture_specular_coefficients = 1.0f;
     texture_data.texture_specular_offset = 0.0f;
     alpha = 1.0f;
-    obj_flags = mdl::OBJ_ALPHA_ORDER_1;
+    obj_flags = mdl::OBJ_ALPHA_ORDER_POST_GLITTER;
     null_blocks_data_set = 0;
     can_disp = true;
     field_A4 = 0;

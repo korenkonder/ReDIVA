@@ -1022,11 +1022,11 @@ namespace rndr {
             rctx->disp_manager->obj_sort(rend_data_ctx,
                 mdl::OBJ_TYPE_TRANSLUCENT_SORT_BY_RADIUS, 2, cam);
             rctx->disp_manager->obj_sort(rend_data_ctx,
-                mdl::OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_1, 1, cam, field_31F);
+                mdl::OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_POST_GLITTER, 1, cam, field_31F);
             rctx->disp_manager->obj_sort(rend_data_ctx,
-                mdl::OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_2, 1, cam, field_31F);
+                mdl::OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_POST_TRANSLUCENT, 1, cam, field_31F);
             rctx->disp_manager->obj_sort(rend_data_ctx,
-                mdl::OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_3, 1, cam, field_31F);
+                mdl::OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_POST_OPAQUE, 1, cam, field_31F);
         }
 
         if (opaque_z_sort)
@@ -1057,9 +1057,9 @@ namespace rndr {
         star_catalog_draw(rend_data_ctx, cam);
 
         draw_pass_3d_translucent(rend_data_ctx, rctx,
-            mdl::OBJ_TYPE_OPAQUE_ALPHA_ORDER_3,
-            mdl::OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_3,
-            mdl::OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_3, cam);
+            mdl::OBJ_TYPE_OPAQUE_ALPHA_ORDER_POST_OPAQUE,
+            mdl::OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_POST_OPAQUE,
+            mdl::OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_POST_OPAQUE, cam);
 
         snow_particle_draw(rend_data_ctx, cam);
         rain_particle_draw(rend_data_ctx, cam);
@@ -1095,9 +1095,9 @@ namespace rndr {
 
         rend_data_ctx.state.set_depth_mask(GL_TRUE);
         draw_pass_3d_translucent(rend_data_ctx, rctx,
-            mdl::OBJ_TYPE_OPAQUE_ALPHA_ORDER_2,
-            mdl::OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_2,
-            mdl::OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_2, cam);
+            mdl::OBJ_TYPE_OPAQUE_ALPHA_ORDER_POST_TRANSLUCENT,
+            mdl::OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_POST_TRANSLUCENT,
+            mdl::OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_POST_TRANSLUCENT, cam);
         rend_data_ctx.state.disable_depth_test();
 
         rend_data_ctx.state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
@@ -1107,9 +1107,9 @@ namespace rndr {
         rend_data_ctx.state.enable_depth_test();
         rend_data_ctx.state.set_depth_mask(GL_TRUE);
         draw_pass_3d_translucent(rend_data_ctx, rctx,
-            mdl::OBJ_TYPE_OPAQUE_ALPHA_ORDER_1,
-            mdl::OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_1,
-            mdl::OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_1, cam);
+            mdl::OBJ_TYPE_OPAQUE_ALPHA_ORDER_POST_GLITTER,
+            mdl::OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_POST_GLITTER,
+            mdl::OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_POST_GLITTER, cam);
 
         if (Glitter::glt_particle_manager->CheckHasLocalEffect()) { // X
             rend_data_ctx.state.begin_event("local");
@@ -1778,15 +1778,15 @@ static void draw_pass_sss_filter(render_data_context& rend_data_ctx, render_cont
 
 static int32_t draw_pass_3d_get_translucent_count(render_context* rctx) {
     int32_t count = 0;
-    count += rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_OPAQUE_ALPHA_ORDER_1);
-    count += rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_1);
-    count += rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_1);
-    count += rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_OPAQUE_ALPHA_ORDER_2);
-    count += rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_2);
-    count += rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_2);
-    count += rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_OPAQUE_ALPHA_ORDER_3);
-    count += rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_3);
-    count += rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_3);
+    count += rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_OPAQUE_ALPHA_ORDER_POST_GLITTER);
+    count += rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_POST_GLITTER);
+    count += rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_POST_GLITTER);
+    count += rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_OPAQUE_ALPHA_ORDER_POST_TRANSLUCENT);
+    count += rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_POST_TRANSLUCENT);
+    count += rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_POST_TRANSLUCENT);
+    count += rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_OPAQUE_ALPHA_ORDER_POST_OPAQUE);
+    count += rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_POST_OPAQUE);
+    count += rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_POST_OPAQUE);
     return count;
 }
 

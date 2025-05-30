@@ -5057,13 +5057,13 @@ void pv_game::chara_item_alpha_callback(void* data, int32_t chara_id, int32_t ty
     switch (type) {
     case 0:
     default:
-        flags = mdl::OBJ_ALPHA_ORDER_1;
+        flags = mdl::OBJ_ALPHA_ORDER_POST_GLITTER;
         break;
     case 1:
-        flags = mdl::OBJ_ALPHA_ORDER_2;
+        flags = mdl::OBJ_ALPHA_ORDER_POST_TRANSLUCENT;
         break;
     case 2:
-        flags = mdl::OBJ_ALPHA_ORDER_3;
+        flags = mdl::OBJ_ALPHA_ORDER_POST_OPAQUE;
         break;
     }
 

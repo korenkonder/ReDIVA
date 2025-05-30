@@ -1026,13 +1026,13 @@ namespace pv_param_task {
             switch (i.type) {
             case 0:
             default:
-                obj_flags = mdl::OBJ_ALPHA_ORDER_1;
+                obj_flags = mdl::OBJ_ALPHA_ORDER_POST_GLITTER;
                 break;
             case 1:
-                obj_flags = mdl::OBJ_ALPHA_ORDER_2;
+                obj_flags = mdl::OBJ_ALPHA_ORDER_POST_TRANSLUCENT;
                 break;
             case 2:
-                obj_flags = mdl::OBJ_ALPHA_ORDER_3;
+                obj_flags = mdl::OBJ_ALPHA_ORDER_POST_OPAQUE;
                 break;
             }
 

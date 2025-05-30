@@ -754,7 +754,7 @@ void auth_3d::reset() {
     once = false;
     mat = mat4_identity;
     alpha = 1.0f;
-    obj_flags = mdl::OBJ_ALPHA_ORDER_1;
+    obj_flags = mdl::OBJ_ALPHA_ORDER_POST_GLITTER;
     chara_id = -1;
     chara_item = false;
     shadow = false;

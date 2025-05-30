@@ -2226,16 +2226,16 @@ namespace mdl {
             if (reflect_draw)
                 rend_data_ctx.state.set_cull_face_mode(GL_FRONT);
             break;
-        case OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_1:
-        case OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_2:
-        case OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_3:
+        case OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_POST_GLITTER:
+        case OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_POST_TRANSLUCENT:
+        case OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_POST_OPAQUE:
             alpha_test = 1;
             min_alpha = 0.1f;
             alpha_threshold = 0.5f;
             break;
-        case OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_1:
-        case OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_2:
-        case OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_3:
+        case OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_POST_GLITTER:
+        case OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_POST_TRANSLUCENT:
+        case OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_POST_OPAQUE:
             rend_data_ctx.state.set_depth_mask(GL_FALSE);
 
             alpha_test = 1;
@@ -2327,9 +2327,9 @@ namespace mdl {
             if (reflect_draw)
                 rend_data_ctx.state.set_cull_face_mode(GL_BACK);
             break;
-        case OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_1:
-        case OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_2:
-        case OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_3:
+        case OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_POST_GLITTER:
+        case OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_POST_TRANSLUCENT:
+        case OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_POST_OPAQUE:
             rend_data_ctx.state.set_depth_mask(GL_TRUE);
             break;
         }
@@ -2793,8 +2793,7 @@ namespace mdl {
                 }
 
                 const obj_material_attrib_member attrib = material->material.attrib.m;
-                if (obj_flags & (mdl::OBJ_ALPHA_ORDER_1 | mdl::OBJ_ALPHA_ORDER_2 | mdl::OBJ_ALPHA_ORDER_3)
-                    && data->args.sub_mesh.blend_color.w < 1.0f) {
+                if ((obj_flags & mdl::OBJ_ALPHA_ORDER) && data->args.sub_mesh.blend_color.w < 1.0f) {
                     if (!(obj_flags & mdl::OBJ_NO_TRANSLUCENCY)) {
                         bool translucent = false;
                         if (!attrib.flag_28 && (!attrib.punch_through
@@ -2803,29 +2802,29 @@ namespace mdl {
                             translucent = true;
 
                         if (translucent) {
-                            if (obj_flags & mdl::OBJ_ALPHA_ORDER_1)
-                                entry_list(OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_1, data);
-                            else if (obj_flags & mdl::OBJ_ALPHA_ORDER_2)
-                                entry_list(OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_2, data);
+                            if (obj_flags & mdl::OBJ_ALPHA_ORDER_POST_GLITTER)
+                                entry_list(OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_POST_GLITTER, data);
+                            else if (obj_flags & mdl::OBJ_ALPHA_ORDER_POST_TRANSLUCENT)
+                                entry_list(OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_POST_TRANSLUCENT, data);
                             else
-                                entry_list(OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_3, data);
+                                entry_list(OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_POST_OPAQUE, data);
                         }
                         else {
                             if (!attrib.punch_through) {
-                                if (obj_flags & mdl::OBJ_ALPHA_ORDER_1)
-                                    entry_list(OBJ_TYPE_OPAQUE_ALPHA_ORDER_1, data);
-                                else if (obj_flags & mdl::OBJ_ALPHA_ORDER_2)
-                                    entry_list(OBJ_TYPE_OPAQUE_ALPHA_ORDER_2, data);
+                                if (obj_flags & mdl::OBJ_ALPHA_ORDER_POST_GLITTER)
+                                    entry_list(OBJ_TYPE_OPAQUE_ALPHA_ORDER_POST_GLITTER, data);
+                                else if (obj_flags & mdl::OBJ_ALPHA_ORDER_POST_TRANSLUCENT)
+                                    entry_list(OBJ_TYPE_OPAQUE_ALPHA_ORDER_POST_TRANSLUCENT, data);
                                 else
-                                    entry_list(OBJ_TYPE_OPAQUE_ALPHA_ORDER_3, data);
+                                    entry_list(OBJ_TYPE_OPAQUE_ALPHA_ORDER_POST_OPAQUE, data);
                             }
                             else {
-                                if (obj_flags & mdl::OBJ_ALPHA_ORDER_1)
-                                    entry_list(OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_1, data);
-                                else if (obj_flags & mdl::OBJ_ALPHA_ORDER_2)
-                                    entry_list(OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_2, data);
+                                if (obj_flags & mdl::OBJ_ALPHA_ORDER_POST_GLITTER)
+                                    entry_list(OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_POST_GLITTER, data);
+                                else if (obj_flags & mdl::OBJ_ALPHA_ORDER_POST_TRANSLUCENT)
+                                    entry_list(OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_POST_TRANSLUCENT, data);
                                 else
-                                    entry_list(OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_3, data);
+                                    entry_list(OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_POST_OPAQUE, data);
                             }
 
                             if (obj_flags & mdl::OBJ_SSS)
@@ -2927,12 +2926,12 @@ namespace mdl {
             ObjData* data = alloc_obj_data(OBJ_KIND_TRANSLUCENT);
             if (data) {
                 data->init_translucent(mat, translucent_args);
-                if (obj_flags & mdl::OBJ_ALPHA_ORDER_1)
-                    entry_list(OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_1, data);
-                else if (obj_flags & mdl::OBJ_ALPHA_ORDER_2)
-                    entry_list(OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_2, data);
-                else if (obj_flags & mdl::OBJ_ALPHA_ORDER_3)
-                    entry_list(OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_3, data);
+                if (obj_flags & mdl::OBJ_ALPHA_ORDER_POST_GLITTER)
+                    entry_list(OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_POST_GLITTER, data);
+                else if (obj_flags & mdl::OBJ_ALPHA_ORDER_POST_TRANSLUCENT)
+                    entry_list(OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_POST_TRANSLUCENT, data);
+                else if (obj_flags & mdl::OBJ_ALPHA_ORDER_POST_OPAQUE)
+                    entry_list(OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_POST_OPAQUE, data);
                 else
                     entry_list(OBJ_TYPE_TRANSLUCENT, data);
             }
