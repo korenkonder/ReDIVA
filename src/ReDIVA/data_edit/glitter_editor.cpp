@@ -2952,9 +2952,9 @@ static void glitter_editor_property_effect(GlitterEditor* glt_edt) {
         Glitter::EFFECT_LOOP))
         changed = true;
 
-    if (ImGui::CheckboxFlagsEnterKeyPressed("Draw as Transparent",
+    if (ImGui::CheckboxFlagsEnterKeyPressed("Draw before Translucent Geometry",
         (uint32_t*)&effect->data.flags,
-        Glitter::EFFECT_ALPHA))
+        Glitter::EFFECT_PRE_TRANSLUCENT))
         changed = true;
 
     if (ImGui::CheckboxFlagsEnterKeyPressed("Fog",

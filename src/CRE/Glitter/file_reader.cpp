@@ -1133,8 +1133,8 @@ namespace Glitter {
             }
             d += 56;
 
-            if (flags & EFFECT_FILE_ALPHA)
-                enum_or(eff->data.flags, EFFECT_ALPHA);
+            if (flags & EFFECT_FILE_PRE_TRANSLUCENT)
+                enum_or(eff->data.flags, EFFECT_PRE_TRANSLUCENT);
 
             if (flags & EFFECT_FILE_FOG)
                 enum_or(eff->data.flags, EFFECT_FOG);
@@ -1330,8 +1330,8 @@ namespace Glitter {
             }
             d += 56;
 
-            if (flags & EFFECT_FILE_ALPHA)
-                enum_or(eff->data.flags, EFFECT_ALPHA);
+            if (flags & EFFECT_FILE_PRE_TRANSLUCENT)
+                enum_or(eff->data.flags, EFFECT_PRE_TRANSLUCENT);
 
             if (flags & EFFECT_FILE_FOG)
                 enum_or(eff->data.flags, EFFECT_FOG);

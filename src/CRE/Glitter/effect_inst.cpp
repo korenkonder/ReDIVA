@@ -365,8 +365,8 @@ namespace Glitter {
     }
 
     DispType F2EffectInst::GetDispType() {
-        if (data.flags & EFFECT_ALPHA)
-            return DISP_ALPHA;
+        if (data.flags & EFFECT_PRE_TRANSLUCENT)
+            return DISP_PRE_TRANSLUCENT;
         return DISP_NORMAL;
     }
 
@@ -689,7 +689,7 @@ namespace Glitter {
         counter.Increment();
 
         if (load_flags & 0x01)
-            enum_or(flags, EFFECT_INST_FLAG_23);
+            enum_or(flags, EFFECT_INST_POST_TRANSLUCENT);
 
         if (data.flags & EFFECT_USE_SEED)
             random = data.seed;
@@ -1054,10 +1054,10 @@ namespace Glitter {
     DispType XEffectInst::GetDispType() {
         if (data.flags & EFFECT_LOCAL)
             return DISP_LOCAL;
-        else if (data.flags & EFFECT_ALPHA)
-            return DISP_ALPHA;
-        else if (flags & EFFECT_INST_FLAG_23)
-            return DISP_TYPE_2;
+        else if (data.flags & EFFECT_PRE_TRANSLUCENT)
+            return DISP_PRE_TRANSLUCENT;
+        else if (flags & EFFECT_INST_POST_TRANSLUCENT)
+            return DISP_POST_TRANSLUCENT;
         return DISP_NORMAL;
     }
 

@@ -705,8 +705,8 @@ namespace Glitter {
         size_t d = (size_t)st->data.data();
 
         EffectFileFlag flags = (EffectFileFlag)0;
-        if (eff->data.flags & EFFECT_ALPHA)
-            enum_or(flags, EFFECT_FILE_ALPHA);
+        if (eff->data.flags & EFFECT_PRE_TRANSLUCENT)
+            enum_or(flags, EFFECT_FILE_PRE_TRANSLUCENT);
 
         if (eff->data.flags & EFFECT_FOG)
             enum_or(flags, EFFECT_FILE_FOG);
