@@ -2472,7 +2472,7 @@ namespace Vulkan {
 
         if (gl_texture_datas.size()) {
             auto i_begin = gl_texture_datas.begin();
-            auto i_end = gl_texture_datas.begin();
+            auto i_end = gl_texture_datas.end();
             auto i = i_begin;
             while (i != i_end)
                 if (--i->second.alive_time < 0) {
