@@ -13058,6 +13058,61 @@ static void x_pv_game_write_dsc(const dsc& d, int32_t pv_id, const char* out_dir
 
 static void x_pv_game_write_glitter(Glitter::EffectGroup* eff_group, const auth_3d_database* x_pack_auth_3d_db,
     const object_database* obj_db, const object_database* x_pack_obj_db, const char* out_dir) {
+    prj::vector_pair<uint64_t, std::string> glitter_list;
+
+    auto load_glitter_list = [](void* data, const char* dir, const char* file, uint32_t hash) -> bool {
+        size_t file_len = utf8_length(file);
+        if (file_len < 4 || memcmp(&file[file_len - 4], ".txt", 5))
+            return false;
+
+        size_t dir_len = utf8_length(dir);
+        if (dir_len + file_len + 2 > 0x1000)
+            return false;
+
+        char path_buf[0x1000];
+        memcpy(path_buf, dir, dir_len);
+        memcpy(path_buf + dir_len, file, file_len + 1);
+        if (!path_check_file_exists(path_buf))
+            return false;
+
+        file_stream s;
+        s.open(path_buf, "rb");
+        size_t length = s.length;
+        uint8_t* _data = force_malloc<uint8_t>(length);
+        s.read(_data, length);
+        s.close();
+
+        prj::vector_pair<uint64_t, std::string>& glitter_list = *(prj::vector_pair<uint64_t, std::string>*)data;
+
+        char* buf;
+        char** lines;
+        size_t count;
+        if (str_utils_text_file_parse(_data, length, buf, lines, count)) {
+            for (size_t i = 0; i < count; i++) {
+                char* t = strstr(lines[i], "#(?)");
+                if (t)
+                    *t = 0;
+            }
+
+            glitter_list.reserve(count);
+            for (size_t i = 0; i < count; i++) {
+                size_t len = utf8_length(lines[i]);
+                std::string name(lines[i], min_def(len, 0x7F));
+                glitter_list.push_back(hash_string_murmurhash(name), name);
+            }
+            glitter_list.sort();
+
+            free_def(buf);
+            free_def(lines);
+        }
+        free_def(_data);
+        return true;
+    };
+
+    data_struct* x_data = &data_list[DATA_X];
+    x_data->load_file(&glitter_list, sprintf_s_string("root+/particle/%s.txt",
+        eff_group->name.c_str()).c_str(), load_glitter_list);
+
     Glitter::EffectGroup temp_eff_group(Glitter::X);
     temp_eff_group.name.assign(eff_group->name);
     temp_eff_group.version = eff_group->version;
@@ -13082,9 +13137,6 @@ static void x_pv_game_write_glitter(Glitter::EffectGroup* eff_group, const auth_
     strcpy_s(name, sizeof(name), eff_group->name.c_str());
 
     replace_names(name);
-
-    data_struct* x_data = &data_list[DATA_X];
-    auto& hashes = x_data->glitter_list_murmurhash;
     for (Glitter::Effect*& i : temp_eff_group.effects) {
         if (!i)
             continue;
@@ -13094,13 +13146,19 @@ static void x_pv_game_write_glitter(Glitter::EffectGroup* eff_group, const auth_
         if (e->data.name_hash == hash_murmurhash_empty)
             continue;
 
-        auto elem = hashes.find(e->data.name_hash);
-        if (elem == hashes.end()) {
-            printf_debug("Couldn't find name for hash 0x%08X\n", e->data.name_hash);
-            continue;
+        auto elem = glitter_list.find(e->data.name_hash);
+        if (elem != glitter_list.end())
+            e->name.assign(elem->second); 
+        else {
+            auto elem = x_data->glitter_list_murmurhash.find(e->data.name_hash);
+            if (elem != x_data->glitter_list_murmurhash.end())
+                e->name.assign(elem->second);
+            else {
+                printf_debug("Couldn't find name for hash 0x%08X\n", e->data.name_hash);
+                continue;
+            }
         }
 
-        e->name.assign(elem->second);
         replace_names(e->name);
 
         if (!e->data.ext_anim_x
@@ -14144,7 +14202,7 @@ static void x_pv_game_write_stage_resource(const pvsr* stage_resource,
                 for (const pvsr_auth_2d& j : i.aet_back)
                     s.write_int64_t(x_pv_game_write_strings_get_string_offset(strings, j.name.str));
                 s.align_write(0x08);
-        }
+            }
             else
                 *aet_offsets++ = 0;
         }
