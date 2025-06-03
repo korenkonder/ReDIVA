@@ -14028,9 +14028,16 @@ static void x_pv_game_write_stage_resource(const pvsr* stage_resource,
             x_pv_game_write_file_strings_push_back_check(s, strings, j.name.str);
     }
 
-    for (const pvsr_stage_effect_env& i : stage_resource->stage_effect_env)
+    for (const pvsr_stage_effect_env& i : stage_resource->stage_effect_env) {
+        for (const pvsr_auth_2d& j : i.aet_front)
+            x_pv_game_write_file_strings_push_back_check(s, strings, j.name.str);
+
         for (const pvsr_auth_2d& j : i.aet_front_low)
             x_pv_game_write_file_strings_push_back_check(s, strings, j.name.str);
+
+        for (const pvsr_auth_2d& j : i.aet_back)
+            x_pv_game_write_file_strings_push_back_check(s, strings, j.name.str);
+    }
 
     for (int32_t i = 0; i < PVSR_STAGE_EFFECT_COUNT; i++)
         for (int32_t j = 0; j < PVSR_STAGE_EFFECT_COUNT; j++) {
@@ -14109,11 +14116,20 @@ static void x_pv_game_write_stage_resource(const pvsr* stage_resource,
 
     if (stage_effect_env_count) {
         stage_effect_env_offset = s.get_position();
-        s.write(0x10 * stage_effect_env_count);
+        s.write(0x20 * stage_effect_env_count);
 
-        int64_t* aet_offsets = force_malloc<int64_t>(stage_effect_env_count);
+        int64_t* aet_offsets = force_malloc<int64_t>(3 * stage_effect_env_count);
 
         for (const pvsr_stage_effect_env& i : stage_resource->stage_effect_env) {
+            if (i.aet_front.size()) {
+                *aet_offsets++ = s.get_position();
+                for (const pvsr_auth_2d& j : i.aet_front)
+                    s.write_int64_t(x_pv_game_write_strings_get_string_offset(strings, j.name.str));
+                s.align_write(0x08);
+            }
+            else
+                *aet_offsets++ = 0;
+
             if (i.aet_front_low.size()) {
                 *aet_offsets++ = s.get_position();
                 for (const pvsr_auth_2d& j : i.aet_front_low)
@@ -14122,16 +14138,29 @@ static void x_pv_game_write_stage_resource(const pvsr* stage_resource,
             }
             else
                 *aet_offsets++ = 0;
+
+            if (i.aet_back.size()) {
+                *aet_offsets++ = s.get_position();
+                for (const pvsr_auth_2d& j : i.aet_back)
+                    s.write_int64_t(x_pv_game_write_strings_get_string_offset(strings, j.name.str));
+                s.align_write(0x08);
         }
-        aet_offsets -= stage_effect_env_count;
+            else
+                *aet_offsets++ = 0;
+        }
+        aet_offsets -= stage_effect_env_count * 3;
 
         s.position_push(stage_effect_env_offset, SEEK_SET);
         for (const pvsr_stage_effect_env& i : stage_resource->stage_effect_env) {
+            s.write_int8_t((int8_t)i.aet_front.size());
             s.write_int8_t((int8_t)i.aet_front_low.size());
+            s.write_int8_t((int8_t)i.aet_back.size());
             s.align_write(0x08);
             s.write_int64_t(*aet_offsets++);
+            s.write_int64_t(*aet_offsets++);
+            s.write_int64_t(*aet_offsets++);
         }
-        aet_offsets -= stage_effect_env_count;
+        aet_offsets -= stage_effect_env_count * 3;
         s.position_pop();
 
         free_def(aet_offsets);
