@@ -146,14 +146,15 @@ static void f2_struct_get_length(f2_struct* s, bool shift_x) {
         l += F2_HEADER_DEFAULT_LENGTH + align_val(s->pof.length(), 0x10);
     }
 
-    if (has_sub_structs) {
+    if (has_sub_structs)
         for (f2_struct& i : s->sub_structs) {
             f2_struct_get_length(&i, shift_x);
             l += i.header.get_data_size();
             l += i.header.get_length();
         }
+
+    if (has_enrs || has_pof || has_sub_structs)
         l += F2_HEADER_DEFAULT_LENGTH;
-    }
 
     s->header.set_data_size(l);
 }
@@ -207,12 +208,12 @@ static void f2_struct_write_inner(stream& s, f2_struct* st, uint32_t depth, bool
         f2_struct_write_enrs(s, &st->enrs, use_depth ? depth + 1 : 0);
     if (has_pof)
         f2_struct_write_pof(s, &st->pof, use_depth ? depth + 1 : 0, shift_x);
-    if (has_sub_structs) {
+    if (has_sub_structs)
         for (f2_struct& i : st->sub_structs)
             f2_struct_write_inner(s, &i, depth + 1, use_depth, shift_x);
 
+    if (has_enrs || has_pof || has_sub_structs)
         f2_header('EOFC', 0, use_depth ? depth + 1 : 0).write(s);
-    }
 
     if (!depth) {
         f2_header('EOFC', 0).write(s);
