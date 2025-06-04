@@ -6363,17 +6363,18 @@ static void auth_3d_object_disp(auth_3d_object* o, auth_3d* auth, render_context
     object_database* obj_db = auth->obj_db;
     texture_database* tex_db = auth->tex_db;
 
-    if (auth->chara_id >= 0 && auth->chara_id < ROB_CHARA_COUNT)
+    if (auth->chara_id >= 0 && auth->chara_id < ROB_CHARA_COUNT) {
         if (rob_chara_pv_data_array_check_chara_id(auth->chara_id)) {
             rob_chara* rob_chr = rob_chara_array_get(auth->chara_id);
             mat4 m;
             mat4_mul(&rob_chr->data.miku_rot.mat,
                 auth->chara_item
-                    ? &rob_chr->data.adjust_data.item_mat
-                    : &rob_chr->data.adjust_data.mat, &m);
+                ? &rob_chr->data.adjust_data.item_mat
+                : &rob_chr->data.adjust_data.mat, &m);
             mat4_mul(&m, &mat, &mat);
             disp_manager.set_shadow_type(auth->chara_id ? SHADOW_STAGE : SHADOW_CHARA);
         }
+    }
 
     mdl::ObjFlags flags = (mdl::ObjFlags)0;
     if (auth->shadow)
