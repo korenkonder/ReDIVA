@@ -1928,8 +1928,7 @@ static void draw_pass_3d_translucent(render_data_context& rend_data_ctx,
 
     rndr::Render* rend = &rctx->render;
 
-    extern bool reflect_full;
-    RenderTexture& rt = reflect_full
+    RenderTexture& rt = reflect_draw
         ? rctx->render_manager->get_render_texture(0) : rend->rend_texture[0];
 
     int32_t alpha_array[256];
@@ -1964,8 +1963,7 @@ static void draw_pass_3d_translucent(render_data_context& rend_data_ctx,
 
     rndr::Render* rend = &rctx->render;
 
-    extern bool reflect_full;
-    RenderTexture& rt = reflect_full
+    RenderTexture& rt = reflect_draw
         ? rctx->render_manager->get_render_texture(0) : rend->rend_texture[0];
 
     int32_t alpha_array[256];
