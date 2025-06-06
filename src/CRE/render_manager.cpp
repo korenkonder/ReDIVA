@@ -2079,8 +2079,11 @@ static void draw_pass_reflect_full(render_data_context& rend_data_ctx, rndr::Ren
         || rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_REFLECT_TRANSLUCENT)) {
         refl_tex.SetViewport(rend_data_ctx.state);
 
-        if (!rctx->sss_data->enable || !rctx->sss_data->npr_contour)
+        if (!rctx->sss_data->enable || !rctx->sss_data->npr_contour
+            || draw_pass_3d_get_translucent_count(rctx)) {
+            rend_data_ctx.state.set_depth_mask(GL_TRUE);
             rend_data_ctx.state.clear(GL_DEPTH_BUFFER_BIT);
+        }
 
         rend_data_ctx.state.set_depth_func(GL_LEQUAL);
 
