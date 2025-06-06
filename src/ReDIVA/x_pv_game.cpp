@@ -12986,7 +12986,6 @@ static void x_pv_game_write_dsc(const dsc& d, int32_t pv_id, const char* out_dir
             for (const dsc_data& i : dsc_chart.data)
                 switch (i.func) {
                 case DSC_X_TIME:
-                case DSC_X_MODE_SELECT:
                 case DSC_X_PV_BRANCH_MODE:
                 case DSC_X_MOVIE_PLAY:
                 case DSC_X_MOVIE_DISP:
