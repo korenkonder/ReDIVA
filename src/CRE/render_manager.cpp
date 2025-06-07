@@ -28,6 +28,7 @@ extern render_context* rctx_ptr;
 
 bool reflect_draw = false;
 mat4 reflect_mat = mat4_identity;
+vec4 sss_param = 0.0f;
 
 static void draw_pass_shadow_begin_make_shadowmap(Shadow* shad,
     render_data_context& rend_data_ctx, cam_data& cam, int32_t index, int32_t a3);
@@ -527,8 +528,10 @@ namespace rndr {
     void RenderManager::pass_ss_sss(render_data_context& rend_data_ctx) {
         render_context* rctx = rctx_ptr;
         ::sss_data* sss = rctx->sss_data;
-        if (!sss->init_data || !sss->enable)
+        if (!sss->init_data || !sss->enable) {
+            sss_param = 0.0f;
             return;
+        }
 
         rend_data_ctx.state.begin_event("pass_ss_sss");
         rndr::Render* rend = render;
@@ -1020,6 +1023,7 @@ namespace rndr {
         rctx->sss_data->set_texture(rend_data_ctx.state, 1);
 
         rend_data_ctx.set_npr(this);
+        rend_data_ctx.set_batch_sss_param(sss_param);
 
         rend_data_ctx.state.bind_sampler(14, rctx->render_samplers[0]);
         rend_data_ctx.state.bind_sampler(15, rctx->render_samplers[0]);
@@ -1748,7 +1752,7 @@ static void draw_pass_sss_filter(render_data_context& rend_data_ctx, render_cont
     float_t v34 = (float_t)(1.0 / clamp_def(v31 * v29, 0.25f, 100.0f));
     if (v34 < 0.145f)
         v33 = max_def(v34 - 0.02f, 0.0f) * 8.0f * 0.6f;
-    rend_data_ctx.set_batch_sss_param({ v33, 0.0f, 0.0f, 0.0f });
+    sss_param = { v33, 0.0f, 0.0f, 0.0f };
 
     rend_data_ctx.state.active_texture(0);
     if (sss->npr_contour) {
@@ -2119,6 +2123,9 @@ static void draw_pass_reflect_full(render_data_context& rend_data_ctx, rndr::Ren
         rend_data_ctx.shader_flags.arr[U_WATER_REFLECT] = 0;
 
         rctx->sss_data->set_texture(rend_data_ctx.state, 3);
+
+        rend_data_ctx.set_npr(render_manager);
+        rend_data_ctx.set_batch_sss_param(sss_param);
 
         rend_data_ctx.state.bind_sampler(14, rctx->render_samplers[0]);
         rend_data_ctx.state.bind_sampler(15, rctx->render_samplers[0]);
