@@ -10616,8 +10616,10 @@ void x_pv_game_str_array_parse(prj::vector_pair<int32_t, std::string>& str_array
 void x_pv_game_data_init() {
     x_pv_game_str_array.push_back(0, {});
     x_pv_game_str_array.push_back(1, {});
+    x_pv_game_str_array.push_back(2, {});
     x_pv_game_str_array_parse(x_pv_game_str_array[0].second, "patch\\str_array_jp.json");
     x_pv_game_str_array_parse(x_pv_game_str_array[1].second, "patch\\str_array_en.json");
+    x_pv_game_str_array_parse(x_pv_game_str_array[2].second, "patch\\str_array_zh_tw.json");
     x_pv_game_str_array_lang_sel = 0;
 }
 
