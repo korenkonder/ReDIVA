@@ -4270,9 +4270,8 @@ static void obj_set_modern_write_inner(obj_set* set, stream& s) {
         s_omdl.big_endian = big_endian;
 
         if (obj->skin) {
-            st.sub_structs.push_back({});
-            omdl = &st.sub_structs.end()[-2];
-            f2_struct* oskn = &st.sub_structs.back();
+            omdl->sub_structs.push_back({});
+            f2_struct* oskn = &omdl->sub_structs.back();
 
             memory_stream s_oskn;
             s_oskn.open();
@@ -4285,7 +4284,7 @@ static void obj_set_modern_write_inner(obj_set* set, stream& s) {
             s_oskn.close();
 
             new (&oskn->header) f2_header('OSKN');
-            oskn->header.attrib.set_big_endian(big_endian);
+            omdl->header.attrib.set_big_endian(big_endian);
         }
 
         obj_modern_write_model(obj, s_omdl, 0, is_x, omdl);
