@@ -251,8 +251,11 @@ namespace Glitter {
 
         if (!free && elements) {
             Free();
-            delete[] elements;
-            elements = 0;
+
+            if (elements) {
+                delete[] elements;
+                elements = 0;
+            }
         }
     }
 
@@ -583,8 +586,11 @@ namespace Glitter {
 
         if (!free && elements) {
             Free();
-            delete[] elements;
-            elements = 0;
+
+            if (elements) {
+                delete[] elements;
+                elements = 0;
+            }
         }
     }
 
