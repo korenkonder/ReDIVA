@@ -1172,6 +1172,7 @@ static int32_t particle_index;
 static int32_t particle_count;
 static vec3 particle_wind;
 static particle_rot_data* ptcl_data;
+static particle_vertex_data* ptcl_vertex_data;
 static GLuint ptcl_vao;
 static GL::ArrayBuffer ptcl_vbo;
 static GL::UniformBuffer particle_scene_ubo;
@@ -1448,19 +1449,14 @@ void rain_particle_draw(render_data_context& rend_data_ctx, const cam_data& cam)
 }
 
 void particle_draw(render_data_context& rend_data_ctx, const cam_data& cam) {
-    if (!ptcl_data)
+    if (!ptcl_data || !ptcl_vertex_data)
         return;
 
-    particle_vertex_data* vtx_data = (particle_vertex_data*)ptcl_vbo.MapMemory(rend_data_ctx.state);
-    if (!vtx_data)
-        return;
-
-    int32_t count = particle_disp(vtx_data, ptcl_data, ptcl_count);
-
-    ptcl_vbo.UnmapMemory(rend_data_ctx.state);
-
+    int32_t count = particle_disp(ptcl_vertex_data, ptcl_data, ptcl_count);
     if (!count)
         return;
+
+    ptcl_vbo.WriteMemory(rend_data_ctx.state, 0, sizeof(particle_vertex_data) * count, ptcl_vertex_data);
 
     const light_data& light_chara = rctx_ptr->light_set[LIGHT_SET_MAIN].lights[LIGHT_CHARA];
 
@@ -6082,6 +6078,7 @@ static void particle_init(vec3* offset) {
     const size_t ptcl_vtx_count = ptcl_count * 0x06;
 
     ptcl_data = force_malloc<particle_rot_data>(ptcl_count);
+    ptcl_vertex_data = force_malloc<particle_vertex_data>(ptcl_count);
 
     particle_rot_data* data = ptcl_data;
     for (size_t i = 0; i < ptcl_count; i++, data++)
@@ -6305,9 +6302,12 @@ static void particle_kill(particle_rot_data* data) {
 
 static void particle_free() {
     if (ptcl_data)
-        delete[] ptcl_data;
+        free(ptcl_data);
+    if (ptcl_vertex_data)
+        free(ptcl_vertex_data);
 
     ptcl_data = 0;
+    ptcl_vertex_data = 0;
     particle_index = 0;
     particle_count = 0;
 
