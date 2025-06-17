@@ -1368,7 +1368,6 @@ void gl_rend_state::update() {
 
     update_program();
     update_texture();
-    update_active_texture();
     update_sampler();
     update_blend();
     update_blend_func();
