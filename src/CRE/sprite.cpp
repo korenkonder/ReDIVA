@@ -727,20 +727,10 @@ namespace spr {
         static const GLsizei buffer_size_uv2 = sizeof(sprite_vertex_data_uv2);
 
         if (vbo_vertex_count < vertex_buffer.size() / sizeof(sprite_vertex_data_uv2)) {
-            while (vbo_vertex_count < vertex_buffer.size())
+            while (vbo_vertex_count < vertex_buffer.size() / sizeof(sprite_vertex_data_uv2))
                 vbo_vertex_count *= 2;
 
-            if (GLAD_GL_VERSION_4_4) {
-                vbo.Destroy();
-                vbo.Create(gl_state, buffer_size_uv2 * vbo_vertex_count);
-                gl_state.bind_array_buffer(vbo, true);
-            }
-            else {
-                gl_state.bind_array_buffer(vbo, true);
-
-                glBufferData(GL_ARRAY_BUFFER,
-                    (GLsizeiptr)vbo_vertex_count, 0, GL_DYNAMIC_DRAW);
-            }
+            vbo.Recreate(gl_state, buffer_size_uv2 * vbo_vertex_count);
 
             gl_state.bind_vertex_array(vao[0]);
             gl_state.bind_array_buffer(vbo, true);
@@ -788,17 +778,7 @@ namespace spr {
             while (ebo_index_count < index_buffer.size())
                 ebo_index_count *= 2;
 
-            if (GLAD_GL_VERSION_4_4) {
-                ebo.Destroy();
-                ebo.Create(gl_state, sizeof(uint32_t) * ebo_index_count);
-                gl_state.bind_element_array_buffer(ebo, true);
-            }
-            else {
-                gl_state.bind_element_array_buffer(ebo, true);
-
-                glBufferData(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)(sizeof(uint32_t)
-                    * ebo_index_count), 0, GL_DYNAMIC_DRAW);
-            }
+            ebo.Recreate(gl_state, sizeof(uint32_t) * ebo_index_count);
 
             gl_state.bind_vertex_array(vao[0]);
             gl_state.bind_element_array_buffer(ebo, true);
@@ -812,6 +792,9 @@ namespace spr {
         }
 
         ebo.WriteMemory(gl_state, 0, sizeof(uint32_t) * index_buffer.size(), index_buffer.data());
+
+        gl_state.bind_array_buffer(0);
+        gl_state.bind_element_array_buffer(0);
     }
 
     SpriteManager::SpriteManager() : aspect(), index(), set_counter() {
