@@ -1066,7 +1066,7 @@ static void mothead_func_68(mothead_func_data* func_data,
     const void* data, const mothead_data* mhd_data, int32_t frame, const motion_database* mot_db);
 static void mothead_func_69_motion_max_frame(mothead_func_data* func_data,
     const void* data, const mothead_data* mhd_data, int32_t frame, const motion_database* mot_db);
-static void mothead_func_70(mothead_func_data* func_data,
+static void mothead_func_70_camera_max_frame(mothead_func_data* func_data,
     const void* data, const mothead_data* mhd_data, int32_t frame, const motion_database* mot_db);
 static void mothead_func_71_osage_move_cancel(mothead_func_data* func_data,
     const void* data, const mothead_data* mhd_data, int32_t frame, const motion_database* mot_db);
@@ -1329,7 +1329,7 @@ static const mothead_func_struct mothead_func_array[] = {
     { mothead_func_67_sleeve_adjust, 0 },
     { mothead_func_68, 0 },
     { mothead_func_69_motion_max_frame, 0 },
-    { mothead_func_70, 0 },
+    { mothead_func_70_camera_max_frame, 0 },
     { mothead_func_71_osage_move_cancel, 0 },
     { mothead_func_72, 0 },
     { mothead_func_73_rob_hand_adjust, 0 },
@@ -7210,7 +7210,7 @@ static void mothead_func_69_motion_max_frame(mothead_func_data* func_data,
         pv_game::set_data_itmpv_max_frame(v6, func_data->rob_chr->chara_id, max_frame);*/
 }
 
-static void mothead_func_70(mothead_func_data* func_data,
+static void mothead_func_70_camera_max_frame(mothead_func_data* func_data,
     const void* data, const mothead_data* mhd_data, int32_t frame, const motion_database* mot_db) {
     /*pv_game* v5 = pv_game_data_get();
     if (!v5)
@@ -19193,7 +19193,7 @@ void PvOsageManager::sub_1404F8AA0() {
         const mothead_data* data = mothead_storage_get_mot_by_motion_id(motion_id, aft_mot_db)->data;
         if (data && data->type >= MOTHEAD_DATA_TYPE_0) {
             mothead_data_type type = data->type;
-            while (type != MOTHEAD_DATA_WIND_RESET) {
+            while (type != MOTHEAD_DATA_OSAGE_RESET) {
                 data++;
                 type = data->type;
                 if (type < MOTHEAD_DATA_TYPE_0)
@@ -19206,7 +19206,7 @@ void PvOsageManager::sub_1404F8AA0() {
                 if (type < MOTHEAD_DATA_TYPE_0)
                     goto LABEL_1;
 
-                while (type != MOTHEAD_DATA_WIND_RESET) {
+                while (type != MOTHEAD_DATA_OSAGE_RESET) {
                     data++;
                     type = data->type;
                     if (type < MOTHEAD_DATA_TYPE_0)
@@ -19229,7 +19229,7 @@ void PvOsageManager::sub_1404F8AA0() {
         data = mothead_storage_get_mot_by_motion_id(motion_id, aft_mot_db)->data;
         if (data && data->type >= MOTHEAD_DATA_TYPE_0) {
             mothead_data_type type = data->type;
-            while (type != MOTHEAD_DATA_OSAGE_RESET) {
+            while (type != MOTHEAD_DATA_MOTION_SKIN_PARAM) {
                 data++;
                 type = data->type;
                 if (type < MOTHEAD_DATA_TYPE_0)
@@ -19248,7 +19248,7 @@ void PvOsageManager::sub_1404F8AA0() {
                 if (type < MOTHEAD_DATA_TYPE_0)
                     break;
 
-                while (type != MOTHEAD_DATA_OSAGE_RESET) {
+                while (type != MOTHEAD_DATA_MOTION_SKIN_PARAM) {
                     data++;
                     type = data->type;
                     if (type < MOTHEAD_DATA_TYPE_0)
