@@ -1066,7 +1066,7 @@ static void mothead_func_68(mothead_func_data* func_data,
     const void* data, const mothead_data* mhd_data, int32_t frame, const motion_database* mot_db);
 static void mothead_func_69_motion_max_frame(mothead_func_data* func_data,
     const void* data, const mothead_data* mhd_data, int32_t frame, const motion_database* mot_db);
-static void mothead_func_70(mothead_func_data* func_data,
+static void mothead_func_70_camera_max_frame(mothead_func_data* func_data,
     const void* data, const mothead_data* mhd_data, int32_t frame, const motion_database* mot_db);
 static void mothead_func_71_osage_move_cancel(mothead_func_data* func_data,
     const void* data, const mothead_data* mhd_data, int32_t frame, const motion_database* mot_db);
@@ -1329,7 +1329,7 @@ static const mothead_func_struct mothead_func_array[] = {
     { mothead_func_67_sleeve_adjust, 0 },
     { mothead_func_68, 0 },
     { mothead_func_69_motion_max_frame, 0 },
-    { mothead_func_70, 0 },
+    { mothead_func_70_camera_max_frame, 0 },
     { mothead_func_71_osage_move_cancel, 0 },
     { mothead_func_72, 0 },
     { mothead_func_73_rob_hand_adjust, 0 },
