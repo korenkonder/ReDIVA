@@ -3019,6 +3019,7 @@ namespace Vulkan {
             gl_state.cull_face ? gl_state.cull_face_mode : GL_NONE);
         rasterization_state.frontFace = VK_FRONT_FACE_CLOCKWISE;
         rasterization_state.depthBiasEnable = VK_FALSE;
+        rasterization_state.lineWidth = Vulkan::use_wide_lines ? 0.0f : 1.0f;
 
         VkPipelineDepthStencilStateCreateInfo depth_stencil_state = {};
         depth_stencil_state.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
@@ -3083,7 +3084,8 @@ namespace Vulkan {
         if (Vulkan::current_render_pass != render_pass)
             Vulkan::end_render_pass(Vulkan::current_command_buffer);
 
-        const bool line_width = gl_state.polygon_mode == GL_LINE || mode == GL_LINES || mode == GL_LINE_STRIP;
+        const bool line_width = Vulkan::use_wide_lines
+            && (gl_state.polygon_mode == GL_LINE || mode == GL_LINES || mode == GL_LINE_STRIP);
         VkPipeline pipeline = *Vulkan::manager_get_pipeline(2, shader_stages,
             binding_description_count, binding_descriptions,
             attribute_description_count, attribute_descriptions, &input_assembly_state,

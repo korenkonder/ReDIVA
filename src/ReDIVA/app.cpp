@@ -317,6 +317,7 @@ VkDebugUtilsMessengerEXT vulkan_debug_messenger;
 VkSurfaceKHR vulkan_surface;
 
 VkPhysicalDevice vulkan_physical_device;
+VkPhysicalDeviceFeatures vulkan_physical_device_features;
 VkDevice vulkan_device;
 
 VkPhysicalDeviceLimits vulkan_physical_device_limits;
@@ -2465,6 +2466,7 @@ static int32_t app_pick_physical_device() {
     devices.resize(device_count);
     vkEnumeratePhysicalDevices(vulkan_instance, &device_count, devices.data());
 
+    vulkan_physical_device_features = {};
     for (const VkPhysicalDevice& i : devices)
         if (app_check_is_device_suitable(i)) {
             vulkan_physical_device = i;
@@ -2589,7 +2591,14 @@ static int32_t app_create_logical_device() {
     }
 
     VkPhysicalDeviceFeatures device_features = {};
-    device_features.wideLines = VK_TRUE;
+    if (vulkan_physical_device_features.wideLines) {
+        device_features.wideLines = VK_TRUE;
+        Vulkan::use_wide_lines = true;
+    }
+    else {
+        printf("Wide Lines isn't supported on your GPU. Some things may render incorrectly!");
+        Vulkan::use_wide_lines = false;
+    }
     device_features.samplerAnisotropy = VK_TRUE;
     device_features.textureCompressionBC = VK_TRUE;
     device_features.shaderImageGatherExtended = VK_TRUE;
@@ -2894,11 +2903,12 @@ static bool app_check_is_device_suitable(VkPhysicalDevice vulkan_device) {
         swapchain_adequate = swapchain_support.formats.size() && swapchain_support.present_modes.size();
     }
 
-    VkPhysicalDeviceFeatures device_features;
-    vkGetPhysicalDeviceFeatures(vulkan_device, &device_features);
+    vkGetPhysicalDeviceFeatures(vulkan_device, &vulkan_physical_device_features);
 
-    return indices.first != -1 && indices.second != -1 && extensions_supported
-        && swapchain_adequate && device_features.samplerAnisotropy;
+    return indices.first != -1 && indices.second != -1 && extensions_supported && swapchain_adequate
+        && vulkan_physical_device_features.samplerAnisotropy
+        && vulkan_physical_device_features.textureCompressionBC
+        && vulkan_physical_device_features.shaderImageGatherExtended;
 }
 
 static std::vector<const char*> app_get_required_extensions() {

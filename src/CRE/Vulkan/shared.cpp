@@ -12,6 +12,7 @@
 
 namespace Vulkan {
     bool use;
+    bool use_wide_lines;
 
     VkDevice current_device;
 
