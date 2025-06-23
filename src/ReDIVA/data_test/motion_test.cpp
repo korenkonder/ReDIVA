@@ -1053,7 +1053,7 @@ bool DtmMot::ctrl() {
                 const mothead_data* data = mothead_storage_get_mot_by_motion_id(motion_id, aft_mot_db)->data;
                 if (data && data->type >= MOTHEAD_DATA_TYPE_0) {
                     mothead_data_type type = data->type;
-                    while (type != MOTHEAD_DATA_WIND_RESET) {
+                    while (type != MOTHEAD_DATA_OSAGE_RESET) {
                         data++;
                         type = data->type;
                         if (type < MOTHEAD_DATA_TYPE_0)
@@ -1080,7 +1080,7 @@ bool DtmMot::ctrl() {
                         if (type < MOTHEAD_DATA_TYPE_0)
                             break;
 
-                        while (type != MOTHEAD_DATA_WIND_RESET) {
+                        while (type != MOTHEAD_DATA_OSAGE_RESET) {
                             data++;
                             type = data->type;
                             if (type < MOTHEAD_DATA_TYPE_0)
