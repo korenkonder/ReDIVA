@@ -197,11 +197,15 @@ namespace Vulkan {
     static void gl_wrap_manager_generate_texture_mipmap(GLuint texture);
     static void gl_wrap_manager_get_compressed_tex_image(GLenum target, GLint level, void* img);
     static void gl_wrap_manager_get_boolean(GLenum pname, GLboolean* data);
+    static void gl_wrap_manager_get_buffer_parameter_int_ptr(GLenum target, GLenum value, GLint* data);
+    static void gl_wrap_manager_get_buffer_parameter_int64_ptr(GLenum target, GLenum value, GLint64* data);
     static void gl_wrap_manager_get_integer(GLenum pname, GLint* data);
     static GLenum gl_wrap_manager_get_error();
     static void gl_wrap_manager_get_float(GLenum pname, GLfloat* data);
     static void gl_wrap_manager_get_integer_ptr(GLenum target, GLuint index, GLint* data);
     static void gl_wrap_manager_get_integer_64_ptr(GLenum target, GLuint index, GLint64* data);
+    static void gl_wrap_manager_get_named_buffer_parameter_int_ptr(GLuint buffer, GLenum pname, GLint* data);
+    static void gl_wrap_manager_get_named_buffer_parameter_int64_ptr(GLuint buffer, GLenum pname, GLint64* data);
     static void gl_wrap_manager_get_query_object_int_ptr(GLuint id, GLenum pname, GLint* params);
     static void gl_wrap_manager_get_query_object_uint_ptr(GLuint id, GLenum pname, GLuint* params);
     static void gl_wrap_manager_get_tex_image(GLenum target,
@@ -1497,11 +1501,15 @@ namespace Vulkan {
         glGenerateTextureMipmap = gl_wrap_manager_generate_texture_mipmap;
         glGetCompressedTexImage = gl_wrap_manager_get_compressed_tex_image;
         glGetBooleanv = gl_wrap_manager_get_boolean;
+        glGetBufferParameteriv = gl_wrap_manager_get_buffer_parameter_int_ptr;
+        glGetBufferParameteri64v = gl_wrap_manager_get_buffer_parameter_int64_ptr;
         glGetError = gl_wrap_manager_get_error;
         glGetFloatv = gl_wrap_manager_get_float;
         glGetIntegerv = gl_wrap_manager_get_integer;
         glGetIntegeri_v = gl_wrap_manager_get_integer_ptr;
         glGetInteger64i_v = gl_wrap_manager_get_integer_64_ptr;
+        glGetNamedBufferParameteriv = gl_wrap_manager_get_named_buffer_parameter_int_ptr;
+        glGetNamedBufferParameteri64v = gl_wrap_manager_get_named_buffer_parameter_int64_ptr;
         glGetQueryObjectiv = gl_wrap_manager_get_query_object_int_ptr;
         glGetQueryObjectuiv = gl_wrap_manager_get_query_object_uint_ptr;
         glGetTexImage = gl_wrap_manager_get_tex_image;
@@ -5444,6 +5452,54 @@ namespace Vulkan {
         }
     }
 
+    static void gl_wrap_manager_get_buffer_parameter_int_ptr(GLenum target, GLenum value, GLint* data) {
+        switch (target) {
+        case GL_ARRAY_BUFFER:
+            gl_wrap_manager_get_named_buffer_parameter_int_ptr(
+                gl_state.array_buffer_binding, value, data);
+            break;
+        case GL_ELEMENT_ARRAY_BUFFER:
+            gl_wrap_manager_get_named_buffer_parameter_int_ptr(
+                gl_state.element_array_buffer_binding, value, data);
+            break;
+        case GL_UNIFORM_BUFFER:
+            gl_wrap_manager_get_named_buffer_parameter_int_ptr(
+                gl_state.uniform_buffer_binding, value, data);
+            break;
+        case GL_SHADER_STORAGE_BUFFER:
+            gl_wrap_manager_get_named_buffer_parameter_int_ptr(
+                gl_state.shader_storage_buffer_binding, value, data);
+            break;
+        default:
+            gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
+            break;
+        }
+    }
+    
+    static void gl_wrap_manager_get_buffer_parameter_int64_ptr(GLenum target, GLenum value, GLint64* data) {
+        switch (target) {
+        case GL_ARRAY_BUFFER:
+            gl_wrap_manager_get_named_buffer_parameter_int64_ptr(
+                gl_state.array_buffer_binding, value, data);
+            break;
+        case GL_ELEMENT_ARRAY_BUFFER:
+            gl_wrap_manager_get_named_buffer_parameter_int64_ptr(
+                gl_state.element_array_buffer_binding, value, data);
+            break;
+        case GL_UNIFORM_BUFFER:
+            gl_wrap_manager_get_named_buffer_parameter_int64_ptr(
+                gl_state.uniform_buffer_binding, value, data);
+            break;
+        case GL_SHADER_STORAGE_BUFFER:
+            gl_wrap_manager_get_named_buffer_parameter_int64_ptr(
+                gl_state.shader_storage_buffer_binding, value, data);
+            break;
+        default:
+            gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
+            break;
+        }
+    }
+
     static void gl_wrap_manager_get_integer(GLenum pname, GLint* data) {
         if (!data)
             return;
@@ -5704,6 +5760,50 @@ namespace Vulkan {
             }
 
             *data = gl_state.shader_storage_buffer_sizes[index];
+            break;
+        }
+    }
+
+    static void gl_wrap_manager_get_named_buffer_parameter_int_ptr(GLuint buffer, GLenum pname, GLint* data) {
+        switch (pname) {
+        case GL_BUFFER_SIZE:
+            break;
+        default:
+            gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
+            return;
+        }
+
+        gl_buffer* vk_buf = gl_buffer::get(buffer);
+        if (!vk_buf) {
+            gl_wrap_manager_ptr->push_error(GL_INVALID_OPERATION);
+            return;
+        }
+
+        switch (pname) {
+        case GL_BUFFER_SIZE:
+            *data = (GLint)(int64_t)vk_buf->size;
+            break;
+        }
+    }
+
+    static void gl_wrap_manager_get_named_buffer_parameter_int64_ptr(GLuint buffer, GLenum pname, GLint64* data) {
+        switch (pname) {
+        case GL_BUFFER_SIZE:
+            break;
+        default:
+            gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
+            return;
+        }
+
+        gl_buffer* vk_buf = gl_buffer::get(buffer);
+        if (!vk_buf) {
+            gl_wrap_manager_ptr->push_error(GL_INVALID_OPERATION);
+            return;
+        }
+
+        switch (pname) {
+        case GL_BUFFER_SIZE:
+            *data = (int64_t)vk_buf->size;
             break;
         }
     }

@@ -21,6 +21,13 @@
 #include <unordered_map>
 #include <vector>
 
+struct BufObjMgr {
+    int32_t vb_peak_size;
+    int32_t vb_all_size;
+    int32_t ib_peak_size;
+    int32_t ib_all_size;
+};
+
 static GLuint create_index_buffer(size_t size, const void* data);
 static GLuint create_vertex_buffer(size_t size, const void* data, bool dynamic = false);
 static void free_index_buffer(GLuint buffer);
@@ -44,6 +51,8 @@ static uint32_t obj_vertex_format_get_vertex_size_comp2(obj_vertex_format format
 
 std::map<uint32_t, ObjsetInfo> objset_info_storage_data;
 std::map<uint32_t, ObjsetInfo> objset_info_storage_data_modern;
+
+BufObjMgr bufobj_mgr;
 
 obj_mesh_index_buffer::obj_mesh_index_buffer() : buffer() {
 
@@ -2418,6 +2427,9 @@ static GLuint create_index_buffer(size_t size, const void* data) {
         glDeleteBuffers(1, &buffer);
         return 0;
     }
+
+    bufobj_mgr.ib_all_size += (int32_t)size;
+    bufobj_mgr.ib_peak_size = max_def(bufobj_mgr.ib_peak_size, bufobj_mgr.ib_all_size);
     return buffer;
 }
 
@@ -2437,6 +2449,9 @@ static GLuint create_vertex_buffer(size_t size, const void* data, bool dynamic) 
         glDeleteBuffers(1, &buffer);
         return 0;
     }
+
+    bufobj_mgr.vb_all_size += (int32_t)size;
+    bufobj_mgr.vb_peak_size = max_def(bufobj_mgr.vb_peak_size, bufobj_mgr.vb_all_size);
     return buffer;
 }
 
@@ -2446,6 +2461,18 @@ static void free_index_buffer(GLuint buffer) {
 
     extern render_context* rctx_ptr;
     rctx_ptr->disp_manager->check_index_buffer(buffer);
+
+    GLint size = 0;
+    if (GLAD_GL_VERSION_4_5)
+        glGetNamedBufferParameteriv(buffer, GL_BUFFER_SIZE, &size);
+    else {
+        gl_state.bind_element_array_buffer(buffer);
+        glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
+        gl_state.bind_element_array_buffer(0);
+    }
+
+    bufobj_mgr.ib_all_size -= size;
+
     glDeleteBuffers(1, &buffer);
     glGetError();
 }
@@ -2456,6 +2483,18 @@ static void free_vertex_buffer(GLuint buffer) {
 
     extern render_context* rctx_ptr;
     rctx_ptr->disp_manager->check_vertex_buffer(buffer);
+
+    GLint size = 0;
+    if (GLAD_GL_VERSION_4_5)
+        glGetNamedBufferParameteriv(buffer, GL_BUFFER_SIZE, &size);
+    else {
+        gl_state.bind_array_buffer(buffer);
+        glGetBufferParameteriv(GL_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
+        gl_state.bind_array_buffer(0);
+    }
+
+    bufobj_mgr.vb_all_size -= size;
+
     glDeleteBuffers(1, &buffer);
     glGetError();
 }
