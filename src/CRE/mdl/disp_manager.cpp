@@ -302,14 +302,14 @@ namespace mdl {
         morph_vertex_buffer = 0;
         morph_vertex_buffer_offset = 0;
 
-        gl_state.bind_vertex_array(vertex_array);
+        gl_state.bind_vertex_array(vertex_array, true);
         for (int32_t i = 0; i < 16; i++)
             if (vertex_attrib_array[i]) {
                 glDisableVertexAttribArray(i);
                 vertex_attrib_array[i] = false;
             }
-        gl_state.bind_array_buffer(0);
-        gl_state.bind_element_array_buffer(0);
+        gl_state.bind_array_buffer(0, true);
+        gl_state.bind_element_array_buffer(0, true);
         gl_state.bind_vertex_array(0);
     }
 
@@ -419,7 +419,7 @@ namespace mdl {
         if (!vertex_array->vertex_array) {
             glGenVertexArrays(1, &vertex_array->vertex_array);
 
-            gl_state.bind_vertex_array(vertex_array->vertex_array);
+            gl_state.bind_vertex_array(vertex_array->vertex_array, true);
             glVertexAttrib4f(       POSITION_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
             glVertexAttrib4f(    BONE_WEIGHT_INDEX, 0.0f, 0.0f, 0.0f, 0.0f);
             glVertexAttrib4f(         NORMAL_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
@@ -453,7 +453,7 @@ namespace mdl {
             vertex_attrib_buffer_binding, sizeof(vertex_attrib_buffer_binding));
 
         if (!new_vertex_array)
-            gl_state.bind_vertex_array(vertex_array->vertex_array);
+            gl_state.bind_vertex_array(vertex_array->vertex_array, true);
         gl_state.bind_array_buffer(vertex_buffer, true);
         if (index_buffer)
             gl_state.bind_element_array_buffer(index_buffer, true);
@@ -2074,12 +2074,12 @@ namespace mdl {
 
         for (DispManager::etc_vertex_array& i : etc_vertex_array_cache)
             if (i.alive_time > 0 && --i.alive_time <= 0) {
-                gl_state.bind_vertex_array(i.vertex_array);
+                gl_state.bind_vertex_array(i.vertex_array, true);
                 glDisableVertexAttribArray(POSITION_INDEX);
                 glDisableVertexAttribArray(  NORMAL_INDEX);
-                gl_state.bind_array_buffer(0);
+                gl_state.bind_array_buffer(0, true);
                 if (i.indexed)
-                    gl_state.bind_element_array_buffer(0);
+                    gl_state.bind_element_array_buffer(0, true);
                 gl_state.bind_vertex_array(0);
             }
     }

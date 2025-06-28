@@ -1553,7 +1553,7 @@ static void render_context_disp(render_context* rctx) {
     pre_rend_data_ctx.state.set_depth_mask(GL_FALSE);
 
     pre_rend_data_ctx.state.set_viewport(0, 0, internal_3d_res.x, internal_3d_res.y);
-    pre_rend_data_ctx.state.update();
+    pre_rend_data_ctx.state.finish();
 
     rctx->disp();
 
@@ -1622,7 +1622,7 @@ static void render_context_disp(render_context* rctx) {
 #endif
     }
 #endif
-    post_rend_data_ctx.state.update();
+    post_rend_data_ctx.state.finish();
 
     if (draw_imgui)
         render_context_imgui(rctx);
