@@ -22,80 +22,59 @@ namespace MoviePlayLib {
     }
 
     ULONG MediaClock::AddRef() {
-        return ++ref_count;
+        return ++m_ref;
     }
 
     ULONG MediaClock::Release() {
-        if (!--ref_count)
+        if (!--m_ref)
             Destroy();
-        return ref_count;
+        return m_ref;
     }
 
-    HRESULT MediaClock::TimeEnd() {
-        lock.Acquire();
-        if (time_begin_init) {
-            time = GetTimeInner();
-            time_begin = GetTimestamp();
-            time_begin_init = false;
+    HRESULT MediaClock::Stop() {
+        m_lock.Acquire();
+        if (m_bStarted) {
+            m_hnsTime = _get_time();
+            m_llOffset = GetTimestamp();
+            m_bStarted = false;
         }
-        lock.Release();
+        m_lock.Release();
         return S_OK;
     }
 
-    HRESULT MediaClock::TimeBegin() {
-        lock.Acquire();
-        if (!time_begin_init) {
-            time_begin = GetTimestamp();
-            time_begin_init = true;
+    HRESULT MediaClock::Start() {
+        m_lock.Acquire();
+        if (!m_bStarted) {
+            m_llOffset = GetTimestamp();
+            m_bStarted = true;
         }
-        lock.Release();
+        m_lock.Release();
         return S_OK;
     }
 
-    HRESULT MediaClock::SetTime(INT64 value) {
-        lock.Acquire();
-        time = value;
-        time_begin = GetTimestamp();
-        lock.Release();
+    HRESULT MediaClock::SetTime(INT64 hnsTime) {
+        m_lock.Acquire();
+        m_hnsTime = hnsTime;
+        m_llOffset = GetTimestamp();
+        m_lock.Release();
         return S_OK;
     }
 
     INT64 MediaClock::GetTime() {
-        lock.Acquire();
-        int64_t res = GetTimeInner();
-        lock.Release();
-        return res;
+        m_lock.Acquire();
+        int64_t time = _get_time();
+        m_lock.Release();
+        return time;
     }
 
-    MediaClock::MediaClock() : ref_count(), lock(), time_begin_init(), time(), time_begin() {
-        MOVIE_PLAY_LIB_PRINT_FUNC_BEGIN;
-        MOVIE_PLAY_LIB_PRINT_FUNC_END;
+    MediaClock::MediaClock() : m_ref(), m_lock(), m_bStarted(), m_hnsTime(), m_llOffset() {
+        MOVIE_PLAY_LIB_TRACE_BEGIN;
+        MOVIE_PLAY_LIB_TRACE_END;
     }
 
     MediaClock::~MediaClock() {
-        MOVIE_PLAY_LIB_PRINT_FUNC_BEGIN;
-        MOVIE_PLAY_LIB_PRINT_FUNC_END;
-    }
-
-    int64_t MediaClock::GetTimeInner() {
-        if (!time_begin_init)
-            return time;
-
-        LARGE_INTEGER freq;
-        QueryPerformanceFrequency(&freq);
-
-        return time + MFllMulDiv(GetTimestamp() - time_begin, 10000000, freq.QuadPart, 0);
-    }
-
-    HRESULT MediaClock::Create(IMediaClock*& ptr) {
-        MediaClock* p = new MediaClock;
-        if (!p)
-            return E_OUTOFMEMORY;
-
-        ptr = p;
-        p->AddRef();
-        p->Release();
-        return S_OK;
+        MOVIE_PLAY_LIB_TRACE_BEGIN;
+        MOVIE_PLAY_LIB_TRACE_END;
     }
 
     inline void MediaClock::Destroy(MediaClock* ptr) {
@@ -103,5 +82,26 @@ namespace MoviePlayLib {
             return;
 
         delete ptr;
+    }
+
+    int64_t MediaClock::_get_time() {
+        if (!m_bStarted)
+            return m_hnsTime;
+
+        LARGE_INTEGER freq;
+        QueryPerformanceFrequency(&freq);
+
+        return m_hnsTime + MFllMulDiv(GetTimestamp() - m_llOffset, 10000000, freq.QuadPart, 0);
+    }
+
+    HRESULT CreateClock(IMediaClock*& pp) {
+        MediaClock* p = new MediaClock;
+        if (!p)
+            return E_OUTOFMEMORY;
+
+        pp = p;
+        p->AddRef();
+        p->Release();
+        return S_OK;
     }
 }

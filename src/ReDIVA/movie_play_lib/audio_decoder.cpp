@@ -8,180 +8,105 @@
 #include <mfapi.h>
 
 namespace MoviePlayLib {
-    AudioDecoder::AudioDecoder(HRESULT& hr, MediaStatsLock* media_stats_lock,
-        IMediaClock* media_clock, IMediaSource* media_source)
-        : TransformBase(hr, media_stats_lock, media_clock, media_source),
-        output_sub_type(MFAudioFormat_Float), sample_rate(), channels(), buffer_size() {
-        MOVIE_PLAY_LIB_PRINT_FUNC_BEGIN;
+    AudioDecoder::AudioDecoder(HRESULT& hr, PlayerStat_& rStat, IMediaClock* pClock, IMediaSource* pSource)
+        : TransformBase(hr, rStat, pClock, pSource),
+        m_formatSubType(MFAudioFormat_Float), m_sampleFrequency(), m_channelCount(), m_cbBufferBytes() {
+        MOVIE_PLAY_LIB_TRACE_BEGIN;
         if (SUCCEEDED(hr)) {
-            IMFMediaType* mf_media_type = 0;
-            hr = media_source->GetAudioMFMediaType(&mf_media_type);
+            IMFMediaType* pType = 0;
+            hr = pSource->GetAudioMediaType(&pType);
             if (SUCCEEDED(hr))
-                hr = GetMFTransform(mf_media_type, output_sub_type, mf_transform);
+                hr = CreateDecoder(pType, m_formatSubType, m_pTransform);
 
-            if (mf_media_type) {
-                mf_media_type->Release();
-                mf_media_type = 0;
+            if (pType) {
+                pType->Release();
+                pType = 0;
             }
 
             if (SUCCEEDED(hr))
-                hr = InitFromMediaSource();
+                hr = _on_format_changed();
         }
-        MOVIE_PLAY_LIB_PRINT_FUNC_END;
+        MOVIE_PLAY_LIB_TRACE_END;
     }
 
     AudioDecoder::~AudioDecoder() {
-        MOVIE_PLAY_LIB_PRINT_FUNC_BEGIN;
-        MOVIE_PLAY_LIB_PRINT_FUNC_END;
+        MOVIE_PLAY_LIB_TRACE_BEGIN;
+        MOVIE_PLAY_LIB_TRACE_END;
     }
 
-    HRESULT AudioDecoder::ProcessOutput() {
-        if (sample_list_active.GetSamplesCount() >= 10)
+    HRESULT AudioDecoder::_process_output() {
+        if (m_outputQueue.size() >= 10)
             return S_FALSE;
 
-        MFT_OUTPUT_DATA_BUFFER output_sample = {};
-        DWORD output_status = 0;
-        IMFMediaBuffer* mf_media_buffer = 0;
-        IMFSample* mf_sample = 0;
+        MFT_OUTPUT_DATA_BUFFER outputSample = {};
+        DWORD dwStatus = 0;
+        IMFMediaBuffer* pBuffer = 0;
+        IMFSample* pSample = 0;
 
-        if (SUCCEEDED(MFCreateMemoryBuffer(buffer_size, &mf_media_buffer))
-            && SUCCEEDED(MFCreateSample(&mf_sample)) && SUCCEEDED(mf_sample->AddBuffer(mf_media_buffer))) {
-            output_sample.pSample = mf_sample;
-            mf_sample->AddRef();
+        if (SUCCEEDED(MFCreateMemoryBuffer(m_cbBufferBytes, &pBuffer))
+            && SUCCEEDED(MFCreateSample(&pSample)) && SUCCEEDED(pSample->AddBuffer(pBuffer))) {
+            outputSample.pSample = pSample;
+            pSample->AddRef();
         }
 
-        if (mf_media_buffer) {
-            mf_media_buffer->Release();
-            mf_media_buffer = 0;
+        if (pBuffer) {
+            pBuffer->Release();
+            pBuffer = 0;
         }
 
-        if (mf_sample) {
-            mf_sample->Release();
-            mf_sample = 0;
+        if (pSample) {
+            pSample->Release();
+            pSample = 0;
         }
 
-        const int64_t process_output_begin = GetTimestamp();
-        HRESULT hr = mf_transform->ProcessOutput(0, 1, &output_sample, &output_status);
-        const int64_t process_output_end = GetTimestamp();
+        const int64_t decodeAudioBegin = GetTimestamp();
+        HRESULT hr = m_pTransform->ProcessOutput(0, 1, &outputSample, &dwStatus);
+        const int64_t decodeAudioEnd = GetTimestamp();
 
-        int64_t sample_time;
+        int64_t hnsSampleTime;
         if (FAILED(hr)) {
             switch (hr) {
             case MF_E_TRANSFORM_STREAM_CHANGE:
-                hr = InitFromMediaSource();
+                hr = _on_format_changed();
                 break;
             case MF_E_TRANSFORM_NEED_MORE_INPUT:
                 hr = S_OK;
-                if (stream_state == 2)
-                    stream_state = 3;
+                if (m_decodeState == DecodeState_DrainEndOfStream)
+                    m_decodeState = DecodeState_EndOfStream;
                 else
-                    stream_state = 0;
+                    m_decodeState = DecodeState_NeedMoreInput;
                 break;
             default:
                 hr = S_FALSE;
-                stream_state = 0;
+                m_decodeState = DecodeState_NeedMoreInput;
                 break;
             }
             goto End;
         }
 
-        sample_list_active.AddSample(mf_sample, false);
+        m_outputQueue.push(pSample, false);
 
-        sample_time = 0;
-        output_sample.pSample->GetSampleTime(&sample_time);
+        hnsSampleTime = 0;
+        outputSample.pSample->GetSampleTime(&hnsSampleTime);
 
-        media_stats_lock->SetAudioProcessOutput(
-            CalcTimeMsec(process_output_begin, process_output_end), (double_t)sample_time * 0.0000001);
+        m_rStat.SetAudioDecodeTime(
+            CalcTimeMsec(decodeAudioBegin, decodeAudioEnd), (double_t)hnsSampleTime * 0.0000001);
 
     End:
-        if (output_sample.pSample) {
-            output_sample.pSample->Release();
-            output_sample.pSample = 0;
+        if (outputSample.pSample) {
+            outputSample.pSample->Release();
+            outputSample.pSample = 0;
         }
 
-        if (output_sample.pEvents) {
-            output_sample.pEvents->Release();
-            output_sample.pEvents = 0;
+        if (outputSample.pEvents) {
+            outputSample.pEvents->Release();
+            outputSample.pEvents = 0;
         }
         return hr;
     }
 
-    void AudioDecoder::SetSampleTime(double_t value) {
-        media_stats_lock->SetAudioSampleTime(value);
-    }
-
-    HRESULT AudioDecoder::InitFromMediaSource() {
-        IMFMediaType* video_mf_media_type = 0;
-        IMFMediaType* mf_media_type = 0;
-
-        HRESULT hr;
-        hr = media_source->GetAudioMFMediaType(&video_mf_media_type);
-        if (SUCCEEDED(hr))
-            hr = MoviePlayLib::GetMFMediaType(mf_transform, output_sub_type, mf_media_type);
-
-        uint32_t buffer_size = 0;
-        MFT_OUTPUT_STREAM_INFO stream_info = {};
-        if (SUCCEEDED(hr)) {
-            hr = this->mf_transform->GetOutputStreamInfo(0, &stream_info);
-            buffer_size = stream_info.cbSize;
-        }
-        this->buffer_size = buffer_size;
-
-        uint32_t bits_per_sample = 0;
-        uint32_t block_alignment = 0;
-        uint32_t avg_bytes_per_second = 0;
-        if (FAILED(hr))
-            goto End;
-
-        hr = mf_media_type->GetUINT32(MF_MT_AUDIO_NUM_CHANNELS, &channels);
-        if (FAILED(hr))
-            goto End;
-
-        hr = mf_media_type->GetUINT32(MF_MT_AUDIO_SAMPLES_PER_SECOND, &sample_rate);
-        if (FAILED(hr))
-            goto End;
-
-        hr = mf_media_type->GetUINT32(MF_MT_AUDIO_BITS_PER_SAMPLE, &bits_per_sample);
-        if (FAILED(hr))
-            goto End;
-
-        hr = mf_media_type->GetUINT32(MF_MT_AUDIO_BLOCK_ALIGNMENT, &block_alignment);
-        if (FAILED(hr))
-            goto End;
-
-        hr = mf_media_type->GetUINT32(MF_MT_AUDIO_AVG_BYTES_PER_SECOND, &avg_bytes_per_second);
-        if (SUCCEEDED(hr))
-            media_stats_lock->SetAudioParams(sample_rate, channels);
-
-    End:
-        if (mf_media_type) {
-            mf_media_type->Release();
-            mf_media_type = 0;
-        }
-
-        if (video_mf_media_type) {
-            video_mf_media_type->Release();
-            video_mf_media_type = 0;
-        }
-        return hr;
-    }
-
-    HRESULT AudioDecoder::Create(MediaStatsLock* media_stats_lock,
-        IMediaClock* media_clock, IMediaSource* media_source, IMediaTransform*& ptr) {
-        HRESULT hr;
-        AudioDecoder* p = new AudioDecoder(hr, media_stats_lock, media_clock, media_source);
-        if (!p)
-            return E_OUTOFMEMORY;
-
-        if (SUCCEEDED(hr)) {
-            ptr = p;
-            p->AddRef();
-        }
-        else
-            p->Shutdown();
-
-        p->Release();
-        return S_OK;
+    void AudioDecoder::_on_input_sample(double_t sampleTime) {
+        m_rStat.SetSourceAudioSampleTime(sampleTime);
     }
 
     inline void AudioDecoder::Destroy(AudioDecoder* ptr) {
@@ -189,5 +114,79 @@ namespace MoviePlayLib {
             return;
 
         delete ptr;
+    }
+
+    HRESULT AudioDecoder::_on_format_changed() {
+        IMFMediaType* pInputType = 0;
+        IMFMediaType* pOutputType = 0;
+
+        HRESULT hr;
+        hr = m_pSource->GetAudioMediaType(&pInputType);
+        if (SUCCEEDED(hr))
+            hr = MoviePlayLib::SelectDecoderOutputFormat(m_pTransform, m_formatSubType, pOutputType);
+
+        uint32_t cbBufferBytes = 0;
+        MFT_OUTPUT_STREAM_INFO streamInfo = {};
+        if (SUCCEEDED(hr)) {
+            hr = m_pTransform->GetOutputStreamInfo(0, &streamInfo);
+            cbBufferBytes = streamInfo.cbSize;
+        }
+        m_cbBufferBytes = cbBufferBytes;
+
+        uint32_t bitsPerSample = 0;
+        uint32_t blockAlignment = 0;
+        uint32_t avgBytesPerSecond = 0;
+        if (FAILED(hr))
+            goto End;
+
+        hr = pOutputType->GetUINT32(MF_MT_AUDIO_NUM_CHANNELS, &m_channelCount);
+        if (FAILED(hr))
+            goto End;
+
+        hr = pOutputType->GetUINT32(MF_MT_AUDIO_SAMPLES_PER_SECOND, &m_sampleFrequency);
+        if (FAILED(hr))
+            goto End;
+
+        hr = pOutputType->GetUINT32(MF_MT_AUDIO_BITS_PER_SAMPLE, &bitsPerSample);
+        if (FAILED(hr))
+            goto End;
+
+        hr = pOutputType->GetUINT32(MF_MT_AUDIO_BLOCK_ALIGNMENT, &blockAlignment);
+        if (FAILED(hr))
+            goto End;
+
+        hr = pOutputType->GetUINT32(MF_MT_AUDIO_AVG_BYTES_PER_SECOND, &avgBytesPerSecond);
+        if (SUCCEEDED(hr))
+            m_rStat.SetAudioParams(m_sampleFrequency, m_channelCount);
+
+    End:
+        if (pOutputType) {
+            pOutputType->Release();
+            pOutputType = 0;
+        }
+
+        if (pInputType) {
+            pInputType->Release();
+            pInputType = 0;
+        }
+        return hr;
+    }
+
+    HRESULT CreateAudioDecoder(PlayerStat_& rStat,
+        IMediaClock* pClock, IMediaSource* pSource, IMediaTransform*& pp) {
+        HRESULT hr;
+        AudioDecoder* p = new AudioDecoder(hr, rStat, pClock, pSource);
+        if (!p)
+            return E_OUTOFMEMORY;
+
+        if (SUCCEEDED(hr)) {
+            pp = p;
+            p->AddRef();
+        }
+        else
+            p->Shutdown();
+
+        p->Release();
+        return S_OK;
     }
 }

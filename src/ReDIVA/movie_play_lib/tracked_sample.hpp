@@ -13,13 +13,13 @@ namespace MoviePlayLib {
     class DECLSPEC_UUID("C40A00F2-B93A-4D80-AE8C-5A1C634F58E4")
         TrackedSample : public IMFSample, public IMFTrackedSample, public IMFAsyncResult {
     protected:
-        RefCount ref_count;
-        IMFAttributes* mf_attributes;
-        IMFMediaBuffer* mf_media_buffer;
-        IMFAsyncCallback* mf_async_callback;
-        int64_t sample_time;
-        int64_t sample_duration;
-        uint32_t sample_flags;
+        RefCount m_ref;
+        IMFAttributes* m_pAttributes;
+        IMFMediaBuffer* m_pBuffer;
+        IMFAsyncCallback* m_pCallback;
+        int64_t m_hnsSampleTime;
+        int64_t m_hnsSampleDuration;
+        uint32_t m_dwSampleFlags;
 
     public:
         virtual HRESULT QueryInterface(const IID& riid, void** ppvObject) override;
@@ -80,14 +80,15 @@ namespace MoviePlayLib {
         virtual HRESULT GetObject(IUnknown** ppObject) override;
         virtual IUnknown* GetStateNoAddRef() override;
 
-        TrackedSample(HRESULT& hr, IMFMediaBuffer* mf_media_buffer);
+        TrackedSample(HRESULT& hr, IMFMediaBuffer* pBuffer);
         virtual ~TrackedSample();
 
-        static HRESULT Create(IMFMediaBuffer* mf_media_buffer, uint32_t video_index, IMFSample*& ptr);
         static void Destroy(TrackedSample* ptr);
 
         inline void Destroy() {
             Destroy(this);
         }
     };
+
+    extern HRESULT CreateTrackedSample(IMFMediaBuffer* pBuffer, uint32_t token, IMFSample*& ppOutSample);
 }

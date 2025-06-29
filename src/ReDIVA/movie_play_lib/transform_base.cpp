@@ -24,240 +24,240 @@ namespace MoviePlayLib {
     }
 
     ULONG TransformBase::AddRef() {
-        return ++ref_count;
+        return ++m_ref;
     }
 
     ULONG TransformBase::Release() {
-        if (!--ref_count)
+        if (!--m_ref)
             Destroy();
-        return ref_count;
+        return m_ref;
     }
 
     HRESULT TransformBase::Shutdown() {
-        lock.Acquire();
-        Free();
-        lock.Release();
+        m_lock.Acquire();
+        _on_shutdown();
+        m_lock.Release();
         return S_OK;
     }
 
     HRESULT TransformBase::Close() {
-        lock.Acquire();
-        if (!shutdown)
-            CommandFlush();
-        HRESULT hr = CommandFlush();
-        lock.Release();
+        m_lock.Acquire();
+        if (!m_bShutdown)
+            _on_flush();
+        HRESULT hr = _on_flush();
+        m_lock.Release();
         return hr;
     }
 
     HRESULT TransformBase::Flush() {
-        lock.Acquire();
-        HRESULT hr = shutdown ? MF_E_SHUTDOWN : S_OK;
-        lock.Release();
+        m_lock.Acquire();
+        HRESULT hr = m_bShutdown ? MF_E_SHUTDOWN : S_OK;
+        m_lock.Release();
         return hr;
     }
 
     HRESULT TransformBase::Open() {
-        lock.Acquire();
-        HRESULT hr = shutdown ? MF_E_SHUTDOWN : S_OK;
-        if (!shutdown && !end_streaming) {
-            end_streaming = TRUE;
-            hr = Start();
+        m_lock.Acquire();
+        HRESULT hr = m_bShutdown ? MF_E_SHUTDOWN : S_OK;
+        if (!m_bShutdown && !m_bStarted) {
+            m_bStarted = TRUE;
+            hr = _on_start();
         }
-        lock.Release();
+        m_lock.Release();
         return hr;
     }
 
-    HRESULT TransformBase::GetMFMediaType(IMFMediaType** mf_media_type) {
-        lock.Acquire();
-        HRESULT hr = shutdown ? MF_E_SHUTDOWN : S_OK;
-        if (!shutdown)
-            hr = mf_transform->GetOutputCurrentType(0, mf_media_type);
-        lock.Release();
+    HRESULT TransformBase::GetMediaType(IMFMediaType** pType) {
+        m_lock.Acquire();
+        HRESULT hr = m_bShutdown ? MF_E_SHUTDOWN : S_OK;
+        if (!m_bShutdown)
+            hr = m_pTransform->GetOutputCurrentType(0, pType);
+        m_lock.Release();
         return hr;
     }
 
-    void TransformBase::SendMFSample(IMFSample* mf_sample) {
-        if (mf_sample)
-            sample_list_wait.AddSample(mf_sample, false);
+    void TransformBase::PushSample(IMFSample* pSample) {
+        if (pSample)
+            m_inputQueue.push(pSample, false);
         else
-            sample_list_wait.SetShutdown();
+            m_inputQueue.set_eos();
 
-        SetEvent(hEvent);
+        SetEvent(m_hWaitEvent);
 
-        if (mf_sample) {
-            int64_t sample_time = 0;
-            mf_sample->GetSampleTime(&sample_time);
-            SetSampleTime((double_t)sample_time * 0.0000001);
+        if (pSample) {
+            int64_t sampleTime = 0;
+            pSample->GetSampleTime(&sampleTime);
+            _on_input_sample((double_t)sampleTime * 0.0000001);
         }
     }
 
-    BOOL TransformBase::SignalEvent() {
-        return SetEvent(hEvent);
+    BOOL TransformBase::RequestSample() {
+        return SetEvent(m_hWaitEvent);
     }
 
-    BOOL TransformBase::CanShutdown() {
-        return sample_list_active.CanShutdown();
+    BOOL TransformBase::IsEndOfStream() {
+        return m_outputQueue.is_eos();
     }
 
-    UINT32 TransformBase::GetMFSamplesWaitCount() {
-        return (uint32_t)sample_list_wait.GetSamplesCount();
+    UINT32 TransformBase::GetInputQueueCount() {
+        return (uint32_t)m_inputQueue.size();
     }
 
-    UINT32 TransformBase::GetMFSamplesCount() {
-        return (uint32_t)sample_list_active.GetSamplesCount();
+    UINT32 TransformBase::GetOutputQueueCount() {
+        return (uint32_t)m_outputQueue.size();
     }
 
-    INT64 TransformBase::GetSampleTime() {
-        return sample_list_active.GetSampleTime();
+    INT64 TransformBase::PeekSampleTime() {
+        return m_outputQueue.peek_time();
     }
 
-    void TransformBase::GetMFSample(IMFSample*& mf_sample) {
-        mf_sample = sample_list_active.PopSample();
+    void TransformBase::GetSample(IMFSample*& ppOutSample) {
+        ppOutSample = m_outputQueue.pop();
     }
 
-    TransformBase::TransformBase(HRESULT& hr, MediaStatsLock* media_stats_lock,
-        IMediaClock* media_clock, IMediaSource* media_source) : ref_count(), lock(),
-        media_stats_lock(media_stats_lock), media_clock(), media_source(), mf_transform(), stream_state(),
-        shutdown(), end_streaming(), hThread(), hEvent(), sample_list_wait(), sample_list_active() {
+    TransformBase::TransformBase(HRESULT& hr, PlayerStat_& rStat,
+        IMediaClock* pClock, IMediaSource* pSource) : m_ref(), m_lock(), m_rStat(rStat),
+        m_pClock(), m_pSource(), m_pTransform(), m_decodeState(), m_bShutdown(), m_bStarted(),
+        m_hIntervalThread(), m_hWaitEvent(), m_inputQueue(), m_outputQueue() {
         if (SUCCEEDED(hr)) {
-            hEvent = CreateEventA(0, FALSE, FALSE, 0);
-            if (!hEvent)
+            m_hWaitEvent = CreateEventA(0, FALSE, FALSE, 0);
+            if (!m_hWaitEvent)
                 hr = HRESULT_FROM_WIN32(GetLastError());
 
             if (SUCCEEDED(hr)) {
-                hThread = (HANDLE)_beginthreadex(0, 0, (_beginthreadex_proc_type)TransformBase::ThreadMain, this, 0, 0);
-                if (!hThread)
+                m_hIntervalThread = (HANDLE)_beginthreadex(0, 0, (_beginthreadex_proc_type)TransformBase::_thread_proc, this, 0, 0);
+                if (!m_hIntervalThread)
                     hr = HRESULT_FROM_WIN32(GetLastError());
 
                 if (SUCCEEDED(hr)) {
-                    this->media_clock = media_clock;
-                    media_clock->AddRef();
-                    this->media_source = media_source;
-                    media_source->AddRef();
+                    m_pClock = pClock;
+                    pClock->AddRef();
+                    m_pSource = pSource;
+                    pSource->AddRef();
                 }
             }
         }
     }
 
     TransformBase::~TransformBase() {
-        if (hThread) {
-           SetEvent(hEvent);
-            WaitForSingleObject(hThread, INFINITE);
-            CloseHandle(hThread);
-            hThread = 0;
+        if (m_hIntervalThread) {
+           SetEvent(m_hWaitEvent);
+            WaitForSingleObject(m_hIntervalThread, INFINITE);
+            CloseHandle(m_hIntervalThread);
+            m_hIntervalThread = 0;
         }
 
-        if (hEvent) {
-            CloseHandle(hEvent);
-            hEvent = 0;
+        if (m_hWaitEvent) {
+            CloseHandle(m_hWaitEvent);
+            m_hWaitEvent = 0;
         }
     }
 
-    void TransformBase::Free() {
-        CommandFlush();
+    void TransformBase::_on_shutdown() {
+        _on_flush();
 
-        if (mf_transform) {
-            mf_transform->Release();
-            mf_transform = 0;
+        if (m_pTransform) {
+            m_pTransform->Release();
+            m_pTransform = 0;
         }
 
-        if (media_source) {
-            media_source->Release();
-            media_source = 0;
+        if (m_pSource) {
+            m_pSource->Release();
+            m_pSource = 0;
         }
 
-        if (media_clock) {
-            media_clock->Release();
-            media_clock = 0;
+        if (m_pClock) {
+            m_pClock->Release();
+            m_pClock = 0;
         }
 
-        shutdown = TRUE;
-        end_streaming = FALSE;
+        m_bShutdown = TRUE;
+        m_bStarted = FALSE;
     }
 
-    HRESULT TransformBase::CommandFlush() {
-        sample_list_wait.ClearList();
-        sample_list_active.ClearList();
+    HRESULT TransformBase::_on_flush() {
+        m_inputQueue.clear();
+        m_outputQueue.clear();
 
         HRESULT hr;
-        if (mf_transform)
-            hr = mf_transform->ProcessMessage(MFT_MESSAGE_COMMAND_FLUSH, 0);
+        if (m_pTransform)
+            hr = m_pTransform->ProcessMessage(MFT_MESSAGE_COMMAND_FLUSH, 0);
         else
             hr = S_OK;
-        stream_state = 0;
+        m_decodeState = DecodeState_NeedMoreInput;
         return hr;
     }
 
-    HRESULT TransformBase::NotifyEndOfStream() {
-        HRESULT hr = mf_transform->ProcessMessage(MFT_MESSAGE_NOTIFY_END_OF_STREAM, 0);
+    HRESULT TransformBase::_on_drain() {
+        HRESULT hr = m_pTransform->ProcessMessage(MFT_MESSAGE_NOTIFY_END_OF_STREAM, 0);
         if (SUCCEEDED(hr))
-            hr = mf_transform->ProcessMessage(MFT_MESSAGE_COMMAND_DRAIN, 0);
+            hr = m_pTransform->ProcessMessage(MFT_MESSAGE_COMMAND_DRAIN, 0);
         return hr;
     }
 
-    HRESULT TransformBase::NotifyEndStreaming() {
-        return mf_transform->ProcessMessage(MFT_MESSAGE_NOTIFY_END_STREAMING, 0);
+    HRESULT TransformBase::_on_stop() {
+        return m_pTransform->ProcessMessage(MFT_MESSAGE_NOTIFY_END_STREAMING, 0);
     }
 
-    HRESULT TransformBase::Start() {
-        HRESULT hr = mf_transform->ProcessMessage(MFT_MESSAGE_NOTIFY_BEGIN_STREAMING, 0);
+    HRESULT TransformBase::_on_start() {
+        HRESULT hr = m_pTransform->ProcessMessage(MFT_MESSAGE_NOTIFY_BEGIN_STREAMING, 0);
         if (SUCCEEDED(hr))
-            hr = mf_transform->ProcessMessage(MFT_MESSAGE_NOTIFY_START_OF_STREAM, 0);
-        stream_state = 0;
+            hr = m_pTransform->ProcessMessage(MFT_MESSAGE_NOTIFY_START_OF_STREAM, 0);
+        m_decodeState = DecodeState_NeedMoreInput;
 
-        sample_list_wait.ResetShutdown();
-        sample_list_active.ResetShutdown();
+        m_inputQueue.reset_eos();
+        m_outputQueue.reset_eos();
         return hr;
     }
 
-    HRESULT TransformBase::ProcessInput() {
-        while (!stream_state) {
-            IMFSample* mf_sample = sample_list_wait.PopSample();
-            if (mf_sample) {
-                if (SUCCEEDED(mf_transform->ProcessInput(0, mf_sample, 0)))
-                    stream_state = 1;
+    HRESULT TransformBase::_process_input() {
+        while (!m_decodeState) {
+            IMFSample* pSample = m_inputQueue.pop();
+            if (pSample) {
+                if (SUCCEEDED(m_pTransform->ProcessInput(0, pSample, 0)))
+                    m_decodeState = DecodeState_ProcessOutput;
             }
             else {
-                if (!sample_list_wait.CanShutdown())
+                if (!m_inputQueue.is_eos())
                     return S_FALSE;
 
-                NotifyEndOfStream();
-                stream_state = 2;
+                _on_drain();
+                m_decodeState = DecodeState_DrainEndOfStream;
             }
 
-            if (mf_sample) {
-                mf_sample->Release();
-                mf_sample = 0;
+            if (pSample) {
+                pSample->Release();
+                pSample = 0;
             }
         }
         return S_OK;
     }
 
-    BOOL TransformBase::Playback() {
+    BOOL TransformBase::_on_process() {
         BOOL shutdown = FALSE;
         HRESULT hr = S_OK;
         do {
-            lock.Acquire();
-            if (this->shutdown) {
+            m_lock.Acquire();
+            if (m_bShutdown) {
                 hr = MF_E_SHUTDOWN;
                 shutdown = TRUE;
             }
-            else if (!end_streaming)
+            else if (!m_bStarted)
                 hr = S_FALSE;
-            else if (stream_state || (hr = ProcessInput()) == S_OK) {
-                if ((!stream_state || stream_state == 3
-                    || (hr = ProcessOutput()) == S_OK) && stream_state == 3) {
-                    sample_list_active.SetShutdown();
+            else if (m_decodeState || (hr = _process_input()) == S_OK) {
+                if ((m_decodeState == DecodeState_NeedMoreInput || m_decodeState == DecodeState_EndOfStream
+                    || (hr = _process_output()) == S_OK) && m_decodeState == DecodeState_EndOfStream) {
+                    m_outputQueue.set_eos();
                     hr = S_FALSE;
                 }
             }
-            lock.Release();
+            m_lock.Release();
             Sleep(0);
         } while (hr == S_OK);
 
         if (FAILED(hr)) {
-            media_stats_lock->SetCurrError(hr, this);
-            sample_list_active.SetShutdown();
+            m_rStat.SetError(hr, this);
+            m_outputQueue.set_eos();
         }
         return shutdown;
     }
@@ -269,15 +269,15 @@ namespace MoviePlayLib {
         delete ptr;
     }
 
-    uint32_t __stdcall TransformBase::ThreadMain(TransformBase* transform_base) {
+    uint32_t __stdcall TransformBase::_thread_proc(TransformBase* transform_base) {
         DWORD task_index = 0;
         HANDLE avrt_handle = AvSetMmThreadCharacteristicsW(L"Playback", &task_index);
         if (!avrt_handle)
 #pragma warning(suppress: 6031)
             GetLastError();
 
-        while (!WaitForSingleObject(transform_base->hEvent, INFINITE))
-            if (transform_base->Playback())
+        while (!WaitForSingleObject(transform_base->m_hWaitEvent, INFINITE))
+            if (transform_base->_on_process())
                 break;
 
         if (avrt_handle)

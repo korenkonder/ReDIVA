@@ -18,14 +18,14 @@ namespace MoviePlayLib {
             return S_OK;
         }
         else if (riid == __uuidof(IMFTrackedSample)) {
-            IMFTrackedSample* mf_tracked_sample = this;
-            *ppvObject = mf_tracked_sample;
+            IMFTrackedSample* pTrackedSample = this;
+            *ppvObject = pTrackedSample;
             AddRef();
             return S_OK;
         }
         else if (riid == __uuidof(IMFAsyncResult)) {
-            IMFAsyncResult* mf_async_result = this;
-            *ppvObject = mf_async_result;
+            IMFAsyncResult* pAsyncResult = this;
+            *ppvObject = pAsyncResult;
             AddRef();
             return S_OK;
         }
@@ -40,172 +40,172 @@ namespace MoviePlayLib {
     }
 
     ULONG TrackedSample::AddRef() {
-        return ++ref_count;
+        return ++m_ref;
     }
 
     ULONG TrackedSample::Release() {
-        if (!--ref_count) {
-            if (mf_async_callback) {
+        if (!--m_ref) {
+            if (m_pCallback) {
                 AddRef();
 
-                IMFAsyncCallback* mf_async_callback = this->mf_async_callback;
-                this->mf_async_callback = 0;
-                mf_async_callback->Invoke(this);
-                mf_async_callback->Release();
+                IMFAsyncCallback* m_pCallback = this->m_pCallback;
+                this->m_pCallback = 0;
+                m_pCallback->Invoke(this);
+                m_pCallback->Release();
                 return Release();
             }
             Destroy();
         }
-        return ref_count;
+        return m_ref;
     }
 
     HRESULT TrackedSample::GetItem(const IID& guidKey, PROPVARIANT* pValue) {
-        return mf_attributes->GetItem(guidKey, pValue);
+        return m_pAttributes->GetItem(guidKey, pValue);
     }
 
     HRESULT TrackedSample::GetItemType(const GUID& guidKey, MF_ATTRIBUTE_TYPE* pType) {
-        return mf_attributes->GetItemType(guidKey, pType);
+        return m_pAttributes->GetItemType(guidKey, pType);
     }
 
     HRESULT TrackedSample::CompareItem(const GUID& guidKey, const PROPVARIANT& Value, BOOL* pbResult) {
-        return mf_attributes->CompareItem(guidKey, Value, pbResult);
+        return m_pAttributes->CompareItem(guidKey, Value, pbResult);
     }
 
     HRESULT TrackedSample::Compare(IMFAttributes* pTheirs, MF_ATTRIBUTES_MATCH_TYPE MatchType, BOOL* pbResult) {
-        return mf_attributes->Compare(pTheirs, MatchType, pbResult);
+        return m_pAttributes->Compare(pTheirs, MatchType, pbResult);
     }
 
     HRESULT TrackedSample::GetUINT32(const GUID& guidKey, UINT32* punValue) {
-        return mf_attributes->GetUINT32(guidKey, punValue);
+        return m_pAttributes->GetUINT32(guidKey, punValue);
     }
 
     HRESULT TrackedSample::GetUINT64(const GUID& guidKey, UINT64* punValue) {
-        return mf_attributes->GetUINT64(guidKey, punValue);
+        return m_pAttributes->GetUINT64(guidKey, punValue);
     }
 
     HRESULT TrackedSample::GetDouble(const GUID& guidKey, double* pfValue) {
-        return mf_attributes->GetDouble(guidKey, pfValue);
+        return m_pAttributes->GetDouble(guidKey, pfValue);
     }
 
     HRESULT TrackedSample::GetGUID(const GUID& guidKey, GUID* pguidValue) {
-        return mf_attributes->GetGUID(guidKey, pguidValue);
+        return m_pAttributes->GetGUID(guidKey, pguidValue);
     }
 
     HRESULT TrackedSample::GetStringLength(const GUID& guidKey, UINT32* pcchLength) {
-        return mf_attributes->GetStringLength(guidKey, pcchLength);
+        return m_pAttributes->GetStringLength(guidKey, pcchLength);
     }
 
     HRESULT TrackedSample::GetString(const GUID& guidKey, LPWSTR pwszValue, UINT32 cchBufSize, UINT32* pcchLength) {
-        return mf_attributes->GetString(guidKey, pwszValue, cchBufSize, pcchLength);
+        return m_pAttributes->GetString(guidKey, pwszValue, cchBufSize, pcchLength);
     }
 
     HRESULT TrackedSample::GetAllocatedString(const GUID& guidKey, LPWSTR* ppwszValue, UINT32* pcchLength) {
-        return mf_attributes->GetAllocatedString(guidKey, ppwszValue, pcchLength);
+        return m_pAttributes->GetAllocatedString(guidKey, ppwszValue, pcchLength);
     }
 
     HRESULT TrackedSample::GetBlobSize(const GUID& guidKey, UINT32* pcbBlobSize) {
-        return mf_attributes->GetBlobSize(guidKey, pcbBlobSize);
+        return m_pAttributes->GetBlobSize(guidKey, pcbBlobSize);
     }
 
     HRESULT TrackedSample::GetBlob(const GUID& guidKey, UINT8* pBuf, UINT32 cbBufSize, UINT32* pcbBlobSize) {
-        return mf_attributes->GetBlob(guidKey, pBuf, cbBufSize, pcbBlobSize);
+        return m_pAttributes->GetBlob(guidKey, pBuf, cbBufSize, pcbBlobSize);
     }
 
     HRESULT TrackedSample::GetAllocatedBlob(const GUID& guidKey, UINT8** ppBuf, UINT32* pcbSize) {
-        return mf_attributes->GetAllocatedBlob(guidKey, ppBuf, pcbSize);
+        return m_pAttributes->GetAllocatedBlob(guidKey, ppBuf, pcbSize);
     }
 
     HRESULT TrackedSample::GetUnknown(const GUID& guidKey, const IID& riid, LPVOID* ppv) {
-        return mf_attributes->GetUnknown(guidKey, riid, ppv);
+        return m_pAttributes->GetUnknown(guidKey, riid, ppv);
     }
 
     HRESULT TrackedSample::SetItem(const GUID& guidKey, const PROPVARIANT& Value) {
-        return mf_attributes->SetItem(guidKey, Value);
+        return m_pAttributes->SetItem(guidKey, Value);
     }
 
     HRESULT TrackedSample::DeleteItem(const GUID& guidKey) {
-        return mf_attributes->DeleteItem(guidKey);
+        return m_pAttributes->DeleteItem(guidKey);
     }
 
     HRESULT TrackedSample::DeleteAllItems() {
-        return mf_attributes->DeleteAllItems();
+        return m_pAttributes->DeleteAllItems();
     }
 
     HRESULT TrackedSample::SetUINT32(const GUID& guidKey, UINT32 unValue) {
-        return mf_attributes->SetUINT32(guidKey, unValue);
+        return m_pAttributes->SetUINT32(guidKey, unValue);
     }
 
     HRESULT TrackedSample::SetUINT64(const GUID& guidKey, UINT64 unValue) {
-        return mf_attributes->SetUINT64(guidKey, unValue);
+        return m_pAttributes->SetUINT64(guidKey, unValue);
     }
 
     HRESULT TrackedSample::SetDouble(const GUID& guidKey, double fValue) {
-        return mf_attributes->SetDouble(guidKey, fValue);
+        return m_pAttributes->SetDouble(guidKey, fValue);
     }
 
     HRESULT TrackedSample::SetGUID(const GUID& guidKey, const GUID& guidValue) {
-        return mf_attributes->SetGUID(guidKey, guidValue);
+        return m_pAttributes->SetGUID(guidKey, guidValue);
     }
 
     HRESULT TrackedSample::SetString(const GUID& guidKey, LPCWSTR wszValue) {
-        return mf_attributes->SetString(guidKey, wszValue);
+        return m_pAttributes->SetString(guidKey, wszValue);
     }
 
     HRESULT TrackedSample::SetBlob(const GUID& guidKey, const UINT8* pBuf, UINT32 cbBufSize) {
-        return mf_attributes->SetBlob(guidKey, pBuf, cbBufSize);
+        return m_pAttributes->SetBlob(guidKey, pBuf, cbBufSize);
     }
 
     HRESULT TrackedSample::SetUnknown(const GUID& guidKey, IUnknown* pUnknown) {
-        return mf_attributes->SetUnknown(guidKey, pUnknown);
+        return m_pAttributes->SetUnknown(guidKey, pUnknown);
     }
 
     HRESULT TrackedSample::LockStore() {
-        return mf_attributes->LockStore();
+        return m_pAttributes->LockStore();
     }
 
     HRESULT TrackedSample::UnlockStore() {
-        return mf_attributes->UnlockStore();
+        return m_pAttributes->UnlockStore();
     }
 
     HRESULT TrackedSample::GetCount(UINT32* pcItems) {
-        return mf_attributes->GetCount(pcItems);
+        return m_pAttributes->GetCount(pcItems);
     }
 
     HRESULT TrackedSample::GetItemByIndex(UINT32 unIndex, GUID* pguidKey, PROPVARIANT* pValue) {
-        return mf_attributes->GetItemByIndex(unIndex, pguidKey, pValue);
+        return m_pAttributes->GetItemByIndex(unIndex, pguidKey, pValue);
     }
 
     HRESULT TrackedSample::CopyAllItems(IMFAttributes* pDest) {
-        return mf_attributes->CopyAllItems(pDest);
+        return m_pAttributes->CopyAllItems(pDest);
     }
 
     HRESULT TrackedSample::GetSampleFlags(DWORD* pdwSampleFlags) {
-        *pdwSampleFlags = sample_flags;
+        *pdwSampleFlags = m_dwSampleFlags;
         return S_OK;
     }
 
     HRESULT TrackedSample::SetSampleFlags(DWORD dwSampleFlags) {
-        sample_flags = dwSampleFlags;
+        m_dwSampleFlags = dwSampleFlags;
         return S_OK;
     }
 
     HRESULT TrackedSample::GetSampleTime(LONGLONG* phnsSampleTime) {
-        *phnsSampleTime = sample_time;
+        *phnsSampleTime = m_hnsSampleTime;
         return S_OK;
     }
 
     HRESULT TrackedSample::SetSampleTime(LONGLONG hnsSampleTime) {
-        sample_time = hnsSampleTime;
+        m_hnsSampleTime = hnsSampleTime;
         return S_OK;
     }
 
     HRESULT TrackedSample::GetSampleDuration(LONGLONG* phnsSampleDuration) {
-        *phnsSampleDuration = sample_duration;
+        *phnsSampleDuration = m_hnsSampleDuration;
         return S_OK;
     }
 
     HRESULT TrackedSample::SetSampleDuration(LONGLONG hnsSampleDuration) {
-        sample_duration = hnsSampleDuration;
+        m_hnsSampleDuration = hnsSampleDuration;
         return S_OK;
     }
 
@@ -218,8 +218,8 @@ namespace MoviePlayLib {
         if (dwIndex != 0)
             return E_INVALIDARG;
 
-        *ppBuffer = mf_media_buffer;
-        mf_media_buffer->AddRef();
+        *ppBuffer = m_pBuffer;
+        m_pBuffer->AddRef();
         return S_OK;
     }
 
@@ -248,13 +248,13 @@ namespace MoviePlayLib {
     }
 
     HRESULT TrackedSample::SetAllocator(IMFAsyncCallback* pSampleAllocator, IUnknown* pUnkState) {
-        if (mf_async_callback) {
-            mf_async_callback->Release();
-            mf_async_callback = 0;
+        if (m_pCallback) {
+            m_pCallback->Release();
+            m_pCallback = 0;
         }
 
         if (pSampleAllocator) {
-            mf_async_callback = pSampleAllocator;
+            m_pCallback = pSampleAllocator;
             pSampleAllocator->AddRef();
         }
         return S_OK;
@@ -280,48 +280,30 @@ namespace MoviePlayLib {
         return 0;
     }
 
-    TrackedSample::TrackedSample(HRESULT& hr, IMFMediaBuffer* mf_media_buffer) : ref_count(), mf_attributes(),
-        mf_media_buffer(), mf_async_callback(), sample_time(), sample_duration(), sample_flags() {
-        hr = MFCreateAttributes(&mf_attributes, 1);
+    TrackedSample::TrackedSample(HRESULT& hr, IMFMediaBuffer* pBuffer) : m_ref(), m_pAttributes(),
+        m_pBuffer(), m_pCallback(), m_hnsSampleTime(), m_hnsSampleDuration(), m_dwSampleFlags() {
+        hr = MFCreateAttributes(&m_pAttributes, 1);
         if (SUCCEEDED(hr)) {
-            this->mf_media_buffer = mf_media_buffer;
-            mf_media_buffer->AddRef();
+            m_pBuffer = pBuffer;
+            pBuffer->AddRef();
         }
     }
 
     TrackedSample::~TrackedSample() {
-        if (mf_attributes) {
-            mf_attributes->Release();
-            mf_attributes = 0;
+        if (m_pAttributes) {
+            m_pAttributes->Release();
+            m_pAttributes = 0;
         }
 
-        if (mf_media_buffer) {
-            mf_media_buffer->Release();
-            mf_media_buffer = 0;
+        if (m_pBuffer) {
+            m_pBuffer->Release();
+            m_pBuffer = 0;
         }
 
-        if (mf_async_callback) {
-            mf_async_callback->Release();
-            mf_async_callback = 0;
+        if (m_pCallback) {
+            m_pCallback->Release();
+            m_pCallback = 0;
         }
-    }
-
-    HRESULT TrackedSample::Create(IMFMediaBuffer* mf_media_buffer, uint32_t video_index, IMFSample*& ptr) {
-        HRESULT hr = S_OK;
-        TrackedSample* p = new TrackedSample(hr, mf_media_buffer);
-        if (!p)
-            return E_OUTOFMEMORY;
-
-        if (SUCCEEDED(hr)) {
-            hr = p->SetUINT32(VideoIndexGUID, video_index);
-            if (SUCCEEDED(hr)) {
-                ptr = p;
-                p->AddRef();
-            }
-        }
-
-        p->Release();
-        return S_OK;
     }
 
     inline void TrackedSample::Destroy(TrackedSample* ptr) {
@@ -329,5 +311,23 @@ namespace MoviePlayLib {
             return;
 
         delete ptr;
+    }
+
+    HRESULT CreateTrackedSample(IMFMediaBuffer* pBuffer, uint32_t token, IMFSample*& ppOutSample) {
+        HRESULT hr = S_OK;
+        TrackedSample* p = new TrackedSample(hr, pBuffer);
+        if (!p)
+            return E_OUTOFMEMORY;
+
+        if (SUCCEEDED(hr)) {
+            hr = p->SetUINT32(SAMPLE_RESET_TOKEN, token);
+            if (SUCCEEDED(hr)) {
+                ppOutSample = p;
+                p->AddRef();
+            }
+        }
+
+        p->Release();
+        return S_OK;
     }
 }

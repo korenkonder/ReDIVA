@@ -18,19 +18,19 @@ namespace MoviePlayLib {
             return S_OK;
         }
         else if (riid == __uuidof(IMFGetService)) {
-            IMFGetService* mf_get_service = this;
-            *ppvObject = mf_get_service;
-            mf_get_service->AddRef();
+            IMFGetService* pService = this;
+            *ppvObject = pService;
+            pService->AddRef();
             return S_OK;
         }
-        else if (riid == __uuidof(IDirect3DTexture9) && d3d_texture) {
-            d3d_texture->AddRef();
-            *ppvObject = d3d_texture;
+        else if (riid == __uuidof(IDirect3DTexture9) && m_pTexture) {
+            m_pTexture->AddRef();
+            *ppvObject = m_pTexture;
             return S_OK;
         }
-        else if (riid == __uuidof(IDirect3DSurface9) && d3d_surface) {
-            d3d_surface->AddRef();
-            *ppvObject = d3d_surface;
+        else if (riid == __uuidof(IDirect3DSurface9) && m_pSurface) {
+            m_pSurface->AddRef();
+            *ppvObject = m_pSurface;
             return S_OK;
         }
         else if (riid == __uuidof(IUnknown)) {
@@ -44,13 +44,13 @@ namespace MoviePlayLib {
     }
 
     ULONG DXSurfaceBuffer::AddRef() {
-        return ++ref_count;
+        return ++m_ref;
     }
 
     ULONG DXSurfaceBuffer::Release() {
-        if (!--ref_count)
+        if (!--m_ref)
             Destroy();
-        return ref_count;
+        return m_ref;
     }
 
     HRESULT DXSurfaceBuffer::Lock(BYTE** ppbBuffer, DWORD* pcbMaxLength, DWORD* pcbCurrentLength) {
@@ -82,37 +82,37 @@ namespace MoviePlayLib {
         return MF_E_UNSUPPORTED_SERVICE;
     }
 
-    DXSurfaceBuffer::DXSurfaceBuffer(HRESULT& hr, IUnknown* object) : ref_count(), d3d_texture(), d3d_surface() {
-        hr = object->QueryInterface(IID_PPV_ARGS(&d3d_texture));
+    DXSurfaceBuffer::DXSurfaceBuffer(HRESULT& hr, IDirect3DTexture9* pTex) : m_ref(), m_pTexture(), m_pSurface() {
+        hr = pTex->QueryInterface(IID_PPV_ARGS(&m_pTexture));
         if (SUCCEEDED(hr))
-            hr = d3d_texture->GetSurfaceLevel(0, &d3d_surface);
+            hr = m_pTexture->GetSurfaceLevel(0, &m_pSurface);
         else {
-            hr = object->QueryInterface(IID_PPV_ARGS(&d3d_surface));
+            hr = pTex->QueryInterface(IID_PPV_ARGS(&m_pSurface));
             if (SUCCEEDED(hr))
-                d3d_surface->GetContainer(IID_PPV_ARGS(&d3d_texture));
+                m_pSurface->GetContainer(IID_PPV_ARGS(&m_pTexture));
         }
     }
 
     DXSurfaceBuffer::~DXSurfaceBuffer() {
-        if (d3d_texture) {
-            d3d_texture->Release();
-            d3d_texture = 0;
+        if (m_pTexture) {
+            m_pTexture->Release();
+            m_pTexture = 0;
         }
 
-        if (d3d_surface) {
-            d3d_surface->Release();
-            d3d_surface = 0;
+        if (m_pSurface) {
+            m_pSurface->Release();
+            m_pSurface = 0;
         }
     }
 
-    HRESULT DXSurfaceBuffer::Create(IUnknown* object, IMFMediaBuffer*& ptr) {
+    HRESULT CreateDXSurfaceBuffer(IDirect3DTexture9* pTex, IMFMediaBuffer*& pp) {
         HRESULT hr = S_OK;
-        DXSurfaceBuffer* p = new DXSurfaceBuffer(hr, object);
+        DXSurfaceBuffer* p = new DXSurfaceBuffer(hr, pTex);
         if (!p)
             return E_OUTOFMEMORY;
 
         if (SUCCEEDED(hr)) {
-            ptr = p;
+            pp = p;
             p->AddRef();
         }
         p->Release();

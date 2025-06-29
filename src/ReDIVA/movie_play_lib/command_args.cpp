@@ -21,70 +21,59 @@ namespace MoviePlayLib {
     }
 
     ULONG CommandArgs::AddRef() {
-        return ++ref_count;
+        return ++m_ref;
     }
 
     ULONG CommandArgs::Release() {
-        if (!--ref_count)
+        if (!--m_ref)
             Destroy();
-        return ref_count;
+        return m_ref;
     }
 
     CommandArgs::~CommandArgs() {
-        if (str)
-            SysFreeString(str);
+        if (m_bstr)
+            SysFreeString(m_bstr);
     }
 
-    CommandArgs::Type CommandArgs::GetType() {
-        return type;
+    uint32_t CommandArgs::GetCommand() {
+        return m_command;
     }
 
-    int64_t CommandArgs::GetPosition() {
-        return position;
+    int64_t CommandArgs::GetValue() {
+        return m_value;
     }
 
-    OLECHAR* CommandArgs::GetPath() {
-        return str;
+    OLECHAR* CommandArgs::GetString() {
+        return m_bstr;
     }
 
-    HRESULT CommandArgs::SetType(CommandArgs::Type value) {
-        type = value;
+    HRESULT CommandArgs::SetCommand(uint32_t val) {
+        m_command = val;
         return S_OK;
     }
 
-    HRESULT CommandArgs::SetPosition(int64_t value) {
-        position = value;
+    HRESULT CommandArgs::SetValue(int64_t value) {
+        m_value = value;
         return S_OK;
     }
 
-    CommandArgs::CommandArgs(CommandArgs::Type type)
-        : ref_count(), lock(), type(type), position(), str() {
+    CommandArgs::CommandArgs(uint32_t cmd)
+        : m_ref(), m_lock(), m_command(cmd), m_value(), m_bstr() {
 
     }
 
-    HRESULT CommandArgs::SetPath(const OLECHAR* value) {
-        if (str) {
-            SysFreeString(str);
-            str = 0;
+    HRESULT CommandArgs::SetString(const OLECHAR* text) {
+        if (m_bstr) {
+            SysFreeString(m_bstr);
+            m_bstr = 0;
         }
 
-        if (!value)
+        if (!text)
             return S_OK;
 
-        str = SysAllocString(value);
-        if (!str)
+        m_bstr = SysAllocString(text);
+        if (!m_bstr)
             return E_OUTOFMEMORY;
-        return S_OK;
-    }
-
-    HRESULT CommandArgs::Create(CommandArgs::Type type, CommandArgs*& ptr) {
-        CommandArgs* p = new CommandArgs(type);
-        if (!p)
-            return E_OUTOFMEMORY;
-
-        ptr = p;
-        p->AddRef();
-        p->Release();
         return S_OK;
     }
 
@@ -93,5 +82,16 @@ namespace MoviePlayLib {
             return;
 
         delete ptr;
+    }
+
+    HRESULT CreateCommandArgs(uint32_t cmd, CommandArgs*& pp) {
+        CommandArgs* p = new CommandArgs(cmd);
+        if (!p)
+            return E_OUTOFMEMORY;
+
+        pp = p;
+        p->AddRef();
+        p->Release();
+        return S_OK;
     }
 }

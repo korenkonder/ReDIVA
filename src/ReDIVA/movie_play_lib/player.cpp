@@ -21,53 +21,53 @@ namespace MoviePlayLib {
     }
 
     ULONG Player::AddRef() {
-        return ++ref_count;
+        return ++m_ref;
     }
 
     ULONG Player::Release() {
-        if (!--ref_count)
+        if (!--m_ref)
             Destroy();
-        return ref_count;
+        return m_ref;
     }
 
-    HRESULT Player::Open(const wchar_t* path) {
-        lock.Acquire();
+    HRESULT Player::Open(const wchar_t* filePath) {
+        m_lock.Acquire();
 
-        if (media_session) {
-            media_session->Close();
+        if (m_pSession) {
+            m_pSession->Shutdown();
 
-            if (media_session) {
-                media_session->Release();
-                media_session = 0;
+            if (m_pSession) {
+                m_pSession->Release();
+                m_pSession = 0;
             }
         }
 
         HRESULT hr = 0;
-        MediaSession* media_session = new MediaSession(hr, path, media_clock);
-        if (media_session) {
+        MediaSession* pSession = new MediaSession(hr, filePath, m_pClock);
+        if (pSession) {
             if (SUCCEEDED(hr)) {
-                this->media_session = media_session;
-                media_session->AddRef();
+                m_pSession = pSession;
+                pSession->AddRef();
             }
             else
-                media_session->Close();
-            media_session->Release();
+                pSession->Shutdown();
+            pSession->Release();
         }
         else
             hr = E_OUTOFMEMORY;
 
-        lock.Release();
+        m_lock.Release();
         return hr;
     }
 
-    HRESULT Player::Open(const char* path) {
-        if (!path)
+    HRESULT Player::Open(const char* filePath) {
+        if (!filePath)
             return E_INVALIDARG;
 
-        int32_t path_len = (int32_t)utf8_length(path);
+        int32_t path_len = (int32_t)utf8_length(filePath);
         if (path_len > 0 && path_len < MAX_PATH) {
             wchar_t buf[MAX_PATH];
-            int32_t buf_len = MultiByteToWideChar(0, 0, path, path_len, buf, sizeof(buf) / sizeof(wchar_t));
+            int32_t buf_len = MultiByteToWideChar(0, 0, filePath, path_len, buf, sizeof(buf) / sizeof(wchar_t));
             if (buf_len > 0 && buf_len < MAX_PATH) {
                 if (buf_len >= MAX_PATH)
                     __debugbreak();
@@ -79,201 +79,201 @@ namespace MoviePlayLib {
     }
 
     HRESULT Player::Close() {
-        lock.Acquire();
-        if (media_session) {
-            media_session->Close();
+        m_lock.Acquire();
+        if (m_pSession) {
+            m_pSession->Shutdown();
 
-            if (media_session) {
-                media_session->Release();
-                media_session = 0;
+            if (m_pSession) {
+                m_pSession->Release();
+                m_pSession = 0;
             }
         }
-        lock.Release();
+        m_lock.Release();
         return S_OK;
     }
 
-    HRESULT Player::SetMediaClock(IMediaClock* media_clock) {
-        lock.Acquire();
+    HRESULT Player::SetTimeSource(IMediaClock* pClock) {
+        m_lock.Acquire();
         HRESULT hr = S_OK;
-        if (!media_session) {
-            if (this->media_clock) {
-                this->media_clock->Release();
-                this->media_clock = 0;
+        if (!m_pSession) {
+            if (m_pClock) {
+                m_pClock->Release();
+                m_pClock = 0;
             }
 
-            this->media_clock = media_clock;
+            m_pClock = pClock;
 
-            if (media_clock)
-                media_clock->AddRef();
+            if (pClock)
+                pClock->AddRef();
         }
         else
             hr = MF_E_INVALIDREQUEST;
-        lock.Release();
+        m_lock.Release();
         return hr;
     }
 
-    State Player::GetState() {
-        lock.Acquire();
-        State state;
-        if (media_session)
-            state = media_session->GetState();
+    Status Player::GetStatus() {
+        m_lock.Acquire();
+        Status status;
+        if (m_pSession)
+            status = m_pSession->GetStatus();
         else
-            state = State::None;
-        lock.Release();
-        return state;
+            status = Status_NotInitialized;
+        m_lock.Release();
+        return status;
     }
 
     HRESULT Player::Play() {
-        lock.Acquire();
+        m_lock.Acquire();
         HRESULT hr;
-        if (media_session)
-            hr = media_session->Play();
+        if (m_pSession)
+            hr = m_pSession->Play();
         else
             hr = MF_E_NOT_INITIALIZED;
-        lock.Release();
+        m_lock.Release();
         return hr;
     }
 
     HRESULT Player::Pause() {
-        lock.Acquire();
+        m_lock.Acquire();
         HRESULT hr;
-        if (media_session)
-            hr = media_session->Pause();
+        if (m_pSession)
+            hr = m_pSession->Pause();
         else
             hr = MF_E_NOT_INITIALIZED;
-        lock.Release();
+        m_lock.Release();
         return hr;
     }
 
     double_t Player::GetDuration() {
-        lock.Acquire();
+        m_lock.Acquire();
         double_t duration;
-        if (media_session)
-            duration = media_session->GetDuration();
+        if (m_pSession)
+            duration = m_pSession->GetDuration();
         else
             duration = 0.0;
-        lock.Release();
+        m_lock.Release();
         return duration;
     }
 
-    double_t Player::GetTime() {
-        lock.Acquire();
+    double_t Player::GetCurrentPosition() {
+        m_lock.Acquire();
         double_t time;
-        if (media_session)
-            time = media_session->GetTime();
+        if (m_pSession)
+            time = m_pSession->GetCurrentPosition();
         else
             time = 0.0;
-        lock.Release();
+        m_lock.Release();
         return time;
     }
 
-    HRESULT Player::SetTime(double_t value) {
-        lock.Acquire();
+    HRESULT Player::SetCurrentPosition(double_t pos) {
+        m_lock.Acquire();
         HRESULT hr;
-        if (media_session)
-            hr = media_session->SetTime(value);
+        if (m_pSession)
+            hr = m_pSession->SetCurrentPosition(pos);
         else
             hr = S_OK;
-        lock.Release();
+        m_lock.Release();
         return hr;
     }
 
-    HRESULT Player::GetAudioParams(AudioParams* value) {
-        lock.Acquire();
+    HRESULT Player::GetVolumes(AudioVolumes* out_volumes) {
+        m_lock.Acquire();
         HRESULT hr;
-        if (media_session)
-            hr = media_session->GetAudioParams(value);
+        if (m_pSession)
+            hr = m_pSession->GetVolumes(out_volumes);
         else
             hr = S_OK;
-        lock.Release();
+        m_lock.Release();
         return hr;
     }
 
-    HRESULT Player::SetAudioParams(const AudioParams* value) {
-        lock.Acquire();
+    HRESULT Player::SetVolumes(const AudioVolumes* in_volumes) {
+        m_lock.Acquire();
         HRESULT hr;
-        if (media_session)
-            hr = media_session->SetAudioParams(value);
+        if (m_pSession)
+            hr = m_pSession->SetVolumes(in_volumes);
         else
             hr = S_OK;
-        lock.Release();
+        m_lock.Release();
         return hr;
     }
 
-    HRESULT Player::GetVideoParams(VideoParams* value) {
-        lock.Acquire();
+    HRESULT Player::GetVideoInfo(VideoInfo* out_info) {
+        m_lock.Acquire();
         HRESULT hr;
-        if (media_session)
-            hr = media_session->GetVideoParams(value);
+        if (m_pSession)
+            hr = m_pSession->GetVideoInfo(out_info);
         else
             hr = S_OK;
-        lock.Release();
+        m_lock.Release();
         return hr;
     }
 
-    HRESULT Player::GetD3D9Texture(IDirect3DDevice9* d3d_device, IDirect3DTexture9** ptr) {
-        lock.Acquire();
+    HRESULT Player::GetTextureD3D9Ex(IDirect3DDevice9* pDevice, IDirect3DTexture9** ppOutTexture) {
+        m_lock.Acquire();
         HRESULT hr;
-        if (media_session)
-            hr = media_session->GetD3D9Texture(d3d_device, ptr);
+        if (m_pSession)
+            hr = m_pSession->GetTextureD3D9Ex(pDevice, ppOutTexture);
         else
             hr = S_OK;
-        lock.Release();
+        m_lock.Release();
         return hr;
     }
 
-    HRESULT Player::GetD3D11Texture(ID3D11Device* d3d_device, ID3D11Texture2D** ptr) {
-        lock.Acquire();
+    HRESULT Player::GetTextureD3D11(ID3D11Device* pDevice, ID3D11Texture2D** ppOutTexture) {
+        m_lock.Acquire();
         HRESULT hr;
-        if (media_session)
-            hr = media_session->GetD3D11Texture(d3d_device, ptr);
+        if (m_pSession)
+            hr = m_pSession->GetTextureD3D11(pDevice, ppOutTexture);
         else
             hr = S_OK;
-        lock.Release();
+        m_lock.Release();
         return hr;
     }
 
-    HRESULT Player::GetGLDXIntreropTexture(IGLDXInteropTexture** value) {
-        lock.Acquire();
+    HRESULT Player::GetTextureOGL(IGLDXInteropTexture** ppOutTexture) {
+        m_lock.Acquire();
         HRESULT hr;
-        if (media_session)
-            hr = media_session->GetGLDXIntreropTexture(value);
+        if (m_pSession)
+            hr = m_pSession->GetTextureOGL(ppOutTexture);
         else
             hr = S_OK;
-        lock.Release();
+        m_lock.Release();
         return hr;
     }
 
-    Player::Player() : ref_count(), lock(), media_clock(), media_session() {
-        MOVIE_PLAY_LIB_PRINT_FUNC_BEGIN;
-        MOVIE_PLAY_LIB_PRINT_FUNC_END;
+    Player::Player() : m_ref(), m_lock(), m_pClock(), m_pSession() {
+        MOVIE_PLAY_LIB_TRACE_BEGIN;
+        MOVIE_PLAY_LIB_TRACE_END;
     }
 
     Player::~Player() {
-        MOVIE_PLAY_LIB_PRINT_FUNC_BEGIN;
+        MOVIE_PLAY_LIB_TRACE_BEGIN;
 
-        if (media_session) {
-            media_session->Close();
+        if (m_pSession) {
+            m_pSession->Shutdown();
 
-            if (media_session) {
-                media_session->Release();
-                media_session = 0;
+            if (m_pSession) {
+                m_pSession->Release();
+                m_pSession = 0;
             }
         }
 
-        if (media_clock) {
-            media_clock->Release();
-            media_clock = 0;
+        if (m_pClock) {
+            m_pClock->Release();
+            m_pClock = 0;
         }
-        MOVIE_PLAY_LIB_PRINT_FUNC_END;
+        MOVIE_PLAY_LIB_TRACE_END;
     }
 
-    HRESULT Player::Create(IPlayer*& ptr) {
+    HRESULT Player::Create(IPlayer*& pp) {
         Player* p = new Player;
         if (!p)
             return E_OUTOFMEMORY;
 
-        ptr = p;
+        pp = p;
         p->AddRef();
         p->Release();
         return S_OK;

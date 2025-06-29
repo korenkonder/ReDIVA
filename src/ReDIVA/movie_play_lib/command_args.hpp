@@ -10,43 +10,34 @@
 namespace MoviePlayLib {
     class DECLSPEC_UUID("5D520F14-C168-43DA-B799-4FEC99669FB0")
         CommandArgs : public IUnknown {
-    public:
-        enum class Type {
-            Open = 0,
-            SetPosition,
-            Play,
-            Pause,
-            Close,
-            Max,
-        };
-
     protected:
-        RefCount ref_count;
-        Lock lock;
-        Type type;
-        int64_t position;
-        OLECHAR* str;
+        RefCount m_ref;
+        SlimLock m_lock;
+        uint32_t m_command;
+        int64_t m_value;
+        OLECHAR* m_bstr;
 
     public:
         virtual HRESULT QueryInterface(const IID& riid, void** ppvObject) override;
         virtual ULONG AddRef() override;
         virtual ULONG Release() override;
 
-        CommandArgs(CommandArgs::Type type);
+        CommandArgs(uint32_t cmd);
         virtual ~CommandArgs();
 
-        virtual Type GetType();
-        virtual int64_t GetPosition();
-        virtual OLECHAR* GetPath();
-        virtual HRESULT SetType(Type value);
-        virtual HRESULT SetPosition(int64_t value);
-        virtual HRESULT SetPath(const OLECHAR* value);
+        virtual uint32_t GetCommand();
+        virtual int64_t GetValue();
+        virtual OLECHAR* GetString();
+        virtual HRESULT SetCommand(uint32_t val);
+        virtual HRESULT SetValue(int64_t value);
+        virtual HRESULT SetString(const OLECHAR* text);
 
-        static HRESULT Create(CommandArgs::Type type, CommandArgs*& ptr);
         static void Destroy(CommandArgs* ptr);
 
         inline void Destroy() {
             Destroy(this);
         }
     };
+
+    extern HRESULT CreateCommandArgs(uint32_t cmd, CommandArgs*& pp);
 }

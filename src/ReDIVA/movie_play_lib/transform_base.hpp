@@ -6,25 +6,33 @@
 #pragma once
 
 #include "movie_play_lib.hpp"
-#include "mf_sample_list.hpp"
+#include "sample_queue.hpp"
 #include <mftransform.h>
 
 namespace MoviePlayLib {
     class TransformBase : public IMediaTransform {
+    public:
+        enum DecodeState {
+            DecodeState_NeedMoreInput = 0,
+            DecodeState_ProcessOutput,
+            DecodeState_DrainEndOfStream,
+            DecodeState_EndOfStream,
+        };
+
     protected:
-        RefCount ref_count;
-        Lock lock;
-        MediaStatsLock* media_stats_lock;
-        IMediaClock* media_clock;
-        IMediaSource* media_source;
-        IMFTransform* mf_transform;
-        int32_t stream_state;
-        BOOL shutdown;
-        BOOL end_streaming;
-        HANDLE hThread;
-        HANDLE hEvent;
-        MFSampleList sample_list_wait;
-        MFSampleList sample_list_active;
+        RefCount m_ref;
+        SlimLock m_lock;
+        PlayerStat_& m_rStat;
+        IMediaClock* m_pClock;
+        IMediaSource* m_pSource;
+        IMFTransform* m_pTransform;
+        DecodeState m_decodeState;
+        BOOL m_bShutdown;
+        BOOL m_bStarted;
+        HANDLE m_hIntervalThread;
+        HANDLE m_hWaitEvent;
+        SampleQueue m_inputQueue;
+        SampleQueue m_outputQueue;
 
     public:
         virtual HRESULT QueryInterface(const IID& riid, void** ppvObject) override;
@@ -35,34 +43,38 @@ namespace MoviePlayLib {
         virtual HRESULT Close() override;
         virtual HRESULT Flush() override;
         virtual HRESULT Open() override;
-        virtual HRESULT GetMFMediaType(IMFMediaType** mf_media_type) override;
-        virtual void SendMFSample(IMFSample* mf_sample) override;
-        virtual BOOL SignalEvent() override;
-        virtual BOOL CanShutdown() override;
-        virtual UINT32 GetMFSamplesWaitCount() override;
-        virtual UINT32 GetMFSamplesCount() override;
-        virtual INT64 GetSampleTime() override;
-        virtual void GetMFSample(IMFSample*& mf_sample) override;
+        virtual HRESULT GetMediaType(IMFMediaType** pType) override;
+        virtual void PushSample(IMFSample* pSample) override;
+        virtual BOOL RequestSample() override;
+        virtual BOOL IsEndOfStream() override;
+        virtual UINT32 GetInputQueueCount() override;
+        virtual UINT32 GetOutputQueueCount() override;
+        virtual INT64 PeekSampleTime() override;
+        virtual void GetSample(IMFSample*& ppOutSample) override;
 
-        TransformBase(HRESULT& hr, MediaStatsLock* media_stats_lock,
-            IMediaClock* media_clock, IMediaSource* media_source);
+        TransformBase(HRESULT& hr, PlayerStat_& rStat,
+            IMediaClock* pClock, IMediaSource* pSource);
         virtual ~TransformBase();
 
-        virtual void Free();
-        virtual HRESULT CommandFlush();
-        virtual HRESULT NotifyEndOfStream();
-        virtual HRESULT NotifyEndStreaming();
-        virtual HRESULT Start();
-        virtual HRESULT ProcessInput();
-        virtual HRESULT ProcessOutput() = 0;
-        virtual void SetSampleTime(double_t value) = 0;
-        virtual BOOL Playback();
+    protected:
+        virtual void _on_shutdown();
+        virtual HRESULT _on_flush();
+        virtual HRESULT _on_drain();
+        virtual HRESULT _on_stop();
+        virtual HRESULT _on_start();
+        virtual HRESULT _process_input();
+        virtual HRESULT _process_output() = 0;
+        virtual void _on_input_sample(double_t sampleTime) = 0;
+        virtual BOOL _on_process();
 
+    public:
         static void Destroy(TransformBase* ptr);
-        static uint32_t __stdcall ThreadMain(TransformBase* transform_base);
 
         inline void Destroy() {
             Destroy(this);
         }
+
+    protected:
+        static uint32_t __stdcall _thread_proc(TransformBase* transform_base);
     };
 }

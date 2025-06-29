@@ -10,28 +10,31 @@
 namespace MoviePlayLib {
     class AudioDecoder : public TransformBase {
     protected:
-        GUID output_sub_type;
-        uint32_t sample_rate;
-        uint32_t channels;
-        uint32_t buffer_size;
+        GUID m_formatSubType;
+        uint32_t m_sampleFrequency;
+        uint32_t m_channelCount;
+        uint32_t m_cbBufferBytes;
 
     public:
-
-        AudioDecoder(HRESULT& hr, MediaStatsLock* media_stats_lock,
-            IMediaClock* media_clock, IMediaSource* media_source);
+        AudioDecoder(HRESULT& hr, PlayerStat_& rStat,
+            IMediaClock* pClock, IMediaSource* pSource);
         virtual ~AudioDecoder() override;
 
-        virtual HRESULT ProcessOutput() override;
-        virtual void SetSampleTime(double_t value) override;
+    protected:
+        virtual HRESULT _process_output() override;
+        virtual void _on_input_sample(double_t sampleTime) override;
 
-        HRESULT InitFromMediaSource();
-
-        static HRESULT Create(MediaStatsLock* media_stats_lock,
-            IMediaClock* media_clock, IMediaSource* media_source, IMediaTransform*& ptr);
+    public:
         static void Destroy(AudioDecoder* ptr);
 
         inline void Destroy() {
             Destroy(this);
         }
+
+    protected:
+        HRESULT _on_format_changed();
     };
+
+    extern HRESULT CreateAudioDecoder(PlayerStat_& rStat,
+        IMediaClock* pClock, IMediaSource* pSource, IMediaTransform*& pp);
 }

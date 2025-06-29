@@ -23,179 +23,184 @@ namespace MoviePlayLib {
     }
 
     ULONG MediaStream::AddRef() {
-        return ++ref_count;
+        return ++m_ref;
     }
 
     ULONG MediaStream::Release() {
-        if (!--ref_count)
+        if (!--m_ref)
             Destroy();
-        return ref_count;
+        return m_ref;
     }
 
-    MediaStream::MediaStream(HRESULT& hr, MediaStatsLock* media_stats_lock, IMediaClock* media_clock,
-        IMFMediaStream* mf_media_stream, HANDLE hEvent, IMediaTransform* media_transform)
-        : ref_count(), lock(), media_stats_lock(media_stats_lock), media_clock(), mf_media_stream(),
-        media_transform(), shutdown(), sample_recieve(), hEvent(hEvent), sample_time(), async_callback(this) {
-        MOVIE_PLAY_LIB_PRINT_FUNC_BEGIN;
+    MediaStream::MediaStream(HRESULT& hr, PlayerStat_& rStat, IMediaClock* pClock,
+        IMFMediaStream* pStream, HANDLE hRequestEvent, IMediaTransform* pDecoder)
+        : m_ref(), m_lock(), m_rStat(rStat), m_pClock(), m_pStream(),
+        m_pDecoder(), m_bShutdown(), m_bRequested(), m_hRequestEvent(hRequestEvent), m_hnsLastSampleTime(),
+        m_OnEvent(&MediaStream::_async_callback_func, this) {
+        MOVIE_PLAY_LIB_TRACE_BEGIN;
         if (SUCCEEDED(hr)) {
-            this->media_clock = media_clock;
-            media_clock->AddRef();
+            m_pClock = pClock;
+            pClock->AddRef();
 
-            this->mf_media_stream = mf_media_stream;
-            mf_media_stream->AddRef();
+            m_pStream = pStream;
+            pStream->AddRef();
 
-            this->media_transform = media_transform;
-            media_transform->AddRef();
+            m_pDecoder = pDecoder;
+            pDecoder->AddRef();
 
             if (SUCCEEDED(hr))
-                hr = this->mf_media_stream->BeginGetEvent(&async_callback, 0);
+                hr = m_pStream->BeginGetEvent(&m_OnEvent, 0);
         }
-        MOVIE_PLAY_LIB_PRINT_FUNC_END;
+        MOVIE_PLAY_LIB_TRACE_END;
     }
 
     MediaStream::~MediaStream() {
 
     }
 
-    HRESULT MediaStream::AsyncCallback(IMFAsyncResult* mf_async_result) {
-        lock.Acquire();
-        HRESULT media_event_status = 0;
-        MediaEventType media_event_type = 0;
-        IMFMediaEvent* mf_media_event = 0;
+    HRESULT MediaStream::OnEvent(IMFAsyncResult* pAsyncResult) {
+        m_lock.Acquire();
+        HRESULT hrStatus = 0;
+        MediaEventType mediaEventType = 0;
+        IMFMediaEvent* pEvent = 0;
 
         HRESULT hr;
-        hr = mf_media_stream->EndGetEvent(mf_async_result, &mf_media_event);
+        hr = m_pStream->EndGetEvent(pAsyncResult, &pEvent);
         if (FAILED(hr))
             goto End;
 
-        hr = mf_media_event->GetStatus(&media_event_status);
+        hr = pEvent->GetStatus(&hrStatus);
         if (FAILED(hr))
             goto End;
 
-        hr = mf_media_event->GetType(&media_event_type);
+        hr = pEvent->GetType(&mediaEventType);
         if (FAILED(hr))
             goto End;
 
-        switch (media_event_type) {
+        switch (mediaEventType) {
         case MEError:
             hr = E_FAIL;
-            if (FAILED(media_event_status))
-                hr = media_event_status;
+            if (FAILED(hrStatus))
+                hr = hrStatus;
             break;
         case MEStreamStarted:
-            if (!shutdown) {
-                sample_recieve = FALSE;
-                sample_time = 0;
-                RequestSampleInner();
+            if (!m_bShutdown) {
+                m_bRequested = FALSE;
+                m_hnsLastSampleTime = 0;
+                _request_read();
             }
             break;
         case MEEndOfStream:
-            if (!shutdown)
-                media_transform->SendMFSample(0);
+            if (!m_bShutdown)
+                m_pDecoder->PushSample(0);
             break;
         case MEMediaSample:
-            if (!shutdown) {
-                TrackedSample* tracked_sample = 0;
-                hr = MFMediaEventQueryInterface(mf_media_event, __uuidof(TrackedSample), (void**)&tracked_sample);
+            if (!m_bShutdown) {
+                TrackedSample* pTrackedSample = 0;
+                hr = MFMediaEventQueryInterface(pEvent, __uuidof(TrackedSample), (void**)&pTrackedSample);
                 if (SUCCEEDED(hr)) {
-                    int64_t sample_time = 0;
-                    if (SUCCEEDED(tracked_sample->GetSampleTime(&sample_time))) {
-                        media_transform->SendMFSample(tracked_sample);
-                        this->sample_time = sample_time;
+                    int64_t hnsLastSampleTime = 0;
+                    if (SUCCEEDED(pTrackedSample->GetSampleTime(&hnsLastSampleTime))) {
+                        m_pDecoder->PushSample(pTrackedSample);
+                        m_hnsLastSampleTime = hnsLastSampleTime;
                     }
                 }
 
-                if (tracked_sample) {
-                    tracked_sample->Release();
-                    tracked_sample = 0;
+                if (pTrackedSample) {
+                    pTrackedSample->Release();
+                    pTrackedSample = 0;
                 }
 
-                sample_recieve = FALSE;
-                SetEvent(hEvent);
+                m_bRequested = FALSE;
+                SetEvent(m_hRequestEvent);
             }
             break;
         }
 
     End:
-        if (mf_media_event) {
-            mf_media_event->Release();
-            mf_media_event = 0;
+        if (pEvent) {
+            pEvent->Release();
+            pEvent = 0;
         }
 
-        if (!shutdown && SUCCEEDED(hr))
-            hr = mf_media_stream->BeginGetEvent(&async_callback, 0);
+        if (!m_bShutdown && SUCCEEDED(hr))
+            hr = m_pStream->BeginGetEvent(&m_OnEvent, 0);
 
         if (FAILED(hr)) {
-            media_stats_lock->SetCurrError(hr, this);
-            media_transform->SendMFSample(0);
+            m_rStat.SetError(hr, this);
+            m_pDecoder->PushSample(0);
         }
 
-        hr = mf_async_result->SetStatus(hr);
-        lock.Release();
+        hr = pAsyncResult->SetStatus(hr);
+        m_lock.Release();
         return hr;
     }
 
     HRESULT MediaStream::Shutdown() {
-        MOVIE_PLAY_LIB_PRINT_FUNC_BEGIN;
-        lock.Acquire();
-        media_transform->SendMFSample(0);
-        shutdown = TRUE;
-        lock.Release();
-        MOVIE_PLAY_LIB_PRINT_FUNC_END;
+        MOVIE_PLAY_LIB_TRACE_BEGIN;
+        m_lock.Acquire();
+        m_pDecoder->PushSample(0);
+        m_bShutdown = TRUE;
+        m_lock.Release();
+        MOVIE_PLAY_LIB_TRACE_END;
         return S_OK;
     }
 
-    HRESULT MediaStream::GetMFMediaType(IMFMediaType** mf_media_type) {
-        lock.Acquire();
-        HRESULT hr = shutdown ? MF_E_SHUTDOWN : S_OK;
-        if (!shutdown) {
-            IMFStreamDescriptor* mf_stream_descriptor = 0;
-            IMFMediaTypeHandler* mf_media_type_handler = 0;
-            hr = mf_media_stream->GetStreamDescriptor(&mf_stream_descriptor);
+    HRESULT MediaStream::GetMediaType(IMFMediaType** ppOutMediaType) {
+        m_lock.Acquire();
+        HRESULT hr = m_bShutdown ? MF_E_SHUTDOWN : S_OK;
+        if (!m_bShutdown) {
+            IMFStreamDescriptor* pStreamDescriptor = 0;
+            IMFMediaTypeHandler* pMediaTypeHandler = 0;
+            hr = m_pStream->GetStreamDescriptor(&pStreamDescriptor);
             if (SUCCEEDED(hr)) {
-                hr = mf_stream_descriptor->GetMediaTypeHandler(&mf_media_type_handler);
+                hr = pStreamDescriptor->GetMediaTypeHandler(&pMediaTypeHandler);
                 if (SUCCEEDED(hr))
-                    hr = mf_media_type_handler->GetCurrentMediaType(mf_media_type);
+                    hr = pMediaTypeHandler->GetCurrentMediaType(ppOutMediaType);
             }
 
-            if (mf_media_type_handler) {
-                mf_media_type_handler->Release();
-                mf_media_type_handler = 0;
+            if (pMediaTypeHandler) {
+                pMediaTypeHandler->Release();
+                pMediaTypeHandler = 0;
             }
 
-            if (mf_stream_descriptor) {
-                mf_stream_descriptor->Release();
-                mf_stream_descriptor = 0;
+            if (pStreamDescriptor) {
+                pStreamDescriptor->Release();
+                pStreamDescriptor = 0;
             }
         }
-        lock.Release();
+        m_lock.Release();
         return hr;
     }
 
-    HRESULT MediaStream::RequestSample() {
-        lock.Acquire();
-        HRESULT hr = shutdown ? MF_E_SHUTDOWN : S_OK;
-        RequestSampleInner();
-        lock.Release();
+    HRESULT MediaStream::RequestRead() {
+        m_lock.Acquire();
+        HRESULT hr = m_bShutdown ? MF_E_SHUTDOWN : S_OK;
+        _request_read();
+        m_lock.Release();
         return hr;
     }
 
-    void MediaStream::RequestSampleInner() {
-        if (!shutdown && !sample_recieve
-            && sample_time < media_clock->GetTime() + 50000000
-            && SUCCEEDED(mf_media_stream->RequestSample(0)))
-            sample_recieve = TRUE;
+    HRESULT MediaStream::_async_callback_func(IMFAsyncResult* pAsyncResult) {
+        return OnEvent(pAsyncResult);
     }
 
-    HRESULT MediaStream::Create(MediaStatsLock* media_stats_lock, IMediaClock* media_clock,
-        IMFMediaStream* mf_media_stream, HANDLE hEvent, IMediaTransform* media_transform, MediaStream*& ptr) {
+    void MediaStream::_request_read() {
+        if (!m_bShutdown && !m_bRequested
+            && m_hnsLastSampleTime < m_pClock->GetTime() + 50000000
+            && SUCCEEDED(m_pStream->RequestSample(0)))
+            m_bRequested = TRUE;
+    }
+
+    HRESULT CreateMediaStream(PlayerStat_& rStat, IMediaClock* pClock,
+        IMFMediaStream* pStream, HANDLE hRequestEvent, IMediaTransform* pDecoder, MediaStream*& pp) {
         HRESULT hr = S_OK;
-        MediaStream* p = new MediaStream(hr, media_stats_lock, media_clock, mf_media_stream, hEvent, media_transform);
+        MediaStream* p = new MediaStream(hr, rStat, pClock, pStream, hRequestEvent, pDecoder);
         if (!p)
             return E_OUTOFMEMORY;
 
         if (SUCCEEDED(hr)) {
-            ptr = p;
+            pp = p;
             p->AddRef();
         }
         else

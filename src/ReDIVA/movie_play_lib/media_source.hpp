@@ -11,30 +11,30 @@
 namespace MoviePlayLib {
     class MediaSource : public IMediaSource {
     protected:
-        RefCount ref_count;
-        Lock lock;
-        Lock async_lock;
-        MediaStatsLock* media_stats_lock;
-        IMediaClock* media_clock;
-        IMFMediaSource* mf_media_source;
-        IMFPresentationDescriptor* mf_presentation_descriptor;
-        IMFMediaType* audio_mf_media_type;
-        IMFMediaType* video_mf_media_type;
-        MediaStream* audio_media_stream;
-        MediaStream* video_media_stream;
-        IMediaTransform* audio_media_transform;
-        IMediaTransform* video_media_transform;
-        DWORD audio_mf_stream_identifier;
-        DWORD video_mf_stream_identifier;
-        BOOL shutdown;
-        BOOL start;
-        uint64_t duration;
-        HANDLE hThread;
-        HANDLE hTimer;
-        HANDLE hManualEvent;
-        HANDLE hMediaStreamEvent;
-        HANDLE hMediaSourceEvent;
-        AsyncCallback<MediaSource> async_callback;
+        RefCount m_ref;
+        SlimLock m_lock;
+        SlimLock m_sub;
+        PlayerStat_& m_rStat;
+        IMediaClock* m_pClock;
+        IMFMediaSource* m_pSource;
+        IMFPresentationDescriptor* m_pPresentDesc;
+        IMFMediaType* m_pAudioType;
+        IMFMediaType* m_pVideoType;
+        MediaStream* m_pAudioStream;
+        MediaStream* m_pVideoStream;
+        IMediaTransform* m_pAudioDecoder;
+        IMediaTransform* m_pVideoDecoder;
+        DWORD m_dwAudioStreamID;
+        DWORD m_dwVideoStreamID;
+        BOOL m_bShutdown;
+        BOOL m_bStarted;
+        uint64_t m_hnsDuration;
+        HANDLE m_hIntervalThread;
+        HANDLE m_hIntervalTimer;
+        HANDLE m_hQuitEvent;
+        HANDLE m_hRequestEvent;
+        HANDLE m_hCommandEvent;
+        AsyncCallback<MediaSource> m_OnEvent;
 
     public:
         virtual HRESULT QueryInterface(const IID& riid, void** ppvObject) override;
@@ -43,28 +43,33 @@ namespace MoviePlayLib {
 
         virtual HRESULT Shutdown() override;
         virtual HRESULT Stop() override;
-        virtual HRESULT Start(INT64 time) override;
+        virtual HRESULT Start(INT64 hnsTime) override;
         virtual UINT64 GetDuration() override;
-        virtual HRESULT GetAudioMFMediaType(IMFMediaType** ptr) override;
-        virtual HRESULT GetVideoMFMediaType(IMFMediaType** ptr) override;
-        virtual HRESULT SetAudioMediaTransform(IMediaTransform* media_transform) override;
-        virtual HRESULT SetVideoMediaTransform(IMediaTransform* media_transform) override;
+        virtual HRESULT GetAudioMediaType(IMFMediaType** ppType) override;
+        virtual HRESULT GetVideoMediaType(IMFMediaType** ppType) override;
+        virtual HRESULT SetAudioDecoder(IMediaTransform* pDecoder) override;
+        virtual HRESULT SetVideoDecoder(IMediaTransform* pDecoder) override;
 
-        MediaSource(HRESULT& hr, MediaStatsLock* media_stats_lock,
-            IMediaClock* media_clock, const wchar_t* url);
+        MediaSource(HRESULT& hr, PlayerStat_& rStat,
+            IMediaClock* pClock, const wchar_t* filePath);
         virtual ~MediaSource();
 
-        virtual HRESULT AsyncCallback(IMFAsyncResult* mf_async_result);
+        virtual HRESULT OnEvent(IMFAsyncResult* pAsyncResult);
 
-        HRESULT LoadURL(const wchar_t* url);
-
-        static HRESULT Create(MediaStatsLock* media_stats_lock,
-            IMediaClock* media_clock, const wchar_t* url, IMediaSource*& ptr);
         static void Destroy(MediaSource* ptr);
-        static uint32_t __stdcall ThreadMain(MoviePlayLib::MediaSource* media_source);
 
         inline void Destroy() {
             Destroy(this);
         }
+
+    protected:
+        virtual HRESULT _async_callback_func(IMFAsyncResult* pAsyncResult);
+
+        HRESULT _open(const wchar_t* filePath);
+
+        static uint32_t __stdcall _thread_proc(MoviePlayLib::MediaSource* media_source);
     };
+
+    extern HRESULT CreateMediaSource(PlayerStat_& rStat,
+        IMediaClock* pClock, const wchar_t* filePath, IMediaSource*& pp);
 }

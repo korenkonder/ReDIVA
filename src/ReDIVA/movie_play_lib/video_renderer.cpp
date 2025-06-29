@@ -21,101 +21,89 @@ namespace MoviePlayLib {
     }
 
     ULONG VideoRenderer::AddRef() {
-        return ++ref_count;
+        return ++m_ref;
     }
 
     ULONG VideoRenderer::Release() {
-        if (!--ref_count)
+        if (!--m_ref)
             Destroy();
-        return ref_count;
+        return m_ref;
     }
 
     HRESULT VideoRenderer::Shutdown() {
-        lock.Acquire();
-        if (mf_sample) {
-            mf_sample->Release();
-            mf_sample = 0;
+        m_lock.Acquire();
+        if (m_pSample) {
+            m_pSample->Release();
+            m_pSample = 0;
         }
-        shutdown = TRUE;
-        lock.Release();
+        m_bShutdown = TRUE;
+        m_lock.Release();
         return S_OK;
     }
 
     HRESULT VideoRenderer::Close() {
-        lock.Acquire();
-        HRESULT hr = shutdown ? MF_E_SHUTDOWN : S_OK;
-        if (!shutdown)
-            if (mf_sample) {
-                mf_sample->Release();
-                mf_sample = 0;
+        m_lock.Acquire();
+        HRESULT hr = m_bShutdown ? MF_E_SHUTDOWN : S_OK;
+        if (!m_bShutdown)
+            if (m_pSample) {
+                m_pSample->Release();
+                m_pSample = 0;
             }
-        lock.Release();
+        m_lock.Release();
         return hr;
     }
 
     HRESULT VideoRenderer::Flush() {
-        lock.Acquire();
-        HRESULT hr = shutdown ? MF_E_SHUTDOWN : S_OK;
-        lock.Release();
+        m_lock.Acquire();
+        HRESULT hr = m_bShutdown ? MF_E_SHUTDOWN : S_OK;
+        m_lock.Release();
         return hr;
     }
 
     HRESULT VideoRenderer::Open() {
-        lock.Acquire();
-        HRESULT hr = shutdown ? MF_E_SHUTDOWN : S_OK;
-        lock.Release();
+        m_lock.Acquire();
+        HRESULT hr = m_bShutdown ? MF_E_SHUTDOWN : S_OK;
+        m_lock.Release();
         return hr;
     }
 
-    HRESULT VideoRenderer::SetMFSample(IMFSample* mf_sample) {
-        lock.Acquire();
-        HRESULT hr = shutdown ? MF_E_SHUTDOWN : 0;
-        if (!shutdown) {
-            if (mf_sample)
-                mf_sample->Release();
+    HRESULT VideoRenderer::ProcessSample(IMFSample* pSample) {
+        m_lock.Acquire();
+        HRESULT hr = m_bShutdown ? MF_E_SHUTDOWN : 0;
+        if (!m_bShutdown) {
+            if (pSample)
+                pSample->Release();
 
-            this->mf_sample = mf_sample;
-            mf_sample->AddRef();
+            m_pSample = pSample;
+            pSample->AddRef();
 
-            sample_recieve = TRUE;
+            m_bUpdate = TRUE;
         }
-        lock.Release();
+        m_lock.Release();
         return hr;
     }
 
-    VideoRenderer::VideoRenderer(IMediaClock* media_clock) : ref_count(),
-        lock(), shutdown(), sample_recieve(), mf_sample() {
-        MOVIE_PLAY_LIB_PRINT_FUNC_BEGIN;
-        MOVIE_PLAY_LIB_PRINT_FUNC_END;
+    VideoRenderer::VideoRenderer() : m_ref(), m_lock(), m_bShutdown(), m_bUpdate(), m_pSample() {
+        MOVIE_PLAY_LIB_TRACE_BEGIN;
+        MOVIE_PLAY_LIB_TRACE_END;
     }
 
     VideoRenderer::~VideoRenderer() {
-        MOVIE_PLAY_LIB_PRINT_FUNC_BEGIN;
-        MOVIE_PLAY_LIB_PRINT_FUNC_END;
+        MOVIE_PLAY_LIB_TRACE_BEGIN;
+        MOVIE_PLAY_LIB_TRACE_END;
     }
 
-    HRESULT VideoRenderer::GetMFSample(IMFSample** ptr) {
-        lock.Acquire();
-        bool ret = !sample_recieve;
-        sample_recieve = FALSE;
+    HRESULT VideoRenderer::GetSample(IMFSample** ppOutSample) {
+        m_lock.Acquire();
+        bool ret = !m_bUpdate;
+        m_bUpdate = FALSE;
 
-        *ptr = mf_sample;
+        *ppOutSample = m_pSample;
 
-        if (mf_sample)
-            mf_sample->AddRef();
-        lock.Release();
+        if (m_pSample)
+            m_pSample->AddRef();
+        m_lock.Release();
         return ret ? S_FALSE : S_OK;
-    }
-
-    HRESULT VideoRenderer::Create(IMediaClock* media_clock, VideoRenderer*& ptr) {
-        VideoRenderer* p = new VideoRenderer(media_clock);
-        if (!p)
-            return E_OUTOFMEMORY;
-
-        ptr = p;
-        p->AddRef();
-        p->Release();
-        return S_OK;
     }
 
     inline void VideoRenderer::Destroy(VideoRenderer* ptr) {
@@ -123,5 +111,16 @@ namespace MoviePlayLib {
             return;
 
         delete ptr;
+    }
+
+    HRESULT CreateVideoRenderer(IMediaClock* pClock, VideoRenderer*& pp) {
+        VideoRenderer* p = new VideoRenderer;
+        if (!p)
+            return E_OUTOFMEMORY;
+
+        pp = p;
+        p->AddRef();
+        p->Release();
+        return S_OK;
     }
 }

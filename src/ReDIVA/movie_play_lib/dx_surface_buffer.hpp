@@ -11,9 +11,9 @@
 namespace MoviePlayLib {
     class DXSurfaceBuffer : public IMFMediaBuffer, public IMFGetService {
     protected:
-        RefCount ref_count;
-        IDirect3DTexture9* d3d_texture;
-        IDirect3DSurface9* d3d_surface;
+        RefCount m_ref;
+        IDirect3DTexture9* m_pTexture;
+        IDirect3DSurface9* m_pSurface;
 
     public:
         virtual HRESULT QueryInterface(const IID& riid, void** ppvObject) override;
@@ -28,14 +28,15 @@ namespace MoviePlayLib {
 
         virtual HRESULT GetService(const GUID& guidService, const IID& riid, LPVOID* ppvObject) override;
 
-        DXSurfaceBuffer(HRESULT& hr, IUnknown* object);
+        DXSurfaceBuffer(HRESULT& hr, IDirect3DTexture9* pTex);
         virtual ~DXSurfaceBuffer();
 
-        static HRESULT Create(IUnknown* object, IMFMediaBuffer*& ptr);
         static void Destroy(DXSurfaceBuffer* ptr);
 
         inline void Destroy() {
             Destroy(this);
         }
     };
+
+    extern HRESULT CreateDXSurfaceBuffer(IDirect3DTexture9* pTex, IMFMediaBuffer*& pp);
 }

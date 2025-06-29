@@ -11,19 +11,19 @@
 namespace MoviePlayLib {
     class WASAPIRenderer : public IAudioRenderer {
     protected:
-        RefCount ref_count;
-        Lock lock;
-        BOOL shutdown;
-        BOOL sample_recieve;
-        AudioParams params;
-        uint32_t channels;
-        int32_t sample_rate;
-        sound::wasapi::StreamingChannel* streaming_channel;
-        IMFMediaBuffer* media_buffers[10];
-        size_t media_buffer_count;
-        IMFMediaBuffer* curr_media_buffer;
-        const float_t* buffer;
-        size_t samples_count;
+        RefCount m_ref;
+        SlimLock m_lock;
+        BOOL m_bShutdown;
+        BOOL m_bStarted;
+        AudioVolumes m_volumes;
+        uint32_t m_channelCount;
+        uint32_t m_sampleFrequency;
+        sound::wasapi::StreamingChannel* m_streamingChannel;
+        IMFMediaBuffer* m_pBuffers[10];
+        size_t m_bufferCount;
+        IMFMediaBuffer* m_pCurrBuffer;
+        const float_t* m_pbBuffer;
+        size_t m_sampleCount;
 
     public:
         virtual HRESULT QueryInterface(const IID& riid, void** ppvObject) override;
@@ -34,24 +34,25 @@ namespace MoviePlayLib {
         virtual HRESULT Close() override;
         virtual HRESULT Flush() override;
         virtual HRESULT Open() override;
-        virtual HRESULT SetMFSample(IMFSample* mf_sample) override;
+        virtual HRESULT ProcessSample(IMFSample* pSample) override;
 
-        virtual HRESULT GetParams(AudioParams* value) override;
-        virtual HRESULT SetParams(const AudioParams* value) override;
+        virtual HRESULT GetVolumes(AudioVolumes* out_volumes) override;
+        virtual HRESULT SetVolumes(const AudioVolumes* in_volumes) override;
 
-        WASAPIRenderer(HRESULT& hr, int32_t sample_rate, int32_t channels);
+        WASAPIRenderer(HRESULT& hr, int32_t sampleFrequency, int32_t channelCount);
         virtual ~WASAPIRenderer();
 
         void FillBuffer(sound_buffer_data* buffer, size_t samples_count);
         void Stop();
 
-        static HRESULT Create(IMediaClock* media_clock,
-            int32_t sample_rate, int32_t channels, WASAPIRenderer*& ptr);
         static void Destroy(WASAPIRenderer* ptr);
-        static void FillBufferStatic(sound_buffer_data* buffer, size_t samples_count, void* data);
+        static void FillBufferStatic(sound_buffer_data* buffer, size_t sampleCount, void* data);
 
         inline void Destroy() {
             Destroy(this);
         }
     };
+
+    extern HRESULT CreateWASAPIRenderer(IMediaClock* pClock,
+        int32_t sampleFrequency, int32_t channelCount, IAudioRenderer*& pp);
 }

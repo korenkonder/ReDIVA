@@ -10,45 +10,47 @@
 namespace MoviePlayLib {
     class GLDXInteropTexture : public IGLDXInteropTexture {
     public:
-        struct Texture {
-            HANDLE share_handle;
-            HANDLE object;
-            texture* tex;
+        struct TEXTURE {
+            HANDLE hShareHandle;
+            HANDLE hGLTexture;
+            texture* pGLTex;
         };
 
     protected:
-        RefCount ref_count;
-        int32_t thread_id;
-        HGLRC wgl_ctx;
-        HANDLE device;
-        IDirect3DDevice9* d3d_device;
-        uint32_t video_index;
-        uint32_t index;
-        uint32_t count;
-        Texture textures[10];
+        RefCount m_ref;
+        int32_t m_tid;
+        HGLRC m_hGLContext;
+        HANDLE m_hGLDevice;
+        IDirect3DDevice9* m_pDXDevice;
+        uint32_t m_token;
+        uint32_t m_lockIndex;
+        uint32_t m_count;
+        TEXTURE m_textures[10];
 
     public:
         virtual HRESULT QueryInterface(const IID& riid, void** ppvObject) override;
         virtual ULONG AddRef() override;
         virtual ULONG Release() override;
 
-        virtual texture* GetTexture() override;
+        virtual texture* GetGLTexture() override;
 
-        GLDXInteropTexture(HRESULT& result);
+        GLDXInteropTexture(HRESULT& hr);
         virtual ~GLDXInteropTexture();
 
-        virtual HRESULT SetMFSample(IMFSample* mf_sample);
+        virtual HRESULT SetSample(IMFSample* pSample);
 
-        void CloseDevice();
-        bool LoadTexture(Texture& gl_dx_tex, void* dxObject, HANDLE shareHandle);
-        void ReleaseTexture(Texture& gl_dx_tex);
-        void UnlockCurrentTexture();
-
-        static HRESULT Create(GLDXInteropTexture*& ptr);
         static void Destroy(GLDXInteropTexture* ptr);
 
         inline void Destroy() {
             Destroy(this);
         }
+
+    protected: 
+        void _close_device();
+        void _close_texture(TEXTURE& tx);
+        bool _open_texture(TEXTURE& tx, IDirect3DTexture9* pDXTexture, HANDLE wddmShareHandle);
+        void _unlock_texture();
     };
+
+    extern HRESULT CreateGLDXInteropTexture(GLDXInteropTexture*& pp);
 }

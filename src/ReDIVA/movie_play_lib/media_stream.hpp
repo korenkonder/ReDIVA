@@ -11,40 +11,44 @@
 namespace MoviePlayLib {
     class MediaStream : public IUnknown {
     protected:
-        RefCount ref_count;
-        Lock lock;
-        MediaStatsLock* media_stats_lock;
-        IMediaClock* media_clock;
-        IMFMediaStream* mf_media_stream;
-        IMediaTransform* media_transform;
-        BOOL shutdown;
-        BOOL sample_recieve;
-        HANDLE hEvent;
-        int64_t sample_time;
-        AsyncCallback<MediaStream> async_callback;
+        RefCount m_ref;
+        SlimLock m_lock;
+        PlayerStat_& m_rStat;
+        IMediaClock* m_pClock;
+        IMFMediaStream* m_pStream;
+        IMediaTransform* m_pDecoder;
+        BOOL m_bShutdown;
+        BOOL m_bRequested;
+        HANDLE m_hRequestEvent;
+        int64_t m_hnsLastSampleTime;
+        AsyncCallback<MediaStream> m_OnEvent;
 
     public:
         virtual HRESULT QueryInterface(const IID& riid, void** ppvObject) override;
         virtual ULONG AddRef() override;
         virtual ULONG Release() override;
 
-        MediaStream(HRESULT& hr, MediaStatsLock* media_stats_lock, IMediaClock* media_clock,
-            IMFMediaStream* mf_media_stream, HANDLE hEvent, IMediaTransform* media_transform);
+        MediaStream(HRESULT& hr, PlayerStat_& rStat, IMediaClock* pClock,
+            IMFMediaStream* pStream, HANDLE hRequestEvent, IMediaTransform* pDecoder);
         virtual ~MediaStream();
 
-        virtual HRESULT AsyncCallback(IMFAsyncResult* mf_async_result);
+        virtual HRESULT OnEvent(IMFAsyncResult* pAsyncResult);
         virtual HRESULT Shutdown();
-        virtual HRESULT GetMFMediaType(IMFMediaType** mf_media_type);
-        virtual HRESULT RequestSample();
+        virtual HRESULT GetMediaType(IMFMediaType** ppOutMediaType);
+        virtual HRESULT RequestRead();
 
-        void RequestSampleInner();
-
-        static HRESULT Create(MediaStatsLock* media_stats_lock, IMediaClock* media_clock,
-            IMFMediaStream* mf_media_stream, HANDLE hEvent, IMediaTransform* media_transform, MediaStream*& ptr);
         static void Destroy(MediaStream* ptr);
 
         inline void Destroy() {
             Destroy(this);
         }
+
+    protected:
+        virtual HRESULT _async_callback_func(IMFAsyncResult* pAsyncResult);
+
+        void _request_read();
     };
+
+    extern HRESULT CreateMediaStream(PlayerStat_& rStat, IMediaClock* pClock,
+        IMFMediaStream* pStream, HANDLE hRequestEvent, IMediaTransform* pDecoder, MediaStream*& pp);
 }

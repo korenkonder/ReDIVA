@@ -24,458 +24,470 @@ namespace MoviePlayLib {
     }
 
     ULONG MediaSource::AddRef() {
-        return ++ref_count;
+        return ++m_ref;
     }
 
     ULONG MediaSource::Release() {
-        if (!--ref_count)
+        if (!--m_ref)
             Destroy();
-        return ref_count;
+        return m_ref;
     }
 
     HRESULT MediaSource::Shutdown() {
-        MOVIE_PLAY_LIB_PRINT_FUNC_BEGIN;
-        lock.Acquire();
-        async_lock.Acquire();
+        MOVIE_PLAY_LIB_TRACE_BEGIN;
+        m_lock.Acquire();
+        m_sub.Acquire();
 
-        shutdown = TRUE;
-        start = FALSE;
+        m_bShutdown = TRUE;
+        m_bStarted = FALSE;
 
-        if (video_media_stream)
-            video_media_stream->Shutdown();
-        if (audio_media_stream)
-            audio_media_stream->Shutdown();
-        if (mf_media_source)
-            mf_media_source->Shutdown();
+        if (m_pVideoStream)
+            m_pVideoStream->Shutdown();
+        if (m_pAudioStream)
+            m_pAudioStream->Shutdown();
+        if (m_pSource)
+            m_pSource->Shutdown();
 
-        async_lock.Release();
-        lock.Release();
-        MOVIE_PLAY_LIB_PRINT_FUNC_END;
+        m_sub.Release();
+        m_lock.Release();
+        MOVIE_PLAY_LIB_TRACE_END;
         return S_OK;
     }
 
     HRESULT MediaSource::Stop() {
-        MOVIE_PLAY_LIB_PRINT_FUNC_BEGIN;
-        lock.Acquire();
+        MOVIE_PLAY_LIB_TRACE_BEGIN;
+        m_lock.Acquire();
 
         HRESULT hr;
-        if (shutdown)
+        if (m_bShutdown)
             hr = MF_E_SHUTDOWN;
         else {
             hr = S_OK;
 
-            if (start) {
-                start = FALSE;
+            if (m_bStarted) {
+                m_bStarted = FALSE;
 
-                hr = mf_media_source->Stop();
+                hr = m_pSource->Stop();
                 if (SUCCEEDED(hr))
-                    WaitForSingleObject(hMediaSourceEvent, INFINITE);
+                    WaitForSingleObject(m_hCommandEvent, INFINITE);
             }
         }
 
-        lock.Release();
-        MOVIE_PLAY_LIB_PRINT_FUNC_END;
+        m_lock.Release();
+        MOVIE_PLAY_LIB_TRACE_END;
         return S_OK;
     }
 
-    HRESULT MediaSource::Start(INT64 time) {
-        MOVIE_PLAY_LIB_PRINT_FUNC_BEGIN;
-        lock.Acquire();
+    HRESULT MediaSource::Start(INT64 hnsTime) {
+        MOVIE_PLAY_LIB_TRACE_BEGIN;
+        m_lock.Acquire();
 
         HRESULT hr;
-        if (shutdown)
+        if (m_bShutdown)
             hr = MF_E_SHUTDOWN;
         else {
             hr = S_OK;
 
-            if (!start) {
+            if (!m_bStarted) {
                 PROPVARIANT propvar = {};
-                start = TRUE;
-                propvar.hVal.QuadPart = time;
+                m_bStarted = TRUE;
+                propvar.hVal.QuadPart = hnsTime;
                 propvar.vt = VT_I8;
-                hr = mf_media_source->Start(mf_presentation_descriptor, 0, &propvar);
+                hr = m_pSource->Start(m_pPresentDesc, 0, &propvar);
                 if (SUCCEEDED(hr))
-                    WaitForSingleObject(hMediaSourceEvent, INFINITE);
+                    WaitForSingleObject(m_hCommandEvent, INFINITE);
             }
         }
 
-        lock.Release();
-        MOVIE_PLAY_LIB_PRINT_FUNC_END;
+        m_lock.Release();
+        MOVIE_PLAY_LIB_TRACE_END;
         return hr;
     }
 
     UINT64 MediaSource::GetDuration() {
-        lock.Acquire();
-        uint64_t value = this->duration;
-        lock.Release();
-        return value;
+        m_lock.Acquire();
+        uint64_t hnsDuration = m_hnsDuration;
+        m_lock.Release();
+        return hnsDuration;
     }
 
-    HRESULT MediaSource::GetAudioMFMediaType(IMFMediaType** ptr) {
-        lock.Acquire();
-        async_lock.Acquire();
+    HRESULT MediaSource::GetAudioMediaType(IMFMediaType** ppType) {
+        m_lock.Acquire();
+        m_sub.Acquire();
 
         HRESULT hr;
-        if (shutdown)
+        if (m_bShutdown)
             hr = MF_E_SHUTDOWN;
         else {
             hr = S_OK;
 
-            if (audio_mf_stream_identifier == -1)
+            if (m_dwAudioStreamID == -1)
                 hr = MF_E_INVALIDSTREAMNUMBER;
-            else if (audio_media_stream)
-                hr = audio_media_stream->GetMFMediaType(ptr);
+            else if (m_pAudioStream)
+                hr = m_pAudioStream->GetMediaType(ppType);
             else {
-                *ptr = audio_mf_media_type;
-                audio_mf_media_type->AddRef();
+                *ppType = m_pAudioType;
+                m_pAudioType->AddRef();
             }
         }
 
-        async_lock.Release();
-        lock.Release();
+        m_sub.Release();
+        m_lock.Release();
         return hr;
     }
 
-    HRESULT MediaSource::GetVideoMFMediaType(IMFMediaType** ptr) {
-        lock.Acquire();
-        async_lock.Acquire();
+    HRESULT MediaSource::GetVideoMediaType(IMFMediaType** ppType) {
+        m_lock.Acquire();
+        m_sub.Acquire();
 
         HRESULT hr;
-        if (shutdown)
+        if (m_bShutdown)
             hr = MF_E_SHUTDOWN;
         else {
             hr = S_OK;
 
-            if (video_mf_stream_identifier == -1)
+            if (m_dwVideoStreamID == -1)
                 hr = MF_E_INVALIDSTREAMNUMBER;
-            else if (video_media_stream)
-                hr = video_media_stream->GetMFMediaType(ptr);
+            else if (m_pVideoStream)
+                hr = m_pVideoStream->GetMediaType(ppType);
             else {
-                *ptr = video_mf_media_type;
-                video_mf_media_type->AddRef();
+                *ppType = m_pVideoType;
+                m_pVideoType->AddRef();
             }
         }
 
-        async_lock.Release();
-        lock.Release();
+        m_sub.Release();
+        m_lock.Release();
         return hr;
     }
 
-    HRESULT MediaSource::SetAudioMediaTransform(IMediaTransform* media_transform) {
-        lock.Acquire();
-        async_lock.Acquire();
+    HRESULT MediaSource::SetAudioDecoder(IMediaTransform* pDecoder) {
+        m_lock.Acquire();
+        m_sub.Acquire();
 
-        if (!shutdown && audio_mf_stream_identifier != -1) {
-            if (audio_media_transform) {
-                audio_media_transform->Release();
-                audio_media_transform = 0;
+        if (!m_bShutdown && m_dwAudioStreamID != -1) {
+            if (m_pAudioDecoder) {
+                m_pAudioDecoder->Release();
+                m_pAudioDecoder = 0;
             }
 
-            audio_media_transform = media_transform;
-            media_transform->AddRef();
+            m_pAudioDecoder = pDecoder;
+            pDecoder->AddRef();
         }
 
-        async_lock.Release();
-        lock.Release();
+        m_sub.Release();
+        m_lock.Release();
         return S_OK;
     }
 
-    HRESULT MediaSource::SetVideoMediaTransform(IMediaTransform* media_transform) {
-        lock.Acquire();
-        async_lock.Acquire();
+    HRESULT MediaSource::SetVideoDecoder(IMediaTransform* pDecoder) {
+        m_lock.Acquire();
+        m_sub.Acquire();
 
-        if (!shutdown && video_mf_stream_identifier != -1) {
-            if (video_media_transform) {
-                video_media_transform->Release();
-                video_media_transform = 0;
+        if (!m_bShutdown && m_dwVideoStreamID != -1) {
+            if (m_pVideoDecoder) {
+                m_pVideoDecoder->Release();
+                m_pVideoDecoder = 0;
             }
 
-            video_media_transform = media_transform;
-            media_transform->AddRef();
+            m_pVideoDecoder = pDecoder;
+            pDecoder->AddRef();
         }
 
-        async_lock.Release();
-        lock.Release();
+        m_sub.Release();
+        m_lock.Release();
         return S_OK;
     }
 
-    MediaSource::MediaSource(HRESULT& hr, MediaStatsLock* media_stats_lock,
-        IMediaClock* media_clock, const wchar_t* url) : ref_count(), lock(), async_lock(), media_stats_lock(),
-        media_clock(), mf_media_source(), audio_mf_media_type(), video_mf_media_type(), audio_media_stream(),
-        video_media_stream(), audio_media_transform(), video_media_transform(), mf_presentation_descriptor(),
-        audio_mf_stream_identifier(-1), video_mf_stream_identifier(-1), shutdown(), start(), duration(),
-        hThread(), hTimer(), hManualEvent(), hMediaStreamEvent(), hMediaSourceEvent(), async_callback(this) {
+    MediaSource::MediaSource(HRESULT& hr, PlayerStat_& rStat,
+        IMediaClock* pClock, const wchar_t* filePath) : m_ref(), m_lock(), m_sub(), m_rStat(rStat),
+        m_pClock(), m_pSource(), m_pAudioType(), m_pVideoType(), m_pAudioStream(),
+        m_pVideoStream(), m_pAudioDecoder(), m_pVideoDecoder(), m_pPresentDesc(),
+        m_dwAudioStreamID(-1), m_dwVideoStreamID(-1), m_bShutdown(), m_bStarted(), m_hnsDuration(),
+        m_hIntervalThread(), m_hIntervalTimer(), m_hQuitEvent(), m_hRequestEvent(), m_hCommandEvent(),
+        m_OnEvent(&MediaSource::_async_callback_func, this) {
         LARGE_INTEGER due_time;
 
-        MOVIE_PLAY_LIB_PRINT_FUNC_BEGIN;
+        MOVIE_PLAY_LIB_TRACE_BEGIN;
         if (FAILED(hr))
             goto End;
 
-        this->media_clock = media_clock;
-        media_clock->AddRef();
+        m_pClock = pClock;
+        pClock->AddRef();
 
         if (FAILED(hr))
             goto End;
 
-        hManualEvent = CreateEventA(0, TRUE, FALSE, 0);
-        if (!hManualEvent)
+        m_hQuitEvent = CreateEventA(0, TRUE, FALSE, 0);
+        if (!m_hQuitEvent)
             hr = HRESULT_FROM_WIN32(GetLastError());
 
         if (FAILED(hr))
             goto End;
 
-        hMediaSourceEvent = CreateEventA(0, FALSE, FALSE, 0);
-        if (!hMediaSourceEvent)
+        m_hCommandEvent = CreateEventA(0, FALSE, FALSE, 0);
+        if (!m_hCommandEvent)
             hr = HRESULT_FROM_WIN32(GetLastError());
 
         if (FAILED(hr))
             goto End;
 
-        hMediaStreamEvent = CreateEventA(0, FALSE, FALSE, 0);
-        if (!hMediaStreamEvent)
+        m_hRequestEvent = CreateEventA(0, FALSE, FALSE, 0);
+        if (!m_hRequestEvent)
             hr = HRESULT_FROM_WIN32(GetLastError());
 
         if (FAILED(hr))
             goto End;
 
-        hTimer = CreateWaitableTimerA(0, FALSE, 0);
-        if (!hTimer)
+        m_hIntervalTimer = CreateWaitableTimerA(0, FALSE, 0);
+        if (!m_hIntervalTimer)
             hr = HRESULT_FROM_WIN32(GetLastError());
 
         if (FAILED(hr))
             goto End;
 
         due_time = {};
-        if (!SetWaitableTimer(hTimer, &due_time, 50, 0, 0, FALSE))
+        if (!SetWaitableTimer(m_hIntervalTimer, &due_time, 50, 0, 0, FALSE))
             hr = HRESULT_FROM_WIN32(GetLastError());
 
         if (FAILED(hr))
             goto End;
 
-        hThread = (HANDLE)_beginthreadex(0, 0, (_beginthreadex_proc_type)MediaSource::ThreadMain, this, 0, 0);
-        if (!hThread)
+        m_hIntervalThread = (HANDLE)_beginthreadex(0, 0, (_beginthreadex_proc_type)MediaSource::_thread_proc, this, 0, 0);
+        if (!m_hIntervalThread)
             hr = HRESULT_FROM_WIN32(GetLastError());
 
         if (FAILED(hr))
             goto End;
 
-        hr = LoadURL(url);
+        hr = _open(filePath);
         if (SUCCEEDED(hr))
-            hr = mf_media_source->BeginGetEvent(&async_callback, 0);
+            hr = m_pSource->BeginGetEvent(&m_OnEvent, 0);
     End:
-        MOVIE_PLAY_LIB_PRINT_FUNC_END;
+        MOVIE_PLAY_LIB_TRACE_END;
     }
 
     MediaSource::~MediaSource() {
-        MOVIE_PLAY_LIB_PRINT_FUNC_BEGIN;
-        shutdown = TRUE;
-        start = FALSE;
+        MOVIE_PLAY_LIB_TRACE_BEGIN;
+        m_bShutdown = TRUE;
+        m_bStarted = FALSE;
 
-        if (video_media_stream)
-            video_media_stream->Shutdown();
-        if (audio_media_stream)
-            audio_media_stream->Shutdown();
-        if (mf_media_source)
-            mf_media_source->Shutdown();
+        if (m_pVideoStream)
+            m_pVideoStream->Shutdown();
+        if (m_pAudioStream)
+            m_pAudioStream->Shutdown();
+        if (m_pSource)
+            m_pSource->Shutdown();
 
-        if (video_media_transform) {
-            video_media_transform->Release();
-            video_media_transform = 0;
+        if (m_pVideoDecoder) {
+            m_pVideoDecoder->Release();
+            m_pVideoDecoder = 0;
         }
 
-        if (audio_media_transform) {
-            audio_media_transform->Release();
-            audio_media_transform = 0;
+        if (m_pAudioDecoder) {
+            m_pAudioDecoder->Release();
+            m_pAudioDecoder = 0;
         }
 
-        if (video_media_stream) {
-            video_media_stream->Release();
-            video_media_stream = 0;
+        if (m_pVideoStream) {
+            m_pVideoStream->Release();
+            m_pVideoStream = 0;
         }
 
-        if (audio_media_stream) {
-            audio_media_stream->Release();
-            audio_media_stream = 0;
+        if (m_pAudioStream) {
+            m_pAudioStream->Release();
+            m_pAudioStream = 0;
         }
 
-        if (video_mf_media_type) {
-            video_mf_media_type->Release();
-            video_mf_media_type = 0;
+        if (m_pVideoType) {
+            m_pVideoType->Release();
+            m_pVideoType = 0;
         }
 
-        if (audio_mf_media_type) {
-            audio_mf_media_type->Release();
-            audio_mf_media_type = 0;
+        if (m_pAudioType) {
+            m_pAudioType->Release();
+            m_pAudioType = 0;
         }
 
-        if (mf_presentation_descriptor) {
-            mf_presentation_descriptor->Release();
-            mf_presentation_descriptor = 0;
+        if (m_pPresentDesc) {
+            m_pPresentDesc->Release();
+            m_pPresentDesc = 0;
         }
 
-        if (mf_media_source) {
-            mf_media_source->Release();
-            mf_media_source = 0;
+        if (m_pSource) {
+            m_pSource->Release();
+            m_pSource = 0;
         }
 
-        if (media_clock) {
-            media_clock->Release();
-            media_clock = 0;
+        if (m_pClock) {
+            m_pClock->Release();
+            m_pClock = 0;
         }
 
-        if (hThread) {
-            SetEvent(hManualEvent);
-            WaitForSingleObject(hThread, INFINITE);
-            CloseHandle(hThread);
-            hThread = 0;
+        if (m_hIntervalThread) {
+            SetEvent(m_hQuitEvent);
+            WaitForSingleObject(m_hIntervalThread, INFINITE);
+            CloseHandle(m_hIntervalThread);
+            m_hIntervalThread = 0;
         }
 
-        if (hTimer) {
-            CloseHandle(hTimer);
-            hTimer = 0;
+        if (m_hIntervalTimer) {
+            CloseHandle(m_hIntervalTimer);
+            m_hIntervalTimer = 0;
         }
 
-        if (hMediaStreamEvent) {
-            CloseHandle(hMediaStreamEvent);
-            hMediaStreamEvent = 0;
+        if (m_hRequestEvent) {
+            CloseHandle(m_hRequestEvent);
+            m_hRequestEvent = 0;
         }
 
-        if (hMediaSourceEvent) {
-            CloseHandle(hMediaSourceEvent);
-            hMediaSourceEvent = 0;
+        if (m_hCommandEvent) {
+            CloseHandle(m_hCommandEvent);
+            m_hCommandEvent = 0;
         }
 
-        if (hManualEvent) {
-            CloseHandle(hManualEvent);
-            hManualEvent = 0;
+        if (m_hQuitEvent) {
+            CloseHandle(m_hQuitEvent);
+            m_hQuitEvent = 0;
         }
-        MOVIE_PLAY_LIB_PRINT_FUNC_END;
+        MOVIE_PLAY_LIB_TRACE_END;
     }
 
-    HRESULT MediaSource::AsyncCallback(IMFAsyncResult* mf_async_result) {
-        async_lock.Acquire();
-        HRESULT media_event_status = 0;
-        MediaEventType media_event_type = 0;
-        IMFMediaEvent* mf_media_event = 0;
+    HRESULT MediaSource::OnEvent(IMFAsyncResult* pAsyncResult) {
+        m_sub.Acquire();
+        HRESULT hrStatus = 0;
+        MediaEventType mediaEventType = 0;
+        IMFMediaEvent* pEvent = 0;
 
         HRESULT hr;
-        hr = mf_media_source->EndGetEvent(mf_async_result, &mf_media_event);
+        hr = m_pSource->EndGetEvent(pAsyncResult, &pEvent);
         if (FAILED(hr))
             goto End;
 
-        hr = mf_media_event->GetStatus(&media_event_status);
+        hr = pEvent->GetStatus(&hrStatus);
         if (FAILED(hr))
             goto End;
 
-        hr = mf_media_event->GetType(&media_event_type);
+        hr = pEvent->GetType(&mediaEventType);
         if (FAILED(hr))
             goto End;
 
-        switch (media_event_type) {
+        switch (mediaEventType) {
         case MEError:
             hr = E_FAIL;
-            if (media_event_status < 0)
-                hr = media_event_status;
+            if (hrStatus < 0)
+                hr = hrStatus;
             break;
         case MESourceStarted:
         case MESourceStopped:
-            SetEvent(hMediaSourceEvent);
+            SetEvent(m_hCommandEvent);
             break;
         case MENewStream: {
-            if (shutdown)
+            if (m_bShutdown)
                 break;
 
-            IMFMediaStream* mf_media_stream = 0;
-            IMFStreamDescriptor* mf_stream_decriptor = 0;
-            DWORD mf_stream_identifier = 0;
-            MoviePlayLib::MediaStream** media_stream = 0;
-            IMediaTransform* media_transform = 0;
+            IMFMediaStream* pMediaStream = 0;
+            IMFStreamDescriptor* pStreamDescriptor = 0;
+            DWORD pStreamIdentifier = 0;
+            MediaStream** pStream = 0;
+            IMediaTransform* pDecoder = 0;
 
-            hr = MFMediaEventQueryInterface(mf_media_event, IID_PPV_ARGS(&mf_media_stream));
+            hr = MFMediaEventQueryInterface(pEvent, IID_PPV_ARGS(&pMediaStream));
             if (FAILED(hr))
                 goto MENewStreamEnd;
 
-            hr = mf_media_stream->GetStreamDescriptor(&mf_stream_decriptor);
+            hr = pMediaStream->GetStreamDescriptor(&pStreamDescriptor);
             if (FAILED(hr))
                 goto MENewStreamEnd;
 
-            hr = mf_stream_decriptor->GetStreamIdentifier(&mf_stream_identifier);
+            hr = pStreamDescriptor->GetStreamIdentifier(&pStreamIdentifier);
             if (FAILED(hr))
                 goto MENewStreamEnd;
 
-            if (mf_stream_identifier == audio_mf_stream_identifier) {
-                if (audio_media_stream) {
-                    audio_media_stream->Release();
-                    audio_media_stream = 0;
+            if (pStreamIdentifier == m_dwAudioStreamID) {
+                if (m_pAudioStream) {
+                    m_pAudioStream->Release();
+                    m_pAudioStream = 0;
                 }
 
-                media_stream = &audio_media_stream;
-                media_transform = audio_media_transform;
+                pStream = &m_pAudioStream;
+                pDecoder = m_pAudioDecoder;
             }
-            else if (mf_stream_identifier == video_mf_stream_identifier) {
-                if (video_media_stream) {
-                    video_media_stream->Release();
-                    video_media_stream = 0;
+            else if (pStreamIdentifier == m_dwVideoStreamID) {
+                if (m_pVideoStream) {
+                    m_pVideoStream->Release();
+                    m_pVideoStream = 0;
                 }
 
-                media_stream = &video_media_stream;
-                media_transform = video_media_transform;
+                pStream = &m_pVideoStream;
+                pDecoder = m_pVideoDecoder;
             }
             else
                 goto MENewStreamEnd;
 
-            if (media_transform)
-                hr = MediaStream::Create(media_stats_lock, media_clock,
-                    mf_media_stream, hMediaStreamEvent, media_transform, *media_stream);
+            if (pDecoder)
+                hr = CreateMediaStream(m_rStat, m_pClock,
+                    pMediaStream, m_hRequestEvent, pDecoder, *pStream);
 
         MENewStreamEnd:
-            if (mf_stream_decriptor) {
-                mf_stream_decriptor->Release();
-                mf_stream_decriptor = 0;
+            if (pStreamDescriptor) {
+                pStreamDescriptor->Release();
+                pStreamDescriptor = 0;
             }
 
-            if (mf_media_stream) {
-                mf_media_stream->Release();
-                mf_media_stream = 0;
+            if (pMediaStream) {
+                pMediaStream->Release();
+                pMediaStream = 0;
             }
         } break;
         }
 
     End:
-        if (mf_media_event) {
-            mf_media_event->Release();
-            mf_media_event = 0;
+        if (pEvent) {
+            pEvent->Release();
+            pEvent = 0;
         }
 
-        if (!shutdown && SUCCEEDED(hr))
-            hr = mf_media_source->BeginGetEvent(&async_callback, 0);
+        if (!m_bShutdown && SUCCEEDED(hr))
+            hr = m_pSource->BeginGetEvent(&m_OnEvent, 0);
 
         if (FAILED(hr)) {
-            media_stats_lock->SetCurrError(hr, this);
+            m_rStat.SetError(hr, this);
 
-            if (video_media_stream)
-                video_media_stream->Shutdown();
-            if (audio_media_stream)
-                audio_media_stream->Shutdown();
+            if (m_pVideoStream)
+                m_pVideoStream->Shutdown();
+            if (m_pAudioStream)
+                m_pAudioStream->Shutdown();
         }
 
-        hr = mf_async_result->SetStatus(hr);
-        async_lock.Release();
+        hr = pAsyncResult->SetStatus(hr);
+        m_sub.Release();
         return hr;
     }
 
-    HRESULT MediaSource::LoadURL(const wchar_t* url) {
+    inline void MediaSource::Destroy(MediaSource* ptr) {
+        if (!ptr)
+            return;
+
+        delete ptr;
+    }
+
+    HRESULT MediaSource::_async_callback_func(IMFAsyncResult* pAsyncResult) {
+        return OnEvent(pAsyncResult);
+    }
+
+    HRESULT MediaSource::_open(const wchar_t* filePath) {
         HRESULT hr = S_OK;
-        if (!mf_media_source) {
+        if (!m_pSource) {
             IMFSourceResolver* mf_source_resolver = 0;
             IUnknown* object = 0;
             MF_OBJECT_TYPE object_type = MF_OBJECT_INVALID;
 
             hr = MFCreateSourceResolver(&mf_source_resolver);
             if (SUCCEEDED(hr)) {
-                hr = mf_source_resolver->CreateObjectFromURL(url, MF_RESOLUTION_MEDIASOURCE, 0, &object_type, &object);
+                hr = mf_source_resolver->CreateObjectFromURL(filePath, MF_RESOLUTION_MEDIASOURCE, 0, &object_type, &object);
                 if (SUCCEEDED(hr))
-                    hr = object->QueryInterface(IID_PPV_ARGS(&mf_media_source));
+                    hr = object->QueryInterface(IID_PPV_ARGS(&m_pSource));
             }
 
             if (object) {
@@ -491,11 +503,11 @@ namespace MoviePlayLib {
 
         DWORD v28 = 0;
         if (SUCCEEDED(hr)) {
-            hr = mf_media_source->CreatePresentationDescriptor(&mf_presentation_descriptor);
+            hr = m_pSource->CreatePresentationDescriptor(&m_pPresentDesc);
             if (SUCCEEDED(hr)) {
-                hr = mf_presentation_descriptor->GetStreamDescriptorCount(&v28);
+                hr = m_pPresentDesc->GetStreamDescriptorCount(&v28);
                 if (SUCCEEDED(hr))
-                    hr = mf_presentation_descriptor->GetUINT64(MF_PD_DURATION, &duration);
+                    hr = m_pPresentDesc->GetUINT64(MF_PD_DURATION, &m_hnsDuration);
             }
         }
 
@@ -504,94 +516,116 @@ namespace MoviePlayLib {
 
         for (DWORD index = 0; index < v28 && SUCCEEDED(hr); index++) {
             BOOL selected = FALSE;
-            IMFStreamDescriptor* mf_stream_decriptor = 0;
-            IMFMediaTypeHandler* mf_media_type_handler = 0;
-            DWORD mf_stream_identifier = 0;
+            IMFStreamDescriptor* pStreamDescriptor = 0;
+            IMFMediaTypeHandler* pMediaTypeHandler = 0;
+            DWORD pStreamIdentifier = 0;
 
-            IMFMediaType* mf_media_type = 0;
-            GUID guid_major_type = {};
-            GUID guid_format_subtype = {};
-            hr = mf_presentation_descriptor->GetStreamDescriptorByIndex(index, &selected, &mf_stream_decriptor);
+            IMFMediaType* pType = 0;
+            GUID guidMajorType = {};
+            GUID guidFormatSubType = {};
+            hr = m_pPresentDesc->GetStreamDescriptorByIndex(index, &selected, &pStreamDescriptor);
             if (SUCCEEDED(hr)) {
-                hr = mf_stream_decriptor->GetMediaTypeHandler(&mf_media_type_handler);
+                hr = pStreamDescriptor->GetMediaTypeHandler(&pMediaTypeHandler);
                 if (SUCCEEDED(hr)) {
-                    hr = mf_stream_decriptor->GetStreamIdentifier(&mf_stream_identifier);
+                    hr = pStreamDescriptor->GetStreamIdentifier(&pStreamIdentifier);
                     if (SUCCEEDED(hr)) {
-                        hr = mf_media_type_handler->GetMajorType(&guid_major_type);
+                        hr = pMediaTypeHandler->GetMajorType(&guidMajorType);
                         if (SUCCEEDED(hr)) {
-                            hr = mf_media_type_handler->GetMediaTypeByIndex(0, &mf_media_type);
+                            hr = pMediaTypeHandler->GetMediaTypeByIndex(0, &pType);
                             if (SUCCEEDED(hr))
-                                hr = mf_media_type->GetGUID(MF_MT_SUBTYPE, &guid_format_subtype);
+                                hr = pType->GetGUID(MF_MT_SUBTYPE, &guidFormatSubType);
                         }
                     }
                 }
             }
 
-            BOOL select_stream = FALSE;
+            BOOL selectStream = FALSE;
             if (SUCCEEDED(hr)) {
-                if (audio_mf_stream_identifier == -1
-                    && guid_major_type == MFMediaType_Audio
-                    && (guid_format_subtype == MFAudioFormat_WMAudioV8
-                        || guid_format_subtype == MFAudioFormat_WMAudioV9
-                        || guid_format_subtype == MFAudioFormat_WMAudio_Lossless
-                        || guid_format_subtype == MFAudioFormat_AAC
-                        || guid_format_subtype == MFAudioFormat_Vorbis
-                        || guid_format_subtype == MFAudioFormat_MPEG
-                        || guid_format_subtype == MFAudioFormat_MP3)) {
-                    audio_mf_media_type = mf_media_type;
-                    audio_mf_stream_identifier = mf_stream_identifier;
-                    mf_media_type->AddRef();
-                    select_stream = TRUE;
+                if (m_dwAudioStreamID == -1
+                    && guidMajorType == MFMediaType_Audio
+                    && (guidFormatSubType == MFAudioFormat_WMAudioV8
+                        || guidFormatSubType == MFAudioFormat_WMAudioV9
+                        || guidFormatSubType == MFAudioFormat_WMAudio_Lossless
+                        || guidFormatSubType == MFAudioFormat_AAC
+                        || guidFormatSubType == MFAudioFormat_Vorbis
+                        || guidFormatSubType == MFAudioFormat_MPEG
+                        || guidFormatSubType == MFAudioFormat_MP3)) {
+                    m_pAudioType = pType;
+                    m_dwAudioStreamID = pStreamIdentifier;
+                    pType->AddRef();
+                    selectStream = TRUE;
                 }
-                if (video_mf_stream_identifier == -1
-                    && guid_major_type == MFMediaType_Video
-                    && (guid_format_subtype == MFVideoFormat_WMV1
-                        || guid_format_subtype == MFVideoFormat_WMV2
-                        || guid_format_subtype == MFVideoFormat_WMV3
-                        || guid_format_subtype == MFVideoFormat_WVC1
-                        || guid_format_subtype == MFVideoFormat_H264
-                        || guid_format_subtype == MFVideoFormat_VP80
-                        || guid_format_subtype == MFVideoFormat_MPG1
-                        || guid_format_subtype == MFVideoFormat_MPEG2)) {
-                    video_mf_media_type = mf_media_type;
-                    video_mf_stream_identifier = mf_stream_identifier;
-                    mf_media_type->AddRef();
-                    select_stream = TRUE;
+                if (m_dwVideoStreamID == -1
+                    && guidMajorType == MFMediaType_Video
+                    && (guidFormatSubType == MFVideoFormat_WMV1
+                        || guidFormatSubType == MFVideoFormat_WMV2
+                        || guidFormatSubType == MFVideoFormat_WMV3
+                        || guidFormatSubType == MFVideoFormat_WVC1
+                        || guidFormatSubType == MFVideoFormat_H264
+                        || guidFormatSubType == MFVideoFormat_VP80
+                        || guidFormatSubType == MFVideoFormat_MPG1
+                        || guidFormatSubType == MFVideoFormat_MPEG2)) {
+                    m_pVideoType = pType;
+                    m_dwVideoStreamID = pStreamIdentifier;
+                    pType->AddRef();
+                    selectStream = TRUE;
                 }
 
-                if (select_stream)
-                    hr = mf_presentation_descriptor->SelectStream(index);
+                if (selectStream)
+                    hr = m_pPresentDesc->SelectStream(index);
                 else
-                    hr = mf_presentation_descriptor->DeselectStream(index);
+                    hr = m_pPresentDesc->DeselectStream(index);
             }
 
-            if (mf_media_type) {
-                mf_media_type->Release();
-                mf_media_type = 0;
+            if (pType) {
+                pType->Release();
+                pType = 0;
             }
 
-            if (mf_media_type_handler) {
-                mf_media_type_handler->Release();
-                mf_media_type_handler = 0;
+            if (pMediaTypeHandler) {
+                pMediaTypeHandler->Release();
+                pMediaTypeHandler = 0;
             }
 
-            if (mf_stream_decriptor) {
-                mf_stream_decriptor->Release();
-                mf_stream_decriptor = 0;
+            if (pStreamDescriptor) {
+                pStreamDescriptor->Release();
+                pStreamDescriptor = 0;
             }
         }
         return hr;
     }
 
-    HRESULT MediaSource::Create(MediaStatsLock* media_stats_lock,
-        IMediaClock* media_clock, const wchar_t* url, IMediaSource*& ptr) {
+    uint32_t __stdcall MediaSource::_thread_proc(MediaSource* media_source) {
+        HANDLE pHandles[3];
+        pHandles[0] = media_source->m_hQuitEvent;
+        pHandles[1] = media_source->m_hRequestEvent;
+        pHandles[2] = media_source->m_hIntervalTimer;
+        while (WaitForMultipleObjects(3, pHandles, 0, INFINITE) - 1 <= 1) {
+            media_source->m_lock.Acquire();
+            media_source->m_sub.Acquire();
+
+            if (!media_source->m_bShutdown && media_source->m_bStarted) {
+                if (media_source->m_pAudioStream)
+                    media_source->m_pAudioStream->RequestRead();
+                if (media_source->m_pVideoStream)
+                    media_source->m_pVideoStream->RequestRead();
+            }
+
+            media_source->m_sub.Release();
+            media_source->m_lock.Release();
+        }
+        return 0;
+    }
+
+    HRESULT CreateMediaSource(PlayerStat_& rStat,
+        IMediaClock* pClock, const wchar_t* filePath, IMediaSource*& pp) {
         HRESULT hr = S_OK;
-        MediaSource* p = new MediaSource(hr, media_stats_lock, media_clock, url);
+        MediaSource* p = new MediaSource(hr, rStat, pClock, filePath);
         if (!p)
             return E_OUTOFMEMORY;
 
         if (SUCCEEDED(hr)) {
-            ptr = p;
+            pp = p;
             p->AddRef();
         }
         else
@@ -599,34 +633,5 @@ namespace MoviePlayLib {
 
         p->Release();
         return S_OK;
-    }
-
-    inline void MediaSource::Destroy(MediaSource* ptr) {
-        if (!ptr)
-            return;
-
-        delete ptr;
-    }
-
-    uint32_t __stdcall MediaSource::ThreadMain(MediaSource* media_source) {
-        HANDLE handles[3];
-        handles[0] = media_source->hManualEvent;
-        handles[1] = media_source->hMediaStreamEvent;
-        handles[2] = media_source->hTimer;
-        while (WaitForMultipleObjects(3, handles, 0, INFINITE) - 1 <= 1) {
-            media_source->lock.Acquire();
-            media_source->async_lock.Acquire();
-
-            if (!media_source->shutdown && media_source->start) {
-                if (media_source->audio_media_stream)
-                    media_source->audio_media_stream->RequestSample();
-                if (media_source->video_media_stream)
-                    media_source->video_media_stream->RequestSample();
-            }
-
-            media_source->async_lock.Release();
-            media_source->lock.Release();
-        }
-        return 0;
     }
 }

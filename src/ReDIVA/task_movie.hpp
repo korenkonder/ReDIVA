@@ -18,7 +18,7 @@ public:
         Init,
         Disp,
         Stop,
-        Max,
+        Shutdown,
     };
 
     enum class DispType {
@@ -29,12 +29,12 @@ public:
     };
 
     struct PlayerVideoParams {
-        int64_t width;
-        int64_t height;
-        int64_t frame_size_width;
-        int64_t frame_size_height;
+        int64_t present_width;
+        int64_t present_height;
+        int64_t raw_width;
+        int64_t raw_height;
 
-        inline PlayerVideoParams() : width(), height(), frame_size_width(), frame_size_height() {
+        inline PlayerVideoParams() : present_width(), present_height(), raw_width(), raw_height() {
 
         }
     };
@@ -63,8 +63,8 @@ public:
         State state;
         MoviePlayLib::IPlayer* player;
         MoviePlayLib::IMediaClock* external_clock;
-        MoviePlayLib::State player_state;
-        MoviePlayLib::VideoParams video_params;
+        MoviePlayLib::Status player_state;
+        MoviePlayLib::VideoInfo video_params;
         MoviePlayLib::IGLDXInteropTexture* interop_texture;
         double_t duration;
         double_t time;
@@ -72,8 +72,8 @@ public:
         Player();
 
         void Ctrl();
-        void GetInteropTexture(texture*& ptr);
-        void UpdateInteropTexture(TaskMovie::PlayerVideoParams* player_video_params);
+        void GetGLTexture(texture*& pp);
+        void UpdateGLTexture(TaskMovie::PlayerVideoParams* player_video_params);
 
         static void Destroy(Player* ptr);
 

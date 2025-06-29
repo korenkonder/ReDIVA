@@ -11,105 +11,118 @@
 #include "wasapi_renderer.hpp"
 
 namespace MoviePlayLib {
-    struct MediaSessionState {
-        Lock lock;
-        std::atomic<State> state;
-        std::atomic<State> state_inner;
-        int32_t command_index_queue;
-        int32_t command_index;
+    struct StatusValue {
+        SlimLock m_lock;
+        std::atomic<Status> m_outerState;
+        std::atomic<Status> m_innerState;
+        int32_t m_outerToken;
+        int32_t m_innerToken;
 
-        inline MediaSessionState() : lock(), state(State::Init),
-            state_inner(State::Init), command_index_queue(), command_index() {
+        inline StatusValue() : m_lock(), m_outerState(Status_Initializing),
+            m_innerState(Status_Initializing), m_outerToken(), m_innerToken() {
 
         }
 
-        inline void SetStateAdvance(State state) {
-            lock.Acquire();
-            this->state = state;
-            command_index_queue++;
-            lock.Release();
+        inline void SetOuterState(Status state) {
+            m_lock.Acquire();
+            m_outerState = state;
+            m_outerToken++;
+            m_lock.Release();
         }
 
-        inline void SetInnerState(State state) {
-            lock.Acquire();
-            state_inner = state;
-            if (command_index == command_index_queue)
-                this->state = state;
-            lock.Release();
+        inline void SetInnerState(Status state) {
+            m_lock.Acquire();
+            m_innerState = state;
+            if (m_innerToken == m_outerToken)
+                m_outerState = state;
+            m_lock.Release();
         }
 
-        inline void SetInnerStateAdvance(State state) {
-            lock.Acquire();
-            state_inner = state;
-            if (++command_index == command_index_queue)
-                this->state = state;
-            lock.Release();
+        inline void SetInnerStateAdvance(Status state) {
+            m_lock.Acquire();
+            m_innerState = state;
+            if (++m_innerToken == m_outerToken)
+                m_outerState = state;
+            m_lock.Release();
         }
     };
 
     class MediaSession : public IUnknown {
+    public:
+        enum Command {
+            Command_Open = 0,
+            Command_SetPosition,
+            Command_Play,
+            Command_Pause,
+            Command_Shutdown,
+        };
+
     protected:
-        RefCount ref_count;
-        Lock lock;
-        DWORD dwQueue;
-        MediaSessionState state;
-        BOOL process;
-        MediaStatsLock media_stats_lock;
-        IMediaClock* media_clock;
-        IMediaSource* media_source;
-        IMediaTransform* audio_media_transform;
-        IMediaTransform* video_media_transform;
-        WASAPIRenderer* wasapi_renderer;
-        VideoRenderer* video_renderer;
-        GLDXInteropTexture* interop_texture;
-        int64_t duration;
-        int64_t audio_sample_time;
-        int64_t video_sample_time;
-        HANDLE hThread;
-        HANDLE hTimer;
-        HANDLE hEvent;
-        AsyncCallback<MediaSession> async_callback;
+        RefCount m_ref;
+        SlimLock m_lock;
+        DWORD m_workQID;
+        StatusValue m_status;
+        BOOL m_bScheduleStart;
+        PlayerStat_ m_rStat;
+        IMediaClock* m_pClock;
+        IMediaSource* m_pSource;
+        IMediaTransform* m_pAudioDecoder;
+        IMediaTransform* m_pVideoDecoder;
+        IAudioRenderer* m_pAudioRenderer;
+        VideoRenderer* m_pVideoRenderer;
+        GLDXInteropTexture* m_pInteropTexture;
+        int64_t m_hnsDuration;
+        int64_t m_hnsAudioPresentEndTime;
+        int64_t m_hnsVideoPresentEndTime;
+        HANDLE m_hIntervalThread;
+        HANDLE m_hIntervalTimer;
+        HANDLE m_hQuitEvent;
+        AsyncCallback<MediaSession> m_asynccb_OnProcessCommand;
 
     public:
         virtual HRESULT QueryInterface(const IID& riid, void** ppvObject) override;
         virtual ULONG AddRef() override;
         virtual ULONG Release() override;
 
-        MediaSession(HRESULT& hr, const wchar_t* path, IMediaClock* media_clock = 0);
+        MediaSession(HRESULT& hr, const wchar_t* filePath, IMediaClock* media_clock = 0);
         virtual ~MediaSession();
 
-        virtual HRESULT AsyncCallback(IMFAsyncResult* mf_async_result);
-        virtual HRESULT Close();
+        virtual HRESULT OnProcessCommand(IMFAsyncResult* pAsyncResult);
+        virtual HRESULT Shutdown();
         virtual HRESULT Play();
         virtual HRESULT Pause();
-        virtual HRESULT SetTime(double_t value);
-        virtual State GetState();
+        virtual HRESULT SetCurrentPosition(double_t pos);
+        virtual Status GetStatus();
         virtual double_t GetDuration();
-        virtual double_t GetTime();
-        virtual HRESULT GetAudioParams(AudioParams* value);
-        virtual HRESULT SetAudioParams(const AudioParams* value);
-        virtual HRESULT GetVideoParams(VideoParams* value);
-        virtual HRESULT GetD3D9Texture(IDirect3DDevice9* d3d_device, IDirect3DTexture9** ptr);
-        virtual HRESULT GetD3D11Texture(ID3D11Device* d3d_device, ID3D11Texture2D** ptr);
-        virtual HRESULT GetGLDXIntreropTexture(IGLDXInteropTexture** ptr);
+        virtual double_t GetCurrentPosition();
+        virtual HRESULT GetVolumes(AudioVolumes* out_volumes);
+        virtual HRESULT SetVolumes(const AudioVolumes* in_volumes);
+        virtual HRESULT GetVideoInfo(VideoInfo* out_info);
+        virtual HRESULT GetTextureD3D9Ex(IDirect3DDevice9* pDevice, IDirect3DTexture9** ppOutTexture);
+        virtual HRESULT GetTextureD3D11(ID3D11Device* pDevice, ID3D11Texture2D** ppOutTexture);
+        virtual HRESULT GetTextureOGL(IGLDXInteropTexture** ppOutTexture);
 
-        void GetSamplesCount();
-        void Process(const char* name, IMediaTransform* media_transform,
-            IMediaRenderer* media_renderer, int64_t process_time);
-        void SetProcessDisable();
-        void SetProcessEnable();
-        void Shutdown();
-        void Update();
-        HRESULT WaitSamplesLoad(uint32_t min_audio_samples_count, uint32_t min_video_samples_count);
+        void OnProcessSchedule();
+        void Scheduler_Stop();
+        void Scheduler_Start();
 
-        HRESULT open(const wchar_t* url);
-        HRESULT set_position(int64_t time);
+        void _on_shutdown();
+        void check_end_of_stream();
+        HRESULT open(const wchar_t* filePath);
+        void schedule_sample(const char* label, IMediaTransform* pDecoder,
+            IMediaRenderer* pRenderer, const int64_t preload);
+        HRESULT set_position(int64_t hnsTime);
+        HRESULT wait_buffering(const uint32_t audioCount, const uint32_t videoCount);
 
         static void Destroy(MediaSession* ptr);
-        static uint32_t __stdcall ThreadMain(MediaSession* media_session);
 
         inline void Destroy() {
             Destroy(this);
         }
+
+    protected:
+        virtual HRESULT _async_callback_func(IMFAsyncResult* pAsyncResult);
+
+        static uint32_t __stdcall _thread_proc(MediaSession* media_session);
     };
 }

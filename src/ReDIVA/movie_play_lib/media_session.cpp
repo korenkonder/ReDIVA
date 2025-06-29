@@ -37,663 +37,888 @@ namespace MoviePlayLib {
     }
 
     ULONG MediaSession::AddRef() {
-        return ++ref_count;
+        return ++m_ref;
     }
 
     ULONG MediaSession::Release() {
-        if (!--ref_count)
+        if (!--m_ref)
             Destroy();
-        return ref_count;
+        return m_ref;
     }
 
-    MediaSession::MediaSession(HRESULT& hr, const wchar_t* path, IMediaClock* media_clock) : ref_count(), lock(),
-        dwQueue(), state(), process(), media_stats_lock(), media_clock(), media_source(), audio_media_transform(),
-        video_media_transform(), wasapi_renderer(), video_renderer(), interop_texture(), duration(),
-        audio_sample_time(INT64_MAX), video_sample_time(INT64_MAX), hThread(), hTimer(), hEvent(), async_callback(this) {
-        MOVIE_PLAY_LIB_PRINT_FUNC_BEGIN;
+    MediaSession::MediaSession(HRESULT& hr, const wchar_t* filePath, IMediaClock* pClock) : m_ref(), m_lock(),
+        m_workQID(), m_status(), m_bScheduleStart(), m_rStat(), m_pClock(), m_pSource(), m_pAudioDecoder(),
+        m_pVideoDecoder(), m_pAudioRenderer(), m_pVideoRenderer(), m_pInteropTexture(), m_hnsDuration(),
+        m_hnsAudioPresentEndTime(INT64_MAX), m_hnsVideoPresentEndTime(INT64_MAX), m_hIntervalThread(),
+        m_hIntervalTimer(), m_hQuitEvent(), m_asynccb_OnProcessCommand(&MediaSession::_async_callback_func, this) {
+        MOVIE_PLAY_LIB_TRACE_BEGIN;
         mf_media_session_count_increment();
 
-        LARGE_INTEGER due_time;
-        CommandArgs* command_args;
+        LARGE_INTEGER dueTime;
+        CommandArgs* pCommandArgs;
         if (FAILED(hr))
             goto End;
 
-        if (media_clock) {
-            this->media_clock = media_clock;
-            media_clock->AddRef();
+        if (pClock) {
+            m_pClock = pClock;
+            pClock->AddRef();
         }
         else
-            hr = MediaClock::Create(this->media_clock);
+            hr = CreateClock(m_pClock);
 
         if (FAILED(hr))
             goto End;
 
-        hEvent = CreateEventA(0, TRUE, FALSE, 0);
-        if (!hEvent)
+        m_hQuitEvent = CreateEventA(0, TRUE, FALSE, 0);
+        if (!m_hQuitEvent)
             hr = HRESULT_FROM_WIN32(GetLastError());
 
         if (FAILED(hr))
             goto End;
 
-        hTimer = CreateWaitableTimerA(0, FALSE, 0);
-        if (!hTimer)
+        m_hIntervalTimer = CreateWaitableTimerA(0, FALSE, 0);
+        if (!m_hIntervalTimer)
             hr = HRESULT_FROM_WIN32(GetLastError());
 
         if (FAILED(hr))
             goto End;
 
-        due_time = {};
-        if (!SetWaitableTimer(hTimer, &due_time, 10, 0, 0, FALSE))
+        dueTime = {};
+        if (!SetWaitableTimer(m_hIntervalTimer, &dueTime, 10, 0, 0, FALSE))
             hr = HRESULT_FROM_WIN32(GetLastError());
 
         if (FAILED(hr))
             goto End;
 
-        hThread = (HANDLE)_beginthreadex(0, 0, (_beginthreadex_proc_type)MediaSession::ThreadMain, this, 0, 0);
-        if (!hThread)
+        m_hIntervalThread = (HANDLE)_beginthreadex(0, 0, (_beginthreadex_proc_type)MediaSession::_thread_proc, this, 0, 0);
+        if (!m_hIntervalThread)
             hr = HRESULT_FROM_WIN32(GetLastError());
 
         if (FAILED(hr))
             goto End;
 
-        hr = MFAllocateWorkQueue(&dwQueue);
-        command_args = 0;
+        hr = MFAllocateWorkQueue(&m_workQID);
+        pCommandArgs = 0;
         if (SUCCEEDED(hr)) {
-            hr = CommandArgs::Create(CommandArgs::Type::Open, command_args);
+            hr = CreateCommandArgs(MediaSession::Command_Open, pCommandArgs);
             if (SUCCEEDED(hr)) {
-                hr = command_args->SetPath(path);
+                hr = pCommandArgs->SetString(filePath);
                 if (SUCCEEDED(hr))
-                    hr = MFPutWorkItem(dwQueue, &async_callback, command_args);
+                    hr = MFPutWorkItem(m_workQID, &m_asynccb_OnProcessCommand, pCommandArgs);
             }
         }
 
-        if (command_args) {
-            command_args->Release();
-            command_args = 0;
+        if (pCommandArgs) {
+            pCommandArgs->Release();
+            pCommandArgs = 0;
         }
 
     End:
-        MOVIE_PLAY_LIB_PRINT_FUNC_END;
+        MOVIE_PLAY_LIB_TRACE_END;
     }
 
     MediaSession::~MediaSession() {
-        MOVIE_PLAY_LIB_PRINT_FUNC_BEGIN;
-        Shutdown();
+        MOVIE_PLAY_LIB_TRACE_BEGIN;
+        _on_shutdown();
 
-        if (hThread) {
-            SetEvent(hEvent);
-            WaitForSingleObject(hThread, INFINITE);
-            CloseHandle(hThread);
-            hThread = 0;
+        if (m_hIntervalThread) {
+            SetEvent(m_hQuitEvent);
+            WaitForSingleObject(m_hIntervalThread, INFINITE);
+            CloseHandle(m_hIntervalThread);
+            m_hIntervalThread = 0;
         }
 
-        if (hTimer) {
-            CloseHandle(hTimer);
-            hTimer = 0;
+        if (m_hIntervalTimer) {
+            CloseHandle(m_hIntervalTimer);
+            m_hIntervalTimer = 0;
         }
 
-        if (hEvent) {
-            CloseHandle(hEvent);
-            hEvent = 0;
+        if (m_hQuitEvent) {
+            CloseHandle(m_hQuitEvent);
+            m_hQuitEvent = 0;
         }
 
-        if (media_clock) {
-            media_clock->Release();
-            media_clock = 0;
+        if (m_pClock) {
+            m_pClock->Release();
+            m_pClock = 0;
         }
 
-        MFUnlockWorkQueue(dwQueue);
-        dwQueue = 0;
+        MFUnlockWorkQueue(m_workQID);
+        m_workQID = 0;
 
         mf_media_session_count_decrement();
-        MOVIE_PLAY_LIB_PRINT_FUNC_END;
+        MOVIE_PLAY_LIB_TRACE_END;
     }
 
-    HRESULT MediaSession::AsyncCallback(IMFAsyncResult* mf_async_result) {
-        IUnknown* object = 0;
-        CommandArgs* command_args = 0;
-        HRESULT hr = mf_async_result->GetState(&object);
+    HRESULT MediaSession::OnProcessCommand(IMFAsyncResult* pAsyncResult) {
+        IUnknown* pUnk = 0;
+        CommandArgs* pCommandArgs = 0;
+        HRESULT hr = pAsyncResult->GetState(&pUnk);
         if (FAILED(hr))
             goto End;
 
-        hr = object->QueryInterface(IID_PPV_ARGS(&command_args));
+        hr = pUnk->QueryInterface(IID_PPV_ARGS(&pCommandArgs));
         if (FAILED(hr))
             goto End;
 
-        switch (command_args->GetType()) {
-        case CommandArgs::Type::Open:
-            hr = open(command_args->GetPath());
+        switch (pCommandArgs->GetCommand()) {
+        case MediaSession::Command_Open:
+            hr = open(pCommandArgs->GetString());
             break;
-        case CommandArgs::Type::SetPosition:
-            hr = set_position(command_args->GetPosition());
+        case MediaSession::Command_SetPosition:
+            hr = set_position(pCommandArgs->GetValue());
 
-            state.SetInnerStateAdvance(state.state_inner);
+            m_status.SetInnerStateAdvance(m_status.m_innerState);
             break;
-        case CommandArgs::Type::Play:
-            if (wasapi_renderer)
-                wasapi_renderer->Open();
-            if (video_renderer)
-                video_renderer->Open();
+        case MediaSession::Command_Play:
+            if (m_pAudioRenderer)
+                m_pAudioRenderer->Open();
+            if (m_pVideoRenderer)
+                m_pVideoRenderer->Open();
 
-            SetProcessEnable();
+            Scheduler_Start();
 
-            Update();
+            OnProcessSchedule();
 
-            media_clock->TimeBegin();
+            m_pClock->Start();
 
-            state.SetInnerStateAdvance(State::Play);
+            m_status.SetInnerStateAdvance(Status_Stopping);
             break;
-        case CommandArgs::Type::Pause:
-            media_clock->TimeEnd();
+        case MediaSession::Command_Pause:
+            m_pClock->Stop();
 
-            SetProcessDisable();
+            Scheduler_Stop();
 
-            if (wasapi_renderer)
-                wasapi_renderer->Flush();
-            if (video_renderer)
-                video_renderer->Flush();
+            if (m_pAudioRenderer)
+                m_pAudioRenderer->Flush();
+            if (m_pVideoRenderer)
+                m_pVideoRenderer->Flush();
 
-            state.SetInnerStateAdvance(State::Pause);
+            m_status.SetInnerStateAdvance(Status_Started);
             break;
-        case CommandArgs::Type::Close:
-            Shutdown();
+        case MediaSession::Command_Shutdown:
+            _on_shutdown();
             break;
         }
 
     End:
-        if (command_args) {
-            command_args->Release();
-            command_args = 0;
+        if (pCommandArgs) {
+            pCommandArgs->Release();
+            pCommandArgs = 0;
         }
 
-        if (object) {
-            object->Release();
-            object = 0;
+        if (pUnk) {
+            pUnk->Release();
+            pUnk = 0;
         }
 
         if (FAILED(hr))
-            media_stats_lock.SetCurrError(hr, this);
+            m_rStat.SetError(hr, this);
 
-        return mf_async_result->SetStatus(hr);
+        return pAsyncResult->SetStatus(hr);
     }
 
-    HRESULT MediaSession::Close() {
-        lock.Acquire();
-        if (interop_texture) {
-            interop_texture->Release();
-            interop_texture = 0;
+    HRESULT MediaSession::Shutdown() {
+        m_lock.Acquire();
+        if (m_pInteropTexture) {
+            m_pInteropTexture->Release();
+            m_pInteropTexture = 0;
         }
 
-        if (dwQueue) {
-            CommandArgs* command_args = 0;
-            HRESULT hr = CommandArgs::Create(CommandArgs::Type::Close, command_args);
+        if (m_workQID) {
+            CommandArgs* pCommandArgs = 0;
+            HRESULT hr = CreateCommandArgs(MediaSession::Command_Shutdown, pCommandArgs);
             if (SUCCEEDED(hr))
-                MFPutWorkItem(dwQueue, &async_callback, command_args);
+                MFPutWorkItem(m_workQID, &m_asynccb_OnProcessCommand, pCommandArgs);
 
-            if (command_args) {
-                command_args->Release();
-                command_args = 0;
+            if (pCommandArgs) {
+                pCommandArgs->Release();
+                pCommandArgs = 0;
             }
         }
-        lock.Release();
+        m_lock.Release();
         return S_OK;
     }
 
     HRESULT MediaSession::Play() {
-        lock.Acquire();
+        m_lock.Acquire();
 
         HRESULT hr = S_OK;
-        switch (state.state) {
-        case State::None:
-        case State::Init:
+        switch (m_status.m_outerState) {
+        case Status_NotInitialized:
+        case Status_Initializing:
             hr = MF_E_INVALIDREQUEST;
             break;
-        case State::Open:
-        case State::Wait:
-        case State::Pause:
-        case State::Stop: {
-            CommandArgs* command_args = 0;
-            hr = CommandArgs::Create(CommandArgs::Type::Play, command_args);
+        case Status_Initialized:
+        case Status_Starting:
+        case Status_Started:
+        case Status_Stopped: {
+            CommandArgs* pCommandArgs = 0;
+            hr = CreateCommandArgs(MediaSession::Command_Play, pCommandArgs);
             if (SUCCEEDED(hr))
-                hr = MFPutWorkItem(dwQueue, &async_callback, command_args);
+                hr = MFPutWorkItem(m_workQID, &m_asynccb_OnProcessCommand, pCommandArgs);
 
-            if (command_args) {
-                command_args->Release();
-                command_args = 0;
+            if (pCommandArgs) {
+                pCommandArgs->Release();
+                pCommandArgs = 0;
             }
 
             if (SUCCEEDED(hr))
-                state.SetStateAdvance(State::Play);
+                m_status.SetOuterState(Status_Stopping);
         } break;
         }
 
-        lock.Release();
+        m_lock.Release();
         return hr;
     }
 
     HRESULT MediaSession::Pause() {
-        lock.Acquire();
+        m_lock.Acquire();
 
         HRESULT hr = S_OK;
-        switch (state.state) {
-        case State::None:
-        case State::Init:
+        switch (m_status.m_outerState) {
+        case Status_NotInitialized:
+        case Status_Initializing:
             hr = MF_E_INVALIDREQUEST;
             break;
-        case State::Open:
-        case State::Wait:
-        case State::Play:
-        case State::Stop: {
-            CommandArgs* command_args = 0;
-            hr = CommandArgs::Create(CommandArgs::Type::Pause, command_args);
+        case Status_Initialized:
+        case Status_Starting:
+        case Status_Stopping:
+        case Status_Stopped: {
+            CommandArgs* pCommandArgs = 0;
+            hr = CreateCommandArgs(MediaSession::Command_Pause, pCommandArgs);
             if (SUCCEEDED(hr))
-                hr = MFPutWorkItem(dwQueue, &async_callback, command_args);
+                hr = MFPutWorkItem(m_workQID, &m_asynccb_OnProcessCommand, pCommandArgs);
 
-            if (command_args) {
-                command_args->Release();
-                command_args = 0;
+            if (pCommandArgs) {
+                pCommandArgs->Release();
+                pCommandArgs = 0;
             }
 
-            if (SUCCEEDED(hr)) {
-                state.lock.Acquire();
-                state.state = State::Pause;
-                state.command_index_queue++;
-                state.lock.Release();
-            }
+            if (SUCCEEDED(hr))
+                m_status.SetOuterState(Status_Started);
         } break;
         }
 
-        lock.Release();
+        m_lock.Release();
         return hr;
     }
 
-    HRESULT MediaSession::SetTime(double_t value) {
-        lock.Acquire();
+    HRESULT MediaSession::SetCurrentPosition(double_t pos) {
+        m_lock.Acquire();
 
         HRESULT hr = S_OK;
-        switch (state.state) {
-        case State::None:
-        case State::Init:
+        switch (m_status.m_outerState) {
+        case Status_NotInitialized:
+        case Status_Initializing:
             hr = MF_E_INVALIDREQUEST;
             break;
-        case State::Open:
-        case State::Wait:
-        case State::Pause:
-        case State::Play:
-        case State::Stop: {
-            CommandArgs* command_args = 0;
-            hr = CommandArgs::Create(CommandArgs::Type::Pause, command_args);
+        case Status_Initialized:
+        case Status_Starting:
+        case Status_Started:
+        case Status_Stopping:
+        case Status_Stopped: {
+            CommandArgs* pCommandArgs = 0;
+            hr = CreateCommandArgs(MediaSession::Command_Pause, pCommandArgs);
             if (SUCCEEDED(hr)) {
-                hr = command_args->SetPosition((int64_t)prj::floor(value * 10000000.0));
+                hr = pCommandArgs->SetValue((int64_t)prj::floor(pos * 10000000.0));
                 if (SUCCEEDED(hr))
-                    hr = MFPutWorkItem(dwQueue, &async_callback, command_args);
+                    hr = MFPutWorkItem(m_workQID, &m_asynccb_OnProcessCommand, pCommandArgs);
             }
 
-            if (command_args) {
-                command_args->Release();
-                command_args = 0;
+            if (pCommandArgs) {
+                pCommandArgs->Release();
+                pCommandArgs = 0;
             }
 
             if (SUCCEEDED(hr))
-                state.SetStateAdvance(state.state);
+                m_status.SetOuterState(m_status.m_outerState);
         } break;
         }
 
-        lock.Release();
+        m_lock.Release();
         return hr;
     }
 
-    State MediaSession::GetState() {
-        return state.state;
+    Status MediaSession::GetStatus() {
+        return m_status.m_outerState;
     }
 
     double_t MediaSession::GetDuration() {
-        return (double_t)duration * 0.0000001;
+        return (double_t)m_hnsDuration * 0.0000001;
     }
 
-    double_t MediaSession::GetTime() {
-        return (double_t)media_clock->GetTime() * 0.0000001;
+    double_t MediaSession::GetCurrentPosition() {
+        return (double_t)m_pClock->GetTime() * 0.0000001;
     }
 
-    HRESULT MediaSession::GetAudioParams(AudioParams* value) {
-        if (!value)
+    HRESULT MediaSession::GetVolumes(AudioVolumes* out_volumes) {
+        if (!out_volumes)
             return E_POINTER;
-        else if (wasapi_renderer)
-            return wasapi_renderer->GetParams(value);
+        else if (m_pAudioRenderer)
+            return m_pAudioRenderer->GetVolumes(out_volumes);
         return S_OK;
     }
 
-    HRESULT MediaSession::SetAudioParams(const AudioParams* value) {
-        if (!value)
+    HRESULT MediaSession::SetVolumes(const AudioVolumes* in_volumes) {
+        if (!in_volumes)
             return E_POINTER;
-        else if (wasapi_renderer)
-            return wasapi_renderer->SetParams(value);
+        else if (m_pAudioRenderer)
+            return m_pAudioRenderer->SetVolumes(in_volumes);
         return S_OK;
     }
 
-    HRESULT MediaSession::GetVideoParams(VideoParams* value) {
-        if (!value)
+    HRESULT MediaSession::GetVideoInfo(VideoInfo* out_info) {
+        if (!out_info)
             return E_POINTER;
 
-        MoviePlayLib::MediaStats stats;
-        media_stats_lock.GetStats(stats);
+        MoviePlayLib::PlayerStat stats;
+        m_rStat.GetStats(stats);
 
-        value->width = stats.width;
-        value->height = stats.height;
-        value->frame_size_width = stats.frame_size_width;
-        value->frame_size_height = stats.frame_size_height;
-        value->frame_rate = stats.frame_rate;
-        value->pixel_aspect_ratio = stats.pixel_aspect_ratio;
+        out_info->present_width = stats.present_width;
+        out_info->present_height = stats.present_height;
+        out_info->raw_width = stats.raw_width;
+        out_info->raw_height = stats.raw_height;
+        out_info->framerate = stats.framerate;
+        out_info->pixelaspect = stats.pixelaspect;
         return S_OK;
     }
 
-    HRESULT MediaSession::GetD3D9Texture(IDirect3DDevice9* d3d_device, IDirect3DTexture9** ptr) {
-        if (!d3d_device || !ptr)
+    HRESULT MediaSession::GetTextureD3D9Ex(IDirect3DDevice9* pDevice, IDirect3DTexture9** ppOutTexture) {
+        if (!pDevice || !ppOutTexture)
             return E_POINTER;
 
-        *ptr = 0;
+        *ppOutTexture = 0;
 
         HRESULT hr = S_FALSE;
-        if (!video_renderer)
+        if (!m_pVideoRenderer)
             return hr;
 
-        Update();
+        OnProcessSchedule();
 
-        IMFSample* mf_sample = 0;
-        HRESULT mf_sample_hr = video_renderer->GetMFSample(&mf_sample);
-        if (mf_sample) {
-            const int64_t time_begin = GetTimestamp();
+        IMFSample* pSample = 0;
+        HRESULT hrSample = m_pVideoRenderer->GetSample(&pSample);
+        if (pSample) {
+            const int64_t timeBegin = GetTimestamp();
 
-            HANDLE shared_handle = 0;
-            IMFMediaBuffer* mf_media_buffer = 0;
-            IDirect3DTexture9* dx_texture = 0;
+            HANDLE wddmShareHandle = 0;
+            IMFMediaBuffer* pMediaBuffer = 0;
+            IDirect3DTexture9* pDXTexture = 0;
             D3DSURFACE_DESC desc = {};
 
-            hr = mf_sample->GetUINT64(TextureSharedHandleGUID, (UINT64*)&shared_handle);
+            hr = pSample->GetUINT64(WDDM_SHARED_HANDLE, (UINT64*)&wddmShareHandle);
             if (FAILED(hr))
                 goto End;
 
-            hr = mf_sample->GetBufferByIndex(0, &mf_media_buffer);
+            hr = pSample->GetBufferByIndex(0, &pMediaBuffer);
             if (FAILED(hr))
                 goto End;
 
-            hr = mf_media_buffer->QueryInterface(IID_PPV_ARGS(&dx_texture));
+            hr = pMediaBuffer->QueryInterface(IID_PPV_ARGS(&pDXTexture));
             if (FAILED(hr))
                 goto End;
 
-            hr = dx_texture->GetLevelDesc(0, &desc);
+            hr = pDXTexture->GetLevelDesc(0, &desc);
             if (SUCCEEDED(hr))
-                hr = d3d_device->CreateTexture(desc.Width, desc.Height, 1,
-                    desc.Usage, desc.Format, desc.Pool, ptr, &shared_handle);
+                hr = pDevice->CreateTexture(desc.Width, desc.Height, 1,
+                    desc.Usage, desc.Format, desc.Pool, ppOutTexture, &wddmShareHandle);
 
         End:
-            if (dx_texture) {
-                dx_texture->Release();
-                dx_texture = 0;
+            if (pDXTexture) {
+                pDXTexture->Release();
+                pDXTexture = 0;
             }
 
-            if (mf_media_buffer) {
-                mf_media_buffer->Release();
-                mf_media_buffer = 0;
+            if (pMediaBuffer) {
+                pMediaBuffer->Release();
+                pMediaBuffer = 0;
             }
 
-            if (mf_sample) {
-                mf_sample->Release();
-                mf_sample = 0;
+            if (pSample) {
+                pSample->Release();
+                pSample = 0;
             }
 
-            const int64_t time_end = GetTimestamp();
+            const int64_t timeEnd = GetTimestamp();
 
-            media_stats_lock.SetVideoOutputTime(CalcTimeMsec(time_begin, time_end));
+            m_rStat.SetVideoLockElapse(CalcTimeMsec(timeBegin, timeEnd));
         }
 
         if (SUCCEEDED(hr))
-            hr = mf_sample_hr;
+            hr = hrSample;
         return hr;
     }
 
-    HRESULT MediaSession::GetD3D11Texture(ID3D11Device* d3d_device, ID3D11Texture2D** ptr) {
-        if (!d3d_device || !ptr)
+    HRESULT MediaSession::GetTextureD3D11(ID3D11Device* pDevice, ID3D11Texture2D** ppOutTexture) {
+        if (!pDevice || !ppOutTexture)
             return E_POINTER;
 
-        *ptr = 0;
+        *ppOutTexture = 0;
 
         HRESULT hr = S_FALSE;
-        if (!video_renderer)
+        if (!m_pVideoRenderer)
             return hr;
 
-        Update();
+        OnProcessSchedule();
 
-        IMFSample* mf_sample = 0;
-        HRESULT mf_sample_hr = video_renderer->GetMFSample(&mf_sample);
-        if (mf_sample) {
-            const int64_t time_begin = GetTimestamp();
+        IMFSample* pSample = 0;
+        HRESULT hrSample = m_pVideoRenderer->GetSample(&pSample);
+        if (pSample) {
+            const int64_t timeBegin = GetTimestamp();
 
-            HANDLE shared_handle = 0;
-            hr = mf_sample->GetUINT64(TextureSharedHandleGUID, (UINT64*)&shared_handle);
+            HANDLE wddmShareHandle = 0;
+            hr = pSample->GetUINT64(WDDM_SHARED_HANDLE, (UINT64*)&wddmShareHandle);
             if (SUCCEEDED(hr))
-                hr = d3d_device->OpenSharedResource(shared_handle, IID_PPV_ARGS(ptr));
+                hr = pDevice->OpenSharedResource(wddmShareHandle, IID_PPV_ARGS(ppOutTexture));
 
-            if (mf_sample) {
-                mf_sample->Release();
-                mf_sample = 0;
+            if (pSample) {
+                pSample->Release();
+                pSample = 0;
             }
 
-            const int64_t time_end = GetTimestamp();
+            const int64_t timeEnd = GetTimestamp();
 
-            media_stats_lock.SetVideoOutputTime(CalcTimeMsec(time_begin, time_end));
+            m_rStat.SetVideoLockElapse(CalcTimeMsec(timeBegin, timeEnd));
         }
 
         if (SUCCEEDED(hr))
-            hr = mf_sample_hr;
+            hr = hrSample;
         return hr;
     }
 
-    HRESULT MediaSession::GetGLDXIntreropTexture(IGLDXInteropTexture** ptr) {
-        if (!ptr)
+    HRESULT MediaSession::GetTextureOGL(IGLDXInteropTexture** ppOutTexture) {
+        if (!ppOutTexture)
             return E_POINTER;
 
-        *ptr = 0;
+        *ppOutTexture = 0;
 
         HRESULT hr = S_FALSE;
-        if (!video_renderer)
+        if (!m_pVideoRenderer)
             return hr;
 
-        Update();
+        OnProcessSchedule();
 
-        if (!interop_texture) {
-            hr = GLDXInteropTexture::Create(interop_texture);
+        if (!m_pInteropTexture) {
+            hr = CreateGLDXInteropTexture(m_pInteropTexture);
             if (FAILED(hr))
                 return hr;
         }
 
-        IMFSample* mf_sample = 0;
-        HRESULT mf_sample_hr = video_renderer->GetMFSample(&mf_sample);
-        if (mf_sample) {
-            const int64_t time_begin = GetTimestamp();
+        IMFSample* pSample = 0;
+        HRESULT hrSample = m_pVideoRenderer->GetSample(&pSample);
+        if (pSample) {
+            const int64_t timeBegin = GetTimestamp();
 
-            hr = interop_texture->SetMFSample(mf_sample);
+            hr = m_pInteropTexture->SetSample(pSample);
             if (SUCCEEDED(hr)) {
-                *ptr = interop_texture;
-                interop_texture->AddRef();
+                *ppOutTexture = m_pInteropTexture;
+                m_pInteropTexture->AddRef();
             }
 
-            if (mf_sample) {
-                mf_sample->Release();
-                mf_sample = 0;
+            if (pSample) {
+                pSample->Release();
+                pSample = 0;
             }
 
-            const int64_t time_end = GetTimestamp();
+            const int64_t timeEnd = GetTimestamp();
 
-            media_stats_lock.SetVideoOutputTime(CalcTimeMsec(time_begin, time_end));
+            m_rStat.SetVideoLockElapse(CalcTimeMsec(timeBegin, timeEnd));
         }
 
         if (SUCCEEDED(hr))
-            hr = mf_sample_hr;
+            hr = hrSample;
         return hr;
     }
 
-    void MediaSession::GetSamplesCount() {
-        uint32_t audio_mf_samples_wait_count = 0;
-        uint32_t video_mf_samples_wait_count = 0;
-        uint32_t audio_mf_samples_count = 0;
-        uint32_t video_mf_samples_count = 0;
+    void MediaSession::OnProcessSchedule() {
+        m_lock.Acquire();
+        if (m_bScheduleStart) {
+            if (m_status.m_innerState == Status_Stopping) {
+                schedule_sample("Audio", m_pAudioDecoder, m_pAudioRenderer, 500000);
+                schedule_sample("Video", m_pVideoDecoder, m_pVideoRenderer, 100000);
+                check_end_of_stream();
+            }
+        }
+
+        if (m_rStat.HasError())
+            m_status.SetInnerState(Status_NotInitialized);
+        m_lock.Release();
+    }
+
+    void MediaSession::Scheduler_Stop() {
+        m_lock.Acquire();
+        m_bScheduleStart = FALSE;
+        m_lock.Release();
+    }
+
+    void MediaSession::Scheduler_Start() {
+        m_lock.Acquire();
+        m_bScheduleStart = TRUE;
+        m_lock.Release();
+    }
+
+    void MediaSession::_on_shutdown() {
+        Scheduler_Stop();
+
+        if (m_hIntervalThread) {
+            SetEvent(m_hQuitEvent);
+            WaitForSingleObject(m_hIntervalThread, INFINITE);
+        }
+
+        if (m_pVideoRenderer)
+            m_pVideoRenderer->Shutdown();
+        if (m_pAudioRenderer)
+            m_pAudioRenderer->Shutdown();
+        if (m_pVideoDecoder)
+            m_pVideoDecoder->Shutdown();
+        if (m_pAudioDecoder)
+            m_pAudioDecoder->Shutdown();
+        if (m_pSource)
+            m_pSource->Shutdown();
+
+        if (m_pAudioRenderer) {
+            m_pAudioRenderer->Release();
+            m_pAudioRenderer = 0;
+        }
+
+        if (m_pVideoRenderer) {
+            m_pVideoRenderer->Release();
+            m_pVideoRenderer = 0;
+        }
+
+        if (m_pVideoDecoder) {
+            m_pVideoDecoder->Release();
+            m_pVideoDecoder = 0;
+        }
+
+        if (m_pAudioDecoder) {
+            m_pAudioDecoder->Release();
+            m_pAudioDecoder = 0;
+        }
+
+        if (m_pSource) {
+            m_pSource->Release();
+            m_pSource = 0;
+        }
+
+        m_status.SetInnerState(Status_NotInitialized);
+    }
+
+    void MediaSession::check_end_of_stream() {
+        uint32_t source_audio_queue_count = 0;
+        uint32_t source_video_queue_count = 0;
+        uint32_t decode_audio_queue_count = 0;
+        uint32_t decode_video_queue_count = 0;
 
         BOOL stop = FALSE;
-        int64_t time = media_clock->GetTime();
+        int64_t time = m_pClock->GetTime();
 
-        if (audio_media_transform) {
-            audio_mf_samples_wait_count = audio_media_transform->GetMFSamplesWaitCount();
-            audio_mf_samples_count = audio_media_transform->GetMFSamplesCount();
-            if (audio_media_transform->CanShutdown()
-                && (audio_sample_time == INT64_MAX || audio_sample_time <= time))
+        if (m_pAudioDecoder) {
+            source_audio_queue_count = m_pAudioDecoder->GetInputQueueCount();
+            decode_audio_queue_count = m_pAudioDecoder->GetOutputQueueCount();
+            if (m_pAudioDecoder->IsEndOfStream()
+                && (m_hnsAudioPresentEndTime == INT64_MAX || m_hnsAudioPresentEndTime <= time))
                 stop = TRUE;
         }
 
-        if (video_media_transform) {
-            video_mf_samples_wait_count = video_media_transform->GetMFSamplesWaitCount();
-            video_mf_samples_count = video_media_transform->GetMFSamplesCount();
-            if (video_media_transform->CanShutdown()
-                && (video_sample_time == INT64_MAX || video_sample_time <= time))
+        if (m_pVideoDecoder) {
+            source_video_queue_count = m_pVideoDecoder->GetInputQueueCount();
+            decode_video_queue_count = m_pVideoDecoder->GetOutputQueueCount();
+            if (m_pVideoDecoder->IsEndOfStream()
+                && (m_hnsVideoPresentEndTime == INT64_MAX || m_hnsVideoPresentEndTime <= time))
                 stop = TRUE;
         }
 
         if (stop)
-            state.SetInnerState(State::Stop);
+            m_status.SetInnerState(Status_Stopped);
 
-        media_stats_lock.SetMFSamplesCount(audio_mf_samples_wait_count,
-            video_mf_samples_wait_count, audio_mf_samples_count, video_mf_samples_count);
+        m_rStat.SetSamplesCount(source_audio_queue_count,
+            source_video_queue_count, decode_audio_queue_count, decode_video_queue_count);
     }
 
-    void MediaSession::Process(const char* name, IMediaTransform* media_transform,
-        IMediaRenderer* media_renderer, int64_t process_time) {
-        if (!media_transform)
+    HRESULT MediaSession::open(const wchar_t* filePath) {
+        MOVIE_PLAY_LIB_TRACE_BEGIN;
+        IMFMediaType* pAudioMediaType = 0;
+        IMFMediaType* pVideoMediaType = 0;
+        IDirect3DDeviceManager9* pDeviceManager = 0;
+        IDirect3DDevice9Ex* pDevice = 0;
+        HRESULT hr;
+
+        const int64_t time0Begin = GetTimestamp();
+        hr = CreateMediaSource(m_rStat, m_pClock, filePath, m_pSource);
+        if (SUCCEEDED(hr)) {
+            m_pSource->GetAudioMediaType(&pAudioMediaType);
+            m_pSource->GetVideoMediaType(&pVideoMediaType);
+        }
+
+        if (pVideoMediaType && SUCCEEDED(hr)) {
+            IDirect3D9Ex* pDeviceTemp = 0;
+            hr = Direct3DCreate9Ex(D3D_SDK_VERSION, &pDeviceTemp);
+
+            D3DPRESENT_PARAMETERS presentParam = {};
+            presentParam.BackBufferWidth = 1;
+            presentParam.BackBufferHeight = 1;
+            presentParam.BackBufferFormat = D3DFMT_UNKNOWN;
+            presentParam.Windowed = TRUE;
+            presentParam.SwapEffect = D3DSWAPEFFECT_COPY;
+            presentParam.Flags = D3DPRESENTFLAG_VIDEO;
+
+            UINT resetToken = 0;
+            D3DCAPS9 caps = {};
+            if (SUCCEEDED(hr))
+                hr = pDeviceTemp->GetDeviceCaps(0, D3DDEVTYPE_HAL, &caps);
+
+            DWORD behaviorFlags;
+            if (caps.DevCaps & D3DDEVCAPS_HWTRANSFORMANDLIGHT)
+                behaviorFlags = D3DCREATE_NOWINDOWCHANGES | D3DCREATE_HARDWARE_VERTEXPROCESSING
+                    | D3DCREATE_MULTITHREADED | D3DCREATE_FPU_PRESERVE;
+            else
+                behaviorFlags = D3DCREATE_NOWINDOWCHANGES | D3DCREATE_SOFTWARE_VERTEXPROCESSING
+                    | D3DCREATE_MULTITHREADED | D3DCREATE_FPU_PRESERVE;
+
+            if (SUCCEEDED(hr)) {
+                hr = pDeviceTemp->CreateDeviceEx(0, D3DDEVTYPE_HAL, presentParam.hDeviceWindow,
+                    behaviorFlags, &presentParam, 0, &pDevice);
+                if (SUCCEEDED(hr)) {
+                    hr = DXVA2CreateDirect3DDeviceManager9(&resetToken, &pDeviceManager);
+                    if (SUCCEEDED(hr))
+                        hr = pDeviceManager->ResetDevice(pDevice, resetToken);
+                }
+            }
+
+            if (pDeviceTemp) {
+                pDeviceTemp->Release();
+                pDeviceTemp = 0;
+            }
+
+            if (SUCCEEDED(hr)) {
+                hr = CreateVideoDecoder(m_rStat, m_pClock, m_pSource,
+                    pDeviceManager, pDevice, m_pVideoDecoder);
+                if (SUCCEEDED(hr)) {
+                    hr = m_pSource->SetVideoDecoder(m_pVideoDecoder);
+                    if (SUCCEEDED(hr))
+                        hr = CreateVideoRenderer(m_pClock, m_pVideoRenderer);
+                }
+            }
+        }
+
+        if (pAudioMediaType && SUCCEEDED(hr)) {
+            hr = CreateAudioDecoder(m_rStat, m_pClock, m_pSource, m_pAudioDecoder);
+            if (SUCCEEDED(hr)) {
+                hr = m_pSource->SetAudioDecoder(m_pAudioDecoder);
+                if (SUCCEEDED(hr)) {
+                    uint32_t channelCount = 0;
+                    uint32_t sampleFrequency = 0;
+                    hr = pAudioMediaType->GetUINT32(MF_MT_AUDIO_NUM_CHANNELS, &channelCount);
+                    if (SUCCEEDED(hr)) {
+                        hr = pAudioMediaType->GetUINT32(MF_MT_AUDIO_SAMPLES_PER_SECOND, &sampleFrequency);
+                        if (SUCCEEDED(hr))
+                            hr = CreateWASAPIRenderer(m_pClock, sampleFrequency, channelCount, m_pAudioRenderer);
+                    }
+                }
+            }
+        }
+
+        if ((pVideoMediaType || pAudioMediaType) && SUCCEEDED(hr)) {
+            m_hnsDuration = m_pSource->GetDuration();
+            m_rStat.SetSessionInfo((double_t)m_hnsDuration * 0.0000001,
+                !!m_pAudioDecoder, !!m_pVideoDecoder);
+        }
+
+        if (pDevice) {
+            pDevice->Release();
+            pDevice = 0;
+        }
+
+        if (pDeviceManager) {
+            pDeviceManager->Release();
+            pDeviceManager = 0;
+        }
+
+        if (pVideoMediaType) {
+            pVideoMediaType->Release();
+            pVideoMediaType = 0;
+        }
+
+        if (pAudioMediaType) {
+            pAudioMediaType->Release();
+            pAudioMediaType = 0;
+        }
+        const int64_t time0End = GetTimestamp();
+
+        const double_t time0 = CalcTimeMsec(time0Begin, time0End);
+
+        const int64_t time1Begin = GetTimestamp();
+        if (SUCCEEDED(hr)) {
+            hr = m_pClock->Stop();
+            if (SUCCEEDED(hr)) {
+                hr = m_pClock->SetTime(0);
+                if (SUCCEEDED(hr))
+                    hr = m_pSource->Start(0i64);
+            }
+
+            if (m_pAudioDecoder && SUCCEEDED(hr))
+                hr = m_pAudioDecoder->Open();
+
+            if (m_pVideoDecoder && SUCCEEDED(hr))
+                hr = m_pVideoDecoder->Open();
+
+            if (m_pAudioRenderer && SUCCEEDED(hr))
+                hr = m_pAudioRenderer->Open();
+
+            if (m_pVideoRenderer && SUCCEEDED(hr))
+                hr = m_pVideoRenderer->Open();
+        }
+        const int64_t time1End = GetTimestamp();
+
+        const double_t time1 = CalcTimeMsec(time1Begin, time1End);
+
+        const int64_t time2Begin = GetTimestamp();
+        if (SUCCEEDED(hr))
+            hr = wait_buffering(5, 5);
+        const int64_t time2End = GetTimestamp();
+
+        const double_t time2 = CalcTimeMsec(time2Begin, time2End);
+
+        if (SUCCEEDED(hr))
+            m_status.SetInnerState(Status_Initialized);
+        else
+            m_status.SetInnerState(Status_NotInitialized);
+        MOVIE_PLAY_LIB_TRACE_END;
+        return hr;
+    }
+
+    void MediaSession::schedule_sample(const char* label, IMediaTransform* pDecoder,
+        IMediaRenderer* pRenderer, const int64_t preload) {
+        if (!pDecoder)
             return;
 
-        int64_t time = media_clock->GetTime();
-        for (int64_t sample_time = media_transform->GetSampleTime();
-            sample_time - process_time <= time;
-            sample_time = media_transform->GetSampleTime()) {
-            IMFSample* mf_sample = 0;
-            media_transform->GetMFSample(mf_sample);
-            if (!mf_sample)
+        int64_t time = m_pClock->GetTime();
+        for (int64_t hnsSampleTime = pDecoder->PeekSampleTime();
+            hnsSampleTime - preload <= time;
+            hnsSampleTime = pDecoder->PeekSampleTime()) {
+            IMFSample* pSample = 0;
+            pDecoder->GetSample(pSample);
+            if (!pSample)
                 break;
 
-            int64_t sample_duration = 0;
-            mf_sample->GetSampleDuration(&sample_duration);
-            if (sample_time + sample_duration > time) {
-                if (media_renderer)
-                    media_renderer->SetMFSample(mf_sample);
+            int64_t hnsSampleDuration = 0;
+            pSample->GetSampleDuration(&hnsSampleDuration);
+            if (hnsSampleTime + hnsSampleDuration > time) {
+                if (pRenderer)
+                    pRenderer->ProcessSample(pSample);
 
-                if (mf_sample) {
-                    mf_sample->Release();
-                    mf_sample = 0;
+                if (pSample) {
+                    pSample->Release();
+                    pSample = 0;
                 }
 
-                media_transform->SignalEvent();
-                if (media_transform == audio_media_transform) {
-                    audio_sample_time = sample_time + sample_duration;
+                pDecoder->RequestSample();
+                if (pDecoder == m_pAudioDecoder) {
+                    m_hnsAudioPresentEndTime = hnsSampleTime + hnsSampleDuration;
 
-                    media_stats_lock.SetAudioTimeAdvance((double_t)(time - sample_time) * 0.0001);
+                    m_rStat.SetScheduleAudioDrift((double_t)(time - hnsSampleTime) * 0.0001);
                 }
                 else {
-                    video_sample_time = sample_time + sample_duration;
+                    m_hnsVideoPresentEndTime = hnsSampleTime + hnsSampleDuration;
 
-                    media_stats_lock.SetVideoTimeAdvance((double_t)(time - sample_time) * 0.0001);
+                    m_rStat.SetScheduleVideoDrift((double_t)(time - hnsSampleTime) * 0.0001);
                 }
             }
 
-            if (mf_sample) {
-                mf_sample->Release();
-                mf_sample = 0;
+            if (pSample) {
+                pSample->Release();
+                pSample = 0;
             }
         }
     }
 
-    void MediaSession::SetProcessDisable() {
-        lock.Acquire();
-        process = FALSE;
-        lock.Release();
+    HRESULT MediaSession::set_position(int64_t hnsTime) {
+        MOVIE_PLAY_LIB_TRACE_BEGIN;
+        hnsTime = clamp_def(hnsTime, 0, m_hnsDuration);
+
+        const int64_t timeBegin = GetTimestamp();
+
+        HRESULT hr = m_pClock->Stop();
+        if (SUCCEEDED(hr))
+            hr = m_pSource->Stop();
+
+        Scheduler_Stop();
+
+        if (m_pAudioDecoder && SUCCEEDED(hr))
+            hr = m_pAudioDecoder->Flush();
+        if (m_pVideoDecoder && SUCCEEDED(hr))
+            hr = m_pVideoDecoder->Flush();
+        if (m_pAudioRenderer && SUCCEEDED(hr))
+            hr = m_pAudioRenderer->Flush();
+        if (m_pVideoRenderer && SUCCEEDED(hr))
+            hr = m_pVideoRenderer->Flush();
+
+        if (m_pAudioDecoder && SUCCEEDED(hr))
+            hr = m_pAudioDecoder->Close();
+        if (m_pVideoDecoder && SUCCEEDED(hr))
+            hr = m_pVideoDecoder->Close();
+        if (m_pAudioRenderer && SUCCEEDED(hr))
+            hr = m_pAudioRenderer->Close();
+        if (m_pVideoRenderer && SUCCEEDED(hr))
+            hr = m_pVideoRenderer->Close();
+
+        if (SUCCEEDED(hr))
+            hr = m_pClock->SetTime(hnsTime);
+
+        if (m_pAudioDecoder && SUCCEEDED(hr))
+            hr = m_pAudioDecoder->Open();
+        if (m_pVideoDecoder && SUCCEEDED(hr))
+            hr = m_pVideoDecoder->Open();
+        if (m_pAudioRenderer && SUCCEEDED(hr))
+            hr = m_pAudioRenderer->Open();
+        if (m_pVideoRenderer && SUCCEEDED(hr))
+            hr = m_pVideoRenderer->Open();
+
+        if (FAILED(hr))
+            goto End;
+
+        hr = m_pSource->Start(hnsTime);
+        if (FAILED(hr))
+            goto End;
+
+        hr = wait_buffering(2, 2);
+        if (SUCCEEDED(hr)) {
+            IMediaTransform* pDecoder = 0;
+            if (m_pVideoDecoder && m_pVideoDecoder->GetOutputQueueCount())
+                pDecoder = m_pVideoDecoder;
+            else if (m_pAudioDecoder && m_pAudioDecoder->GetOutputQueueCount())
+                pDecoder = m_pAudioDecoder;
+
+            if (pDecoder)
+                hnsTime = pDecoder->PeekSampleTime();
+
+            hr = m_pClock->SetTime(hnsTime);
+        }
+
+    End:
+        const int64_t timeEnd = GetTimestamp();
+
+        const double_t _time = CalcTimeMsec(timeBegin, timeEnd);
+
+        if (SUCCEEDED(hr) && m_status.m_innerState == Status_Stopping) {
+            Scheduler_Start();
+            hr = m_pClock->Start();
+        }
+        MOVIE_PLAY_LIB_TRACE_END;
+        return hr;
     }
 
-    void MediaSession::SetProcessEnable() {
-        lock.Acquire();
-        process = TRUE;
-        lock.Release();
-    }
-
-    void MediaSession::Shutdown() {
-        SetProcessDisable();
-
-        if (hThread) {
-            SetEvent(hEvent);
-            WaitForSingleObject(hThread, INFINITE);
-        }
-
-        if (video_renderer)
-            video_renderer->Shutdown();
-        if (wasapi_renderer)
-            wasapi_renderer->Shutdown();
-        if (video_media_transform)
-            video_media_transform->Shutdown();
-        if (audio_media_transform)
-            audio_media_transform->Shutdown();
-        if (media_source)
-            media_source->Shutdown();
-
-        if (wasapi_renderer) {
-            wasapi_renderer->Release();
-            wasapi_renderer = 0;
-        }
-
-        if (video_renderer) {
-            video_renderer->Release();
-            video_renderer = 0;
-        }
-
-        if (video_media_transform) {
-            video_media_transform->Release();
-            video_media_transform = 0;
-        }
-
-        if (audio_media_transform) {
-            audio_media_transform->Release();
-            audio_media_transform = 0;
-        }
-
-        if (media_source) {
-            media_source->Release();
-            media_source = 0;
-        }
-
-        state.SetInnerState(State::None);
-    }
-
-    void MediaSession::Update() {
-        lock.Acquire();
-        if (process) {
-            if (state.state_inner == State::Play) {
-                Process("Audio", audio_media_transform, wasapi_renderer, 500000);
-                Process("Video", video_media_transform, video_renderer, 100000);
-                GetSamplesCount();
-            }
-        }
-
-        if (media_stats_lock.HasError())
-            state.SetInnerState(State::None);
-        lock.Release();
-    }
-
-    HRESULT MediaSession::WaitSamplesLoad(uint32_t min_audio_samples_count, uint32_t min_video_samples_count) {
+    HRESULT MediaSession::wait_buffering(const uint32_t audioCount, const uint32_t videoCount) {
         ULONGLONG tick_start = GetTickCount64();
         while (true) {
             BOOL ready = TRUE;
-            if (audio_media_transform && !audio_media_transform->CanShutdown()
-                && audio_media_transform->GetMFSamplesCount() < min_audio_samples_count)
+            if (m_pAudioDecoder && !m_pAudioDecoder->IsEndOfStream()
+                && m_pAudioDecoder->GetOutputQueueCount() < audioCount)
                 ready = FALSE;
 
-            if (video_media_transform && !video_media_transform->CanShutdown()
-                && video_media_transform->GetMFSamplesCount() < min_audio_samples_count)
+            if (m_pVideoDecoder && !m_pVideoDecoder->IsEndOfStream()
+                && m_pVideoDecoder->GetOutputQueueCount() < videoCount)
                 ready = FALSE;
 
             if (ready)
@@ -707,234 +932,6 @@ namespace MoviePlayLib {
         return S_OK;
     }
 
-    HRESULT MediaSession::open(const wchar_t* url) {
-        MOVIE_PLAY_LIB_PRINT_FUNC_BEGIN;
-        IMFMediaType* audio_mf_media_type = 0;
-        IMFMediaType* video_mf_media_type = 0;
-        IDirect3DDeviceManager9* d3d_device_manager = 0;
-        IDirect3DDevice9Ex* d3d_device = 0;
-        HRESULT hr;
-
-        const int64_t time0_begin = GetTimestamp();
-        hr = MediaSource::Create(&media_stats_lock, media_clock, url, media_source);
-        if (SUCCEEDED(hr)) {
-            media_source->GetAudioMFMediaType(&audio_mf_media_type);
-            media_source->GetVideoMFMediaType(&video_mf_media_type);
-        }
-
-        if (video_mf_media_type && SUCCEEDED(hr)) {
-            IDirect3D9Ex* d3d_device_temp = 0;
-            hr = Direct3DCreate9Ex(D3D_SDK_VERSION, &d3d_device_temp);
-
-            D3DPRESENT_PARAMETERS present_param = {};
-            present_param.BackBufferWidth = 1;
-            present_param.BackBufferHeight = 1;
-            present_param.BackBufferFormat = D3DFMT_UNKNOWN;
-            present_param.Windowed = TRUE;
-            present_param.SwapEffect = D3DSWAPEFFECT_COPY;
-            present_param.Flags = D3DPRESENTFLAG_VIDEO;
-
-            UINT reset_token = 0;
-            D3DCAPS9 caps = {};
-            if (SUCCEEDED(hr))
-                hr = d3d_device_temp->GetDeviceCaps(0, D3DDEVTYPE_HAL, &caps);
-
-            DWORD d3d_device_flags;
-            if (caps.DevCaps & D3DDEVCAPS_HWTRANSFORMANDLIGHT)
-                d3d_device_flags = D3DCREATE_NOWINDOWCHANGES | D3DCREATE_HARDWARE_VERTEXPROCESSING
-                    | D3DCREATE_MULTITHREADED | D3DCREATE_FPU_PRESERVE;
-            else
-                d3d_device_flags = D3DCREATE_NOWINDOWCHANGES | D3DCREATE_SOFTWARE_VERTEXPROCESSING
-                    | D3DCREATE_MULTITHREADED | D3DCREATE_FPU_PRESERVE;
-
-            if (SUCCEEDED(hr)) {
-                hr = d3d_device_temp->CreateDeviceEx(0, D3DDEVTYPE_HAL, present_param.hDeviceWindow,
-                    d3d_device_flags, &present_param, 0, &d3d_device);
-                if (SUCCEEDED(hr)) {
-                    hr = DXVA2CreateDirect3DDeviceManager9(&reset_token, &d3d_device_manager);
-                    if (SUCCEEDED(hr))
-                        hr = d3d_device_manager->ResetDevice(d3d_device, reset_token);
-                }
-            }
-
-            if (d3d_device_temp) {
-                d3d_device_temp->Release();
-                d3d_device_temp = 0;
-            }
-
-            if (SUCCEEDED(hr)) {
-                hr = VideoDecoder::Create(&media_stats_lock, media_clock, media_source,
-                    d3d_device_manager, d3d_device, video_media_transform);
-                if (SUCCEEDED(hr)) {
-                    hr = media_source->SetVideoMediaTransform(video_media_transform);
-                    if (SUCCEEDED(hr))
-                        hr = VideoRenderer::Create(media_clock, video_renderer);
-                }
-            }
-        }
-
-        if (audio_mf_media_type && SUCCEEDED(hr)) {
-            hr = AudioDecoder::Create(&media_stats_lock, media_clock, media_source, audio_media_transform);
-            if (SUCCEEDED(hr)) {
-                hr = media_source->SetAudioMediaTransform(audio_media_transform);
-                if (SUCCEEDED(hr)) {
-                    uint32_t channels = 0;
-                    uint32_t sample_rate = 0;
-                    hr = audio_mf_media_type->GetUINT32(MF_MT_AUDIO_NUM_CHANNELS, &channels);
-                    if (SUCCEEDED(hr)) {
-                        hr = audio_mf_media_type->GetUINT32(MF_MT_AUDIO_SAMPLES_PER_SECOND, &sample_rate);
-                        if (SUCCEEDED(hr))
-                            hr = WASAPIRenderer::Create(media_clock, sample_rate, channels, wasapi_renderer);
-                    }
-                }
-            }
-        }
-
-        if ((video_mf_media_type || audio_mf_media_type) && SUCCEEDED(hr)) {
-            duration = media_source->GetDuration();
-            media_stats_lock.SetSessionInfo((double_t)duration * 0.0000001,
-                !!audio_media_transform, !!video_media_transform);
-        }
-
-        if (d3d_device) {
-            d3d_device->Release();
-            d3d_device = 0;
-        }
-
-        if (d3d_device_manager) {
-            d3d_device_manager->Release();
-            d3d_device_manager = 0;
-        }
-
-        if (video_mf_media_type) {
-            video_mf_media_type->Release();
-            video_mf_media_type = 0;
-        }
-
-        if (audio_mf_media_type) {
-            audio_mf_media_type->Release();
-            audio_mf_media_type = 0;
-        }
-        const int64_t time0_end = GetTimestamp();
-
-        const double_t time0 = CalcTimeMsec(time0_begin, time0_end);
-
-        const int64_t time1_begin = GetTimestamp();
-        if (SUCCEEDED(hr)) {
-            hr = media_clock->TimeEnd();
-            if (SUCCEEDED(hr)) {
-                hr = media_clock->SetTime(0);
-                if (SUCCEEDED(hr))
-                    hr = media_source->Start(0i64);
-            }
-
-            if (audio_media_transform && SUCCEEDED(hr))
-                hr = audio_media_transform->Open();
-
-            if (video_media_transform && SUCCEEDED(hr))
-                hr = video_media_transform->Open();
-
-            if (wasapi_renderer && SUCCEEDED(hr))
-                hr = wasapi_renderer->Open();
-
-            if (video_renderer && SUCCEEDED(hr))
-                hr = video_renderer->Open();
-        }
-        const int64_t time1_end = GetTimestamp();
-
-        const double_t time1 = CalcTimeMsec(time1_begin, time1_end);
-
-        const int64_t time2_begin = GetTimestamp();
-        if (SUCCEEDED(hr))
-            hr = WaitSamplesLoad(5, 5);
-        const int64_t time2_end = GetTimestamp();
-
-        const double_t time2 = CalcTimeMsec(time2_begin, time2_end);
-
-        if (SUCCEEDED(hr))
-            state.SetInnerState(State::Open);
-        else
-            state.SetInnerState(State::None);
-        MOVIE_PLAY_LIB_PRINT_FUNC_END;
-        return hr;
-    }
-
-    HRESULT MediaSession::set_position(int64_t time) {
-        MOVIE_PLAY_LIB_PRINT_FUNC_BEGIN;
-        time = clamp_def(time, 0, duration);
-
-        const int64_t time_begin = GetTimestamp();
-
-        HRESULT hr = media_clock->TimeEnd();
-        if (SUCCEEDED(hr))
-            hr = media_source->Stop();
-
-        SetProcessDisable();
-
-        if (audio_media_transform && SUCCEEDED(hr))
-            hr = audio_media_transform->Flush();
-        if (video_media_transform && SUCCEEDED(hr))
-            hr = video_media_transform->Flush();
-        if (wasapi_renderer && SUCCEEDED(hr))
-            hr = wasapi_renderer->Flush();
-        if (video_renderer && SUCCEEDED(hr))
-            hr = video_renderer->Flush();
-
-        if (audio_media_transform && SUCCEEDED(hr))
-            hr = audio_media_transform->Close();
-        if (video_media_transform && SUCCEEDED(hr))
-            hr = video_media_transform->Close();
-        if (wasapi_renderer && SUCCEEDED(hr))
-            hr = wasapi_renderer->Close();
-        if (video_renderer && SUCCEEDED(hr))
-            hr = video_renderer->Close();
-
-        if (SUCCEEDED(hr))
-            hr = media_clock->SetTime(time);
-
-        if (audio_media_transform && SUCCEEDED(hr))
-            hr = audio_media_transform->Open();
-        if (video_media_transform && SUCCEEDED(hr))
-            hr = video_media_transform->Open();
-        if (wasapi_renderer && SUCCEEDED(hr))
-            hr = wasapi_renderer->Open();
-        if (video_renderer && SUCCEEDED(hr))
-            hr = video_renderer->Open();
-
-        if (FAILED(hr))
-            goto End;
-
-        hr = media_source->Start(time);
-        if (FAILED(hr))
-            goto End;
-
-        hr = WaitSamplesLoad(2, 2);
-        if (SUCCEEDED(hr)) {
-            IMediaTransform* media_transform = 0;
-            if (video_media_transform && video_media_transform->GetMFSamplesCount())
-                media_transform = video_media_transform;
-            else if (audio_media_transform && audio_media_transform->GetMFSamplesCount())
-                media_transform = audio_media_transform;
-
-            if (media_transform)
-                time = media_transform->GetSampleTime();
-
-            hr = media_clock->SetTime(time);
-        }
-
-    End:
-        const int64_t time_end = GetTimestamp();
-
-        const double_t _time = CalcTimeMsec(time_begin, time_end);
-
-        if (SUCCEEDED(hr) && state.state_inner == State::Play) {
-            SetProcessEnable();
-            hr = media_clock->TimeBegin();
-        }
-        MOVIE_PLAY_LIB_PRINT_FUNC_END;
-        return hr;
-    }
-
     inline void MediaSession::Destroy(MediaSession* ptr) {
         if (!ptr)
             return;
@@ -942,21 +939,25 @@ namespace MoviePlayLib {
         delete ptr;
     }
 
-    uint32_t __stdcall MediaSession::ThreadMain(MediaSession* media_session) {
+    uint32_t __stdcall MediaSession::_thread_proc(MediaSession* media_session) {
         DWORD task_index = 0;
         HANDLE avrt_handle = AvSetMmThreadCharacteristicsW(L"Audio", &task_index);
         if (!avrt_handle)
 #pragma warning(suppress: 6031)
             GetLastError();
 
-        HANDLE handles[2];
-        handles[0] = media_session->hTimer;
-        handles[1] = media_session->hEvent;
-        while (!WaitForMultipleObjects(2, handles, 0, INFINITE))
-            media_session->Update();
+        HANDLE pHandles[2];
+        pHandles[0] = media_session->m_hIntervalTimer;
+        pHandles[1] = media_session->m_hQuitEvent;
+        while (!WaitForMultipleObjects(2, pHandles, 0, INFINITE))
+            media_session->OnProcessSchedule();
 
         if (avrt_handle)
             AvRevertMmThreadCharacteristics(avrt_handle);
         return 0;
+    }
+
+    HRESULT MediaSession::_async_callback_func(IMFAsyncResult* pAsyncResult) {
+        return OnProcessCommand(pAsyncResult);
     }
 }

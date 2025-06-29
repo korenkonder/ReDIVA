@@ -10,65 +10,32 @@
 #pragma comment(lib, "mfuuid.lib")
 
 namespace MoviePlayLib {
-    HRESULT GetMFMediaType(IMFTransform* mf_transform, const GUID& sub_type, IMFMediaType*& ptr) {
-        DWORD type_index = 0;
-        HRESULT hr;
-        IMFMediaType* mf_media_type = 0;
-        do {
-            if (mf_media_type) {
-                mf_media_type->Release();
-                mf_media_type = 0;
-            }
+    HRESULT CreateDecoder(IMFMediaType* pInputType, const GUID& outputSubType, IMFTransform*& ppOutTransform) {
+        ppOutTransform = 0;
 
-            hr = mf_transform->GetOutputAvailableType(0, type_index, &mf_media_type);
-            if (FAILED(hr))
-                break;
-
-            GUID _sub_type = {};
-            if (SUCCEEDED(mf_media_type->GetGUID(MF_MT_SUBTYPE, &_sub_type)) && _sub_type == sub_type) {
-                hr = mf_transform->SetOutputType(0, mf_media_type, 0);
-                if (SUCCEEDED(hr)) {
-                    ptr = mf_media_type;
-                    ptr->AddRef();
-                    break;
-                }
-            }
-            type_index++;
-        } while (true);
-
-        if (mf_media_type) {
-            mf_media_type->Release();
-            mf_media_type = 0;
-        }
-        return hr;
-    }
-
-    HRESULT GetMFTransform(IMFMediaType* mf_media_type, const GUID& sub_type, IMFTransform*& ptr) {
-        ptr = 0;
-
-        GUID guid_major_type = {};
-        GUID guid_format_subtype = {};
+        GUID guidMajorType = {};
+        GUID guidFormatSubType = {};
         IID* pclsidMFT = 0;
         UINT32 cMFTs = 0;
         IMFTransform* mf_transform = 0;
 
         HRESULT hr;
-        hr = mf_media_type->GetGUID(MF_MT_MAJOR_TYPE, &guid_major_type);
+        hr = pInputType->GetGUID(MF_MT_MAJOR_TYPE, &guidMajorType);
         if (FAILED(hr))
             goto End;
 
-        hr = mf_media_type->GetGUID(MF_MT_SUBTYPE, &guid_format_subtype);
+        hr = pInputType->GetGUID(MF_MT_SUBTYPE, &guidFormatSubType);
         if (FAILED(hr))
             goto End;
 
-        MFT_REGISTER_TYPE_INFO formats;
-        formats.guidMajorType = guid_major_type;
-        formats.guidSubtype = guid_format_subtype;
-        MFT_REGISTER_TYPE_INFO output_type_info;
-        output_type_info.guidMajorType = guid_major_type;
-        output_type_info.guidSubtype = sub_type;
-        hr = MFTEnum(guid_major_type == MFMediaType_Audio ? MFT_CATEGORY_AUDIO_DECODER
-            : MFT_CATEGORY_VIDEO_DECODER, 0, &formats, &output_type_info, 0, &pclsidMFT, &cMFTs);
+        MFT_REGISTER_TYPE_INFO inputType;
+        inputType.guidMajorType = guidMajorType;
+        inputType.guidSubtype = guidFormatSubType;
+        MFT_REGISTER_TYPE_INFO outputType;
+        outputType.guidMajorType = guidMajorType;
+        outputType.guidSubtype = outputSubType;
+        hr = MFTEnum(guidMajorType == MFMediaType_Audio ? MFT_CATEGORY_AUDIO_DECODER
+            : MFT_CATEGORY_VIDEO_DECODER, 0, &inputType, &outputType, 0, &pclsidMFT, &cMFTs);
         if (FAILED(hr))
             goto End;
 
@@ -78,10 +45,10 @@ namespace MoviePlayLib {
         if (FAILED(hr) || !mf_transform)
             goto End;
 
-        hr = mf_transform->SetInputType(0, mf_media_type, 0);
+        hr = mf_transform->SetInputType(0, pInputType, 0);
         if (SUCCEEDED(hr)) {
-            ptr = mf_transform;
-            ptr->AddRef();
+            ppOutTransform = mf_transform;
+            mf_transform->AddRef();
         }
 
     End:
@@ -90,7 +57,7 @@ namespace MoviePlayLib {
             mf_transform = 0;
         }
 
-        if (SUCCEEDED(hr) && !ptr)
+        if (SUCCEEDED(hr) && !ppOutTransform)
             hr = MF_E_INVALIDTYPE;
 
         if (pclsidMFT)
@@ -98,24 +65,58 @@ namespace MoviePlayLib {
         return hr;
     }
 
-    HRESULT MFMediaEventQueryInterface(IMFMediaEvent* mf_media_event, const IID& iid, void** ppvObject) {
+    HRESULT MFMediaEventQueryInterface(IMFMediaEvent* pEvent, const IID& iid, void** ppvObject) {
         PROPVARIANT pvar = {};
-        HRESULT hr = mf_media_event->GetValue(&pvar);
+        HRESULT hr = pEvent->GetValue(&pvar);
         if (SUCCEEDED(hr) && pvar.vt == VT_UNKNOWN)
             hr = pvar.punkVal->QueryInterface(iid, ppvObject);
         PropVariantClear(&pvar);
         return hr;
     }
 
-    HRESULT MFSampleSetAllocator(IMFSample* mf_sample, IMFAsyncCallback* sample_allocator) {
-        IMFTrackedSample* mf_tracked_sample = 0;
-        HRESULT hr = mf_sample->QueryInterface(IID_PPV_ARGS(&mf_tracked_sample));
+    HRESULT MFSampleSetAllocator(IMFSample* pSample, IMFAsyncCallback* pAsyncCallback) {
+        IMFTrackedSample* pTrackedSample = 0;
+        HRESULT hr = pSample->QueryInterface(IID_PPV_ARGS(&pTrackedSample));
         if (SUCCEEDED(hr))
-            hr = mf_tracked_sample->SetAllocator(sample_allocator, 0);
+            hr = pTrackedSample->SetAllocator(pAsyncCallback, 0);
 
-        if (mf_tracked_sample) {
-            mf_tracked_sample->Release();
-            mf_tracked_sample = 0;
+        if (pTrackedSample) {
+            pTrackedSample->Release();
+            pTrackedSample = 0;
+        }
+        return hr;
+    }
+
+    HRESULT SelectDecoderOutputFormat(IMFTransform* pTransform,
+        const GUID& outputSubType, IMFMediaType*& ppOutMediaType) {
+        DWORD dwTypeIndex = 0;
+        HRESULT hr;
+        IMFMediaType* pType = 0;
+        do {
+            if (pType) {
+                pType->Release();
+                pType = 0;
+            }
+
+            hr = pTransform->GetOutputAvailableType(0, dwTypeIndex, &pType);
+            if (FAILED(hr))
+                break;
+
+            GUID subType = {};
+            if (SUCCEEDED(pType->GetGUID(MF_MT_SUBTYPE, &subType)) && subType == outputSubType) {
+                hr = pTransform->SetOutputType(0, pType, 0);
+                if (SUCCEEDED(hr)) {
+                    ppOutMediaType = pType;
+                    pType->AddRef();
+                    break;
+                }
+            }
+            dwTypeIndex++;
+        } while (true);
+
+        if (pType) {
+            pType->Release();
+            pType = 0;
         }
         return hr;
     }

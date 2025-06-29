@@ -6,44 +6,44 @@
 #include "dxva2.hpp"
 
 namespace MoviePlayLib {
-    HRESULT GetDirectXVideoProcessor(IDirect3DDeviceManager9* d3d_device_manager,
-        const DXVA2_VideoDesc* video_desc, IDirectXVideoProcessor*& ptr) {
-        HANDLE output_type_info = 0;
+    HRESULT CreateVideoProcessor(IDirect3DDeviceManager9* pDeviceManager,
+        const DXVA2_VideoDesc& videoDesc, IDirectXVideoProcessor*& ppOutProcessor) {
+        HANDLE hDevice = 0;
         HRESULT hr;
-        hr = d3d_device_manager->OpenDeviceHandle(&output_type_info);
+        hr = pDeviceManager->OpenDeviceHandle(&hDevice);
         if (FAILED(hr))
             return hr;
 
-        IDirectXVideoProcessorService* dx_video_processor_service = 0;
-        IDirectXVideoProcessor* dx_video_processor = 0;
-        UINT guid_count = 0;
+        IDirectXVideoProcessorService* pProcessorService = 0;
+        IDirectXVideoProcessor* pProcessor = 0;
+        UINT guidCount = 0;
         GUID* guids = 0;
-        hr = d3d_device_manager->GetVideoService(output_type_info, IID_PPV_ARGS(&dx_video_processor_service));
+        hr = pDeviceManager->GetVideoService(hDevice, IID_PPV_ARGS(&pProcessorService));
         if (FAILED(hr))
             goto End;
 
-        hr = dx_video_processor_service->GetVideoProcessorDeviceGuids(video_desc, &guid_count, &guids);
+        hr = pProcessorService->GetVideoProcessorDeviceGuids(&videoDesc, &guidCount, &guids);
         if (FAILED(hr) || !guids)
             goto End;
 
-        for (UINT i = 0; i < guid_count && !dx_video_processor; i++) {
-            UINT format_count = 0;
+        for (UINT i = 0; i < guidCount && !pProcessor; i++) {
+            UINT formatCount = 0;
             D3DFORMAT* formats = 0;
-            hr = dx_video_processor_service->GetVideoProcessorRenderTargets(
-                guids[i], video_desc, &format_count, &formats);
+            hr = pProcessorService->GetVideoProcessorRenderTargets(
+                guids[i], &videoDesc, &formatCount, &formats);
             if (SUCCEEDED(hr) && formats)
-                for (UINT j = 0; j < format_count && !dx_video_processor; j++)
+                for (UINT j = 0; j < formatCount && !pProcessor; j++)
                     if (formats[j] == D3DFMT_X8R8G8B8)
-                        hr = dx_video_processor_service->CreateVideoProcessor(guids[i],
-                            video_desc, D3DFMT_X8R8G8B8, 1, &dx_video_processor);
+                        hr = pProcessorService->CreateVideoProcessor(guids[i],
+                            &videoDesc, D3DFMT_X8R8G8B8, 1, &pProcessor);
 
             if (formats)
                 CoTaskMemFree(formats);
         }
 
-        if (dx_video_processor) {
-            ptr = dx_video_processor;
-            ptr->AddRef();
+        if (pProcessor) {
+            ppOutProcessor = pProcessor;
+            pProcessor->AddRef();
             goto End;
         }
         else
@@ -55,17 +55,17 @@ namespace MoviePlayLib {
             guids = 0;
         }
 
-        if (dx_video_processor) {
-            dx_video_processor->Release();
-            dx_video_processor = 0;
+        if (pProcessor) {
+            pProcessor->Release();
+            pProcessor = 0;
         }
 
-        if (dx_video_processor_service) {
-            dx_video_processor_service->Release();
-            dx_video_processor_service = 0;
+        if (pProcessorService) {
+            pProcessorService->Release();
+            pProcessorService = 0;
         }
 
-        HRESULT _hr = d3d_device_manager->CloseDeviceHandle(output_type_info);
+        HRESULT _hr = pDeviceManager->CloseDeviceHandle(hDevice);
         if (SUCCEEDED(hr))
             hr = _hr;
         return hr;

@@ -21,52 +21,41 @@ namespace MoviePlayLib {
     }
 
     ULONG ExternalClock::AddRef() {
-        return ++ref_count;
+        return ++m_ref;
     }
 
     ULONG ExternalClock::Release() {
-        if (!--ref_count)
+        if (!--m_ref)
             Destroy();
-        return ref_count;
+        return m_ref;
     }
 
-    HRESULT ExternalClock::TimeEnd() {
+    HRESULT ExternalClock::Stop() {
         return S_OK;
     }
 
-    HRESULT ExternalClock::TimeBegin() {
+    HRESULT ExternalClock::Start() {
         return S_OK;
     }
 
-    HRESULT ExternalClock::SetTime(INT64 value) {
+    HRESULT ExternalClock::SetTime(INT64 hnsTime) {
         return S_OK;
     }
 
     INT64 ExternalClock::GetTime() {
-        if (callback)
-            return callback() / 100;
+        if (m_callback)
+            return m_callback() / 100;
         return 0;
     }
 
-    ExternalClock::ExternalClock(Callback callback) : ref_count(), callback(callback) {
-        MOVIE_PLAY_LIB_PRINT_FUNC_BEGIN;
-        MOVIE_PLAY_LIB_PRINT_FUNC_END;
+    ExternalClock::ExternalClock(Callback callback) : m_ref(), m_callback(callback) {
+        MOVIE_PLAY_LIB_TRACE_BEGIN;
+        MOVIE_PLAY_LIB_TRACE_END;
     }
 
     ExternalClock::~ExternalClock() {
-        MOVIE_PLAY_LIB_PRINT_FUNC_BEGIN;
-        MOVIE_PLAY_LIB_PRINT_FUNC_END;
-    }
-
-    HRESULT ExternalClock::Create(Callback callback, IMediaClock*& ptr) {
-        ExternalClock* p = new ExternalClock(callback);
-        if (!p)
-            return E_OUTOFMEMORY;
-
-        ptr = p;
-        p->AddRef();
-        p->Release();
-        return S_OK;
+        MOVIE_PLAY_LIB_TRACE_BEGIN;
+        MOVIE_PLAY_LIB_TRACE_END;
     }
 
     inline void ExternalClock::Destroy(ExternalClock* ptr) {
@@ -74,5 +63,16 @@ namespace MoviePlayLib {
             return;
 
         delete ptr;
+    }
+
+    HRESULT CreateExternalClock(ExternalClock::Callback callback, IMediaClock*& pp) {
+        ExternalClock* p = new ExternalClock(callback);
+        if (!p)
+            return E_OUTOFMEMORY;
+
+        pp = p;
+        p->AddRef();
+        p->Release();
+        return S_OK;
     }
 }

@@ -12,46 +12,50 @@
 namespace MoviePlayLib {
     class VideoDecoder : public TransformBase {
     protected:
-        GUID sub_type;
-        IDirect3DDeviceManager9* d3d_device_manager;
-        IDirect3DDevice9* d3d_device;
-        IDirectXVideoProcessor* dx_video_processor;
-        uint32_t buffer_size;
-        uint32_t width;
-        uint32_t height;
-        uint32_t frame_size_width;
-        uint32_t frame_size_height;
-        int64_t frame_rate;
-        uint32_t frame_rate_numerator;
-        uint32_t frame_rate_denominator;
-        uint32_t pixel_aspect_ratio_numerator;
-        uint32_t pixel_aspect_ratio_denominator;
-        MFVideoArea video_area;
-        DXVA2_VideoDesc dxva2_video_desc;
-        DXVA2_VideoProcessBltParams dxva2_video_process_blt_params;
-        DXVA2_VideoSample dxva2_video_sample;
-        MFSampleList sample_list;
-        AsyncCallback<VideoDecoder> async_callback;
+        GUID m_formatSubType;
+        IDirect3DDeviceManager9* m_pD3D9Manager;
+        IDirect3DDevice9Ex* m_pD3D9Device;
+        IDirectXVideoProcessor* m_pProcessor;
+        uint32_t m_cbBufferBytes;
+        uint32_t m_yuvWidth;
+        uint32_t m_yuvHeight;
+        uint32_t m_frameWidth;
+        uint32_t m_frameHeight;
+        int64_t m_frameDuration;
+        MFRatio m_frameRate;
+        MFRatio m_pixelAspect;
+        MFVideoArea m_videoArea;
+        DXVA2_VideoDesc m_videoDesc;
+        DXVA2_VideoProcessBltParams m_bltParams;
+        DXVA2_VideoSample m_videoSample;
+        SampleQueue m_pool;
+        AsyncCallback<VideoDecoder> m_asynccb_OnReturnSample;
 
     public:
-        VideoDecoder(HRESULT& hr, MediaStatsLock* media_stats_lock, IMediaClock* media_clock,
-            IMediaSource* media_source, IDirect3DDeviceManager9* d3d_device_manager, IDirect3DDevice9* d3d_device);
+        VideoDecoder(HRESULT& hr, PlayerStat_& rStat, IMediaClock* pClock, IMediaSource* pSource,
+            IDirect3DDeviceManager9* pDeviceManager, IDirect3DDevice9Ex* pDevice);
         virtual ~VideoDecoder() override;
 
-        virtual void Free() override;
-        virtual HRESULT ProcessOutput() override;
-        virtual void SetSampleTime(double_t value) override;
+    protected:
+        virtual void _on_shutdown() override;
+        virtual HRESULT _process_output() override;
+        virtual void _on_input_sample(double_t sampleTime) override;
 
-        virtual HRESULT AsyncCallback(IMFAsyncResult* mf_async_result);
+    public:
+        virtual HRESULT OnReturnSample(IMFAsyncResult* pAsyncResult);
 
-        HRESULT InitFromMediaSource();
-
-        static HRESULT Create(MediaStatsLock* media_stats_lock, IMediaClock* media_clock, IMediaSource* media_source,
-            IDirect3DDeviceManager9* d3d_device_manager, IDirect3DDevice9* d3d_device, IMediaTransform*& ptr);
         static void Destroy(VideoDecoder* ptr);
 
         inline void Destroy() {
             Destroy(this);
         }
+
+    protected:
+        virtual HRESULT _async_callback_func(IMFAsyncResult* pAsyncResult);
+
+        HRESULT _on_format_changed();
     };
+
+    extern HRESULT CreateVideoDecoder(PlayerStat_& rStat, IMediaClock* pClock, IMediaSource* pSource,
+        IDirect3DDeviceManager9* pDeviceManager, IDirect3DDevice9Ex* pDevice, IMediaTransform*& pp);
 }

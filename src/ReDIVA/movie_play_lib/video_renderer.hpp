@@ -10,11 +10,11 @@
 namespace MoviePlayLib {
     class VideoRenderer : public IMediaRenderer {
     protected:
-        RefCount ref_count;
-        Lock lock;
-        BOOL shutdown;
-        BOOL sample_recieve;
-        IMFSample* mf_sample;
+        RefCount m_ref;
+        SlimLock m_lock;
+        BOOL m_bShutdown;
+        BOOL m_bUpdate;
+        IMFSample* m_pSample;
 
     public:
         virtual HRESULT QueryInterface(const IID& riid, void** ppvObject) override;
@@ -25,18 +25,19 @@ namespace MoviePlayLib {
         virtual HRESULT Close() override;
         virtual HRESULT Flush() override;
         virtual HRESULT Open() override;
-        virtual HRESULT SetMFSample(IMFSample* mf_sample) override;
+        virtual HRESULT ProcessSample(IMFSample* pSample) override;
 
-        VideoRenderer(IMediaClock* media_clock);
+        VideoRenderer();
         virtual ~VideoRenderer();
 
-        virtual HRESULT GetMFSample(IMFSample** ptr);
+        virtual HRESULT GetSample(IMFSample** ppOutSample);
 
-        static HRESULT Create(IMediaClock* media_clock, VideoRenderer*& ptr);
         static void Destroy(VideoRenderer* ptr);
 
         inline void Destroy() {
             Destroy(this);
         }
     };
+
+    extern HRESULT CreateVideoRenderer(IMediaClock* pClock, VideoRenderer*& pp);
 }
