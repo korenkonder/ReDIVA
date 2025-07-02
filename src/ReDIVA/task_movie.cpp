@@ -23,11 +23,11 @@ struct TaskMoviePlayerNoInterop {
 
     void Create();
     void Ctrl(TaskMovie* task_movie, TaskMovie::Player* player,
-        TaskMovie::PlayerVideoParams* player_video_params);
+        TaskMovie::PlayerVideoInfo* player_video_info);
     void GetTextureD3D11(TaskMovie::Player* player, texture*& pp);
     void Release();
     void ReleaseTexture();
-    void UpdateD3D11Texture(TaskMovie::Player* player, TaskMovie::PlayerVideoParams* player_video_params);
+    void UpdateD3D11Texture(TaskMovie::Player* player, TaskMovie::PlayerVideoInfo* player_video_info);
 
     static TaskMoviePlayerNoInterop* Get(TaskMovie::Player* player);
 };
@@ -62,9 +62,9 @@ TaskMovie::SprParams::SprParams() {
     disp.resolution_mode = res_wind->resolution_mode;
 }
 
-TaskMovie::Player::Player() : pause(), volume(), state(), player(),
-external_clock(), video_params(), interop_texture(), duration(), time() {
-    set_audio_params = true;
+TaskMovie::Player::Player() : pause_flag(), volume(), state(), player(),
+external_clock(), video_info(), gl_texture(), duration(), time() {
+    volume_req = true;
     player_state = MoviePlayLib::Status_Starting;
 }
 
@@ -80,58 +80,88 @@ void TaskMovie::Player::Ctrl() {
     switch (player_state) {
     case MoviePlayLib::Status_NotInitialized:
     case MoviePlayLib::Status_Initializing:
-        state = TaskMovie::State::Init;
+        state = TaskMovie::State_Init;
         break;
     case MoviePlayLib::Status_Initialized:
-        player->GetVideoInfo(&video_params);
+        player->GetVideoInfo(&video_info);
 
         duration = player->GetDuration();
         player->Play();
 
-        state = TaskMovie::State::Init;
+        state = TaskMovie::State_Init;
         break;
     case MoviePlayLib::Status_Starting:
-        state = TaskMovie::State::Wait;
+        state = TaskMovie::State_Wait;
         break;
     case MoviePlayLib::Status_Started:
-        if (!pause)
+        if (!pause_flag)
             player->Play();
 
-        state = TaskMovie::State::Disp;
+        state = TaskMovie::State_Disp;
         break;
     case MoviePlayLib::Status_Stopping:
         {
             TaskMoviePlayerNoInterop* no_interop = TaskMoviePlayerNoInterop::Get(this);
             if (no_interop) {
-                if (no_interop->d3d11_texture && no_interop->d3d11_tex && pause)
+                if (no_interop->d3d11_texture && no_interop->d3d11_tex && pause_flag)
                     player->Pause();
 
-                state = TaskMovie::State::Disp;
+                state = TaskMovie::State_Disp;
                 break;
             }
         }
 
-        if (interop_texture && interop_texture->GetGLTexture() && pause)
+        if (gl_texture && gl_texture->GetGLTexture() && pause_flag)
             player->Pause();
 
-        state = TaskMovie::State::Disp;
+        state = TaskMovie::State_Disp;
         break;
     case MoviePlayLib::Status_Stopped:
         if (time <= 0.0f || time >= duration)
-            state = TaskMovie::State::Stop;
+            state = TaskMovie::State_Stop;
         break;
     }
 
-    if (state == TaskMovie::State::Disp && player && set_audio_params) {
-        MoviePlayLib::AudioVolumes volumes;
-        volumes.spk_l_volume = volume;
-        volumes.spk_r_volume = volume;
-        volumes.field_8 = 0.0f;
-        volumes.field_C = 0.0f;
-        volumes.hph_l_volume = volume;
-        volumes.hph_r_volume = volume;
-        if (player->SetVolumes(&volumes) >= 0)
-            set_audio_params = false;
+    if (state == TaskMovie::State_Disp && player && volume_req)
+        set_volume_internal(volume);
+}
+
+void TaskMovie::Player::GetGLTexture(texture*& pp) {
+    if (!gl_texture)
+        return;
+
+    texture* tex = gl_texture->GetGLTexture();
+    if (!tex)
+        return;
+
+    pp = tex;
+    pp->width = video_info.raw_width;
+    pp->height = video_info.raw_height;
+}
+
+void TaskMovie::Player::UpdateGLTexture(TaskMovie::PlayerVideoInfo* player_video_info) {
+    if (gl_texture) {
+        gl_texture->Release();
+        gl_texture = 0;
+    }
+
+    if (player)
+        player->GetTextureOGL(&gl_texture);
+
+    if (!player_video_info)
+        return;
+
+    if (state == TaskMovie::State_Disp) {
+        player_video_info->present_width = video_info.present_width;
+        player_video_info->present_height = video_info.present_height;
+        player_video_info->raw_width = video_info.raw_width;
+        player_video_info->raw_height = video_info.raw_height;
+    }
+    else {
+        player_video_info->present_width = 0;
+        player_video_info->present_height = 0;
+        player_video_info->raw_width = 0;
+        player_video_info->raw_height = 0;
     }
 }
 
@@ -147,9 +177,9 @@ void TaskMovie::Player::Destroy(Player* ptr) {
         }
     }
 
-    if (ptr->interop_texture) {
-        ptr->interop_texture->Release();
-        ptr->interop_texture = 0;
+    if (ptr->gl_texture) {
+        ptr->gl_texture->Release();
+        ptr->gl_texture = 0;
     }
 
     if (ptr->player) {
@@ -165,48 +195,24 @@ void TaskMovie::Player::Destroy(Player* ptr) {
     delete ptr;
 }
 
-void TaskMovie::Player::GetGLTexture(texture*& pp) {
-    if (!interop_texture)
-        return;
+bool TaskMovie::Player::set_volume_internal(float_t vol) {
+    MoviePlayLib::AudioVolumes volumes;
+    volumes.spk_l_volume = vol;
+    volumes.spk_r_volume = vol;
+    volumes.field_8 = 0.0f;
+    volumes.field_C = 0.0f;
+    volumes.hph_l_volume = vol;
+    volumes.hph_r_volume = vol;
 
-    texture* tex = interop_texture->GetGLTexture();
-    if (!tex)
-        return;
-
-    pp = tex;
-    pp->width = video_params.raw_width;
-    pp->height = video_params.raw_height;
+    HRESULT hr = player->SetVolumes(&volumes);
+    if (SUCCEEDED(hr))
+        volume_req = false;
+    return SUCCEEDED(hr);
 }
 
-void TaskMovie::Player::UpdateGLTexture(TaskMovie::PlayerVideoParams* player_video_params) {
-    if (interop_texture) {
-        interop_texture->Release();
-        interop_texture = 0;
-    }
-
-    if (player)
-        player->GetTextureOGL(&interop_texture);
-
-    if (!player_video_params)
-        return;
-
-    if (state == TaskMovie::State::Disp) {
-        player_video_params->present_width = video_params.present_width;
-        player_video_params->present_height = video_params.present_height;
-        player_video_params->raw_width = video_params.raw_width;
-        player_video_params->raw_height = video_params.raw_height;
-    }
-    else {
-        player_video_params->present_width = 0;
-        player_video_params->present_height = 0;
-        player_video_params->raw_width = 0;
-        player_video_params->raw_height = 0;
-    }
-}
-
-TaskMovie::TaskMovie() : player(), player_video_params(), tex(), pause(), wait_play() {
-    disp_type = TaskMovie::DispType::SpriteTextute;
-    state = TaskMovie::State::Wait;
+TaskMovie::TaskMovie() : player(), player_video_info(), tex(), pause(), wait_play() {
+    disp_type = TaskMovie::DispType_SpriteTextute;
+    state = TaskMovie::State_Wait;
 }
 
 TaskMovie::~TaskMovie() {
@@ -218,7 +224,7 @@ bool TaskMovie::init() {
 }
 
 bool TaskMovie::ctrl() {
-    state = TaskMovie::State::Wait;
+    state = TaskMovie::State_Wait;
     if (player) {
         player->Ctrl();
         state = player->state;
@@ -227,28 +233,28 @@ bool TaskMovie::ctrl() {
     if (CheckState()) {
         TaskMoviePlayerNoInterop* no_interop = TaskMoviePlayerNoInterop::Get(player);
         if (no_interop) {
-            no_interop->Ctrl(this, player, player_video_params);
+            no_interop->Ctrl(this, player, player_video_info);
             return false;
         }
 
-        if (player->interop_texture) {
-            player->interop_texture->Release();
-            player->interop_texture = 0;
+        if (player->gl_texture) {
+            player->gl_texture->Release();
+            player->gl_texture = 0;
         }
 
-        player->UpdateGLTexture(player_video_params);
+        player->UpdateGLTexture(player_video_info);
 
-        if (player_video_params->raw_width && player_video_params->raw_height) {
+        if (player_video_info->raw_width && player_video_info->raw_height) {
             if (!tex)
                 tex = sub_14041E560();
 
-            if (disp_type != TaskMovie::DispType::None)
+            if (disp_type != TaskMovie::DispType_None)
                 player->GetGLTexture(tex);
         }
 
-        if (player && !player->interop_texture
-            && !no_interop && disp_type != TaskMovie::DispType::None) {
-            HRESULT hr = player->player->GetTextureOGL(&player->interop_texture);
+        if (player && !player->gl_texture
+            && !no_interop && disp_type != TaskMovie::DispType_None) {
+            HRESULT hr = player->player->GetTextureOGL(&player->gl_texture);
             if (hr < S_FALSE)
                 task_movie_player_no_interop.insert({ player, {} }).first->second.Create();
         }
@@ -259,9 +265,9 @@ bool TaskMovie::ctrl() {
 bool TaskMovie::dest() {
     Unload();
 
-    if (player_video_params) {
-        delete player_video_params;
-        player_video_params = 0;
+    if (player_video_info) {
+        delete player_video_info;
+        player_video_info = 0;
     }
 
     if (tex)
@@ -277,17 +283,17 @@ bool TaskMovie::dest() {
 }
 
 void TaskMovie::disp() {
-    if (state != TaskMovie::State::Disp || disp_type != TaskMovie::DispType::SpriteTextute || !tex)
+    if (state != TaskMovie::State_Disp || disp_type != TaskMovie::DispType_SpriteTextute || !tex)
         return;
 
-    float_t width = (float_t)player_video_params->present_width;
-    if (player_video_params->present_width < 0)
+    float_t width = (float_t)player_video_info->present_width;
+    if (player_video_info->present_width < 0)
         width += (float_t)UINT64_MAX;
     if (fabsf(width) <= 0.000001f)
         return;
 
-    float_t height = (float_t)player_video_params->present_height;
-    if (player_video_params->present_height < 0)
+    float_t height = (float_t)player_video_info->present_height;
+    if (player_video_info->present_height < 0)
         height += (float_t)UINT64_MAX;
     if (fabsf(height) <= 0.000001f)
         return;
@@ -351,12 +357,12 @@ bool TaskMovie::CheckDisp() {
 
     player->Ctrl();
 
-    return player->state == TaskMovie::State::Disp
-        || player->state == TaskMovie::State::Shutdown;
+    return player->state == TaskMovie::State_Disp
+        || player->state == TaskMovie::State_Shutdown;
 }
 
 bool TaskMovie::CheckState() {
-    return state == TaskMovie::State::Init || state == TaskMovie::State::Disp;
+    return state == TaskMovie::State_Init || state == TaskMovie::State_Disp;
 }
 
 void TaskMovie::CtrlPlayer() {
@@ -364,11 +370,11 @@ void TaskMovie::CtrlPlayer() {
         return;
 
     if (pause || wait_play) {
-        player->pause = true;
+        player->pause_flag = true;
         player->Ctrl();
     }
     else {
-        player->pause = false;
+        player->pause_flag = false;
         player->Ctrl();
     }
 }
@@ -423,7 +429,7 @@ bool TaskMovie::Reset(const TaskMovie::SprParams& spr_params) {
     }
     else {
         player = new TaskMovie::Player;
-        player_video_params = new TaskMovie::PlayerVideoParams;
+        player_video_info = new TaskMovie::PlayerVideoInfo;
 
         ret = app::TaskWork::add_task(this, "TaskMovie");
     }
@@ -445,7 +451,7 @@ bool TaskMovie::SetVolume(float_t value) {
         return false;
 
     player->volume = value;
-    player->set_audio_params = true;
+    player->volume_req = true;
     return true;
 }
 
@@ -458,9 +464,9 @@ bool TaskMovie::Shutdown() {
         if (no_interop)
             no_interop->ReleaseTexture();
 
-        if (player->interop_texture) {
-            player->interop_texture->Release();
-            player->interop_texture = 0;
+        if (player->gl_texture) {
+            player->gl_texture->Release();
+            player->gl_texture = 0;
         }
 
         tex = 0;
@@ -468,9 +474,9 @@ bool TaskMovie::Shutdown() {
         if (no_interop)
             no_interop->ReleaseTexture();
 
-        if (player->interop_texture) {
-            player->interop_texture->Release();
-            player->interop_texture = 0;
+        if (player->gl_texture) {
+            player->gl_texture->Release();
+            player->gl_texture = 0;
         }
 
         if (player->player) {
@@ -516,7 +522,7 @@ void TaskMovie::Start(const std::string& path) {
 
 bool TaskMovie::Unload() {
     bool res = TaskMovie::Shutdown();
-    disp_type = TaskMovie::DispType::SpriteTextute;
+    disp_type = TaskMovie::DispType_SpriteTextute;
     return res;
 }
 
@@ -572,14 +578,14 @@ void TaskMoviePlayerNoInterop::Create() {
 }
 
 void TaskMoviePlayerNoInterop::Ctrl(TaskMovie* task_movie,
-    TaskMovie::Player* player, TaskMovie::PlayerVideoParams* player_video_params) {
-    UpdateD3D11Texture(player, player_video_params);
+    TaskMovie::Player* player, TaskMovie::PlayerVideoInfo* player_video_info) {
+    UpdateD3D11Texture(player, player_video_info);
 
-    if (player_video_params->raw_width && player_video_params->raw_height) {
+    if (player_video_info->raw_width && player_video_info->raw_height) {
         if (!task_movie->tex)
             task_movie->tex = sub_14041E560();
 
-        if (task_movie->disp_type != TaskMovie::DispType::None)
+        if (task_movie->disp_type != TaskMovie::DispType_None)
             GetTextureD3D11(player, task_movie->tex);
     }
 }
@@ -624,8 +630,8 @@ void TaskMoviePlayerNoInterop::GetTextureD3D11(TaskMovie::Player* player, textur
     }
 
     pp = tex;
-    pp->width = player->video_params.raw_width;
-    pp->height = player->video_params.raw_height;
+    pp->width = player->video_info.raw_width;
+    pp->height = player->video_info.raw_height;
 }
 
 void TaskMoviePlayerNoInterop::Release() {
@@ -669,7 +675,7 @@ void TaskMoviePlayerNoInterop::ReleaseTexture() {
 }
 
 void TaskMoviePlayerNoInterop::UpdateD3D11Texture(TaskMovie::Player* player,
-    TaskMovie::PlayerVideoParams* player_video_params) {
+    TaskMovie::PlayerVideoInfo* player_video_info) {
     ID3D11Texture2D* d3d_texture = 0;
     if (player->player)
         player->player->GetTextureD3D11(d3d11_device, &d3d_texture);
@@ -731,20 +737,20 @@ void TaskMoviePlayerNoInterop::UpdateD3D11Texture(TaskMovie::Player* player,
         d3d_texture = 0;
     }
 
-    if (!player_video_params)
+    if (!player_video_info)
         return;
 
-    if (player->state == TaskMovie::State::Disp) {
-        player_video_params->present_width = player->video_params.present_width;
-        player_video_params->present_height = player->video_params.present_height;
-        player_video_params->raw_width = player->video_params.raw_width;
-        player_video_params->raw_height = player->video_params.raw_height;
+    if (player->state == TaskMovie::State_Disp) {
+        player_video_info->present_width = player->video_info.present_width;
+        player_video_info->present_height = player->video_info.present_height;
+        player_video_info->raw_width = player->video_info.raw_width;
+        player_video_info->raw_height = player->video_info.raw_height;
     }
     else {
-        player_video_params->present_width = 0;
-        player_video_params->present_height = 0;
-        player_video_params->raw_width = 0;
-        player_video_params->raw_height = 0;
+        player_video_info->present_width = 0;
+        player_video_info->present_height = 0;
+        player_video_info->raw_width = 0;
+        player_video_info->raw_height = 0;
     }
 }
 

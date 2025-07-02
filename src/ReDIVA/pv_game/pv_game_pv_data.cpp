@@ -1728,17 +1728,17 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
             if (!app::TaskWork::check_task_ready(task_movie_get(i)))
                 continue;
 
-            TaskMovie::DispType disp_type = TaskMovie::DispType::None;
+            TaskMovie::DispType disp_type = TaskMovie::DispType_None;
             if (pv_game_get()->data.movie_index == i) {
                 if (!pv_game->data.enable_movie)
                     state = 0;
 
                 switch (state) {
                 case 1:
-                    disp_type = TaskMovie::DispType::SpriteTextute;
+                    disp_type = TaskMovie::DispType_SpriteTextute;
                     break;
                 case 2:
-                    disp_type = TaskMovie::DispType::Textute;
+                    disp_type = TaskMovie::DispType_Textute;
                     break;
                 }
             }
@@ -1984,23 +1984,23 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
 
         for (int32_t m = 0; m < TASK_MOVIE_COUNT; m++)
             if (app::TaskWork::check_task_ready(task_movie_get(m)))
-                task_movie_get(m)->disp_type = TaskMovie::DispType::None;
+                task_movie_get(m)->disp_type = TaskMovie::DispType_None;
 
         if (index != -1 && app::TaskWork::check_task_ready(task_movie_get(index))) {
             task_movie_get(index)->Play();
             pv_game_get()->data.movie_index = index;
             movie_play_time_set(curr_time);
 
-            TaskMovie::DispType disp_type = TaskMovie::DispType::None;
+            TaskMovie::DispType disp_type = TaskMovie::DispType_None;
             if (!pv_game->data.enable_movie)
                 state = 0;
 
             switch (state) {
             case 1:
-                disp_type = TaskMovie::DispType::SpriteTextute;
+                disp_type = TaskMovie::DispType_SpriteTextute;
                 break;
             case 2:
-                disp_type = TaskMovie::DispType::Textute;
+                disp_type = TaskMovie::DispType_Textute;
                 break;
             }
             task_movie_get(index)->disp_type = disp_type;

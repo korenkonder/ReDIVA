@@ -13,28 +13,27 @@
 
 class TaskMovie : public app::Task {
 public:
-    enum class State {
-        Wait = 0,
-        Init,
-        Disp,
-        Stop,
-        Shutdown,
+    enum State {
+        State_Wait = 0,
+        State_Init,
+        State_Disp,
+        State_Stop,
+        State_Shutdown,
     };
 
-    enum class DispType {
-        None = 0,
-        SpriteTextute,
-        Textute,
-        Max,
+    enum DispType {
+        DispType_None = 0,
+        DispType_SpriteTextute,
+        DispType_Textute,
     };
 
-    struct PlayerVideoParams {
+    struct PlayerVideoInfo {
         int64_t present_width;
         int64_t present_height;
         int64_t raw_width;
         int64_t raw_height;
 
-        inline PlayerVideoParams() : present_width(), present_height(), raw_width(), raw_height() {
+        inline PlayerVideoInfo() : present_width(), present_height(), raw_width(), raw_height() {
 
         }
     };
@@ -57,15 +56,15 @@ public:
     };
 
     struct Player {
-        bool pause;
+        bool pause_flag;
         float_t volume;
-        bool set_audio_params;
+        bool volume_req;
         State state;
         MoviePlayLib::IPlayer* player;
         MoviePlayLib::IMediaClock* external_clock;
         MoviePlayLib::Status player_state;
-        MoviePlayLib::VideoInfo video_params;
-        MoviePlayLib::IGLDXInteropTexture* interop_texture;
+        MoviePlayLib::VideoInfo video_info;
+        MoviePlayLib::IGLDXInteropTexture* gl_texture;
         double_t duration;
         double_t time;
 
@@ -73,13 +72,16 @@ public:
 
         void Ctrl();
         void GetGLTexture(texture*& pp);
-        void UpdateGLTexture(TaskMovie::PlayerVideoParams* player_video_params);
+        void UpdateGLTexture(TaskMovie::PlayerVideoInfo* player_video_info);
 
         static void Destroy(Player* ptr);
 
         inline void Destroy() {
             Destroy(this);
         }
+
+    protected:
+        bool set_volume_internal(float_t vol);
     };
 
     std::string path;
@@ -87,7 +89,7 @@ public:
     SprParams spr_params;
     State state;
     Player* player;
-    PlayerVideoParams* player_video_params;
+    PlayerVideoInfo* player_video_info;
     texture* tex;
     bool pause;
     bool wait_play;
