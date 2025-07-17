@@ -815,6 +815,27 @@ namespace Glitter {
                 break;
             }
 
+            if (effect_group->scene) {
+                delete effect_group->scene;
+                effect_group->scene = 0;
+
+                int32_t id = 1;
+                for (Effect*& i : effect_group->effects) {
+                    if (i->data.start_time <= 0.0f) {
+                        id++;
+                        continue;
+                    }
+
+                    if (!effect_group->scene)
+                        effect_group->scene = new Scene(0, effect_group->type == Glitter::FT
+                            ? hash_fnv1a64m_empty : hash_murmurhash_empty, effect_group, true);
+
+                    if (effect_group->scene)
+                        effect_group->scene->InitEffect(GPM_VAL, i, id, true);
+                    id++;
+                }
+            }
+
             Glitter::counter = counter;
             Glitter::random = random;
 
