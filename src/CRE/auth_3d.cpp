@@ -6371,7 +6371,7 @@ static void auth_3d_object_disp(auth_3d_object* o, auth_3d* auth, render_context
                 auth->chara_item
                 ? &rob_chr->data.adjust_data.item_mat
                 : &rob_chr->data.adjust_data.mat, &m);
-            mat4_mul(&m, &mat, &mat);
+            mat4_mul(&mat, &m, &mat);
             disp_manager.set_shadow_type(auth->chara_id ? SHADOW_STAGE : SHADOW_CHARA);
         }
     }
