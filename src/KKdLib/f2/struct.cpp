@@ -120,7 +120,7 @@ void f2_struct::write(void** data, size_t* size, bool use_depth, bool shift_x) {
 }
 
 void f2_struct::write(stream& s, bool use_depth, bool shift_x) {
-    if (s.check_null() && !reinterpret_cast<memory_stream*>(&s))
+    if (!s.can_be_null() && s.check_null())
         return;
 
     f2_struct_get_length(this, shift_x);

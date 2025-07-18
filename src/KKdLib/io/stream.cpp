@@ -24,6 +24,10 @@ void stream::close() {
     position_stack.shrink_to_fit();
 }
 
+bool stream::can_be_null() {
+    return false;
+}
+
 int32_t stream::position_push(int64_t pos, int32_t seek) {
     position_stack.push_back(get_position());
     return set_position(pos, seek);

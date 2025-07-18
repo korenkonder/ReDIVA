@@ -174,7 +174,7 @@ bool f2_header::validate_crc(int32_t not_ignore_crc) {
 }
 
 void f2_header::write(stream& s) {
-    if (s.check_null() && !reinterpret_cast<struct memory_stream*>(&s))
+    if (!s.can_be_null() && s.check_null())
         return;
 
     s.write(this, get_length());

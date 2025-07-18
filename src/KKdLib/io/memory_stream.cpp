@@ -27,6 +27,10 @@ void memory_stream::close() {
     stream::close();
 }
 
+bool memory_stream::can_be_null() {
+    return true;
+}
+
 bool memory_stream::check_null() {
     return !data.vec.size();
 }

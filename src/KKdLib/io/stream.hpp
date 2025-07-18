@@ -22,6 +22,7 @@ public:
 
     virtual int flush() = 0;
     virtual void close();
+    virtual bool can_be_null();
     virtual bool check_null() = 0;
     virtual bool check_not_null() = 0;
 

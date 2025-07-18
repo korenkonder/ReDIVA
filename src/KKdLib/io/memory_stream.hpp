@@ -20,6 +20,7 @@ public:
 
     virtual int flush() override;
     virtual void close() override;
+    virtual bool can_be_null() override;
     virtual bool check_null() override;
     virtual bool check_not_null() override;
 
