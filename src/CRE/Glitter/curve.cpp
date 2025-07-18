@@ -74,7 +74,7 @@ namespace Glitter {
 
     bool Curve::F2GetValue(GLT, float_t frame,
         float_t* value, int32_t random_value, Random* random) {
-        size_t keys_count = keys.size();
+        const size_t keys_count = keys.size();
         if (!keys_count)
             return false;
 
@@ -243,7 +243,7 @@ namespace Glitter {
             && (flags & CURVE_BAKED) && (flags & CURVE_KEY_RANDOM_RANGE);
         const bool negate = baked_x && (flags & CURVE_RANDOM_RANGE_NEGATE);
 
-        size_t keys_count = keys.size();
+        const size_t keys_count = keys.size();
         if (keys_count < 1)
             return;
         else if (keys_count == 1) {
@@ -296,7 +296,7 @@ namespace Glitter {
         if (type == Glitter::F2 && (flags & CURVE_KEY_RANDOM_RANGE) && keys_count > 1) {
             const Curve::Key* keys_data = keys.data();
             if (arr_b[0] != 0.0 && arr_b[1] == 0.0) {
-                arr_a[0] += arr_b[0] * 10.0f;
+                arr_a[0] += arr_b[0] * 10.0;
                 arr_b[0] = 0.0;
             }
 
@@ -334,10 +334,9 @@ namespace Glitter {
         size_t left_count = keys_count;
         int32_t frame = start_time;
         int32_t prev_frame = start_time;
-        double_t t2_old = 0.0f;
+        double_t t2_old = 0.0;
         while (left_count > 0) {
             if (left_count < reverse_min_count) {
-                Curve::Key key;
                 if (left_count == 1) {
                     keys_rev.push_back(Curve::KeyRev(KEY_CONSTANT, frame, a[0], t2_old, 0.0, b[0]));
                     t2_old = 0.0;
@@ -401,11 +400,11 @@ namespace Glitter {
                             (double_t)((j + 0) * step),
                             (double_t)((j + 1) * step)
                         ) / (double_t)(i * step);
-                        vec2d t_1 = t - 1.0f;
+                        vec2d t_1 = t - 1.0;
 
                         vec2d t1_t2 = (*(vec2d*)&a[j + 0] + *(vec2d*)&b[j + 0]) - (a[0] + b[0])
                             - (t * 2.0 - 3.0) * (t * t) * ((a[0] + b[0]) - (a[i] + b[i]));
-                        t1_t2 /= t_1 * t;
+                        t1_t2 /= t_1 * t * (double_t)step;
 
                         double_t t1 = -t1_t2.x * t.y + t1_t2.y * t.x;
                         double_t t2 = t1_t2.x * t_1.y - t1_t2.y * t_1.x;
@@ -424,7 +423,7 @@ namespace Glitter {
                             0.0, (double_t)(i * step), (double_t)(j * step));
                         double_t val_lerp = InterpolateLinear(a[0] + b[0], a[i] + b[i],
                             0.0, (double_t)(i * step), (double_t)(j * step));
-                        if (fabs(val - (a[0] + b[j])) > reverse_bias[0]) {
+                        if (fabs(val - (a[0] + b[0])) > reverse_bias[0]) {
                             has_error = true;
                             if (fabs(val_lerp - (a[j] + b[j])) > reverse_bias[1]) {
                                 has_error_lerp = true;
@@ -436,7 +435,7 @@ namespace Glitter {
                         }
                     }
 
-                    if (fabs(t1) > 0.5 || fabs(t2) > 0.5)
+                    if (i < reverse_min_count && (fabs(t1) > 1.0 || fabs(t2) > 1.0))
                         has_error_hermite = true;
                 }
 
@@ -487,7 +486,7 @@ namespace Glitter {
         }
 
         keys_rev.push_back(Curve::KeyRev(KEY_CONSTANT, (int32_t)(start_time + (keys_count - 1) * step),
-            arr_a[keys_count - 1], t2_old, 0.0f, arr_b[keys_count - 1]));
+            arr_a[keys_count - 1], t2_old, 0.0, arr_b[keys_count - 1]));
         free_def(arr_a);
         free_def(arr_b);
 
@@ -524,7 +523,7 @@ namespace Glitter {
             && (flags & CURVE_BAKED) && (flags & CURVE_KEY_RANDOM_RANGE);
         const bool negate = baked_x && (flags & CURVE_RANDOM_RANGE_NEGATE);
 
-        size_t keys_count = keys_rev.size();
+        const size_t keys_count = keys_rev.size();
         if (keys_count < 1)
             return;
         else if (keys_count == 1) {
@@ -621,7 +620,7 @@ namespace Glitter {
 
     bool Curve::XGetValue(float_t frame,
         float_t* value, int32_t random_value, Random* random) {
-        size_t keys_count = keys.size();
+        const size_t keys_count = keys.size();
         if (!keys_count)
             return false;
 
