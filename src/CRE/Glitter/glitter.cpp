@@ -154,7 +154,7 @@ namespace Glitter {
 
     const char* effect_type_name[] = {
         "Normal",
-        "Local",
+        "Screen",
         "Chara Parent",
         "Object Parent",
     };

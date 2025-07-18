@@ -52,18 +52,18 @@ extern void draw_pass_3d_translucent(render_data_context& rend_data_ctx,
     render_context* rctx, mdl::ObjType opaque,
     mdl::ObjType transparent, mdl::ObjType translucent, cam_data& cam);
 extern void draw_pass_3d_translucent(render_data_context& rend_data_ctx,
-    render_context* rctx, mdl::ObjTypeLocal opaque,
-    mdl::ObjTypeLocal transparent, mdl::ObjTypeLocal translucent, cam_data& cam);
+    render_context* rctx, mdl::ObjTypeScreen opaque,
+    mdl::ObjTypeScreen transparent, mdl::ObjTypeScreen translucent, cam_data& cam);
 static int32_t draw_pass_3d_translucent_count_layers(render_context* rctx,
     int32_t* alpha_array, mdl::ObjType opaque,
     mdl::ObjType transparent, mdl::ObjType translucent, cam_data& cam);
 static int32_t draw_pass_3d_translucent_count_layers(render_context* rctx,
-    int32_t* alpha_array, mdl::ObjTypeLocal opaque,
-    mdl::ObjTypeLocal transparent, mdl::ObjTypeLocal translucent, cam_data& cam);
+    int32_t* alpha_array, mdl::ObjTypeScreen opaque,
+    mdl::ObjTypeScreen transparent, mdl::ObjTypeScreen translucent, cam_data& cam);
 static void draw_pass_3d_translucent_has_objects(
     render_context* rctx, bool* arr, mdl::ObjType type, cam_data& cam);
 static void draw_pass_3d_translucent_has_objects(
-    render_context* rctx, bool* arr, mdl::ObjTypeLocal type, cam_data& cam);
+    render_context* rctx, bool* arr, mdl::ObjTypeScreen type, cam_data& cam);
 
 static void draw_pass_reflect_full(render_data_context& rend_data_ctx, rndr::RenderManager* render_manager);
 
@@ -1129,38 +1129,38 @@ namespace rndr {
             mdl::OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_POST_GLITTER,
             mdl::OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_POST_GLITTER, cam);
 
-        if (Glitter::glt_particle_manager->CheckHasLocalEffect()) { // X
-            rend_data_ctx.state.begin_event("local");
+        if (Glitter::glt_particle_manager->CheckHasScreenEffect()) { // X
+            rend_data_ctx.state.begin_event("screen");
 
-            cam_data local_cam = cam;
-            local_cam.set_fov(32.2673416137695f);
-            local_cam.calc_persp_proj_mat_offset(1.0f, rctx->render.get_taa_offset());
-            local_cam.calc_view_proj_mat();
-            rend_data_ctx.set_batch_scene_camera(local_cam);
+            cam_data screen_cam = cam;
+            screen_cam.set_fov(32.2673416137695f);
+            screen_cam.calc_persp_proj_mat_offset(1.0f, rctx->render.get_taa_offset());
+            screen_cam.calc_view_proj_mat();
+            rend_data_ctx.set_batch_scene_camera(screen_cam);
 
             if (alpha_z_sort) {
                 rctx->disp_manager->obj_sort(rend_data_ctx,
-                    mdl::OBJ_TYPE_LOCAL_TRANSLUCENT, 1, local_cam);
+                    mdl::OBJ_TYPE_SCREEN_TRANSLUCENT, 1, screen_cam);
                 rctx->disp_manager->obj_sort(rend_data_ctx,
-                    mdl::OBJ_TYPE_LOCAL_TRANSLUCENT_ALPHA_ORDER_POST_TRANSLUCENT, 1, local_cam);
+                    mdl::OBJ_TYPE_SCREEN_TRANSLUCENT_ALPHA_ORDER_POST_TRANSLUCENT, 1, screen_cam);
             }
 
             if (opaque_z_sort)
-                rctx->disp_manager->obj_sort(rend_data_ctx, mdl::OBJ_TYPE_LOCAL_OPAQUE, 0, local_cam);
+                rctx->disp_manager->obj_sort(rend_data_ctx, mdl::OBJ_TYPE_SCREEN_OPAQUE, 0, screen_cam);
 
-            rctx->disp_manager->draw(rend_data_ctx, mdl::OBJ_TYPE_LOCAL_OPAQUE, local_cam);
-            rctx->disp_manager->draw(rend_data_ctx, mdl::OBJ_TYPE_LOCAL_TRANSPARENT, local_cam);
+            rctx->disp_manager->draw(rend_data_ctx, mdl::OBJ_TYPE_SCREEN_OPAQUE, screen_cam);
+            rctx->disp_manager->draw(rend_data_ctx, mdl::OBJ_TYPE_SCREEN_TRANSPARENT, screen_cam);
             rend_data_ctx.state.enable_blend();
-            rctx->disp_manager->draw(rend_data_ctx, mdl::OBJ_TYPE_LOCAL_TRANSLUCENT, local_cam);
+            rctx->disp_manager->draw(rend_data_ctx, mdl::OBJ_TYPE_SCREEN_TRANSLUCENT, screen_cam);
             rend_data_ctx.state.disable_blend();
 
             draw_pass_3d_translucent(rend_data_ctx, rctx,
-                mdl::OBJ_TYPE_LOCAL_OPAQUE_ALPHA_ORDER_POST_TRANSLUCENT,
-                mdl::OBJ_TYPE_LOCAL_TRANSPARENT_ALPHA_ORDER_POST_TRANSLUCENT,
-                mdl::OBJ_TYPE_LOCAL_TRANSLUCENT_ALPHA_ORDER_POST_TRANSLUCENT, cam);
+                mdl::OBJ_TYPE_SCREEN_OPAQUE_ALPHA_ORDER_POST_TRANSLUCENT,
+                mdl::OBJ_TYPE_SCREEN_TRANSPARENT_ALPHA_ORDER_POST_TRANSLUCENT,
+                mdl::OBJ_TYPE_SCREEN_TRANSLUCENT_ALPHA_ORDER_POST_TRANSLUCENT, cam);
 
             rend_data_ctx.state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
-            Glitter::glt_particle_manager->DispScenes(rend_data_ctx, Glitter::DISP_LOCAL, local_cam);
+            Glitter::glt_particle_manager->DispScenes(rend_data_ctx, Glitter::DISP_SCREEN, screen_cam);
             rend_data_ctx.state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
             rend_data_ctx.state.end_event();
@@ -1965,8 +1965,8 @@ static void draw_pass_3d_translucent(render_data_context& rend_data_ctx,
 }
 
 static void draw_pass_3d_translucent(render_data_context& rend_data_ctx,
-    render_context* rctx, mdl::ObjTypeLocal opaque,
-    mdl::ObjTypeLocal transparent, mdl::ObjTypeLocal translucent, cam_data& cam) {
+    render_context* rctx, mdl::ObjTypeScreen opaque,
+    mdl::ObjTypeScreen transparent, mdl::ObjTypeScreen translucent, cam_data& cam) {
     if (rctx->disp_manager->get_obj_count(opaque) < 1
         && rctx->disp_manager->get_obj_count(transparent) < 1
         && rctx->disp_manager->get_obj_count(translucent) < 1)
@@ -2018,8 +2018,8 @@ static int32_t draw_pass_3d_translucent_count_layers(render_context* rctx,
 }
 
 static int32_t draw_pass_3d_translucent_count_layers(render_context* rctx,
-    int32_t* alpha_array, mdl::ObjTypeLocal opaque,
-    mdl::ObjTypeLocal transparent, mdl::ObjTypeLocal translucent, cam_data& cam) {
+    int32_t* alpha_array, mdl::ObjTypeScreen opaque,
+    mdl::ObjTypeScreen transparent, mdl::ObjTypeScreen translucent, cam_data& cam) {
     bool arr[0x100] = { false };
 
     draw_pass_3d_translucent_has_objects(rctx, arr, opaque, cam);
@@ -2057,7 +2057,7 @@ static void draw_pass_3d_translucent_has_objects(
 }
 
 static void draw_pass_3d_translucent_has_objects(
-    render_context* rctx, bool* arr, mdl::ObjTypeLocal type, cam_data& cam) {
+    render_context* rctx, bool* arr, mdl::ObjTypeScreen type, cam_data& cam) {
     rctx->disp_manager->calc_obj_radius(cam, type);
     mdl::ObjList& vec = rctx->disp_manager->obj[type];
     for (mdl::ObjData*& i : vec)

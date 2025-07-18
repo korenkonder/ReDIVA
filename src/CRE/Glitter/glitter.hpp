@@ -140,7 +140,7 @@ namespace Glitter {
         DISP_NORMAL           = 1,
         DISP_PRE_TRANSLUCENT  = 2, // 3 in X
         DISP_POST_TRANSLUCENT = 3, // 2 in X
-        DISP_LOCAL            = 4,
+        DISP_SCREEN           = 4,
     };
 
     enum EffectExtAnimFlag {
@@ -180,7 +180,7 @@ namespace Glitter {
     enum EffectFlag {
         EFFECT_NONE            = 0x00,
         EFFECT_LOOP            = 0x01,
-        EFFECT_LOCAL           = 0x02,
+        EFFECT_SCREEN          = 0x02,
         EFFECT_PRE_TRANSLUCENT = 0x04,
         EFFECT_FOG             = 0x08,
         EFFECT_FOG_HEIGHT      = 0x10,
@@ -344,7 +344,7 @@ namespace Glitter {
         PARTICLE_TEXTURE_MASK      = 0x00100,
         PARTICLE_DEPTH_TEST        = 0x00200,
         PARTICLE_ROTATE_LOCUS      = 0x00800,
-        PARTICLE_LOCAL             = 0x10000,
+        PARTICLE_SCREEN            = 0x10000,
         PARTICLE_EMISSION          = 0x20000,
     };
 
@@ -359,7 +359,7 @@ namespace Glitter {
         PARTICLE_MANAGER_NOT_DISP            = 0x02,
         PARTICLE_MANAGER_RESET_SCENE_COUNTER = 0x04,
         PARTICLE_MANAGER_READ_FILES          = 0x08,
-        PARTICLE_MANAGER_LOCAL               = 0x20,
+        PARTICLE_MANAGER_SCREEN              = 0x20,
     };
 
     enum ParticleSubFlag {
@@ -1684,10 +1684,10 @@ namespace Glitter {
         void BasicEffectGroups();
         void CalcDisp();
         uint64_t CalculateHash(const char* str);
-        bool CheckHasLocalEffect();
+        bool CheckHasScreenEffect();
         bool CheckNoFileReaders(uint64_t hash);
         bool CheckSceneEnded(SceneCounter scene_counter);
-        void CheckSceneHasLocalEffect(Scene* sc);
+        void CheckSceneHasScreenEffect(Scene* sc);
         void CtrlScenes();
         void DecrementInitBuffersByCount(int32_t count = 1);
         void DispScenes(render_data_context& rend_data_ctx, DispType disp_type, const cam_data& cam);

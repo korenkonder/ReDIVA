@@ -126,7 +126,7 @@ namespace Glitter {
         random_ptr = &Glitter::random;
         ext_anim = 0;
 
-        if (!init && !(eff->data.flags & EFFECT_LOCAL) && data.ext_anim) {
+        if (!init && !(eff->data.flags & EFFECT_SCREEN) && data.ext_anim) {
             InitExtAnim();
 
             F2EffectInst::ExtAnim* inst_ext_anim = this->ext_anim;
@@ -244,7 +244,7 @@ namespace Glitter {
         frame1 = 0.0;
 
         flags = (EffectInstFlag)0;
-        if (!(data.flags & EFFECT_LOCAL) && data.ext_anim) {
+        if (!(data.flags & EFFECT_SCREEN) && data.ext_anim) {
             if (ext_anim) {
                 Effect::ExtAnim* ext_anim = data.ext_anim;
                 if (ext_anim->flags & EFFECT_EXT_ANIM_SET_ONCE)
@@ -697,7 +697,7 @@ namespace Glitter {
             random = counter.GetValue();
         random_shared.value = random;
 
-        if (!init && !(eff->data.flags & EFFECT_LOCAL) && data.ext_anim_x) {
+        if (!init && !(eff->data.flags & EFFECT_SCREEN) && data.ext_anim_x) {
             InitExtAnim();
 
             XEffectInst::ExtAnim* inst_ext_anim = this->ext_anim;
@@ -824,7 +824,7 @@ namespace Glitter {
         frame1 = 0.0;
 
         flags = (EffectInstFlag)0;
-        if (!(data.flags & EFFECT_LOCAL) && data.ext_anim_x) {
+        if (!(data.flags & EFFECT_SCREEN) && data.ext_anim_x) {
             if (ext_anim) {
                 Effect::ExtAnimX* ext_anim = data.ext_anim_x;
                 if (ext_anim->flags & EFFECT_EXT_ANIM_SET_ONCE)
@@ -1052,8 +1052,8 @@ namespace Glitter {
     }
 
     DispType XEffectInst::GetDispType() {
-        if (data.flags & EFFECT_LOCAL)
-            return DISP_LOCAL;
+        if (data.flags & EFFECT_SCREEN)
+            return DISP_SCREEN;
         else if (data.flags & EFFECT_PRE_TRANSLUCENT)
             return DISP_PRE_TRANSLUCENT;
         else if (flags & EFFECT_INST_POST_TRANSLUCENT)

@@ -98,9 +98,9 @@ static void glitter_editor_draw_emitter_type(GlitterEditor* glt_edt);
 static void glitter_editor_draw_emitter_type_effect_inst(
     GlitterEditor* glt_edt, Glitter::EffectInst* eff_inst);
 static void glitter_editor_draw_emitter_type_emitter_inst_f2(
-    GlitterEditor* glt_edt, Glitter::EmitterInst* emit_inst, bool local);
+    GlitterEditor* glt_edt, Glitter::EmitterInst* emit_inst, bool screen);
 static void glitter_editor_draw_emitter_type_emitter_inst_x(
-    GlitterEditor* glt_edt, Glitter::EmitterInst* emit_inst, bool local);
+    GlitterEditor* glt_edt, Glitter::EmitterInst* emit_inst, bool screen);
 static void glitter_editor_draw_emitter_type_scene(GlitterEditor* glt_edt, Glitter::Scene* sc);
 
 static void glitter_editor_test_window(GlitterEditor* glt_edt);
@@ -1897,7 +1897,7 @@ static void glitter_editor_draw_emitter_type_effect_inst(
         for (Glitter::EmitterInst* i : f2_eff_inst->emitters)
             if (i && i->emitter == emit) {
                 glitter_editor_draw_emitter_type_emitter_inst_f2(glt_edt,
-                    i, !!(f2_eff_inst->data.flags & Glitter::EFFECT_LOCAL));
+                    i, !!(f2_eff_inst->data.flags & Glitter::EFFECT_SCREEN));
                 break;
             }
 
@@ -1909,13 +1909,13 @@ static void glitter_editor_draw_emitter_type_effect_inst(
         for (Glitter::EmitterInst* i : x_eff_inst->emitters)
             if (i && i->emitter == emit) {
                 glitter_editor_draw_emitter_type_emitter_inst_x(glt_edt,
-                    i, !!(x_eff_inst->data.flags & Glitter::EFFECT_LOCAL));
+                    i, !!(x_eff_inst->data.flags & Glitter::EFFECT_SCREEN));
                 break;
             }
 }
 
 static void glitter_editor_draw_emitter_type_emitter_inst_f2(
-    GlitterEditor* glt_edt, Glitter::EmitterInst* emit_inst, bool local) {
+    GlitterEditor* glt_edt, Glitter::EmitterInst* emit_inst, bool screen) {
     switch (emit_inst->data.type) {
     case Glitter::EMITTER_BOX:
     case Glitter::EMITTER_CYLINDER:
@@ -1928,7 +1928,7 @@ static void glitter_editor_draw_emitter_type_emitter_inst_f2(
 
     mat4 mat;
     mat4_normalize_rotation(&emit_inst->mat, &mat);
-    if (local) {
+    if (screen) {
         mat4_mul(&rctx_ptr->camera->inv_view, &emit_inst->mat, &mat);
         mat4_mul(&rctx_ptr->camera->view, &mat, &mat);
         mat4_mul(&mat, &rctx_ptr->camera->inv_view, &mat);
@@ -1946,8 +1946,8 @@ static void glitter_editor_draw_emitter_type_emitter_inst_f2(
         etc.constant = true;
         etc.data.cube.size = vec3::max(emit_inst->data.box.size * scale, 0.1f);
         etc.data.cube.wire = false;
-        if (local)
-            rctx_ptr->disp_manager->entry_obj_etc_local(mat, etc);
+        if (screen)
+            rctx_ptr->disp_manager->entry_obj_etc_screen(mat, etc);
         else
             rctx_ptr->disp_manager->entry_obj_etc(mat, etc);
     } break;
@@ -1960,8 +1960,8 @@ static void glitter_editor_draw_emitter_type_emitter_inst_f2(
         etc.data.cylinder.slices = 16;
         etc.data.cylinder.stacks = 1;
         etc.data.cylinder.wire = false;
-        if (local)
-            rctx_ptr->disp_manager->entry_obj_etc_local(mat, etc);
+        if (screen)
+            rctx_ptr->disp_manager->entry_obj_etc_screen(mat, etc);
         else
             rctx_ptr->disp_manager->entry_obj_etc(mat, etc);
     } break;
@@ -1973,8 +1973,8 @@ static void glitter_editor_draw_emitter_type_emitter_inst_f2(
         etc.data.sphere.slices = 16;
         etc.data.sphere.stacks = 16;
         etc.data.sphere.wire = false;
-        if (local)
-            rctx_ptr->disp_manager->entry_obj_etc_local(mat, etc);
+        if (screen)
+            rctx_ptr->disp_manager->entry_obj_etc_screen(mat, etc);
         else
             rctx_ptr->disp_manager->entry_obj_etc(mat, etc);
     } break;
@@ -1984,8 +1984,8 @@ static void glitter_editor_draw_emitter_type_emitter_inst_f2(
         etc.constant = true;
         etc.data.line.pos[0] = vec3(-emit_inst->data.polygon.size * scale.x * 0.5f, 0.0f, 0.0f);
         etc.data.line.pos[1] = vec3(emit_inst->data.polygon.size * scale.x * 0.5f, 0.0f, 0.0f);
-        if (local)
-            rctx_ptr->disp_manager->entry_obj_etc_local(mat, etc);
+        if (screen)
+            rctx_ptr->disp_manager->entry_obj_etc_screen(mat, etc);
         else
             rctx_ptr->disp_manager->entry_obj_etc(mat, etc);
     } break;
@@ -1993,7 +1993,7 @@ static void glitter_editor_draw_emitter_type_emitter_inst_f2(
 }
 
 static void glitter_editor_draw_emitter_type_emitter_inst_x(
-    GlitterEditor* glt_edt, Glitter::EmitterInst* emit_inst, bool local) {
+    GlitterEditor* glt_edt, Glitter::EmitterInst* emit_inst, bool screen) {
     switch (emit_inst->data.type) {
     case Glitter::EMITTER_BOX:
     case Glitter::EMITTER_CYLINDER:
@@ -2006,7 +2006,7 @@ static void glitter_editor_draw_emitter_type_emitter_inst_x(
 
     mat4 mat;
     mat4_normalize_rotation(&emit_inst->mat, &mat);
-    if (local) {
+    if (screen) {
         mat4_mul(&rctx_ptr->camera->inv_view, &emit_inst->mat, &mat);
         mat4_mul(&rctx_ptr->camera->view, &mat, &mat);
         mat4_mul(&mat, &rctx_ptr->camera->inv_view, &mat);
@@ -2024,8 +2024,8 @@ static void glitter_editor_draw_emitter_type_emitter_inst_x(
         etc.constant = true;
         etc.data.cube.size = vec3::max(emit_inst->data.box.size * scale, 0.1f);
         etc.data.cube.wire = false;
-        if (local)
-            rctx_ptr->disp_manager->entry_obj_etc_local(mat, etc);
+        if (screen)
+            rctx_ptr->disp_manager->entry_obj_etc_screen(mat, etc);
         else
             rctx_ptr->disp_manager->entry_obj_etc(mat, etc);
     } break;
@@ -2038,8 +2038,8 @@ static void glitter_editor_draw_emitter_type_emitter_inst_x(
         etc.data.cylinder.slices = 16;
         etc.data.cylinder.stacks = 1;
         etc.data.cylinder.wire = false;
-        if (local)
-            rctx_ptr->disp_manager->entry_obj_etc_local(mat, etc);
+        if (screen)
+            rctx_ptr->disp_manager->entry_obj_etc_screen(mat, etc);
         else
             rctx_ptr->disp_manager->entry_obj_etc(mat, etc);
     } break;
@@ -2051,8 +2051,8 @@ static void glitter_editor_draw_emitter_type_emitter_inst_x(
         etc.data.sphere.slices = 16;
         etc.data.sphere.stacks = 16;
         etc.data.sphere.wire = false;
-        if (local)
-            rctx_ptr->disp_manager->entry_obj_etc_local(mat, etc);
+        if (screen)
+            rctx_ptr->disp_manager->entry_obj_etc_screen(mat, etc);
         else
             rctx_ptr->disp_manager->entry_obj_etc(mat, etc);
     } break;
@@ -2065,8 +2065,8 @@ static void glitter_editor_draw_emitter_type_emitter_inst_x(
         etc.data.cylinder.slices = 16;
         etc.data.cylinder.stacks = 0;
         etc.data.cylinder.wire = false;
-        if (local)
-            rctx_ptr->disp_manager->entry_obj_etc_local(mat, etc);
+        if (screen)
+            rctx_ptr->disp_manager->entry_obj_etc_screen(mat, etc);
         else
             rctx_ptr->disp_manager->entry_obj_etc(mat, etc);
     } break;
@@ -2270,8 +2270,8 @@ static void glitter_editor_effects(GlitterEditor* glt_edt) {
             else
                 eff_str = "%s (%08X) [O]";
         }
-        else if (effect->data.flags & Glitter::EFFECT_LOCAL)
-            eff_str = "%s (%08X) [L]";
+        else if (effect->data.flags & Glitter::EFFECT_SCREEN)
+            eff_str = "%s (%08X) [S]";
         else
             eff_str = "%s (%08X)";
 
@@ -2457,7 +2457,7 @@ static void glitter_editor_effects_context_menu(GlitterEditor* glt_edt,
             else
                 eff_str = "%s (%08X) [O]";
         }
-        else if (effect->data.flags & Glitter::EFFECT_LOCAL)
+        else if (effect->data.flags & Glitter::EFFECT_SCREEN)
             eff_str = "%s (%08X) [L]";
         else
             eff_str = "%s (%08X)";
@@ -3018,7 +3018,7 @@ static void glitter_editor_property_effect(GlitterEditor* glt_edt) {
     }
 
     int32_t type;
-    if (effect->data.flags & Glitter::EFFECT_LOCAL)
+    if (effect->data.flags & Glitter::EFFECT_SCREEN)
         type = 1;
     else if (effect->data.ext_anim)
         type = effect->data.ext_anim->flags & Glitter::EFFECT_EXT_ANIM_CHARA ? 2 : 3;
@@ -3028,14 +3028,14 @@ static void glitter_editor_property_effect(GlitterEditor* glt_edt) {
     if (ImGui::ColumnComboBox("Type", Glitter::effect_type_name,
         4, &type, 0, false, &input_locked)) {
         if (type == 1) {
-            enum_or(effect->data.flags, Glitter::EFFECT_LOCAL);
+            enum_or(effect->data.flags, Glitter::EFFECT_SCREEN);
             if (effect->data.ext_anim) {
                 delete effect->data.ext_anim;
                 effect->data.ext_anim = 0;
             }
         }
         else {
-            enum_and(effect->data.flags, ~Glitter::EFFECT_LOCAL);
+            enum_and(effect->data.flags, ~Glitter::EFFECT_SCREEN);
             if (type == 2 || type == 3) {
                 if (!effect->data.ext_anim)
                     effect->data.ext_anim = force_malloc<Glitter::Effect::ExtAnim>();
@@ -3053,7 +3053,7 @@ static void glitter_editor_property_effect(GlitterEditor* glt_edt) {
         changed = true;
     }
 
-    if (!(effect->data.flags & Glitter::EFFECT_LOCAL) && effect->data.ext_anim) {
+    if (!(effect->data.flags & Glitter::EFFECT_SCREEN) && effect->data.ext_anim) {
         ImGui::Separator();
 
         bool changed = false;
@@ -3221,10 +3221,10 @@ static void glitter_editor_property_effect(GlitterEditor* glt_edt) {
 
                 Glitter::Particle* particle = j;
                 Glitter::ParticleFlag flags = particle->data.flags;
-                if (effect->data.flags & Glitter::EFFECT_LOCAL)
-                    enum_or(flags, Glitter::PARTICLE_LOCAL);
+                if (effect->data.flags & Glitter::EFFECT_SCREEN)
+                    enum_or(flags, Glitter::PARTICLE_SCREEN);
                 else
-                    enum_and(flags, ~Glitter::PARTICLE_LOCAL);
+                    enum_and(flags, ~Glitter::PARTICLE_SCREEN);
 
                 if (effect->data.flags & Glitter::EFFECT_EMISSION
                     || particle->data.emission >= Glitter::min_emission)

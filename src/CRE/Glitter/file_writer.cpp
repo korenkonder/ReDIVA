@@ -557,7 +557,7 @@ namespace Glitter {
         Effect::ExtAnim* ext_anim = eff->data.ext_anim;
 
         int32_t type;
-        if (eff->data.flags & EFFECT_LOCAL)
+        if (eff->data.flags & EFFECT_SCREEN)
             type = 1;
         else if (!ext_anim)
             type = 0;
@@ -1416,8 +1416,8 @@ namespace Glitter {
         size_t d = (size_t)st->data.data();
 
         ParticleFlag flags = ptcl->data.flags;
-        if (eff->data.flags & EFFECT_LOCAL)
-            enum_and(flags, ~PARTICLE_LOCAL);
+        if (eff->data.flags & EFFECT_SCREEN)
+            enum_and(flags, ~PARTICLE_SCREEN);
         if (eff->data.flags & EFFECT_EMISSION)
             enum_and(flags, ~PARTICLE_EMISSION);
 

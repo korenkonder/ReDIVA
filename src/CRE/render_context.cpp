@@ -1494,8 +1494,8 @@ void render_context::pre_proc() {
                     break;
                 }
 
-        for (int32_t type = 0; type < mdl::OBJ_TYPE_LOCAL_MAX; type++)
-            for (mdl::ObjData*& i : disp_manager->obj_local[type])
+        for (int32_t type = 0; type < mdl::OBJ_TYPE_SCREEN_MAX; type++)
+            for (mdl::ObjData*& i : disp_manager->obj_screen[type])
                 switch (i->kind) {
                 case mdl::OBJ_KIND_NORMAL:
                     add_obj_list(this, &i->args.sub_mesh);
