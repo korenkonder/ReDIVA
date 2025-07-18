@@ -429,6 +429,7 @@ struct pv_game {
     void reset();
     void reset_appear();
     void reset_field();
+    void restart();
     void set_chara_use_opd(bool value);
     void set_data_campv(int32_t type, int32_t index, float_t frame);
     void set_data_itmpv(int32_t chara_id, int32_t index, bool enable, int64_t time);
@@ -460,7 +461,6 @@ struct pv_game {
     float_t sub_1400FCEB0();
     int32_t sub_1400FDD80();
     void sub_140104FB0();
-    void sub_140106640();
     bool sub_14010EF00();
     void sub_14010F030();
     int32_t sub_14010F930();
