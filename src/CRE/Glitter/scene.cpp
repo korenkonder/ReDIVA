@@ -7,7 +7,7 @@
 #include "../gl_state.hpp"
 
 namespace Glitter {
-    Scene::Scene(SceneCounter counter, uint64_t hash, EffectGroup* eff_group, bool a5) {
+    Scene::Scene(SceneCounter counter, uint64_t hash, EffectGroup* eff_group, bool init) {
         this->counter = counter;
         this->hash = hash;
         flags = SCENE_NONE;
@@ -23,8 +23,8 @@ namespace Glitter {
         if (eff_group) {
             effects.reserve(eff_group->effects.size());
             emission = eff_group->emission;
-            if (a5)
-                enum_or(flags, SCENE_FLAG_3);
+            if (init)
+                enum_or(flags, SCENE_INIT);
         }
     }
 
@@ -34,7 +34,7 @@ namespace Glitter {
     }
 
     bool Scene::Copy(Glitter::EffectInst* eff_inst, Glitter::Scene* dst) {
-        if (!(flags & SCENE_FLAG_3))
+        if (!(flags & SCENE_INIT))
             return false;
 
         for (SceneEffect& i : effects)
@@ -289,7 +289,7 @@ namespace Glitter {
         if (!eff)
             return;
 
-        bool init = !!(flags & SCENE_FLAG_3);
+        bool init = !!(flags & SCENE_INIT);
         if (!init)
             for (SceneEffect& i : effects)
                 if (i.ptr && i.disp && i.ptr->id == id) {
@@ -310,7 +310,7 @@ namespace Glitter {
     }
 
     bool Scene::ResetCheckInit(GPM, float_t* init_delta_frame) {
-        if (!(flags & SCENE_FLAG_3) || !effects.size())
+        if (!(flags & SCENE_INIT) || !effects.size())
             return false;
 
         for (SceneEffect& i : effects)

@@ -391,7 +391,7 @@ namespace Glitter {
         SCENE_NONE     = 0x00,
         SCENE_FLAG_1   = 0x01,
         SCENE_NOT_DISP = 0x02,
-        SCENE_FLAG_3   = 0x04,
+        SCENE_INIT     = 0x04,
         SCENE_ENDED    = 0x08,
         SCENE_PAUSE    = 0x10,
         SCENE_EDITOR   = 0x80,
@@ -1618,7 +1618,7 @@ namespace Glitter {
         EffectGroup* effect_group;
         FrameRateControl* frame_rate;
 
-        Scene(SceneCounter counter, uint64_t hash, EffectGroup* eff_group, bool a5);
+        Scene(SceneCounter counter, uint64_t hash, EffectGroup* eff_group, bool init);
         virtual ~Scene();
 
         void CalcDisp(GPM);
