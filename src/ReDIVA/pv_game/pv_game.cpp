@@ -6180,7 +6180,7 @@ void pv_game_parent::ctrl(pv_game_parent* pvgmp) {
 
         if (pv_game_ptr) {
             if (sub_14013C8C0()->sub_1400E7910() >= 4)
-                pv_game_ptr->sub_140106640();
+                pv_game_ptr->restart();
             else
                 pv_game_ptr->unload();
         }
