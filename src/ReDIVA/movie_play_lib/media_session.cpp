@@ -319,7 +319,7 @@ namespace MoviePlayLib {
         case Status_Stopping:
         case Status_Stopped: {
             CommandArgs* pCommandArgs = 0;
-            hr = CreateCommandArgs(MediaSession::Command_Pause, pCommandArgs);
+            hr = CreateCommandArgs(MediaSession::Command_SetPosition, pCommandArgs);
             if (SUCCEEDED(hr)) {
                 hr = pCommandArgs->SetValue((int64_t)prj::floor(pos * 10000000.0));
                 if (SUCCEEDED(hr))
