@@ -39,7 +39,7 @@ public:
 struct pv_game_parent {
     int8_t field_0;
     int8_t field_1;
-    uint8_t pv_state;
+    uint8_t outer_state;
     bool playing;
     int8_t field_4;
     int8_t field_5;
@@ -47,7 +47,7 @@ struct pv_game_parent {
     int8_t field_7;
     int64_t curr_time;
     float_t delta_time;
-    int32_t state;
+    int32_t inner_state;
     void(*update_func)(pv_game_parent*);
     int8_t field_20;
     int8_t field_21;
@@ -174,6 +174,8 @@ static SysFrameRate* sys_frame_rate_get(int32_t chara_id);
 
 static int32_t sub_1400FCFD0(pv_game_chara* arr, const pv_db_pv* pv);
 static void sub_140105010(pv_game_chara* arr, size_t max_count, pv_game_item_mask* a3, struc_674& a4);
+static bool sub_1401279D0();
+static bool sub_140128480();
 
 pv_game_chara::pv_game_chara() : chara_index(), cos(), chara_id(), pv_data(), rob_chr() {
 
@@ -5314,7 +5316,7 @@ void TaskPvGame::disp() {
 
 #if PV_DEBUG
 void TaskPvGame::window() {
-    if (data.type != 2 || pv_game_parent_data.pv_state != 1)
+    if (data.type != 2 || pv_game_parent_data.outer_state != 1)
         return;
 
     if (Input::IsKeyTapped(GLFW_KEY_K, GLFW_MOD_CONTROL))
@@ -5392,7 +5394,7 @@ void TaskPvGame::window() {
 }
 
 void TaskPvGame::basic() {
-    if (data.type != 2 || pv_game_parent_data.pv_state != 1 || pv_game_parent_data.init_time)
+    if (data.type != 2 || pv_game_parent_data.outer_state != 1 || pv_game_parent_data.init_time)
         return;
 
     if (step_frame)
@@ -5428,9 +5430,9 @@ void TaskPvGame::load(TaskPvGame::Data& data) {
     pv_game_init();
 
     pv_game_parent_data.update_func = pv_game_parent::ctrl;
-    pv_game_parent_data.pv_state = 0;
+    pv_game_parent_data.outer_state = 0;
     pv_game_parent_data.playing = true;
-    pv_game_parent_data.state = 0;
+    pv_game_parent_data.inner_state = 0;
     pv_game_parent_data.init_time = false;
 
 #if !PV_DEBUG
@@ -5476,7 +5478,7 @@ void TaskPvGame::load(TaskPvGame::Data& data) {
 bool TaskPvGame::unload() {
     switch (pv_game_parent_state) {
     case 0:
-        pv_game_parent_data.state = 0;
+        pv_game_parent_data.inner_state = 0;
         pv_game_music_get()->stop();
         //sub_14013C8F0()->sub_14012B830();
         pv_game_parent_state = 1;
@@ -6042,43 +6044,53 @@ float_t DivaPvFrameRate::get_delta_frame() {
     return ::get_delta_frame() * get_anim_frame_speed() * frame_speed;
 }
 
-pv_game_parent::pv_game_parent() : field_0(), field_1(), pv_state(), playing(), field_4(),
-field_5(), field_6(), field_7(), curr_time(), delta_time(), state(), update_func(), field_20(),
+pv_game_parent::pv_game_parent() : field_0(), field_1(), outer_state(), playing(), field_4(),
+field_5(), field_6(), field_7(), curr_time(), delta_time(), inner_state(), update_func(), field_20(),
 field_21(), field_22(), field_23(), field_24(), field_25(), field_26(), field_27(), init_time() {
 
 }
 
 void pv_game_parent::ctrl(pv_game_parent* pvgmp) {
-    switch (pvgmp->pv_state) {
+    switch (pvgmp->outer_state) {
     case 0:
     default:
-        switch (pvgmp->state) {
+        switch (pvgmp->inner_state) {
         case 0:
-        case 5:
-            pvgmp->state = 6;
+            pvgmp->inner_state = 6;
+            break;
+        case 1:
+            if (sub_1401279D0())
+                pvgmp->inner_state = 2;
             break;
         case 2:
-            pvgmp->state = 3;
+            pvgmp->inner_state = 3;
             break;
         case 3:
-            pvgmp->state = 4;
+            pvgmp->inner_state = 4;
+            break;
+        case 4:
+            if (!sub_140128480())
+                pvgmp->inner_state = 5;
+            break;
+        case 5:
+            pvgmp->inner_state = 6;
             break;
         case 6:
             pv_game_time_pause();
             if (sub_14013C8C0()->sub_1400E7920()) {
                 pv_game_ptr->state = 0;
-                pvgmp->state = 8;
+                pvgmp->inner_state = 8;
                 break;
             }
-            pvgmp->state = 7;
+            pvgmp->inner_state = 7;
             break;
         case 7:
             pv_game_ptr->state = 0;
-            pvgmp->state = 8;
+            pvgmp->inner_state = 8;
             break;
         case 8:
             if (sub_14013C8C0()->sub_1400E7910() < 4 && pv_game_ptr->load())
-                pvgmp->state = 9;
+                pvgmp->inner_state = 9;
             break;
         case 9:
             if (sub_14013C8C0()->sub_1400E7910() == 3 || sub_14013C8C0()->sub_1400E7910() >= 6) {
@@ -6094,7 +6106,7 @@ void pv_game_parent::ctrl(pv_game_parent* pvgmp) {
                 task_wait_screen_set_end();
 
             pv_game_time_start();
-            pvgmp->state = 10;
+            pvgmp->inner_state = 10;
             break;
         case 10:
             if (sub_14013C8C0()->sub_1400E7910() == 3 || (sub_14013C8C0()->sub_1400E7910() >= 6)) {
@@ -6105,16 +6117,16 @@ void pv_game_parent::ctrl(pv_game_parent* pvgmp) {
                         pv_game_time_pause();
                         pv_game_time_start();
                     }
-                    pvgmp->state = 13;
+                    pvgmp->inner_state = 13;
                 }
             }
             else if (task_wait_screen_get_ended()) {
                 task_wait_screen_set_index_0();
-                pvgmp->state = 11;
+                pvgmp->inner_state = 11;
             }
             break;
         case 11:
-            pvgmp->state = 12;
+            pvgmp->inner_state = 12;
             break;
         case 12:
             pv_game_ptr->reset_appear();
@@ -6122,22 +6134,21 @@ void pv_game_parent::ctrl(pv_game_parent* pvgmp) {
                 pv_game_time_pause();
                 pv_game_time_start();
             }
-            pvgmp->state = 13;
+            pvgmp->inner_state = 13;
             break;
-        default:
-            if (pvgmp->state >= 13) {
-                pv_game_state = 0;
-                pvgmp->init_time = true;
-                pvgmp->pv_state = 1;
-            }
-            break;
+        }
+
+        if (pvgmp->inner_state >= 13) {
+            pv_game_state = 0;
+            pvgmp->init_time = true;
+            pvgmp->outer_state = 1;
         }
         break;
     case 1:
         pv_game_state = pv_game_ptr->ctrl(pvgmp->delta_time, pvgmp->curr_time);
         if (pv_game_state) {
             sub_14013C8C0()->sub_1400E7910();
-            pvgmp->pv_state = 2;
+            pvgmp->outer_state = 2;
         }
         break;
     case 2:
@@ -6380,4 +6391,12 @@ static void sub_140105010(pv_game_chara* arr, size_t max_count, pv_game_item_mas
                 chr->pv_data.item.arr[i] = item_no;
         }
     }
+}
+
+static bool sub_1401279D0() {
+    return false;
+}
+
+static bool sub_140128480() {
+    return true;
 }
