@@ -71,8 +71,8 @@ namespace MoviePlayLib {
         m_lock.Acquire();
         HRESULT hr = m_bShutdown ? MF_E_SHUTDOWN : 0;
         if (!m_bShutdown) {
-            if (pSample)
-                pSample->Release();
+            if (m_pSample)
+                m_pSample->Release();
 
             m_pSample = pSample;
             pSample->AddRef();
