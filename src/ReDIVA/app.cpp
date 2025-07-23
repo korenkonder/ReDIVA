@@ -71,6 +71,7 @@
 #include "data_test/stage_test.hpp"
 #include "information/dw_console.hpp"
 #include "pv_game/pv_game.hpp"
+#include "am_data.hpp"
 #include "classes.hpp"
 #include "game_state.hpp"
 #include "font_info.hpp"
@@ -782,6 +783,7 @@ static render_context* render_context_load() {
     extern HRESULT mf_init();
     mf_init();
 
+    am_data_init();
     wave_audio_storage_init();
     ogg_file_handler_storage_init();
     ogg_playback_data_init();

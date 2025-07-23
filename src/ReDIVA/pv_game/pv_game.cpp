@@ -18,6 +18,7 @@
 #include "../../CRE/sound.hpp"
 #include "../../CRE/stage_param.hpp"
 #include "../../KKdLib/prj/algorithm.hpp"
+#include "../am_data.hpp"
 #include "../game_state.hpp"
 #include "../imgui_helper.hpp"
 #include "../input.hpp"
@@ -4944,11 +4945,11 @@ void pv_game::sub_140104FB0() {
 }
 
 bool pv_game::sub_14010EF00() {
-    /*InputState* input_state = input_state_get(0);
-    if (!wrap_collection_get()->give_up.get_arr_value())
+    //InputState* input_state = input_state_get(0);
+    if (!wrap_collection_get()->give_up.get_value())
         return false;
 
-    bool v5 = task_slider_control_get()->sub_140618C20(38)
+    /*bool v5 = task_slider_control_get()->sub_140618C20(38)
         && input_state->sub_14018D480(10) && input_state->sub_14018D480(7);
     switch (data.field_2DB34) {
     case 0:

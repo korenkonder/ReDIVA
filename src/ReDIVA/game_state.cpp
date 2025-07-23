@@ -30,6 +30,7 @@
 #include "information/dw_console.hpp"
 #include "pv_game/player_data.hpp"
 #include "pv_game/pv_game.hpp"
+#include "am_data.hpp"
 #include "data_initialize.hpp"
 #include "input_state.hpp"
 #include "system_startup.hpp"
@@ -970,7 +971,7 @@ bool GameState::Advertise::Init() {
 
         //task_slider_control_get()->sub_140618980(2);
 
-        /*if (task_printer_get()->check_task_ready() && !wrap_collection_get()->printer.get_arr_value())
+        /*if (task_printer_get()->check_task_ready() && !wrap_collection_get()->printer.get_value())
             task_printer_get()->del();*/
         break;
     case 1:
@@ -984,10 +985,10 @@ bool GameState::Advertise::Init() {
         //sub_1401F4440();
         //sub_1401E87E0();
 
-        /*const float_t min_volume = get_min_speakers_volume();
+        const float_t min_volume = get_min_speakers_volume();
         const float_t max_volume = get_max_speakers_volume();
-        sound_work_set_speakers_volume((float_t)wrap_collection_get()->advertise_sound_volume.get_arr_value()
-            * (max_volume - min_volume) * 0.01f + min_volume);*/
+        sound_work_set_speakers_volume((float_t)wrap_collection_get()->advertise_sound_volume.get_value()
+            * (max_volume - min_volume) * 0.01f + min_volume);
 
         //sub_1402B7880()->sub_1402BAE80();
         module_data_handler_data_add_all_modules();
@@ -1017,7 +1018,7 @@ bool GameState::Advertise::Ctrl() {
     //LOBYTE(task_aime_get()[3].next_op) = game_state_is_advertise_not_sub_demo();
 
     /*if (!sup_err_task_supplies_error_check_task_ready()
-        && task_information.field_77 && wrap_collection_get()->printer.get_arr_value() && sub_140662AD0() != 3)
+        && task_information.field_77 && wrap_collection_get()->printer.get_value() && sub_140662AD0() != 3)
         task_information.field_77 = 0;*/
 
     bool v2 = false;//sub_1403F49C0();
