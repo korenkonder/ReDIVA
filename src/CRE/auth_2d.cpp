@@ -1114,7 +1114,7 @@ void AetObj::CtrlLayer(const aet_layer* layer, float_t frame) {
     size_t aif_off = file.rfind(".aif");
     if (aif_off != -1 && aif_off == file.size() - 4) {
         file.assign(file.substr(0, aif_off));
-        sound_work_play_se(sound_queue_index, file.c_str(), 1.0f);
+        sound_work_play_se(sound_queue_index, file.c_str());
         return;
     }
 

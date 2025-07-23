@@ -8474,7 +8474,7 @@ void x_pv_game::load(int32_t pv_id, int32_t stage_id, chara_index charas[6], int
 
     Glitter::counter.Reset();
     Glitter::glt_particle_manager->draw_all = false;
-    //sound_work_play_se(1, "load01_2", 1.0f);
+    //sound_work_play_se(1, "load01_2");
 }
 
 #if BAKE_PV826

@@ -1271,7 +1271,7 @@ namespace auth_3d_detail {
         if (index >= 0 && index < ROB_CHARA_COUNT)
             sub_140532980(index, param1.c_str());
         else if (sound_work_has_property(param1.c_str()))
-            sound_work_play_se(1, param1.c_str(), 1.0f);
+            sound_work_play_se(1, param1.c_str());
     }
 
     void EventSnd::End(auth_3d* auth, int32_t flags, render_context* rctx) {

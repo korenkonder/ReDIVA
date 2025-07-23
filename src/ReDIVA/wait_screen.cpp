@@ -249,7 +249,7 @@ bool TaskWaitScreen::init_load_start() {
 
         reload_aet_obj(0, "load_in", "load_loop");
         started = false;
-        sound_work_play_se(1, "load01_2", 1.0f);
+        sound_work_play_se(1, "load01_2");
         state = 2;
     } break;
     case 2: {
@@ -258,13 +258,13 @@ bool TaskWaitScreen::init_load_start() {
 
         reload_aet_obj(0, "load_start", "end");
         started = false;
-        sound_work_play_se(1, "load01_2", 1.0f);
+        sound_work_play_se(1, "load01_2");
         state = 2;
     } break;
     case 3: {
         reload_aet_obj(0, "load_start", "end");
         started = false;
-        sound_work_play_se(1, "load01_2", 1.0f);
+        sound_work_play_se(1, "load01_2");
         state = 2;
     } break;
     default:

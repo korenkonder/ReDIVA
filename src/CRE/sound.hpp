@@ -357,7 +357,7 @@ extern float_t sound_work_get_headphones_volume();
 extern float_t sound_work_get_speakers_volume();
 extern bool sound_work_has_property(const char* name);
 extern bool sound_work_load_farc(const char* file_path);
-extern int32_t sound_work_play_se(int32_t queue_index, const char* name, float_t volume);
+extern int32_t sound_work_play_se(int32_t queue_index, const char* name, float_t volume = 1.0f);
 extern bool sound_work_play_stream(int32_t index, const char* path, bool pause = false);
 extern bool sound_work_play_stream(int32_t index, const char* path, float_t time, bool pause = false);
 extern bool sound_work_read_farc(const char* file_path);

@@ -1725,7 +1725,7 @@ int32_t pv_game::ctrl(float_t delta_time, int64_t curr_time) {
             data.success = true;
             data.play_data.init_aet_success_info();
             if (/*sub_14013C8F0()->field_0.field_12A8D && */data.play_data.pvbranch_success_se_name.size())
-                sound_work_play_se(2, data.play_data.pvbranch_success_se_name.c_str(), 1.0f);
+                sound_work_play_se(2, data.play_data.pvbranch_success_se_name.c_str());
         }
 
         bool end = false;
@@ -3859,7 +3859,7 @@ void pv_game::play_se(int32_t index) {
     if (diff && diff->effect_se_file_name.size()
         && index >= 0 && index < diff->effect_se_name_list.size()
         && diff->effect_se_name_list[index].size()) {
-        sound_work_play_se(1, diff->effect_se_name_list[index].c_str(), 1.0f);
+        sound_work_play_se(1, diff->effect_se_name_list[index].c_str());
         data.se_index = index;
     }
 }

@@ -1023,7 +1023,7 @@ bool GameState::Advertise::Ctrl() {
     bool v2 = false;//sub_1403F49C0();
     if (input_state_get(0)->CheckTapped(2) && v2) {
         game_state_set_game_state_next(GAME_STATE_GAME);
-        sound_work_play_se(0, "se_sy_01", 1.0);
+        sound_work_play_se(0, "se_sy_01");
     }
 
     //adv_touch_get()->sub_14014ED60(true);
@@ -1047,7 +1047,7 @@ bool GameState::Advertise::Ctrl() {
 
     /*if (adv_touch_get()->field_70) {
         game_state_set_game_state_next(GAME_STATE_GAME);
-        sound_work_play_se(0, "se_sy_01", 1.0);
+        sound_work_play_se(0, "se_sy_01");
         adv_touch_get()->sub_14014EC00();
     }*/
 
