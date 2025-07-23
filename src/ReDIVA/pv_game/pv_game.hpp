@@ -900,3 +900,4 @@ extern bool pv_game_selector_free();
 
 extern struc_14* sub_14013C8C0();
 extern struc_717* sub_14038BB30();
+extern bool sub_1403F6B00();

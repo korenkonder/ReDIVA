@@ -5847,10 +5847,10 @@ void task_pv_game_init_pv() {
 
     struc_717* v0 = sub_14038BB30();
     struc_716* v2;
-    if (v0->field_0.stage_index >= 4)
-        v2 = &v0->field_28[2];
-    else
+    if (v0->field_0.stage_index >= 0 && v0->field_0.stage_index < 4)
         v2 = &v0->field_28[v0->field_0.stage_index];
+    else
+        v2 = &v0->field_28[2];
 
     int32_t stage_index = v0->field_0.stage_index;
     /*if (stage_index == sub_14038AEE0() - 1)
@@ -6032,6 +6032,20 @@ struc_717* sub_14038BB30() {
     return &stru_141197E00;
 }
 
+bool sub_1403F6B00() {
+    struc_717* v0 = sub_14038BB30();
+    struc_716* v2;
+    if (v0->field_0.stage_index >= 0 && v0->field_0.stage_index < 4)
+        v2 = &v0->field_28[v0->field_0.stage_index];
+    else
+        v2 = &v0->field_28[2];
+
+    for (int32_t i = 0; i < 5; i++)
+        if (v2->field_4A8[i].field_0 != -1)
+            return true;
+    return false;
+}
+
 DivaPvFrameRate::DivaPvFrameRate() {
 
 }
@@ -6112,7 +6126,7 @@ void pv_game_parent::ctrl(pv_game_parent* pvgmp) {
             if (sub_14013C8C0()->sub_1400E7910() == 3 || (sub_14013C8C0()->sub_1400E7910() >= 6)) {
                 if (task_wait_screen_get_ended()) {
                     pv_game_ptr->reset_appear();
-                    task_wait_screen_set_index_0();
+                    task_wait_screen_set_load_loop_none();
                     if (pv_game_ptr->data.field_2CF9C > 0) {
                         pv_game_time_pause();
                         pv_game_time_start();
@@ -6121,7 +6135,7 @@ void pv_game_parent::ctrl(pv_game_parent* pvgmp) {
                 }
             }
             else if (task_wait_screen_get_ended()) {
-                task_wait_screen_set_index_0();
+                task_wait_screen_set_load_loop_none();
                 pvgmp->inner_state = 11;
             }
             break;

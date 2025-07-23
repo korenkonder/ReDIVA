@@ -93,7 +93,7 @@ struct GameState {
     bool set_game_state_next;
     bool next_sub_game_state;
     int32_t call_count;
-    int32_t advertise_state;
+    int32_t inner_state;
     SubGameStateEnum sub_game_state;
     SubGameStateEnum sub_game_state_next;
     SubGameStateEnum sub_game_state_prev;
@@ -921,6 +921,8 @@ static bool adv_load();
 static void adv_read();
 static void adv_unload();
 
+static void game_state_set_inner_state(int32_t state);
+
 bool GameState::Startup::Init() {
     network_error = false;
     return true;
@@ -943,7 +945,7 @@ bool GameState::Startup::Dest() {
 }
 
 bool GameState::Advertise::Init() {
-    switch (game_state_get()->advertise_state) {
+    switch (game_state_get()->inner_state) {
     case 0:
         //sub_1400311E0()->field_168(0);
         //sub_1400311E0()->field_C8(1);
@@ -952,7 +954,7 @@ bool GameState::Advertise::Init() {
         //task_slider_control_get()->sub_140618860();
 
         adv_read();
-        game_state_get()->advertise_state = 1;
+        game_state_set_inner_state(1);
 
         //sub_1404A7370(player_data_array);
         //sub_14038AFC0(sub_14038BB30());
@@ -973,7 +975,7 @@ bool GameState::Advertise::Init() {
         break;
     case 1:
         if (!adv_load())
-            game_state_get()->advertise_state = 2;
+            game_state_set_inner_state(2);
         break;
     case 2:
         //app::TaskWork::add_task(task_information, "INFORMATION");
@@ -1086,7 +1088,7 @@ bool GameState::DataTest::Init() {
     rctx_ptr->render_manager->set_clear(true);
     data_test_game_state_prev = game_state_get()->game_state_prev;
     //task_information.sub_1403BB780(0);
-    task_wait_screen_set_index_0();
+    task_wait_screen_set_load_loop_none();
     task_rob_manager_add_task();
     //touch_util::touch_reaction_set_enable(false);
     return true;
@@ -1515,20 +1517,74 @@ bool SubGameState::Selector::Dest() {
 
 bool SubGameState::GameMain::Init() {
     sound_work_release_stream(0);
+    game_state_set_inner_state(0);
+    //task_information.sub_1403BB780(4);
     rctx_ptr->render_manager->set_multisample(false);
     return true;
 }
 
 bool SubGameState::GameMain::Ctrl() {
+    switch (game_state_get()->inner_state) {
+    case 0:
+        //if (task_wait_screen_get_started())
+        //    break;
+
+        game_state_set_inner_state(1);
+        break;
+    case 1:
+        if (task_wait_screen_check_index_none()) {
+            bool watch = sub_14038BB30()->field_0.watch;
+            //sound_volume_get()->show_enable(v6, true, watch);
+
+            /*if (watch)
+                task_photo_service_add();*/
+            /*else {
+                if (!app::TaskWork::check_task_ready(act_toggle_get()))
+                    act_toggle_get()->sub_14013CE40((__int64)v8);
+                *(int*)&act_toggle_get()[1].name[10] = 5;
+            }*/
+
+            //sound_volume_get()->field_6C = spr::SPR_PRIO_04;
+            //sound_volume_get()->field_70 = spr::SPR_PRIO_05;
+        }
+
 #if PV_DEBUG
-    if (!pv_x) {
-        if (!task_pv_game_check_task_ready())
-            return true;
-        return false;
-    }
+        if (!pv_x) {
+            if (!task_pv_game_check_task_ready()) {
+                if (!sub_14038BB30()->field_0.watch) {
+                    //game_state_set_sub_game_state_next(SUB_GAME_STATE_STAGE_RESULT);
+                    return true;
+                }
+
+                /*if (player_data_array_get(0)->field_0)
+                    net_mgr::net_mgr_stage_result_add_task();*/
+
+                game_state_set_inner_state(2);
+            }
+            break;
+        }
 #endif
-    if (!app::TaskWork::check_task_ready(x_pv_game_get()))
-        return true;
+
+        if (!app::TaskWork::check_task_ready(x_pv_game_get()))
+            return true;
+        break;
+    case 2: {
+        /*if (net_mgr::net_mgr_stage_result_check_task_ready())
+            break;*/
+
+        /*std::vector<texture*> textures;
+        //sub_140490230(textures);
+        if (textures.size() > 0)
+            game_state_set_sub_game_state_next(SUB_GAME_STATE_SCREEN_SHOT_SEL);
+        else {
+            //task_photo_service_del();
+            if (!sub_1403F6B00())
+                game_state_set_sub_game_state_next(SUB_GAME_STATE_GAME_OVER);
+            else
+                game_state_set_sub_game_state_next(SUB_GAME_STATE_SCREEN_SHOT_RESULT);
+        }*/
+    } return true;
+    }
     return false;
 }
 
@@ -2176,7 +2232,7 @@ static void game_state_set_state(GameStateEnum state, SubGameStateEnum sub_state
         game_state->mode = GAME_STATE_MODE_INIT;
         game_state->set_game_state_next = false;
         game_state->call_count = 0;
-        game_state->advertise_state = 0;
+        game_state->inner_state = 0;
 
         dw_console_printf(DW_CONSOLE_MODE_CTRL, "[%s]->[%s]\n",
             game_state_names[game_state_prev], game_state_names[state]);
@@ -2262,4 +2318,8 @@ static void adv_unload() {
     sprite_manager_unload_set(37, aft_spr_db);
     aet_manager_unload_set(30, aft_aet_db);
     sound_work_unload_farc("rom/sound/se_adv.farc");
+}
+
+static void game_state_set_inner_state(int32_t state) {
+    game_state_get()->inner_state = state;
 }
