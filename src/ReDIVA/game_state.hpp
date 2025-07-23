@@ -73,6 +73,7 @@ extern void game_state_init();
 extern void game_state_ctrl();
 extern GameStateEnum game_state_get_game_state();
 extern bool game_state_get_pause();
+extern bool game_state_is_advertise_not_sub_demo();
 extern size_t game_state_print(char* buf, size_t buf_size);
 extern void game_state_set_game_state_next(GameStateEnum state);
 extern void game_state_set_sub_game_state_next(SubGameStateEnum state);

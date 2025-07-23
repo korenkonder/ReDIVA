@@ -8,6 +8,8 @@
 #include "../CRE/auth_2d.hpp"
 #include "../CRE/auth_3d.hpp"
 #include "../CRE/clear_color.hpp"
+#include "../CRE/customize_item_table.hpp"
+#include "../CRE/module_table.hpp"
 #include "../CRE/pv_db.hpp"
 #include "../CRE/sound.hpp"
 #include "../CRE/task.hpp"
@@ -29,7 +31,9 @@
 #include "pv_game/player_data.hpp"
 #include "pv_game/pv_game.hpp"
 #include "data_initialize.hpp"
+#include "input_state.hpp"
 #include "system_startup.hpp"
+#include "wait_screen.hpp"
 #include "x_pv_game.hpp"
 
 enum GameStateMode {
@@ -913,6 +917,10 @@ static void game_state_set_state(GameStateEnum state, SubGameStateEnum sub_state
 static GameStateData* game_state_data_array_get(GameStateEnum state);
 static SubGameStateData* sub_game_state_data_array_get(SubGameStateEnum state);
 
+static bool adv_load();
+static void adv_read();
+static void adv_unload();
+
 bool GameState::Startup::Init() {
     network_error = false;
     return true;
@@ -935,14 +943,125 @@ bool GameState::Startup::Dest() {
 }
 
 bool GameState::Advertise::Init() {
-    return true;
+    switch (game_state_get()->advertise_state) {
+    case 0:
+        //sub_1400311E0()->field_168(0);
+        //sub_1400311E0()->field_C8(1);
+        //sub_14066C680();
+        //task_slider_control_get()->sub_140618840();
+        //task_slider_control_get()->sub_140618860();
+
+        adv_read();
+        game_state_get()->advertise_state = 1;
+
+        //sub_1404A7370(player_data_array);
+        //sub_14038AFC0(sub_14038BB30());
+
+        if (game_state_get()->game_state != game_state_get()->game_state_prev) {
+            //sub_1403F4670();
+            //sub_1403F3580();
+        }
+
+        /*TaskLampCtrl* task_lamp_ctrl = task_lamp_ctrl_get();
+        task_lamp_ctrl->field_74 = 1;
+        task_lamp_ctrl->field_78 = color_white;*/
+
+        //task_slider_control_get()->sub_140618980(2);
+
+        /*if (task_printer_get()->check_task_ready() && !wrap_collection_get()->printer.get_arr_value())
+            task_printer_get()->del();*/
+        break;
+    case 1:
+        if (!adv_load())
+            game_state_get()->advertise_state = 2;
+        break;
+    case 2:
+        //app::TaskWork::add_task(task_information, "INFORMATION");
+
+        task_wait_screen_add_task();
+        //sub_1401F4440();
+        //sub_1401E87E0();
+
+        /*const float_t min_volume = get_min_speakers_volume();
+        const float_t max_volume = get_max_speakers_volume();
+        sound_work_set_speakers_volume((float_t)wrap_collection_get()->advertise_sound_volume.get_arr_value()
+            * (max_volume - min_volume) * 0.01f + min_volume);*/
+
+        //sub_1402B7880()->sub_1402BAE80();
+        module_data_handler_data_add_all_modules();
+        customize_item_data_handler_data_add_all_customize_items();
+        sound_work_reset_all_se();
+        //adv_touch_get()->add(sub_1402103A0());
+        //adv_festa_get()->add();
+        //adv_noblesse_get()->add();
+        //task_information.field_77 = 0;
+        //sub_1403F35A0();
+        return true;
+    }
+    return false;
 }
 
 bool GameState::Advertise::Ctrl() {
+    //task_information.sub_1403BB780(2);
+
+    /*if (sub_14066CC00()) {
+        sub_14066FA90();
+        game_state_set_error_code(91);
+    }*/
+
+    /*if (sub_1403BADE0())
+        sub_1403BB7B0();*/
+
+    //LOBYTE(task_aime_get()[3].next_op) = game_state_is_advertise_not_sub_demo();
+
+    /*if (!sup_err_task_supplies_error_check_task_ready()
+        && task_information.field_77 && wrap_collection_get()->printer.get_arr_value() && sub_140662AD0() != 3)
+        task_information.field_77 = 0;*/
+
+    bool v2 = false;//sub_1403F49C0();
+    if (input_state_get(0)->CheckTapped(2) && v2) {
+        game_state_set_game_state_next(GAME_STATE_GAME);
+        sound_work_play_se(0, "se_sy_01", 1.0);
+    }
+
+    //adv_touch_get()->sub_14014ED60(true);
+    
+    /*if (!v2)
+        adv_touch_get()->sub_14014ED60(false);*/
+
+    //adv_touch_get()->sub_14014EC20(v2);
+
+    /*if (game_state_get()->sub_game_state == SUB_GAME_STATE_TITLE)
+        //adv_touch_get()->sub_14014EC20(false);*/
+
+    /*if (game_state_get()->sub_game_state == SUB_GAME_STATE_CM && !adv_cm_get()[2].name[10])
+        adv_touch_get()->sub_14014EC20(false);*/
+
+    /*if (game_state_get()->sub_game_state == SUB_GAME_STATE_PHOTO_MODE_DEMO && !sub_1403F4920())
+        adv_touch_get()->sub_14014EC20(false);*/
+
+    /*if (input_state_get(0)->CheckDown(11) || input_state_get(0)->CheckDown(12))
+        adv_touch_get()->sub_14014ED60(false);*/
+
+    /*if (adv_touch_get()->field_70) {
+        game_state_set_game_state_next(GAME_STATE_GAME);
+        sound_work_play_se(0, "se_sy_01", 1.0);
+        adv_touch_get()->sub_14014EC00();
+    }*/
+
+    /*if (sub_14022EF20(0)->sub_14022ED30() && v2)
+        game_state_set_game_state_next(GAME_STATE_GAME);*/
     return false;
 }
 
 bool GameState::Advertise::Dest() {
+    //task_slider_control_get()->sub_140618840(v0);
+    //adv_touch_get()->del();
+    //adv_festa_get()->del();
+    //adv_noblesse_get()->del();
+    adv_unload();
+    sound_work_set_speakers_volume(get_max_speakers_volume());
+    //LOBYTE(task_aime_get()[3].next_op) = 0;
     return true;
 }
 
@@ -966,7 +1085,10 @@ bool GameState::DataTest::Init() {
     rctx_ptr->render_manager->set_multisample(false);
     rctx_ptr->render_manager->set_clear(true);
     data_test_game_state_prev = game_state_get()->game_state_prev;
+    //task_information.sub_1403BB780(0);
+    task_wait_screen_set_index_0();
     task_rob_manager_add_task();
+    //touch_util::touch_reaction_set_enable(false);
     return true;
 }
 
@@ -986,6 +1108,7 @@ bool GameState::DataTest::Dest() {
 
     rctx_ptr->render_manager->set_multisample(true);
     rctx_ptr->render_manager->set_clear(false);
+    //touch_util::touch_reaction_set_enable(true);
     return true;
 }
 
@@ -1965,6 +2088,13 @@ bool game_state_get_pause() {
     return true;
 }
 
+bool game_state_is_advertise_not_sub_demo() {
+    GameState* game_state = game_state_get();
+    if (game_state->game_state == GAME_STATE_ADVERTISE)
+        return game_state->sub_game_state != SUB_GAME_STATE_DEMO;
+    return false;
+}
+
 size_t game_state_print(char* buf, size_t buf_size) {
     GameState* game_state = game_state_get();
     const char* game_state_name = game_state_names[game_state->game_state];
@@ -2102,4 +2232,34 @@ static SubGameStateData* sub_game_state_data_array_get(SubGameStateEnum state) {
         if (i.sub_game_state == state)
             return &i;
     return 0;
+}
+
+static bool adv_load() {
+    data_struct* aft_data = &data_list[DATA_AFT];
+    aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
+    sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
+
+    if (sprite_manager_load_file(37, aft_spr_db) || aet_manager_load_file(30, aft_aet_db))
+        return true;
+    return sound_work_load_farc("rom/sound/se_adv.farc");
+}
+
+static void adv_read() {
+    data_struct* aft_data = &data_list[DATA_AFT];
+    aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
+    sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
+
+    sprite_manager_read_file(37, "", aft_data, aft_spr_db);
+    aet_manager_read_file(30, "", aft_data, aft_aet_db);
+    sound_work_read_farc("rom/sound/se_adv.farc");
+}
+
+static void adv_unload() {
+    data_struct* aft_data = &data_list[DATA_AFT];
+    aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
+    sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
+
+    sprite_manager_unload_set(37, aft_spr_db);
+    aet_manager_unload_set(30, aft_aet_db);
+    sound_work_unload_farc("rom/sound/se_adv.farc");
 }

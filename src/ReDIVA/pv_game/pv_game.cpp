@@ -22,6 +22,7 @@
 #include "../imgui_helper.hpp"
 #include "../input.hpp"
 #include "../task_movie.hpp"
+#include "../wait_screen.hpp"
 #include "player_data.hpp"
 #include "pv_game_camera.hpp"
 #include "pv_game_music.hpp"
@@ -4942,7 +4943,7 @@ void pv_game::sub_140104FB0() {
 
 bool pv_game::sub_14010EF00() {
     /*InputState* input_state = input_state_get(0);
-    if (!sub_1401E8380(ub_1401E8950() + 1))
+    if (!wrap_collection_get()->give_up.get_arr_value())
         return false;
 
     bool v5 = task_slider_control_get()->sub_140618C20(38)
@@ -6087,19 +6088,19 @@ void pv_game_parent::ctrl(pv_game_parent* pvgmp) {
                 v15->field_1C = 0;
                 v15->field_20 = 1.0f;
                 sub_14013C8C0()->sub_1400E7910();
-                //task_wait_screen_set_load_end();
+                task_wait_screen_set_end();
             }
-            /*else
-                task_wait_screen_set_load_end();*/
+            else
+                task_wait_screen_set_end();
 
             pv_game_time_start();
             pvgmp->state = 10;
             break;
         case 10:
-            /*if (sub_14013C8C0()->sub_1400E7910() == 3 || (sub_14013C8C0()->sub_1400E7910() >= 6)) {
-                if (task_wait_screen_get_hide_text()) {
+            if (sub_14013C8C0()->sub_1400E7910() == 3 || (sub_14013C8C0()->sub_1400E7910() >= 6)) {
+                if (task_wait_screen_get_ended()) {
                     pv_game_ptr->reset_appear();
-                    //task_wait_screen_set(0);
+                    task_wait_screen_set_index_0();
                     if (pv_game_ptr->data.field_2CF9C > 0) {
                         pv_game_time_pause();
                         pv_game_time_start();
@@ -6107,10 +6108,10 @@ void pv_game_parent::ctrl(pv_game_parent* pvgmp) {
                     pvgmp->state = 13;
                 }
             }
-            else if (task_wait_screen_get_hide_text()) {
-                task_wait_screen_set_type_0();*/
-            pvgmp->state = 11;
-            //}
+            else if (task_wait_screen_get_ended()) {
+                task_wait_screen_set_index_0();
+                pvgmp->state = 11;
+            }
             break;
         case 11:
             pvgmp->state = 12;
