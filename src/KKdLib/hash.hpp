@@ -16,6 +16,10 @@ extern const uint32_t hash_murmurhash_empty;
 extern const uint32_t hash_murmurhash_null;
 // Empty string
 extern const uint16_t hash_crc16_ccitt_empty;
+// Empty string
+extern const uint64_t hash_xxh3_64bits_empty;
+// Empty string
+extern const uint32_t hash_adler32_empty;
 
 extern uint64_t hash_fnv1a64m(const void* data, size_t size, bool make_upper = false);
 extern uint32_t hash_murmurhash(const void* data, size_t size,

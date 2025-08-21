@@ -53,6 +53,10 @@ const uint32_t hash_murmurhash_empty = 0x0CAD3078;
 const uint32_t hash_murmurhash_null = 0x5A009B23;
 // Empty string
 const uint16_t hash_crc16_ccitt_empty = 0xFFFF;
+// Empty string
+const uint64_t hash_xxh3_64bits_empty = 0x2D06800538D394C2;
+// Empty string
+const uint32_t hash_adler32_empty = 0x00000001;
 
 // FNV 1a 64-bit Modified
 // 0x1403B04D0 in SBZV_7.10
