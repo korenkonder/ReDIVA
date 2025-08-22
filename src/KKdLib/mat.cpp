@@ -1620,7 +1620,7 @@ inline void mat4_mul_scale_z(const mat4* in_m1, float_t s, mat4* out_m) {
     out_m->row2 *= s;
 }
 
-inline void mat4_scale_w_mult(const mat4* in_m1, float_t s, mat4* out_m) {
+inline void mat4_mul_scale_w(const mat4* in_m1, float_t s, mat4* out_m) {
     if (in_m1 != out_m)
         *out_m = *in_m1;
     out_m->row3 *= s;
@@ -1786,6 +1786,29 @@ inline void mat4_from_mat3_inverse(const mat3* in_m1, mat4* out_m) {
     out_m->row3 = { 0.0f, 0.0f, 0.0f, 1.0f };
 }
 
+inline void mat4_rotation_from_mat3(const mat4* in_m1, const mat3* in_m2, mat4* out_m) {
+    *(vec3*)&out_m->row0 = in_m2->row0;
+    out_m->row0.w = in_m1->row0.w;
+    *(vec3*)&out_m->row1 = in_m2->row1;
+    out_m->row1.w = in_m1->row1.w;
+    *(vec3*)&out_m->row2 = in_m2->row2;
+    out_m->row2.w = in_m1->row2.w;
+    out_m->row3 = in_m1->row3;
+}
+
+inline void mat4_rotation_from_mat3_inverse(const mat4* in_m1, const mat3* in_m2, mat4* out_m) {
+    mat3 yt;
+
+    mat3_invert(in_m2, &yt);
+    *(vec3*)&out_m->row0 = yt.row0;
+    out_m->row0.w = in_m1->row0.w;
+    *(vec3*)&out_m->row1 = yt.row1;
+    out_m->row1.w = in_m1->row1.w;
+    *(vec3*)&out_m->row2 = yt.row2;
+    out_m->row2.w = in_m1->row2.w;
+    out_m->row3 = in_m1->row3;
+}
+
 inline void mat4_clear_rot(const mat4* in_m1, mat4* out_m) {
     out_m->row0 = mat4_identity.row0;
     out_m->row1 = mat4_identity.row1;
@@ -1834,6 +1857,19 @@ inline void mat4_get_translation(const mat4* in_m1, vec3* out_t) {
 
 inline void mat4_set_translation(mat4* in_m1, const vec3* in_t) {
     *(vec3*)&in_m1->row3 = *in_t;
+}
+
+inline void mat4_replace_rotation(const mat4* in_m1, const mat3* in_m2, mat4* out_m) {
+    mat4 mat;
+
+    float_t scale = mat4_get_average_scale(in_m1);
+    mat4_rotation_from_mat3(in_m1, in_m2, &mat);
+    mat4_scale_rot(&mat, scale, out_m);
+}
+
+inline float_t mat4_get_average_scale(const mat4* in_m1) {
+    return sqrtf((vec3::length_squared(*(vec3*)&in_m1->row0) + vec3::length_squared(*(vec3*)&in_m1->row1)
+        + vec3::length_squared(*(vec3*)&in_m1->row2)) * (float_t)(1.0 / 3.0));
 }
 
 inline float_t mat4_get_max_scale(const mat4* in_m1) {
