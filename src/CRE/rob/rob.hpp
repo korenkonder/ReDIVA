@@ -2189,6 +2189,10 @@ public:
     virtual void CtrlInitMain() override;
 
     void Calc();
+    void CalcConstraintDirection(mat4 mat);
+    void CalcConstraintDistance(mat4 mat);
+    void CalcConstraintOrientation(mat4 mat);
+    void CalcConstraintPosition(mat4 mat);
     void DataSet();
     void InitData(rob_chara_item_equip_object* itm_eq_obj, obj_skin_block_constraint* cns_data,
         const char* cns_data_name, const bone_database* bone_data);

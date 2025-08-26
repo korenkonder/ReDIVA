@@ -3372,98 +3372,112 @@ void ExConstraintBlock::Calc() {
     mat4_mul_translate(parent_bone_node->ex_data_mat, &pos, &mat);
 
     switch (constraint_type) {
-    case OBJ_SKIN_BLOCK_CONSTRAINT_ORIENTATION: {
-        obj_skin_block_constraint_orientation* orientation = cns_data->orientation;
-
-        vec3 pos;
-        mat4_get_translation(&mat, &pos);
-
-        mat3 rot;
-        mat4_to_mat3(source_node_bone_node->mat, &rot);
-        mat3_normalize_rotation(&rot, &rot);
-        mat3_mul_rotate_zyx(&rot, &orientation->offset, &rot);
-        mat4_from_mat3(&rot, node->mat);
-        mat4_set_translation(node->mat, &pos);
-    } break;
-    case OBJ_SKIN_BLOCK_CONSTRAINT_DIRECTION: {
-        obj_skin_block_constraint_direction* direction = cns_data->direction;
-
-        vec3 align_axis = direction->align_axis;
-        vec3 target_offset = direction->target_offset;
-        mat4_transform_point(source_node_bone_node->mat, &target_offset, &target_offset);
-        mat4_inverse_transform_point(&mat, &target_offset, &target_offset);
-        float_t target_offset_length = vec3::length_squared(target_offset);
-        if (target_offset_length <= 0.000001f)
-            break;
-
-        mat4 v59;
-        sub_1401EB410(v59, align_axis, target_offset);
-        if (direction_up_vector_bone_node) {
-            vec3 affected_axis = direction->up_vector.affected_axis;
-            mat4 v56;
-            mat4_mul(&v59, &mat, &v56);
-            mat4_transform_vector(&v56, &affected_axis, &affected_axis);
-            mat4* v20 = direction_up_vector_bone_node->mat;
-
-            vec3 v23;
-            vec3 v24;
-            mat4_get_translation(v20, &v23);
-            mat4_get_translation(&v56, &v24);
-            v23 = v23 - v24;
-
-            vec3 v50;
-            mat4_transform_vector(&mat, &target_offset, &v50);
-
-            vec3 v25 = vec3::normalize(vec3::cross(v50, affected_axis));
-            vec3 v29 = vec3::normalize(vec3::cross(v50, v23));
-
-            vec3 v35 = vec3::cross(v25, v29);
-
-            float_t v39 = vec3::dot(v29, v25);
-            float_t v36 = vec3::dot(v35, v50);
-
-            float_t v40 = vec3::length(v35);
-            if (v36 >= 0.0f)
-                v40 = -v40;
-
-            mat4_set(&target_offset, -v40, v39, &v56);
-            mat4_mul(&v59, &v56, &v59);
-        }
-        mat4_mul(&v59, &mat, node->mat);
-    } break;
-    case OBJ_SKIN_BLOCK_CONSTRAINT_POSITION: {
-        obj_skin_block_constraint_position* position = cns_data->position;
-
-        vec3 constraining_offset = position->constraining_object.offset;
-        vec3 constrained_offset = position->constrained_object.offset;
-        if (position->constraining_object.affected_by_orientation)
-            mat4_transform_vector(source_node_bone_node->mat, &constraining_offset, &constraining_offset);
-
-        vec3 source_node_trans;
-        mat4_get_translation(source_node_bone_node->mat, &source_node_trans);
-        source_node_trans = constraining_offset + source_node_trans;
-        mat4_set_translation(&mat, &source_node_trans);
-        if (direction_up_vector_bone_node) {
-            vec3 up_vector_trans;
-            mat4_get_translation(direction_up_vector_bone_node->mat, &up_vector_trans);
-            mat4_inverse_transform_point(&mat, &up_vector_trans, &up_vector_trans);
-
-            mat4 v26;
-            sub_1401EB410(v26, position->up_vector.affected_axis, up_vector_trans);
-            mat4_mul(&v26, &mat, &mat);
-        }
-        if (position->constrained_object.affected_by_orientation)
-            mat4_transform_vector(&mat, &constrained_offset, &constrained_offset);
-
-        mat4 constrained_offset_mat;
-        mat4_translate(&constrained_offset, &constrained_offset_mat);
-        mat4_mul(&mat, &constrained_offset_mat, node->mat);
-    } break;
+    case OBJ_SKIN_BLOCK_CONSTRAINT_ORIENTATION:
+        CalcConstraintOrientation(mat);
+        break;
+    case OBJ_SKIN_BLOCK_CONSTRAINT_DIRECTION:
+        CalcConstraintDirection(mat);
+        break;
+    case OBJ_SKIN_BLOCK_CONSTRAINT_POSITION:
+        CalcConstraintPosition(mat);
+        break;
     case OBJ_SKIN_BLOCK_CONSTRAINT_DISTANCE:
+        CalcConstraintDistance(mat);
+        break;
     default:
         *node->mat = mat;
         break;
     }
+}
+
+inline void ExConstraintBlock::CalcConstraintDirection(mat4 mat) {
+    obj_skin_block_constraint_direction* direction = cns_data->direction;
+
+    vec3 align_axis = direction->align_axis;
+    vec3 target_offset = direction->target_offset;
+    mat4_transform_point(source_node_bone_node->mat, &target_offset, &target_offset);
+    mat4_inverse_transform_point(&mat, &target_offset, &target_offset);
+    float_t target_offset_length = vec3::length_squared(target_offset);
+    if (target_offset_length <= 0.000001f)
+        return;
+
+    mat4 v59;
+    sub_1401EB410(v59, align_axis, target_offset);
+    if (direction_up_vector_bone_node) {
+        vec3 affected_axis = direction->up_vector.affected_axis;
+        mat4 v56;
+        mat4_mul(&v59, &mat, &v56);
+        mat4_transform_vector(&v56, &affected_axis, &affected_axis);
+        mat4* v20 = direction_up_vector_bone_node->mat;
+
+        vec3 v23;
+        vec3 v24;
+        mat4_get_translation(v20, &v23);
+        mat4_get_translation(&v56, &v24);
+        v23 = v23 - v24;
+
+        vec3 v50;
+        mat4_transform_vector(&mat, &target_offset, &v50);
+
+        vec3 v25 = vec3::normalize(vec3::cross(v50, affected_axis));
+        vec3 v29 = vec3::normalize(vec3::cross(v50, v23));
+
+        vec3 v35 = vec3::cross(v25, v29);
+
+        float_t v39 = vec3::dot(v29, v25);
+        float_t v36 = vec3::dot(v35, v50);
+
+        float_t v40 = vec3::length(v35);
+        if (v36 >= 0.0f)
+            v40 = -v40;
+
+        mat4_set(&target_offset, -v40, v39, &v56);
+        mat4_mul(&v59, &v56, &v59);
+    }
+    mat4_mul(&v59, &mat, bone_node_ptr->mat);
+}
+
+void ExConstraintBlock::CalcConstraintDistance(mat4 mat) {
+    *bone_node_ptr->mat = mat;
+}
+
+void ExConstraintBlock::CalcConstraintOrientation(mat4 mat) {
+    obj_skin_block_constraint_orientation* orientation = cns_data->orientation;
+
+    mat3 rot;
+    mat4_to_mat3(source_node_bone_node->mat, &rot);
+    mat3_normalize_rotation(&rot, &rot);
+    mat3_mul_rotate_zyx(&rot, &orientation->offset, &rot);
+    mat4_replace_rotation(&mat, &rot, bone_node_ptr->mat);
+}
+
+void ExConstraintBlock::CalcConstraintPosition(mat4 mat) {
+    obj_skin_block_constraint_position* position = cns_data->position;
+
+    vec3 constraining_offset = position->constraining_object.offset;
+    vec3 constrained_offset = position->constrained_object.offset;
+    if (position->constraining_object.affected_by_orientation)
+        mat4_transform_vector(source_node_bone_node->mat, &constraining_offset, &constraining_offset);
+
+    vec3 source_node_trans;
+    mat4_get_translation(source_node_bone_node->mat, &source_node_trans);
+    source_node_trans = constraining_offset + source_node_trans;
+    mat4_set_translation(&mat, &source_node_trans);
+    if (direction_up_vector_bone_node) {
+        vec3 up_vector_trans;
+        mat4_get_translation(direction_up_vector_bone_node->mat, &up_vector_trans);
+        mat4_inverse_transform_point(&mat, &up_vector_trans, &up_vector_trans);
+
+        mat4 v26;
+        sub_1401EB410(v26, position->up_vector.affected_axis, up_vector_trans);
+        mat4_mul(&v26, &mat, &mat);
+    }
+    if (position->constrained_object.affected_by_orientation)
+        mat4_transform_vector(&mat, &constrained_offset, &constrained_offset);
+
+    mat4 constrained_offset_mat;
+    mat4_translate(&constrained_offset, &constrained_offset_mat);
+    mat4_mul(&mat, &constrained_offset_mat, bone_node_ptr->mat);
 }
 
 void ExConstraintBlock::DataSet() {
