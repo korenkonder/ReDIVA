@@ -211,7 +211,7 @@ bool TaskMovie::Player::set_volume_internal(float_t vol) {
 }
 
 TaskMovie::TaskMovie() : player(), player_video_info(), tex(), pause(), wait_play() {
-    disp_type = TaskMovie::DispType_SpriteTextute;
+    disp_type = TaskMovie::DispType_SpriteTexture;
     state = TaskMovie::State_Wait;
 }
 
@@ -283,7 +283,7 @@ bool TaskMovie::dest() {
 }
 
 void TaskMovie::disp() {
-    if (state != TaskMovie::State_Disp || disp_type != TaskMovie::DispType_SpriteTextute || !tex)
+    if (state != TaskMovie::State_Disp || disp_type != TaskMovie::DispType_SpriteTexture || !tex)
         return;
 
     float_t width = (float_t)player_video_info->present_width;
@@ -522,7 +522,7 @@ void TaskMovie::Start(const std::string& path) {
 
 bool TaskMovie::Unload() {
     bool res = TaskMovie::Shutdown();
-    disp_type = TaskMovie::DispType_SpriteTextute;
+    disp_type = TaskMovie::DispType_SpriteTexture;
     return res;
 }
 
