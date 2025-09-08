@@ -123,7 +123,9 @@ extern const int32_t TASK_MOVIE_COUNT;
 
 extern TaskMovie* task_movie_get(int32_t index = 0);
 
+extern void movie_init();
 extern void movie_current_time_set(int64_t value);
 extern void movie_external_clock_set_true();
 extern void movie_play_time_set(int64_t value);
 extern void movie_play_time_set_begin(int64_t value);
+extern void movie_free();

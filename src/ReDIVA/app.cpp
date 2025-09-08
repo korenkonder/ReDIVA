@@ -79,6 +79,7 @@
 #include "input.hpp"
 #include "input_state.hpp"
 #include "shared.hpp"
+#include "task_movie.hpp"
 #include "task_window.hpp"
 #include "x_pv_game.hpp"
 #include <glad/glad_wgl.h>
@@ -779,10 +780,7 @@ static render_context* render_context_load() {
     font_info_default_init();
     dw_console_c_buff_array_init();
     sound_init();
-
-    extern HRESULT mf_init();
-    mf_init();
-
+    movie_init();
     am_data_init();
     wave_audio_storage_init();
     ogg_file_handler_storage_init();
@@ -1795,10 +1793,7 @@ static void render_context_dispose(render_context* rctx) {
     ogg_playback_data_free();
     ogg_file_handler_storage_free();
     wave_audio_storage_free();
-
-    extern HRESULT mf_shutdown();
-    mf_shutdown();
-
+    movie_free();
     sound_free();
     dw_console_c_buff_array_free();
     font_info_default_free();

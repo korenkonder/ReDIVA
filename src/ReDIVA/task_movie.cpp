@@ -544,6 +544,11 @@ texture* task_movie_get_texture(int32_t index) {
     return task_movie ? task_movie->tex : 0;
 }
 
+void movie_init() {
+    extern HRESULT mf_init();
+    mf_init();
+}
+
 void movie_current_time_set(int64_t value) {
     if (movie_external_clock_get())
         movie_current_time = value;
@@ -561,6 +566,11 @@ void movie_play_time_set(int64_t value) {
 void movie_play_time_set_begin(int64_t value) {
     if (movie_external_clock_get() && movie_play_time < 0)
         movie_play_time = value;
+}
+
+void movie_free() {
+    extern HRESULT mf_shutdown();
+    mf_shutdown();
 }
 
 TaskMoviePlayerNoInterop::TaskMoviePlayerNoInterop() : d3d11_device(),
