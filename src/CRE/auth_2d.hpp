@@ -70,6 +70,8 @@ struct AetArgs {
 
     AetArgs();
     ~AetArgs();
+
+    AetArgs& operator=(const AetArgs& other);
 };
 
 struct aet_layout_data {

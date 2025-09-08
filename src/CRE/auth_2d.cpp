@@ -185,6 +185,38 @@ AetArgs::~AetArgs() {
 
 }
 
+AetArgs& AetArgs::operator=(const AetArgs& other) {
+    id = other.id;
+    layer_name = other.layer_name;
+    start_marker = other.start_marker;
+    end_marker = other.end_marker;
+    start_time = other.start_time;
+    end_time = other.end_time;
+    flags = other.flags;
+    index = other.index;
+    layer = other.layer;
+    prio = other.prio;
+    mode = other.mode;
+    pos = other.pos;
+    rot = other.rot;
+    scale = other.scale;
+    anchor = other.anchor;
+    frame_speed = other.frame_speed;
+    color = other.color;
+    layer_sprite = other.layer_sprite;
+    sound_path.assign(other.sound_path.begin(), other.sound_path.end());
+    sound_replace = other.sound_replace;
+    sound_queue_index = other.sound_queue_index;
+    sprite_replace = other.sprite_replace;
+    sprite_texture = other.sprite_texture;
+    sprite_discard = other.sprite_discard;
+    frame_rate_control = other.frame_rate_control;
+    sound_voice = other.sound_voice;
+
+    spr_db = other.spr_db;
+    return *this;
+}
+
 aet_layout_data::aet_layout_data() : width(), height() {
     mat = mat4_identity;
     opacity = 1.0f;

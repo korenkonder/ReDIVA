@@ -4791,8 +4791,8 @@ bool pv_game::unload() {
     rend.reset_saturate_coeff(0, true);
     rend.set_dof_enable(false);
     rend.reset_scene_fade(0);
-
-    rend.set_taa(1);
+    if (!false/*sub_140192E20()*/)
+        rend.set_taa(1);
     rend.update_res(0, -1);
 
     rctx_ptr->disp_manager->object_culling = true;

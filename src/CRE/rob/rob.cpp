@@ -881,6 +881,7 @@ public:
     bool CheckHasRobCharaLoad(rob_chara* rob_chr);
     void CheckTypeAppendInitCharaLists(std::list<rob_chara*>* rob_chr_list);
     void FreeLoadedCharaList(int8_t* chara_id);
+    bool GetFreeCharaListEmpty();
     bool GetWait(rob_chara* rob_chr);
 };
 
@@ -1187,7 +1188,7 @@ static void rob_chara_bone_data_set_hand_r_anim_blend_duration(rob_chara_bone_da
 static void rob_chara_bone_data_set_hand_r_frame(rob_chara_bone_data* rob_bone_data, float_t frame);
 static void rob_chara_bone_data_set_hand_r_play_frame_step(rob_chara_bone_data* rob_bone_data, float_t step);
 static void rob_chara_bone_data_set_look_anim_param(rob_chara_bone_data* rob_bone_data,
-    const rob_chara_look_anim_eye_param* params, eyes_adjust* eyes_adjust);
+    const rob_chara_look_anim_eye_param* params, const eyes_adjust* eyes_adjust);
 static void rob_chara_bone_data_set_mats(rob_chara_bone_data* rob_bone_data,
     const std::vector<bone_database_bone>* bones, const std::string* motion_bones);
 static void rob_chara_bone_data_set_motion_duration(rob_chara_bone_data* rob_bone_data,
@@ -1494,7 +1495,7 @@ static const chara_init_data chara_init_data_array[] = {
             object_info(),
             object_info(),
         },
-        1, stru_140A24B50, stru_140A25090, off_140C9D068,
+        1, 0, stru_140A24B50, stru_140A25090, off_140C9D068,
         1, 0, { 0x01, 0x01, 0x1E, 0x1D },
         {
             object_info(0x00F7, 0x0000),
@@ -1543,7 +1544,7 @@ static const chara_init_data chara_init_data_array[] = {
             object_info(),
             object_info(),
         },
-        9, stru_140A24B50, stru_140A25090, off_140C9D068,
+        9, 0, stru_140A24B50, stru_140A25090, off_140C9D068,
         1, 0, { 0x02, 0x02, 0x01, 0x01 },
         {
             object_info(0x004A, 0x0107),
@@ -1592,7 +1593,7 @@ static const chara_init_data chara_init_data_array[] = {
             object_info(),
             object_info(),
         },
-        5, stru_140A24B50, stru_140A25090, off_140C9D068,
+        5, 0, stru_140A24B50, stru_140A25090, off_140C9D068,
         0, 0, { 0x02, 0x03, 0x01, 0x01 },
         {
             object_info(0x0040, 0x0105),
@@ -1641,7 +1642,7 @@ static const chara_init_data chara_init_data_array[] = {
             object_info(),
             object_info(),
         },
-        6, stru_140A24E00, stru_140A25340, off_140C9D068,
+        6, 0, stru_140A24E00, stru_140A25340, off_140C9D068,
         0, 0, { 0x01, 0x04, 0x01, 0x01 },
         {
             object_info(0x004C, 0x0106),
@@ -1690,7 +1691,7 @@ static const chara_init_data chara_init_data_array[] = {
             object_info(),
             object_info(),
         },
-        8, stru_140A24B50, stru_140A25090, off_140C9D068,
+        8, 0, stru_140A24B50, stru_140A25090, off_140C9D068,
         0, 0, { 0x02, 0x02, 0x02, 0x02 },
         {
             object_info(0x0019, 0x0108),
@@ -1739,7 +1740,7 @@ static const chara_init_data chara_init_data_array[] = {
             object_info(),
             object_info(),
         },
-        3, stru_140A24E00, stru_140A25340, off_140C9D068,
+        3, 0, stru_140A24E00, stru_140A25340, off_140C9D068,
         1, 0, { 0x01, 0x01, 0x02, 0x02 },
         {
             object_info(0x001F, 0x0109),
@@ -1788,7 +1789,7 @@ static const chara_init_data chara_init_data_array[] = {
             object_info(),
             object_info(),
         },
-        4, stru_140A24B50, stru_140A25090, off_140C9D068,
+        4, 0, stru_140A24B50, stru_140A25090, off_140C9D068,
         0, 0, { 0x00, 0x00, 0x01, 0x01 },
         {
             object_info(0x003C, 0x010D),
@@ -1837,7 +1838,7 @@ static const chara_init_data chara_init_data_array[] = {
             object_info(),
             object_info(),
         },
-        7, stru_140A24E00, stru_140A25340, off_140C9D068,
+        7, 0, stru_140A24E00, stru_140A25340, off_140C9D068,
         1, 0, { 0x00, 0x00, 0x01, 0x01 },
         {
             object_info(0x0040, 0x010E),
@@ -1886,7 +1887,7 @@ static const chara_init_data chara_init_data_array[] = {
             object_info(),
             object_info(),
         },
-        10, stru_140A24E00, stru_140A25340, off_140C9D068,
+        10, 0, stru_140A24E00, stru_140A25340, off_140C9D068,
         1, 0, { 0x01, 0x01, 0x02, 0x02 },
         {
             object_info(0x001A, 0x010F),
@@ -1935,7 +1936,7 @@ static const chara_init_data chara_init_data_array[] = {
             object_info(),
             object_info(),
         },
-        467, stru_140A24B50, stru_140A25090, off_140C9D068,
+        467, 0, stru_140A24B50, stru_140A25090, off_140C9D068,
         1, 0, { 0x01, 0x01, 0x02, 0x02 },
         {
             object_info(0x0000, 0x063D),
@@ -3783,7 +3784,7 @@ static void sub_140513C60(rob_chara_item_equip* rob_itm_equip, item_id id, bool 
         rob_itm_equip->field_18[id] |= 0x04;
 }
 
-void rob_chara::reset_data(rob_chara_pv_data* pv_data,
+void rob_chara::reset_data(const rob_chara_pv_data* pv_data,
     const bone_database* bone_data, const motion_database* mot_db) {
     this->bone_data->reset();
     rob_chara_bone_data_init_data(this->bone_data,
@@ -10952,7 +10953,7 @@ static void rob_chara_bone_data_set_hand_r_play_frame_step(rob_chara_bone_data* 
 }
 
 static void rob_chara_bone_data_set_look_anim_param(rob_chara_bone_data* rob_bone_data,
-    const rob_chara_look_anim_eye_param* param, eyes_adjust* eyes_adjust) {
+    const rob_chara_look_anim_eye_param* param, const eyes_adjust* eyes_adjust) {
     rob_bone_data->look_anim.param = *param;
 
     float_t v1_neg;
@@ -11993,8 +11994,16 @@ bool task_rob_manager_check_task_ready() {
     return app::TaskWork::check_task_ready(task_rob_manager);
 }
 
-bool task_rob_manager_hide_task() {
-    return task_rob_manager->hide();
+void task_rob_manager_free_all_chara() {
+    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++)
+        if (rob_chara_array[i].type != ROB_CHARA_TYPE_NONE) {
+            task_rob_manager->AppendFreeCharaList(&rob_chara_array[i]);
+            rob_chara_array[i].type = ROB_CHARA_TYPE_NONE;
+        }
+}
+
+bool task_rob_manager_get_free_chara_list_empty() {
+    return task_rob_manager->GetFreeCharaListEmpty();
 }
 
 bool task_rob_manager_get_wait(int32_t chara_id) {
@@ -12002,6 +12011,10 @@ bool task_rob_manager_get_wait(int32_t chara_id) {
         return false;
 
     return task_rob_manager->GetWait(&rob_chara_array[chara_id]);
+}
+
+bool task_rob_manager_hide_task() {
+    return task_rob_manager->hide();
 }
 
 bool task_rob_manager_run_task() {
@@ -20368,6 +20381,15 @@ void TaskRobManager::FreeLoadedCharaList(int8_t* chara_id) {
         }
         else
             i++;
+}
+
+bool TaskRobManager::GetFreeCharaListEmpty() {
+    if (!app::TaskWork::check_task_ready(this))
+        return false;
+
+    if (ctrl_state == 1 && !init_chara.size())
+        return !!free_chara.size();
+    return true;
 }
 
 bool TaskRobManager::GetWait(rob_chara* rob_chr) {

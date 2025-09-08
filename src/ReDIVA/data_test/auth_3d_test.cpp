@@ -394,7 +394,11 @@ bool Auth3dTestTask::init() {
 
     shadow_ptr_get()->self_shadow = true;
     clear_color = 0x00999999;
+
     auth_3d_test_window_init();
+    if (auth_3d_test_window)
+        auth_3d_test_window->snap_shot->SetEnabled(false/*sub_140192E20()*/);
+
     task_stage_add_task("A3D_STAGE");
     objset_info_storage_load_set(aft_data, aft_obj_db, effcmn_obj_set);
     return true;
@@ -1383,7 +1387,7 @@ Auth3dTestWindow::Auth3dTestWindow() {
 
     snap_shot = new dw::Button(v79, dw::CHECKBOX);
     snap_shot->SetText(snap_shot_text);
-    snap_shot->SetValue(snap_shot);
+    snap_shot->SetValue(::snap_shot);
     snap_shot->AddSelectionListener(&snap_shot_listener);
 
     dw::Composite* v97 = new dw::Composite(this);

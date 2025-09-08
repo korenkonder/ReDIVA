@@ -1456,6 +1456,7 @@ struct chara_init_data {
     object_info field_7E0;
     object_info field_7E4[14];
     uint32_t motion_set;
+    int32_t field_820;
     const struc_218* field_828;
     const struc_218* field_830;
     const struc_870** field_838;
@@ -3582,7 +3583,7 @@ struct rob_chara {
         bool osage_reset, const bone_database* bone_data, void* data, const object_database* obj_db);
     void rob_info_ctrl();
     void rob_motion_modifier_ctrl();
-    void reset_data(rob_chara_pv_data* pv_data,
+    void reset_data(const rob_chara_pv_data* pv_data,
         const bone_database* bone_data, const motion_database* mot_db);
     void reset_osage();
     void set_bone_data_frame(float_t frame);
@@ -3863,8 +3864,10 @@ extern bool task_rob_load_del_task();
 extern bool task_rob_manager_add_task();
 extern bool task_rob_manager_check_chara_loaded(int32_t chara_id);
 extern bool task_rob_manager_check_task_ready();
-extern bool task_rob_manager_hide_task();
+extern void task_rob_manager_free_all_chara();
+extern bool task_rob_manager_get_free_chara_list_empty();
 extern bool task_rob_manager_get_wait(int32_t chara_id);
+extern bool task_rob_manager_hide_task();
 extern bool task_rob_manager_run_task();
 extern bool task_rob_manager_del_task();
 
