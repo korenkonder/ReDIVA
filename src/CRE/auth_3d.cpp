@@ -230,12 +230,14 @@ static size_t auth_3d_time_event_radix_index_func_frame(auth_3d_time_event* data
 auth_3d_data_struct* auth_3d_data;
 auth_3d_detail::TaskAuth3d* task_auth_3d;
 
+bool auth_3d_chara_visible = true;
+
 static int16_t auth_3d_load_counter;
 static auth_3d_detail::FrameRateTimeStop frame_rate_time_stop;
 
 extern render_context* rctx_ptr;
 
-auth_3d::auth_3d() : uid(), id(), mat(), enable(), camera_root_update(), visible(), repeat(), ended(),
+auth_3d::auth_3d() : uid(), id(), mat(), enable(), camera_root_update(), visible(), repeat(), field_C(), ended(),
 left_right_reverse(), once(), alpha(), chara_id(), chara_item(), shadow(), reflect(), pos(), frame_rate(), frame(),
 req_frame(), max_frame(), frame_changed(), frame_offset(), last_frame(), paused(), event_time_next() {
     hash = hash_murmurhash_empty;
@@ -249,58 +251,7 @@ auth_3d::~auth_3d() {
 }
 
 void auth_3d::ctrl(render_context* rctx) {
-    if (state == 1)
-        if (hash == hash_murmurhash_empty) {
-            data_struct* aft_data = &data_list[DATA_AFT];
-            auth_3d_database* aft_auth_3d_db = &aft_data->data_ft.auth_3d_db;
-            object_database* aft_obj_db = &aft_data->data_ft.obj_db;
-            texture_database* aft_tex_db = &aft_data->data_ft.tex_db;
-
-            auth_3d_database_uid* db_uid = &aft_auth_3d_db->uid[uid];
-            if (db_uid->enabled) {
-                auth_3d_uid_file* uid_file = &auth_3d_data->uid_files[uid];
-                if (uid_file->uid == uid && uid_file->state == 1 && uid_file->farc->state == 2) {
-                    state = 2;
-                    farc_file* ff = uid_file->farc->farc->read_file(uid_file->file_name.c_str());
-                    if (ff) {
-                        a3da a;
-                        a.read(ff->data, ff->size);
-                        load(&a, aft_obj_db, aft_tex_db);
-                        frame = 0.0f;
-                    }
-                }
-            }
-        }
-        else {
-            auto elem = auth_3d_data->uid_files_modern.find(hash);
-            if (elem == auth_3d_data->uid_files_modern.end())
-                return;
-
-            auth_3d_uid_file_modern* uid_file = &elem->second;
-            if (uid_file->hash == hash && uid_file->state == 1 && uid_file->farc->state == 2) {
-                state = 2;
-                farc_file* ff = uid_file->farc->farc->read_file(uid_file->hash);
-                if (ff) {
-                    a3da a;
-                    a.read(ff->data, ff->size);
-
-                    a3da_msgpack_read("patch\\AFT\\auth_3d", a._file_name.c_str(), &a);
-
-                    const char* l_str = ff->name.c_str();
-                    const char* t = strrchr(l_str, '.');
-                    size_t l_len = ff->name.size();
-                    if (t)
-                        l_len = t - l_str;
-
-                    uid_file->name.assign(ff->name.c_str(), l_len);
-                    uid_file->file_name.assign(ff->name);
-                    file_name.assign(ff->name);
-                    load(&a, uid_file->obj_db, uid_file->tex_db);
-                    hash = uid_file->hash;
-                    frame = 0.0f;
-                }
-            }
-        }
+    parse();
 
     if (state != 2 || !enable)
         return;
@@ -308,6 +259,7 @@ void auth_3d::ctrl(render_context* rctx) {
     int32_t event_flags = 0;
     bool set = false;
     while (true) {
+        bool v40 = this->field_C;
         if (frame_changed) {
             frame_changed = false;
             if (req_frame < frame) {
@@ -317,6 +269,7 @@ void auth_3d::ctrl(render_context* rctx) {
             else
                 event_flags |= 0x04;
             frame = req_frame;
+            field_C = true;
             ended = false;
             if (max_frame >= 0.0f && frame >= max_frame)
                 max_frame = -1.0f;
@@ -432,12 +385,28 @@ void auth_3d::ctrl(render_context* rctx) {
         dof.interpolate(frame);
         auth_3d_dof_set(&dof, rctx);
 
+        if (field_C && v40 != field_C)
+            for (a3d::EventAdapter*& i : event_adapter) {
+                auth_3d_id id = get_id();
+                i->Field_10(id);
+            }
+
         if (set || !repeat || last_frame > frame)
             break;
+
+        for (a3d::EventAdapter*& i : event_adapter) {
+            auth_3d_id id = get_id();
+            i->Field_28(id);
+        }
 
         req_frame = frame - last_frame + frame_offset;
         frame_changed = true;
         set = true;
+    }
+
+    for (a3d::EventAdapter*& i : event_adapter) {
+        auth_3d_id id = get_id();
+        i->Field_20(id);
     }
 
     bool ended = play_control.size <= frame;
@@ -445,6 +414,11 @@ void auth_3d::ctrl(render_context* rctx) {
         paused = true;
         if (once)
             enable = false;
+
+        for (a3d::EventAdapter*& i : event_adapter) {
+            auth_3d_id id = get_id();
+            i->Field_18(id);
+        }
     }
     this->ended = ended;
 }
@@ -482,6 +456,10 @@ void auth_3d::disp(render_context* rctx) {
 
     reflect_draw = false;
     rctx->disp_manager->set_material_list();
+}
+
+auth_3d_id auth_3d::get_id() {
+    return auth_3d_id(id);
 }
 
 void auth_3d::load(a3da* auth_file,
@@ -741,6 +719,82 @@ void auth_3d::load_from_farc(farc* f, const char* file,
     load(&a, obj_db, tex_db);
 }
 
+void auth_3d::parse() {
+    if (state != 1)
+        return;
+
+    if (hash == hash_murmurhash_empty) {
+        data_struct* aft_data = &data_list[DATA_AFT];
+        auth_3d_database* aft_auth_3d_db = &aft_data->data_ft.auth_3d_db;
+        object_database* aft_obj_db = &aft_data->data_ft.obj_db;
+        texture_database* aft_tex_db = &aft_data->data_ft.tex_db;
+
+        auth_3d_database_uid* db_uid = &aft_auth_3d_db->uid[uid];
+        if (db_uid->enabled) {
+            auth_3d_uid_file* uid_file = &auth_3d_data->uid_files[uid];
+            if (uid_file->uid == uid && uid_file->state == 1 && uid_file->farc->state == 2) {
+                state = 2;
+                farc_file* ff = uid_file->farc->farc->read_file(uid_file->file_name.c_str());
+                if (ff) {
+                    a3da a;
+                    a.read(ff->data, ff->size);
+
+                    time_struct time;
+                    load(&a, aft_obj_db, aft_tex_db);
+                    time.calc_time();
+
+                    for (a3d::EventAdapter*& i : event_adapter) {
+                        auth_3d_id id = get_id();
+                        i->Field_8(id);
+                    }
+
+                    frame = 0.0f;
+                }
+            }
+        }
+    }
+    else {
+        auto elem = auth_3d_data->uid_files_modern.find(hash);
+        if (elem == auth_3d_data->uid_files_modern.end())
+            return;
+
+        auth_3d_uid_file_modern* uid_file = &elem->second;
+        if (uid_file->hash == hash && uid_file->state == 1 && uid_file->farc->state == 2) {
+            state = 2;
+            farc_file* ff = uid_file->farc->farc->read_file(uid_file->hash);
+            if (ff) {
+                a3da a;
+                a.read(ff->data, ff->size);
+
+                a3da_msgpack_read("patch\\AFT\\auth_3d", a._file_name.c_str(), &a);
+
+                const char* l_str = ff->name.c_str();
+                const char* t = strrchr(l_str, '.');
+                size_t l_len = ff->name.size();
+                if (t)
+                    l_len = t - l_str;
+
+                uid_file->name.assign(ff->name.c_str(), l_len);
+                uid_file->file_name.assign(ff->name);
+                file_name.assign(ff->name);
+
+                time_struct time;
+                load(&a, uid_file->obj_db, uid_file->tex_db);
+                time.calc_time();
+
+                hash = uid_file->hash;
+
+                for (a3d::EventAdapter*& i : event_adapter) {
+                    auth_3d_id id = get_id();
+                    i->Field_8(id);
+                }
+
+                frame = 0.0f;
+            }
+        }
+    }
+}
+
 void auth_3d::reset() {
     uid = -1;
     id = -1;
@@ -749,6 +803,7 @@ void auth_3d::reset() {
     camera_root_update = true;
     visible = true;
     repeat = false;
+    field_C = false;
     ended = false;
     left_right_reverse = false;
     once = false;
@@ -816,6 +871,9 @@ void auth_3d::reset() {
     point.clear();
     point.shrink_to_fit();
     post_process.reset();
+    state = 0;
+    event_adapter.clear();
+    event_adapter.shrink_to_fit();
     hash = hash_murmurhash_empty;
 }
 
@@ -978,6 +1036,44 @@ void auth_3d::unload(render_context* rctx) {
     reset();
 }
 
+namespace a3d {
+    EventListener::EventListener() {
+
+    }
+
+    EventListener::~EventListener() {
+
+    }
+
+    EventAdapter::EventAdapter() {
+
+    }
+
+    EventAdapter::~EventAdapter() {
+
+    }
+
+    void EventAdapter::Field_8(::auth_3d_id& id) {
+
+    }
+
+    void EventAdapter::Field_10(::auth_3d_id& id) {
+
+    }
+
+    void EventAdapter::Field_18(::auth_3d_id& id) {
+
+    }
+
+    void EventAdapter::Field_20(::auth_3d_id& id) {
+
+    }
+
+    void EventAdapter::Field_28(::auth_3d_id& id) {
+
+    }
+}
+
 namespace auth_3d_detail {
     Event::Event(a3da_event* e) {
         active = false;
@@ -1026,6 +1122,31 @@ namespace auth_3d_detail {
 
     void Event::Disp(auth_3d* auth, const mat4* mat, render_context* rctx) {
 
+    }
+
+    void EventA2d::Aet::Free() {
+        if (id != -1)
+            aet_manager_free_aet_object(id);
+        id = -1;
+    }
+
+    void EventA2d::Aet::Init() {
+        data_struct* aft_data = &data_list[DATA_AFT];
+        aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
+
+        if (args.id.id < 0)
+            id = -1;
+        else {
+            id = aet_manager_init_aet_object(args, aft_aet_db);
+            if (id != -1)
+                aet_manager_set_obj_play(id, 1);
+        }
+    }
+
+    EventA2d::Aet& EventA2d::Aet::SetArgs(const AetArgs& value) {
+        Free();
+        args = value;
+        return *this;
     }
 
     EventA2d::EventA2d(a3da_event* e) : Event(e) {
@@ -2441,6 +2562,14 @@ auth_3d_id::auth_3d_id(int32_t uid, auth_3d_database* auth_3d_db) {
     this->id = id;
 }
 
+void auth_3d_id::add_event_adapter(a3d::EventAdapter* value) {
+    if (id >= 0 && ((id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
+        auth_3d* auth = &auth_3d_data->data[id & 0x7FFF];
+        if (auth->id == id)
+            auth->event_adapter.push_back(value);
+    }
+}
+
 bool auth_3d_id::check_not_empty() {
     if (id >= 0 && ((id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
         auth_3d* auth = &auth_3d_data->data[id & 0x7FFF];
@@ -2477,15 +2606,6 @@ auth_3d* auth_3d_id::get_auth_3d() {
     return 0;
 }
 
-int32_t auth_3d_id::get_chara_id() {
-    if (id >= 0 && ((id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
-        auth_3d* auth = &auth_3d_data->data[id & 0x7FFF];
-        if (auth->id == id)
-            return auth->chara_id;
-    }
-    return -1;
-}
-
 const mat4* auth_3d_id::get_auth_3d_object_mat(size_t index, bool hrc) {
     if (id < 0 || (id & 0x7FFF) >= AUTH_3D_DATA_COUNT)
         return 0;
@@ -2497,6 +2617,34 @@ const mat4* auth_3d_id::get_auth_3d_object_mat(size_t index, bool hrc) {
     if (hrc)
         return auth_3d_get_auth_3d_object_hrc_bone_mats(auth, index);
     return auth_3d_get_auth_3d_object_mat(auth, index);
+}
+
+auth_3d_chara* auth_3d_id::get_chara(size_t auth_chara_id) {
+    if (id >= 0 && ((id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
+        auth_3d* auth = &auth_3d_data->data[id & 0x7FFF];
+        if (auth->id == id)
+            if (auth_chara_id < auth->chara.size())
+                return &auth->chara[auth_chara_id];
+    }
+    return 0;
+}
+
+size_t auth_3d_id::get_chara_count() {
+    if (id >= 0 && ((id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
+        auth_3d* auth = &auth_3d_data->data[id & 0x7FFF];
+        if (auth->id == id)
+            return auth->chara.size();
+    }
+    return -1;
+}
+
+int32_t auth_3d_id::get_chara_id() {
+    if (id >= 0 && ((id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
+        auth_3d* auth = &auth_3d_data->data[id & 0x7FFF];
+        if (auth->id == id)
+            return auth->chara_id;
+    }
+    return -1;
 }
 
 bool auth_3d_id::get_enable() {
@@ -2637,6 +2785,15 @@ void auth_3d_id::set_chara_id(int32_t value) {
         auth_3d* auth = &auth_3d_data->data[id & 0x7FFF];
         if (auth->id == id)
             auth->chara_id = value;
+    }
+}
+
+void auth_3d_id::set_chara_index(size_t auth_chara_id, int32_t index) {
+    if (id >= 0 && ((id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
+        auth_3d* auth = &auth_3d_data->data[id & 0x7FFF];
+        if (auth->id == id)
+            if (auth_chara_id < auth->chara.size())
+                auth->chara[auth_chara_id].index = index;
     }
 }
 
@@ -3041,6 +3198,18 @@ void auth_3d_data_free() {
         delete auth_3d_data;
         auth_3d_data = 0;
     }
+}
+
+void auth_3d_check_chara_visible(int32_t chara_id, const struct rob_chara_pv_data* pv_data) {
+    data_struct* aft_data = &data_list[DATA_AFT];
+    bone_database* aft_bone_data = &aft_data->data_ft.bone_data;
+    motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
+
+    rob_chara_array_get(chara_id)->reset_data(pv_data, aft_bone_data, aft_mot_db);
+    if (rob_chara_array_check_visibility(0) || rob_chara_array_check_visibility(1))
+        auth_3d_chara_visible = true;
+    else
+        auth_3d_chara_visible = false;
 }
 
 void task_auth_3d_init() {

@@ -10,9 +10,45 @@
 #include "../../KKdLib/database/item_table.hpp"
 #include "../../CRE/auth_3d.hpp"
 #include "../../CRE/task.hpp"
+#include "equip_test.hpp"
 
 class Auth3dTestTask : public app::Task {
 public:
+    class DataEventListener : public a3d::EventAdapter {
+    public:
+        struct Data {
+            int32_t state;
+            bool field_C;
+            bool field_D;
+            ::chara_index load_chara_index[2];
+            ::chara_index chara_index[2];
+            ::chara_index prev_chara_index[2];
+            int32_t load_cos_id[2];
+            int32_t cos_id[2];
+            DtmEqVs dtm_eq_vs[2];
+            bool chara_visible;
+
+            Data();
+            ~Data();
+
+            void ctrl();
+            void dest();
+            void free_all_chara();
+            void init();
+
+            void sub_140244E20();
+            void sub_140249A40(bool other_chara);
+        };
+
+        Data data;
+
+        DataEventListener();
+        virtual ~DataEventListener() override;
+
+        virtual void Field_8(::auth_3d_id& id) override;
+        virtual void Field_20(::auth_3d_id& id) override;
+    } data_event_listener;
+
     int32_t field_1C0;
     int32_t field_1C4;
     int32_t field_1C8;
@@ -33,7 +69,8 @@ public:
     int32_t effcmn_obj_set_state;
     uint32_t effcmn_obj_set;
     int32_t aet_state;
-    //int32_t aet_id;
+    int32_t aet_id;
+    auth_3d_detail::EventA2d::Aet aet;
     bool plane_above_floor;
     bool stg_auth_display;
     bool stg_display;

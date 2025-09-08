@@ -14,6 +14,7 @@
 #include "../KKdLib/a3da.hpp"
 #include "../KKdLib/farc.hpp"
 #include "../KKdLib/kf.hpp"
+#include "auth_2d.hpp"
 #include "frame_rate_control.hpp"
 #include "render_context.hpp"
 
@@ -170,6 +171,33 @@ struct auth_3d_point;
 struct auth_3d_post_process;
 struct auth_3d_rgba;
 struct auth_3d_vec3;
+struct auth_3d_id;
+
+namespace a3d {
+    class EventListener {
+    public:
+        EventListener();
+        virtual ~EventListener();
+
+        virtual void Field_8(auth_3d_id& id) = 0;
+        virtual void Field_10(auth_3d_id& id) = 0;
+        virtual void Field_18(auth_3d_id& id) = 0;
+        virtual void Field_20(auth_3d_id& id) = 0;
+        virtual void Field_28(auth_3d_id& id) = 0;
+    };
+
+    class EventAdapter : public EventListener {
+    public:
+        EventAdapter();
+        virtual ~EventAdapter() override;
+
+        virtual void Field_8(auth_3d_id& id) override;
+        virtual void Field_10(auth_3d_id& id) override;
+        virtual void Field_18(auth_3d_id& id) override;
+        virtual void Field_20(auth_3d_id& id) override;
+        virtual void Field_28(auth_3d_id& id) override;
+    };
+}
 
 namespace auth_3d_detail {
     class Event {
@@ -204,7 +232,20 @@ namespace auth_3d_detail {
 
     struct EventA2d : public Event {
     public:
-        //std::pair<AetObjInitData, int32_t> aet_init_data;
+        struct Aet {
+            AetArgs args;
+            int32_t id;
+
+            inline Aet() {
+                id = -1;
+            }
+
+            void Free();
+            void Init();
+            EventA2d::Aet& SetArgs(const AetArgs& value);
+        };
+
+        Aet aet_args;
 
         EventA2d(a3da_event* e);
         virtual ~EventA2d() override;
@@ -810,11 +851,14 @@ struct auth_3d_id {
 
     auth_3d_id(uint32_t hash, void* data, object_database* obj_db, texture_database* tex_db);
     auth_3d_id(int32_t uid, auth_3d_database* auth_3d_db);
+    void add_event_adapter(a3d::EventAdapter* value);
     bool check_not_empty();
     bool check_loading();
     bool check_loaded();
     auth_3d* get_auth_3d();
     const mat4* get_auth_3d_object_mat(size_t index, bool hrc);
+    auth_3d_chara* get_chara(size_t auth_chara_id);
+    size_t get_chara_count();
     int32_t get_chara_id();
     bool get_enable();
     bool get_ended();
@@ -832,6 +876,7 @@ struct auth_3d_id {
     void set_alpha_obj_flags(float_t alpha, mdl::ObjFlags obj_flags);
     void set_camera_root_update(bool value);
     void set_chara_id(int32_t value);
+    void set_chara_index(size_t auth_chara_id, int32_t index);
     void set_chara_item(bool value);
     void set_enable(bool value);
     void set_frame_rate(FrameRateControl* value);
@@ -881,6 +926,7 @@ struct auth_3d {
     bool camera_root_update;
     bool visible;
     bool repeat;
+    bool field_C;
     bool ended;
     bool left_right_reverse;
     bool once;
@@ -911,6 +957,7 @@ struct auth_3d {
     std::vector<auth_3d_curve> curve;
     auth_3d_dof dof;
     std::vector<auth_3d_detail::Event*> event;
+    std::vector<a3d::EventAdapter*> event_adapter;
     std::vector<auth_3d_time_event> event_time;
     auth_3d_time_event* event_time_next;
     std::vector<auth_3d_fog> fog;
@@ -938,10 +985,12 @@ struct auth_3d {
 
     void ctrl(render_context* rctx);
     void disp(render_context* rctx);
+    auth_3d_id get_id();
     void load(a3da* auth_file,
         object_database* obj_db, texture_database* tex_db);
     void load_from_farc(farc* f, const char* file,
         object_database* obj_db, texture_database* tex_db);
+    void parse();
     void reset();
     void store(a3da* auth_file);
     void unload(render_context* rctx);
@@ -1024,6 +1073,8 @@ extern void auth_3d_data_load_category(void* data, const char* category_name, ui
 extern void auth_3d_data_unload_category(const char* category_name);
 extern void auth_3d_data_unload_category(uint32_t category_hash);
 extern void auth_3d_data_free();
+
+extern void auth_3d_check_chara_visible(int32_t chara_id, const struct rob_chara_pv_data* pv_data);
 
 extern void task_auth_3d_init();
 extern bool task_auth_3d_add_task();
