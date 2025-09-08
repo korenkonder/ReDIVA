@@ -1735,10 +1735,10 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
 
                 switch (state) {
                 case 1:
-                    disp_type = TaskMovie::DispType_SpriteTextute;
+                    disp_type = TaskMovie::DispType_SpriteTexture;
                     break;
                 case 2:
-                    disp_type = TaskMovie::DispType_Textute;
+                    disp_type = TaskMovie::DispType_Texture;
                     break;
                 }
             }
@@ -1997,10 +1997,10 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
 
             switch (state) {
             case 1:
-                disp_type = TaskMovie::DispType_SpriteTextute;
+                disp_type = TaskMovie::DispType_SpriteTexture;
                 break;
             case 2:
-                disp_type = TaskMovie::DispType_Textute;
+                disp_type = TaskMovie::DispType_Texture;
                 break;
             }
             task_movie_get(index)->disp_type = disp_type;
