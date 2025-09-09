@@ -45,8 +45,8 @@ public:
         DataEventListener();
         virtual ~DataEventListener() override;
 
-        virtual void Field_8(::auth_3d_id& id) override;
-        virtual void Field_20(::auth_3d_id& id) override;
+        virtual void OnLoad(::auth_3d_id& id) override;
+        virtual void OnPostCtrl(::auth_3d_id& id) override;
     } data_event_listener;
 
     int32_t field_1C0;

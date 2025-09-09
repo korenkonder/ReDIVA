@@ -179,11 +179,11 @@ namespace a3d {
         EventListener();
         virtual ~EventListener();
 
-        virtual void Field_8(auth_3d_id& id) = 0;
-        virtual void Field_10(auth_3d_id& id) = 0;
-        virtual void Field_18(auth_3d_id& id) = 0;
-        virtual void Field_20(auth_3d_id& id) = 0;
-        virtual void Field_28(auth_3d_id& id) = 0;
+        virtual void OnLoad(auth_3d_id& id) = 0;
+        virtual void OnCtrl(auth_3d_id& id) = 0;
+        virtual void OnEnded(auth_3d_id& id) = 0;
+        virtual void OnPostCtrl(auth_3d_id& id) = 0;
+        virtual void OnRepeat(auth_3d_id& id) = 0;
     };
 
     class EventAdapter : public EventListener {
@@ -191,11 +191,11 @@ namespace a3d {
         EventAdapter();
         virtual ~EventAdapter() override;
 
-        virtual void Field_8(auth_3d_id& id) override;
-        virtual void Field_10(auth_3d_id& id) override;
-        virtual void Field_18(auth_3d_id& id) override;
-        virtual void Field_20(auth_3d_id& id) override;
-        virtual void Field_28(auth_3d_id& id) override;
+        virtual void OnLoad(auth_3d_id& id) override;
+        virtual void OnCtrl(auth_3d_id& id) override;
+        virtual void OnEnded(auth_3d_id& id) override;
+        virtual void OnPostCtrl(auth_3d_id& id) override;
+        virtual void OnRepeat(auth_3d_id& id) override;
     };
 }
 

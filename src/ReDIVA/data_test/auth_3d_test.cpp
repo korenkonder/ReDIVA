@@ -490,7 +490,7 @@ Auth3dTestTask::DataEventListener::~DataEventListener() {
 
 }
 
-void Auth3dTestTask::DataEventListener::Field_8(::auth_3d_id& id) {
+void Auth3dTestTask::DataEventListener::OnLoad(::auth_3d_id& id) {
     size_t chara_count = id.get_chara_count();
     if (chara_count)
     {
@@ -518,7 +518,7 @@ void Auth3dTestTask::DataEventListener::Field_8(::auth_3d_id& id) {
     auth_3d_test_window->SetMaxFrame(id.get_play_control_size());
 }
 
-void Auth3dTestTask::DataEventListener::Field_20(::auth_3d_id& id) {
+void Auth3dTestTask::DataEventListener::OnPostCtrl(::auth_3d_id& id) {
     if (auth_3d_test_task->aet.id != -1) {
         auth_3d_test_task->aet.Free();
         auth_3d_test_task->aet.Init();

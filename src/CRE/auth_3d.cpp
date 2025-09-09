@@ -388,7 +388,7 @@ void auth_3d::ctrl(render_context* rctx) {
         if (field_C && v40 != field_C)
             for (a3d::EventAdapter*& i : event_adapter) {
                 auth_3d_id id = get_id();
-                i->Field_10(id);
+                i->OnCtrl(id);
             }
 
         if (set || !repeat || last_frame > frame)
@@ -396,7 +396,7 @@ void auth_3d::ctrl(render_context* rctx) {
 
         for (a3d::EventAdapter*& i : event_adapter) {
             auth_3d_id id = get_id();
-            i->Field_28(id);
+            i->OnRepeat(id);
         }
 
         req_frame = frame - last_frame + frame_offset;
@@ -406,7 +406,7 @@ void auth_3d::ctrl(render_context* rctx) {
 
     for (a3d::EventAdapter*& i : event_adapter) {
         auth_3d_id id = get_id();
-        i->Field_20(id);
+        i->OnPostCtrl(id);
     }
 
     bool ended = play_control.size <= frame;
@@ -417,7 +417,7 @@ void auth_3d::ctrl(render_context* rctx) {
 
         for (a3d::EventAdapter*& i : event_adapter) {
             auth_3d_id id = get_id();
-            i->Field_18(id);
+            i->OnEnded(id);
         }
     }
     this->ended = ended;
@@ -745,7 +745,7 @@ void auth_3d::parse() {
 
                     for (a3d::EventAdapter*& i : event_adapter) {
                         auth_3d_id id = get_id();
-                        i->Field_8(id);
+                        i->OnLoad(id);
                     }
 
                     frame = 0.0f;
@@ -786,7 +786,7 @@ void auth_3d::parse() {
 
                 for (a3d::EventAdapter*& i : event_adapter) {
                     auth_3d_id id = get_id();
-                    i->Field_8(id);
+                    i->OnLoad(id);
                 }
 
                 frame = 0.0f;
@@ -1053,23 +1053,23 @@ namespace a3d {
 
     }
 
-    void EventAdapter::Field_8(::auth_3d_id& id) {
+    void EventAdapter::OnLoad(::auth_3d_id& id) {
 
     }
 
-    void EventAdapter::Field_10(::auth_3d_id& id) {
+    void EventAdapter::OnCtrl(::auth_3d_id& id) {
 
     }
 
-    void EventAdapter::Field_18(::auth_3d_id& id) {
+    void EventAdapter::OnEnded(::auth_3d_id& id) {
 
     }
 
-    void EventAdapter::Field_20(::auth_3d_id& id) {
+    void EventAdapter::OnPostCtrl(::auth_3d_id& id) {
 
     }
 
-    void EventAdapter::Field_28(::auth_3d_id& id) {
+    void EventAdapter::OnRepeat(::auth_3d_id& id) {
 
     }
 }
