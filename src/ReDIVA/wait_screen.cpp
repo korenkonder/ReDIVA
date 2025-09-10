@@ -183,12 +183,11 @@ void TaskWaitScreen::disp_version_text() {
     font_info font(15);
 
     PrintWork print_work;
-    print_work.SetFont(&font);
-    print_work.prio = spr::SPR_PRIO_22;
-    print_work.color = color_white;
-    print_work.line_origin_loc = { 1268.0f - font.glyph.x, 708.0f - font.glyph.y * 2.0f };
-    print_work.text_current_loc = print_work.line_origin_loc;
-    print_work.SetResolutionMode(RESOLUTION_MODE_HD);
+    print_work.set_font(&font);
+    print_work.set_prio(spr::SPR_PRIO_22);
+    print_work.set_color(color_white);
+    print_work.set_position({ 1268.0f - font.glyph.x, 708.0f - font.glyph.y * 2.0f });
+    print_work.set_resolution_mode(RESOLUTION_MODE_HD);
     print_work.printf(app::TEXT_FLAG_ALIGN_FLAG_RIGHT, "%s\n", "VERSION B");
     print_work.printf(app::TEXT_FLAG_ALIGN_FLAG_RIGHT, "%s\n", "REVISION 3");
 }

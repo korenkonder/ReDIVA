@@ -64,16 +64,14 @@ bool DataEditSel::dest() {
 void DataEditSel::disp() {
     PrintWork print_work;
     font_info font(16);
-    print_work.SetFont(&font);
-    const vec2 pos = { 540.0f, 180.0f };
-    print_work.line_origin_loc = pos;
-    print_work.text_current_loc = pos;
-    print_work.SetResolutionMode(RESOLUTION_MODE_HD);
-    print_work.prio = spr::SPR_PRIO_02;
+    print_work.set_font(&font);
+    print_work.set_position({ 540.0f, 180.0f });
+    print_work.set_resolution_mode(RESOLUTION_MODE_HD);
+    print_work.set_prio(spr::SPR_PRIO_02);
 
     int32_t index = 0;
     for (const DataEditSelData& i : data_edit_sel_data) {
-        print_work.color = index == item_index ? color_yellow : color_white;
+        print_work.set_color(index == item_index ? color_yellow : color_white);
         print_work.printf_align_left("%s\n", i.name);
         index++;
     }

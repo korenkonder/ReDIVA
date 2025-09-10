@@ -151,10 +151,9 @@ void TaskDataTestOpd::disp() {
     PrintWork print_work;
     font_info font(16);
 
-    print_work.SetFont(&font);
-    print_work.line_origin_loc = 10.0f;
-    print_work.text_current_loc = 10.0f;
-    print_work.SetResolutionMode(RESOLUTION_MODE_MAX);
+    print_work.set_font(&font);
+    print_work.set_position(10.0f);
+    print_work.set_resolution_mode(RESOLUTION_MODE_MAX);
     print_work.printf_align_left("OSAGE PLAY DATA MAKE MODE \n");
     print_work.printf_align_left("%s\n", cursor_array[get_main_timer() % 3]);
     print_work.printf_align_left("STATUS: ");
@@ -168,7 +167,7 @@ void TaskDataTestOpd::disp() {
 
         font.set_glyph_size(12.0f, 12.0f);
 
-        print_work.SetFont(&font);
+        print_work.set_font(&font);
         OpdMakeManagerData* opd_make_manager_data = opd_make_manager_get_data();
         print_work.printf_align_left("mode: %d\n", opd_make_manager_data->mode);
         if (opd_make_manager_data->count)

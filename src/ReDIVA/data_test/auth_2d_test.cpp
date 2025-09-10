@@ -278,16 +278,15 @@ void DtmAet::disp() {
 
         font.init_font_data(0);
 
-        print_work.SetFont(&font);
-        print_work.prio = spr::SPR_PRIO_29;
-        print_work.line_origin_loc = *(vec2*)&pos;
-        print_work.text_current_loc = print_work.line_origin_loc;
-        print_work.SetResolutionMode(i.second.mode);
-        print_work.color = color_red;
+        print_work.set_font(&font);
+        print_work.set_prio(spr::SPR_PRIO_29);
+        print_work.set_position(*(vec2*)&pos);
+        print_work.set_resolution_mode(i.second.mode);
+        print_work.set_color(color_red);
         print_work.printf_align_left("%s\n", i.first.c_str());
 
         if (input_state_get(0)->CheckDown(64)) {
-            print_work.color = color_white;
+            print_work.set_color(color_white);
             print_work.printf_align_left("p(%.2f,%.2f)\n", pos.x, pos.y);
             print_work.printf_align_left("o(%f)\n", i.second.opacity);
         }

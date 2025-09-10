@@ -826,7 +826,7 @@ void pv_game_play_data::disp_song_name(const char* str) {
 
     PrintWork print_work;
     font_info font(16);
-    print_work.SetFont(&font);
+    print_work.set_font(&font);
 
     bool clip = print_work.GetTextSize(str, str + utf8_length(str)).x > 768.0f;
 
@@ -2226,12 +2226,11 @@ static void sub_14013AAE0(float_t pos_x, float_t pos_y, spr::SprPrio prio,
     font.set_glyph_size(24.0f, 24.0f);
 
     PrintWork print_work;
-    print_work.SetFont(&font);
-    print_work.line_origin_loc = { pos_x, pos_y };
-    print_work.text_current_loc = { pos_x, pos_y };
-    print_work.SetResolutionMode(RESOLUTION_MODE_HD);
-    print_work.prio = prio;
-    print_work.color = color;
+    print_work.set_font(&font);
+    print_work.set_position(pos_x, pos_y);
+    print_work.set_resolution_mode(RESOLUTION_MODE_HD);
+    print_work.set_prio(prio);
+    print_work.set_color(color);
 
     app::text_flags flags = (app::text_flags)((h_center
         ? app::TEXT_FLAG_ALIGN_FLAG_H_CENTER

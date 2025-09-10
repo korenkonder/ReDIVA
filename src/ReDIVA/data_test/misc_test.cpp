@@ -51,18 +51,17 @@ void TaskDataTestMisc::disp() {
     float_t glyph_height = font.glyph.y;
 
     PrintWork print_work;
-    print_work.SetFont(&font);
-    print_work.line_origin_loc = { 130.0f, 50.0f };
-    print_work.text_current_loc = { 130.0f, 50.0f };
-    print_work.SetResolutionMode(RESOLUTION_MODE_WXGA);
+    print_work.set_font(&font);
+    print_work.set_position({ 130.0f, 50.0f });
+    print_work.set_resolution_mode(RESOLUTION_MODE_WXGA);
     print_work.printf_align_left(u8"======== 汎用フォント表示サンプル ========");
     print_work.printf_align_left("\n\n");
 
     font_info value(0);
-    print_work.SetFont(&value);
+    print_work.set_font(&value);
     print_work.PrintText(app::TEXT_FLAG_ALIGN_FLAG_LEFT, "root:\n");
 
-    print_work.SetFont(&font);
+    print_work.set_font(&font);
     print_work.printf_align_left(u8"汎用フォントで表示できるのは以下の文字になります\n\n");
     print_work.printf_align_left(u8"%s\n", u8"半角英数記号(ASCII) : \"#$%&012ABCabc 等");
     print_work.printf_align_left(u8"半角カタカナ        : ｱｲｳｴｵｶｷｸﾘﾛﾜﾝﾞﾟ 等\n");
@@ -82,16 +81,12 @@ void TaskDataTestMisc::disp() {
     print_work.printf_align_left(u8"機能としてセンタリング、右詰めを行うことができます\n");
     print_work.printf_align_left(u8"※ drawTextの引数で実現できます\n\n");
 
-    print_work.line_origin_loc.x = 640.0;
-    print_work.line_origin_loc.y = print_work.text_current_loc.y;
-    print_work.text_current_loc = print_work.line_origin_loc;
-    print_work.SetResolutionMode(RESOLUTION_MODE_WXGA);
+    print_work.set_position(640.0f, print_work.text_current_loc.y);
+    print_work.set_resolution_mode(RESOLUTION_MODE_WXGA);
     print_work.PrintText(app::TEXT_FLAG_ALIGN_FLAG_LOCATE_H_CENTER, u8"WXGA画面中央に センタリング\n");
 
-    print_work.line_origin_loc.x = 1280.0;
-    print_work.line_origin_loc.y = print_work.text_current_loc.y;
-    print_work.text_current_loc = print_work.line_origin_loc;
-    print_work.SetResolutionMode(RESOLUTION_MODE_WXGA);
+    print_work.set_position(1280.0f, print_work.text_current_loc.y);
+    print_work.set_resolution_mode(RESOLUTION_MODE_WXGA);
     print_work.PrintText(app::TEXT_FLAG_ALIGN_FLAG_RIGHT, u8"WXGA画面右隅に右詰め\n");
 
     /*__int64 v3[2];

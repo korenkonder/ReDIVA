@@ -178,9 +178,8 @@ void TaskDataTestGlitterParticle::disp() {
 
     PrintWork print_work;
     font_info font(16);
-    print_work.SetFont(&font);
-    print_work.line_origin_loc = { 0.0f, 624.0f };
-    print_work.text_current_loc = { 0.0f, 624.0f };
+    print_work.set_font(&font);
+    print_work.set_position({ 0.0f, 624.0f });
     print_work.printf_align_left("%.0f - %.0f/%.0f\n", this->frame, frame, (float_t)life_time);
 
     size_t disp;

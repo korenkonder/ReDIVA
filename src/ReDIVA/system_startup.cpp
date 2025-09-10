@@ -143,8 +143,8 @@ namespace system_startup_detail {
         system_startup->field_10++;
 
         system_startup->font.init_font_data(16);
-        system_startup->print_work.SetFont(&system_startup->font);
-        system_startup->print_work.color = color_white;
+        system_startup->print_work.set_font(&system_startup->font);
+        system_startup->print_work.set_color(color_white);
         return true;
     }
 
@@ -235,9 +235,9 @@ namespace system_startup_detail {
         spr::put_sprite_rect_fill({ 0.0f, 0.0f, (float_t)res_wind->width, (float_t)res_wind->height },
             res_wind->resolution_mode, spr::SPR_PRIO_25, color_black, 0);
 
-        system_startup->print_work.prio = spr::SPR_PRIO_25;
-        system_startup->print_work.color = color_white;
-        system_startup->print_work.SetResolutionMode(RESOLUTION_MODE_HD);
+        system_startup->print_work.set_prio(spr::SPR_PRIO_25);
+        system_startup->print_work.set_color(color_white);
+        system_startup->print_work.set_resolution_mode(RESOLUTION_MODE_HD);
         system_startup->print_work.set_text_position(7.0f, 3.0f);
 
         switch (system_startup->state) {
@@ -394,9 +394,9 @@ SSOpdMakeTask:: ~SSOpdMakeTask() {
 bool SSOpdMakeTask::init() {
     frame = 0;
     font_info.init_font_data(16);
-    print_work.SetFont(&font_info);
-    print_work.color = color_white;
-    print_work.prio = spr::SPR_PRIO_25;
+    print_work.set_font(&font_info);
+    print_work.set_color(color_white);
+    print_work.set_prio(spr::SPR_PRIO_25);
 
     skip_check = true;
     skip_make = true;
@@ -483,7 +483,7 @@ bool SSOpdMakeTask::dest() {
 void SSOpdMakeTask::disp() {
     OpdMakeManagerData* opd_make_manager_data = opd_make_manager_get_data();
     print_work.set_text_position(7.0f, 19.0f);
-    print_work.SetResolutionMode(RESOLUTION_MODE_HD);
+    print_work.set_resolution_mode(RESOLUTION_MODE_HD);
 
     if (state != 6 && state != 7)
         return;
