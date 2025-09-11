@@ -58,7 +58,7 @@ public:
     Data GetData();
     bool GetEnable();
     dw::ListBox* InitAddMottblMapMotions(dw::Composite* parent, int32_t type);
-    void Reset();
+    void ResetMot();
 };
 
 class DataTestMotDw : public dw::Shell {
@@ -1867,7 +1867,7 @@ dw::ListBox* DataTestFaceMotDw::InitAddMottblMapMotions(dw::Composite* parent, i
     return list_box;
 }
 
-void DataTestFaceMotDw::Reset() {
+void DataTestFaceMotDw::ResetMot() {
     motion_id_mottbl_map.clear();
     AddMottblMapMotions(face, 0);
     AddMottblMapMotions(eyes, 1);
