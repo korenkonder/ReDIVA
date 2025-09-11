@@ -909,8 +909,9 @@ static void bone_data_parent_load_rob_chara(bone_data_parent* bone);
 static void mot_blend_interpolate(mot_blend* a1, std::vector<bone_data>& bones,
     std::vector<uint16_t>* bone_indices, bone_database_skeleton_type skeleton_type);
 static void mot_blend_load_motion(mot_blend* a1, uint32_t motion_id, const motion_database* mot_db);
-static void mot_blend_set_blend_duration(mot_blend* a1, float_t duration, float_t step, float_t offset);
+static void mot_blend_set_duration(mot_blend* a1, float_t duration, float_t step, float_t offset);
 static void mot_blend_set_frame(mot_blend* a1, float_t frame);
+static void mot_blend_set_step(mot_blend* a1, float_t step);
 
 static void mot_key_frame_interpolate(mot* a1, float_t frame, float_t* value,
     mot_key_set* a4, uint32_t key_set_count, struc_369* a6);
@@ -1167,36 +1168,36 @@ static void rob_chara_bone_data_motion_blend_mot_list_init(rob_chara_bone_data* 
 static void rob_chara_bone_data_motion_load(rob_chara_bone_data* rob_bone_data,
     uint32_t motion_id, MotionBlendType blend_type, const bone_database* bone_data, const motion_database* mot_db);
 static void rob_chara_bone_data_reserve(rob_chara_bone_data* rob_bone_data);
-static void rob_chara_bone_data_set_eyelid_anim_blend_duration(rob_chara_bone_data* rob_bone_data,
+static void rob_chara_bone_data_set_eyelid_duration(rob_chara_bone_data* rob_bone_data,
     float_t duration, float_t step, float_t offset);
 static void rob_chara_bone_data_set_eyelid_frame(rob_chara_bone_data* rob_bone_data, float_t frame);
-static void rob_chara_bone_data_set_eyelid_play_frame_step(rob_chara_bone_data* rob_bone_data, float_t step);
-static void rob_chara_bone_data_set_eyes_anim_blend_duration(rob_chara_bone_data* rob_bone_data,
+static void rob_chara_bone_data_set_eyelid_step(rob_chara_bone_data* rob_bone_data, float_t step);
+static void rob_chara_bone_data_set_eyes_duration(rob_chara_bone_data* rob_bone_data,
     float_t duration, float_t step, float_t offset);
 static void rob_chara_bone_data_set_eyes_frame(rob_chara_bone_data* rob_bone_data, float_t frame);
-static void rob_chara_bone_data_set_eyes_play_frame_step(rob_chara_bone_data* rob_bone_data, float_t step);
-static void rob_chara_bone_data_set_face_anim_blend_duration(rob_chara_bone_data* rob_bone_data,
+static void rob_chara_bone_data_set_eyes_step(rob_chara_bone_data* rob_bone_data, float_t step);
+static void rob_chara_bone_data_set_face_duration(rob_chara_bone_data* rob_bone_data,
     float_t duration, float_t step, float_t offset);
 static void rob_chara_bone_data_set_face_frame(rob_chara_bone_data* rob_bone_data, float_t frame);
-static void rob_chara_bone_data_set_face_play_frame_step(rob_chara_bone_data* rob_bone_data, float_t step);
-static void rob_chara_bone_data_set_hand_l_anim_blend_duration(rob_chara_bone_data* rob_bone_data,
+static void rob_chara_bone_data_set_face_step(rob_chara_bone_data* rob_bone_data, float_t step);
+static void rob_chara_bone_data_set_hand_l_duration(rob_chara_bone_data* rob_bone_data,
     float_t duration, float_t step, float_t offset);
 static void rob_chara_bone_data_set_hand_l_frame(rob_chara_bone_data* rob_bone_data, float_t frame);
-static void rob_chara_bone_data_set_hand_l_play_frame_step(rob_chara_bone_data* rob_bone_data, float_t step);
-static void rob_chara_bone_data_set_hand_r_anim_blend_duration(rob_chara_bone_data* rob_bone_data,
+static void rob_chara_bone_data_set_hand_l_step(rob_chara_bone_data* rob_bone_data, float_t step);
+static void rob_chara_bone_data_set_hand_r_duration(rob_chara_bone_data* rob_bone_data,
     float_t duration, float_t step, float_t offset);
 static void rob_chara_bone_data_set_hand_r_frame(rob_chara_bone_data* rob_bone_data, float_t frame);
-static void rob_chara_bone_data_set_hand_r_play_frame_step(rob_chara_bone_data* rob_bone_data, float_t step);
+static void rob_chara_bone_data_set_hand_r_step(rob_chara_bone_data* rob_bone_data, float_t step);
 static void rob_chara_bone_data_set_look_anim_param(rob_chara_bone_data* rob_bone_data,
     const rob_chara_look_anim_eye_param* params, const eyes_adjust* eyes_adjust);
 static void rob_chara_bone_data_set_mats(rob_chara_bone_data* rob_bone_data,
     const std::vector<bone_database_bone>* bones, const std::string* motion_bones);
 static void rob_chara_bone_data_set_motion_duration(rob_chara_bone_data* rob_bone_data,
     float_t duration, float_t step, float_t offset);
-static void rob_chara_bone_data_set_mouth_anim_blend_duration(rob_chara_bone_data* rob_bone_data,
+static void rob_chara_bone_data_set_mouth_duration(rob_chara_bone_data* rob_bone_data,
     float_t duration, float_t step, float_t offset);
 static void rob_chara_bone_data_set_mouth_frame(rob_chara_bone_data* rob_bone_data, float_t frame);
-static void rob_chara_bone_data_set_mouth_play_frame_step(rob_chara_bone_data* rob_bone_data, float_t step);
+static void rob_chara_bone_data_set_mouth_step(rob_chara_bone_data* rob_bone_data, float_t step);
 static void rob_chara_bone_data_set_parent_mats(rob_chara_bone_data* rob_bone_data,
     const uint16_t* parent_indices);
 static void rob_chara_bone_data_set_rot_y(rob_chara_bone_data* rob_bone_data, float_t rot_y);
@@ -3898,8 +3899,8 @@ static void rob_chara_set_eyelid_motion(rob_chara* rob_chr,
 
     rob_chr->bone_data->load_eyelid_motion(motion->data.motion_id, mot_db);
     rob_chara_bone_data_set_eyelid_frame(rob_chr->bone_data, motion->data.frame);
-    rob_chara_bone_data_set_eyelid_play_frame_step(rob_chr->bone_data, motion->data.play_frame_step);
-    rob_chara_bone_data_set_eyelid_anim_blend_duration(rob_chr->bone_data,
+    rob_chara_bone_data_set_eyelid_step(rob_chr->bone_data, motion->data.play_frame_step);
+    rob_chara_bone_data_set_eyelid_duration(rob_chr->bone_data,
         motion->data.blend_duration, motion->data.blend_step, motion->data.blend_offset);
 }
 
@@ -3918,8 +3919,8 @@ static void rob_chara_set_eyes_motion(rob_chara* rob_chr,
 
     rob_chr->bone_data->load_eyes_motion(motion->data.motion_id, mot_db);
     rob_chara_bone_data_set_eyes_frame(rob_chr->bone_data, motion->data.frame);
-    rob_chara_bone_data_set_eyes_play_frame_step(rob_chr->bone_data, motion->data.play_frame_step);
-    rob_chara_bone_data_set_eyes_anim_blend_duration(rob_chr->bone_data,
+    rob_chara_bone_data_set_eyes_step(rob_chr->bone_data, motion->data.play_frame_step);
+    rob_chara_bone_data_set_eyes_duration(rob_chr->bone_data,
         motion->data.blend_duration, motion->data.blend_step, motion->data.blend_offset);
 }
 
@@ -3938,8 +3939,8 @@ static void rob_chara_set_face_motion(rob_chara* rob_chr,
 
     rob_chr->bone_data->load_face_motion(motion->data.motion_id, mot_db);
     rob_chara_bone_data_set_face_frame(rob_chr->bone_data, motion->data.frame);
-    rob_chara_bone_data_set_face_play_frame_step(rob_chr->bone_data, motion->data.play_frame_step);
-    rob_chara_bone_data_set_face_anim_blend_duration(rob_chr->bone_data,
+    rob_chara_bone_data_set_face_step(rob_chr->bone_data, motion->data.play_frame_step);
+    rob_chara_bone_data_set_face_duration(rob_chr->bone_data,
         motion->data.blend_duration, motion->data.blend_step, motion->data.blend_offset);
 }
 
@@ -3966,8 +3967,8 @@ static void rob_chara_set_hand_l_motion(rob_chara* rob_chr,
 
     rob_chr->bone_data->load_hand_l_motion(motion->data.motion_id, mot_db);
     rob_chara_bone_data_set_hand_l_frame(rob_chr->bone_data, motion->data.frame);
-    rob_chara_bone_data_set_hand_l_play_frame_step(rob_chr->bone_data, motion->data.play_frame_step);
-    rob_chara_bone_data_set_hand_l_anim_blend_duration(rob_chr->bone_data,
+    rob_chara_bone_data_set_hand_l_step(rob_chr->bone_data, motion->data.play_frame_step);
+    rob_chara_bone_data_set_hand_l_duration(rob_chr->bone_data,
         motion->data.blend_duration, motion->data.blend_step, motion->data.blend_offset);
 }
 
@@ -3994,8 +3995,8 @@ static void rob_chara_set_hand_r_motion(rob_chara* rob_chr,
 
     rob_chr->bone_data->load_hand_r_motion(motion->data.motion_id, mot_db);
     rob_chara_bone_data_set_hand_r_frame(rob_chr->bone_data, motion->data.frame);
-    rob_chara_bone_data_set_hand_r_play_frame_step(rob_chr->bone_data, motion->data.play_frame_step);
-    rob_chara_bone_data_set_hand_r_anim_blend_duration(rob_chr->bone_data,
+    rob_chara_bone_data_set_hand_r_step(rob_chr->bone_data, motion->data.play_frame_step);
+    rob_chara_bone_data_set_hand_r_duration(rob_chr->bone_data,
         motion->data.blend_duration, motion->data.blend_step, motion->data.blend_offset);
 }
 
@@ -4014,8 +4015,8 @@ static void rob_chara_set_mouth_motion(rob_chara* rob_chr,
 
     rob_chr->bone_data->load_mouth_motion(motion->data.motion_id, mot_db);
     rob_chara_bone_data_set_mouth_frame(rob_chr->bone_data, motion->data.frame);
-    rob_chara_bone_data_set_mouth_play_frame_step(rob_chr->bone_data, motion->data.play_frame_step);
-    rob_chara_bone_data_set_mouth_anim_blend_duration(rob_chr->bone_data,
+    rob_chara_bone_data_set_mouth_step(rob_chr->bone_data, motion->data.play_frame_step);
+    rob_chara_bone_data_set_mouth_duration(rob_chr->bone_data,
         motion->data.blend_duration, motion->data.blend_step, motion->data.blend_offset);
 }
 
@@ -6154,12 +6155,17 @@ static void sub_1404119A0(struc_313* a1) {
     sub_1404122C0(a1, &v5, &v4, &v3);
 }
 
-static void mot_blend_set_blend_duration(mot_blend* a1, float_t duration, float_t step, float_t offset) {
+static void mot_blend_set_duration(mot_blend* a1, float_t duration, float_t step, float_t offset) {
     a1->blend.SetDuration(duration, step, offset);
 }
 
 static void mot_blend_set_frame(mot_blend* a1, float_t frame) {
     a1->mot_play_data.frame_data.set_frame(frame);
+}
+
+static void mot_blend_set_step(mot_blend* a1, float_t step) {
+    a1->mot_play_data.frame_data.step_prev = a1->mot_play_data.frame_data.step;
+    a1->mot_play_data.frame_data.step = step;
 }
 
 static void mot_key_frame_interpolate(mot* a1, float_t frame, float_t* value,
@@ -8640,7 +8646,7 @@ static void sub_140504710(rob_chara* rob_chr, const motion_database* mot_db,
         v2 = &rob_chr->data.motion.field_3B0.face;
     sub_14053F2C0(v2);
     rob_chara_bone_data_set_face_frame(rob_chr->bone_data, v2->data.frame);
-    rob_chara_bone_data_set_face_play_frame_step(rob_chr->bone_data, v2->data.play_frame_step);
+    rob_chara_bone_data_set_face_step(rob_chr->bone_data, v2->data.play_frame_step);
 
     RobHandMotion* v3 = &rob_chr->data.motion.field_150.hand_l;
     if (rob_chr->data.motion.field_29 & 0x08)
@@ -8649,7 +8655,7 @@ static void sub_140504710(rob_chara* rob_chr, const motion_database* mot_db,
         v3 = &rob_chr->data.motion.hand_l;
     sub_14053F2C0(v3);
     rob_chara_bone_data_set_hand_l_frame(rob_chr->bone_data, v3->data.frame);
-    rob_chara_bone_data_set_hand_l_play_frame_step(rob_chr->bone_data, v3->data.play_frame_step);
+    rob_chara_bone_data_set_hand_l_step(rob_chr->bone_data, v3->data.play_frame_step);
 
     RobHandMotion* v4 = &rob_chr->data.motion.field_150.hand_r;
     if (rob_chr->data.motion.field_29 & 0x10)
@@ -8658,28 +8664,28 @@ static void sub_140504710(rob_chara* rob_chr, const motion_database* mot_db,
         v4 = &rob_chr->data.motion.hand_r;
     sub_14053F2C0(v4);
     rob_chara_bone_data_set_hand_r_frame(rob_chr->bone_data, v4->data.frame);
-    rob_chara_bone_data_set_hand_r_play_frame_step(rob_chr->bone_data, v4->data.play_frame_step);
+    rob_chara_bone_data_set_hand_r_step(rob_chr->bone_data, v4->data.play_frame_step);
 
     RobMouthMotion* v5 = &rob_chr->data.motion.field_150.mouth;
     if (rob_chr->data.motion.field_29 & 0x20)
         v5 = &rob_chr->data.motion.field_3B0.mouth;
     sub_14053F2C0(v5);
     rob_chara_bone_data_set_mouth_frame(rob_chr->bone_data, v5->data.frame);
-    rob_chara_bone_data_set_mouth_play_frame_step(rob_chr->bone_data, v5->data.play_frame_step);
+    rob_chara_bone_data_set_mouth_step(rob_chr->bone_data, v5->data.play_frame_step);
 
     RobEyesMotion* v6 = &rob_chr->data.motion.field_150.eyes;
     if (rob_chr->data.motion.field_29 & 0x40)
         v6 = &rob_chr->data.motion.field_3B0.eyes;
     sub_14053F2C0(v6);
     rob_chara_bone_data_set_eyes_frame(rob_chr->bone_data, v6->data.frame);
-    rob_chara_bone_data_set_eyes_play_frame_step(rob_chr->bone_data, v6->data.play_frame_step);
+    rob_chara_bone_data_set_eyes_step(rob_chr->bone_data, v6->data.play_frame_step);
 
     RobEyelidMotion* v7 = &rob_chr->data.motion.field_150.eyelid;
     if (rob_chr->data.motion.field_29 & 0x80)
         v7 = &rob_chr->data.motion.field_3B0.eyelid;
     sub_14053F2C0(v7);
     rob_chara_bone_data_set_eyelid_frame(rob_chr->bone_data, v7->data.frame);
-    rob_chara_bone_data_set_eyelid_play_frame_step(rob_chr->bone_data, v7->data.play_frame_step);
+    rob_chara_bone_data_set_eyelid_step(rob_chr->bone_data, v7->data.play_frame_step);
 
     object_info v8 = sub_140550330(rob_chr);
     if (rob_chara_get_object_info(rob_chr, ITEM_ATAMA) != v8)
@@ -10877,79 +10883,69 @@ static void rob_chara_bone_data_motion_load(rob_chara_bone_data* rob_bone_data, 
         motion_id, MOTION_BLEND_CROSS, 1.0f, bone_data, mot_db);
 }
 
-static void rob_chara_bone_data_set_eyelid_anim_blend_duration(rob_chara_bone_data* rob_bone_data,
+static void rob_chara_bone_data_set_eyelid_duration(rob_chara_bone_data* rob_bone_data,
     float_t duration, float_t step, float_t offset) {
-    mot_blend_set_blend_duration(&rob_bone_data->eyelid, duration, step, offset);
+    mot_blend_set_duration(&rob_bone_data->eyelid, duration, step, offset);
 }
 
 static void rob_chara_bone_data_set_eyelid_frame(rob_chara_bone_data* rob_bone_data, float_t frame) {
     mot_blend_set_frame(&rob_bone_data->eyelid, frame);
 }
 
-static void rob_chara_bone_data_set_eyelid_play_frame_step(rob_chara_bone_data* rob_bone_data, float_t step) {
-    mot_play_frame_data* frame_data = &rob_bone_data->eyelid.mot_play_data.frame_data;
-    frame_data->step_prev = frame_data->step;
-    frame_data->step = step;
+static void rob_chara_bone_data_set_eyelid_step(rob_chara_bone_data* rob_bone_data, float_t step) {
+    mot_blend_set_step(&rob_bone_data->eyelid, step);
 }
 
-static void rob_chara_bone_data_set_eyes_anim_blend_duration(rob_chara_bone_data* rob_bone_data,
+static void rob_chara_bone_data_set_eyes_duration(rob_chara_bone_data* rob_bone_data,
     float_t duration, float_t step, float_t offset) {
-    mot_blend_set_blend_duration(&rob_bone_data->eyes, duration, step, offset);
+    mot_blend_set_duration(&rob_bone_data->eyes, duration, step, offset);
 }
 
 static void rob_chara_bone_data_set_eyes_frame(rob_chara_bone_data* rob_bone_data, float_t frame) {
     mot_blend_set_frame(&rob_bone_data->eyes, frame);
 }
 
-static void rob_chara_bone_data_set_eyes_play_frame_step(rob_chara_bone_data* rob_bone_data, float_t step) {
-    mot_play_frame_data* frame_data = &rob_bone_data->eyes.mot_play_data.frame_data;
-    frame_data->step_prev = frame_data->step;
-    frame_data->step = step;
+static void rob_chara_bone_data_set_eyes_step(rob_chara_bone_data* rob_bone_data, float_t step) {
+    mot_blend_set_step(&rob_bone_data->eyes, step);
 }
 
-static void rob_chara_bone_data_set_face_anim_blend_duration(rob_chara_bone_data* rob_bone_data,
+static void rob_chara_bone_data_set_face_duration(rob_chara_bone_data* rob_bone_data,
     float_t duration, float_t step, float_t offset) {
-    mot_blend_set_blend_duration(&rob_bone_data->face, duration, step, offset);
+    mot_blend_set_duration(&rob_bone_data->face, duration, step, offset);
 }
 
 static void rob_chara_bone_data_set_face_frame(rob_chara_bone_data* rob_bone_data, float_t frame) {
     mot_blend_set_frame(&rob_bone_data->face, frame);
 }
 
-static void rob_chara_bone_data_set_face_play_frame_step(rob_chara_bone_data* rob_bone_data, float_t step) {
-    mot_play_frame_data* frame_data = &rob_bone_data->face.mot_play_data.frame_data;
-    frame_data->step_prev = frame_data->step;
-    frame_data->step = step;
+static void rob_chara_bone_data_set_face_step(rob_chara_bone_data* rob_bone_data, float_t step) {
+    mot_blend_set_step(&rob_bone_data->face, step);
 }
 
-static void rob_chara_bone_data_set_hand_l_anim_blend_duration(rob_chara_bone_data* rob_bone_data,
+static void rob_chara_bone_data_set_hand_l_duration(rob_chara_bone_data* rob_bone_data,
     float_t duration, float_t step, float_t offset) {
-    mot_blend_set_blend_duration(&rob_bone_data->hand_l, duration, step, offset);
+    mot_blend_set_duration(&rob_bone_data->hand_l, duration, step, offset);
 }
 
 static void rob_chara_bone_data_set_hand_l_frame(rob_chara_bone_data* rob_bone_data, float_t frame) {
     mot_blend_set_frame(&rob_bone_data->hand_l, frame);
 }
 
-static void rob_chara_bone_data_set_hand_l_play_frame_step(rob_chara_bone_data* rob_bone_data, float_t step) {
-    mot_play_frame_data* frame_data = &rob_bone_data->hand_l.mot_play_data.frame_data;
-    frame_data->step_prev = frame_data->step;
-    frame_data->step = step;
+static void rob_chara_bone_data_set_hand_l_step(rob_chara_bone_data* rob_bone_data, float_t step) {
+    mot_blend_set_step(&rob_bone_data->hand_l, step);
 }
 
-static void rob_chara_bone_data_set_hand_r_anim_blend_duration(rob_chara_bone_data* rob_bone_data,
+static void rob_chara_bone_data_set_hand_r_duration(rob_chara_bone_data* rob_bone_data,
     float_t duration, float_t step, float_t offset) {
-    mot_blend_set_blend_duration(&rob_bone_data->hand_r, duration, step, offset);
+    mot_blend_set_duration(&rob_bone_data->hand_r, duration, step, offset);
 }
 
 static void rob_chara_bone_data_set_hand_r_frame(rob_chara_bone_data* rob_bone_data, float_t frame) {
     mot_blend_set_frame(&rob_bone_data->hand_r, frame);
 }
 
-static void rob_chara_bone_data_set_hand_r_play_frame_step(rob_chara_bone_data* rob_bone_data, float_t step) {
-    mot_play_frame_data* frame_data = &rob_bone_data->hand_r.mot_play_data.frame_data;
-    frame_data->step_prev = frame_data->step;
-    frame_data->step = step;
+static void rob_chara_bone_data_set_hand_r_step(rob_chara_bone_data* rob_bone_data, float_t step) {
+    mot_blend_set_step(&rob_bone_data->hand_r, step);
 }
 
 static void rob_chara_bone_data_set_look_anim_param(rob_chara_bone_data* rob_bone_data,
@@ -11088,19 +11084,17 @@ static void rob_chara_bone_data_set_motion_duration(rob_chara_bone_data* rob_bon
     motion_blend_mot_set_duration(rob_bone_data->motion_loaded.front(), duration, step, offset);
 }
 
-static void rob_chara_bone_data_set_mouth_anim_blend_duration(rob_chara_bone_data* rob_bone_data,
+static void rob_chara_bone_data_set_mouth_duration(rob_chara_bone_data* rob_bone_data,
     float_t duration, float_t step, float_t offset) {
-    mot_blend_set_blend_duration(&rob_bone_data->mouth, duration, step, offset);
+    mot_blend_set_duration(&rob_bone_data->mouth, duration, step, offset);
 }
 
 static void rob_chara_bone_data_set_mouth_frame(rob_chara_bone_data* rob_bone_data, float_t frame) {
     mot_blend_set_frame(&rob_bone_data->mouth, frame);
 }
 
-static void rob_chara_bone_data_set_mouth_play_frame_step(rob_chara_bone_data* rob_bone_data, float_t step) {
-    mot_play_frame_data* frame_data = &rob_bone_data->mouth.mot_play_data.frame_data;
-    frame_data->step_prev = frame_data->step;
-    frame_data->step = step;
+static void rob_chara_bone_data_set_mouth_step(rob_chara_bone_data* rob_bone_data, float_t step) {
+    mot_blend_set_step(&rob_bone_data->mouth, step);
 }
 
 static void rob_chara_bone_data_set_parent_mats(rob_chara_bone_data* rob_bone_data,
