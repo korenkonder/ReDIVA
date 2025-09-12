@@ -1220,7 +1220,7 @@ bool DtmMot::ctrl() {
         if (frame >= pre_offset)
             frame = min_def(rob_chr->data.field_1588.field_0.frame, frame - pre_offset);
 
-        rob_bone_data->sub_14041DBA0();
+        rob_bone_data->motion_step();
 
         rob_chr->set_frame(frame);
         rob_chr->set_step_motion_step(delta_frame);

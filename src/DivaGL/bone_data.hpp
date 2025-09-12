@@ -2666,7 +2666,7 @@ struct mot_play_data {
     float_t* field_48;
 };
 
-struct mot_blend {
+struct partial_motion_blend_mot {
     struc_240 field_0;
     uint8_t field_30;
     mot_key_data mot_key_data;
@@ -2845,12 +2845,12 @@ struct rob_chara_bone_data {
     prj::list<size_t> motion_indices;
     prj::list<size_t> motion_loaded_indices;
     prj::list<motion_blend_mot*> motion_loaded;
-    mot_blend face;
-    mot_blend hand_l;
-    mot_blend hand_r;
-    mot_blend mouth;
-    mot_blend eye;
-    mot_blend eyelid;
+    partial_motion_blend_mot face;
+    partial_motion_blend_mot hand_l;
+    partial_motion_blend_mot hand_r;
+    partial_motion_blend_mot mouth;
+    partial_motion_blend_mot eye;
+    partial_motion_blend_mot eyelid;
     bool disable_eye_motion;
     rob_chara_bone_data_ik_scale ik_scale;
     vec3 field_76C;

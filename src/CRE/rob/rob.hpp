@@ -933,6 +933,7 @@ struct mot_key_data {
     mot_key_data();
     ~mot_key_data();
 
+    void interpolate(float_t frame, uint32_t key_set_offset, uint32_t key_set_count);
     void reset();
 };
 
@@ -1186,17 +1187,25 @@ struct rob_chara_bone_data_ik_scale {
     rob_chara_bone_data_ik_scale();
 };
 
-struct mot_blend {
+struct partial_motion_blend_mot {
     struc_240 field_0;
-    bool field_30;
+    bool disable;
     mot_key_data mot_key_data;
     mot_play_data mot_play_data;
     PartialMotionBlendFreeze blend;
 
-    mot_blend();
-    ~mot_blend();
+    partial_motion_blend_mot();
+    ~partial_motion_blend_mot();
 
+    void init(bone_database_skeleton_type type,
+        PFNMOTIONBONECHECKFUNC bone_check_func, size_t motion_bone_count, const bone_database* bone_data);
+    void interpolate(std::vector<bone_data>& bones,
+        const std::vector<uint16_t>* bone_indices, bone_database_skeleton_type skeleton_type);
+    void load_motion(uint32_t motion_id, const motion_database* mot_db);
     void reset();
+    void set_blend_duration(float_t duration, float_t step, float_t offset);
+    void set_frame(float_t frame);
+    void set_step(float_t step);
 };
 
 struct rob_chara_look_anim_eye_param_limits {
@@ -1347,12 +1356,12 @@ struct rob_chara_bone_data {
     std::list<size_t> motion_indices;
     std::list<size_t> motion_loaded_indices;
     std::list<motion_blend_mot*> motion_loaded;
-    mot_blend face;
-    mot_blend hand_l;
-    mot_blend hand_r;
-    mot_blend mouth;
-    mot_blend eyes;
-    mot_blend eyelid;
+    partial_motion_blend_mot face;
+    partial_motion_blend_mot hand_l;
+    partial_motion_blend_mot hand_r;
+    partial_motion_blend_mot mouth;
+    partial_motion_blend_mot eyes;
+    partial_motion_blend_mot eyelid;
     bool disable_eye_motion;
     rob_chara_bone_data_ik_scale ik_scale;
     vec3 field_76C[2];
@@ -1379,20 +1388,38 @@ struct rob_chara_bone_data {
     void load_hand_l_motion(uint32_t motion_id, const motion_database* mot_db);
     void load_hand_r_motion(uint32_t motion_id, const motion_database* mot_db);
     void load_mouth_motion(uint32_t motion_id, const motion_database* mot_db);
+    void motion_step();
     void reset();
     void set_disable_eye_motion(bool value);
+    void set_eyelid_blend_duration(float_t duration, float_t step, float_t offset);
+    void set_eyelid_frame(float_t frame);
+    void set_eyelid_step(float_t step);
+    void set_eyes_blend_duration(float_t duration, float_t step, float_t offset);
+    void set_eyes_frame(float_t frame);
+    void set_eyes_step(float_t step);
+    void set_face_blend_duration(float_t duration, float_t step, float_t offset);
+    void set_face_frame(float_t frame);
+    void set_face_step(float_t step);
     void set_frame(float_t frame);
+    void set_hand_l_blend_duration(float_t duration, float_t step, float_t offset);
+    void set_hand_l_frame(float_t frame);
+    void set_hand_l_step(float_t step);
+    void set_hand_r_blend_duration(float_t duration, float_t step, float_t offset);
+    void set_hand_r_frame(float_t frame);
+    void set_hand_r_step(float_t step);
     void set_look_anim(bool update_view_point, bool enable, float_t head_rot_strength,
         float_t eyes_rot_strength, float_t duration, float_t eyes_rot_step, float_t a8, bool ft);
     void set_look_anim_target_view_point(const vec3& value);
+    void set_motion_blend_duration(float_t duration, float_t step, float_t offset);
     void set_motion_frame(float_t frame, float_t step, float_t frame_count);
     void set_motion_loop(float_t loop_begin, int32_t loop_count, float_t loop_end);
     void set_motion_loop_state(mot_play_frame_data_loop_state value);
     void set_motion_max_frame(float_t value);
     void set_motion_playback_state(mot_play_frame_data_playback_state value);
+    void set_mouth_blend_duration(float_t duration, float_t step, float_t offset);
+    void set_mouth_frame(float_t frame);
+    void set_mouth_step(float_t step);
     void update(mat4* mat);
-
-    void sub_14041DBA0();
 };
 
 union rob_chara_pv_data_item {
