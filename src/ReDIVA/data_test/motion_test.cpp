@@ -57,6 +57,7 @@ public:
     void AddMottblMapMotions(dw::ListBox* list_box, int32_t type);
     Data GetData();
     bool GetEnable();
+    void GetMottblIndexFrame(DataTestFaceMotDw::MotionData& data, uint32_t motion_id, float_t value);
     dw::ListBox* InitAddMottblMapMotions(dw::Composite* parent, int32_t type);
     void ResetMot();
 };
@@ -1778,7 +1779,7 @@ void DataTestFaceMotDw::AddMottblMapMotions(dw::ListBox* list_box, int32_t type)
             if (motion_id != -1) {
                 if (motion_id_mottbl_map.insert({ motion_id, i }).second) {
                     std::string motion_name(aft_mot_db->get_motion_name(motion_id));
-                    if (motion_name.find("_CL") != motion_name.size() - 3)
+                    if (motion_name.rfind("_CL") != motion_name.size() - 3)
                         list_box->AddItem(motion_name);
                 }
             }
@@ -1822,10 +1823,8 @@ DataTestFaceMotDw::Data DataTestFaceMotDw::GetData() {
     };
 
     std::string face_mot = face->GetSelectedItemStr();
-    auto elem_face = motion_id_mottbl_map.find(aft_mot_db->get_motion_id(face_mot.c_str()));
-    if (elem_face != motion_id_mottbl_map.end())
-        data.face.mottbl_index = elem_face->second;
-    data.face.frame = face_frame->GetValue();
+    GetMottblIndexFrame(data.face, aft_mot_db->get_motion_id(
+        face_mot.c_str()), face_frame->GetValue());
 
     std::string face_cl_mot;
     if (face_mot.find("FACE_WINK_OLD") != -1)
@@ -1838,26 +1837,25 @@ DataTestFaceMotDw::Data DataTestFaceMotDw::GetData() {
     uint32_t face_cl_mot_id = aft_mot_db->get_motion_id(face_cl_mot.c_str());
     face_cl->SetText(face_cl_mot_id != -1 ? face_cl_mot : u8"CLモーションなし");
 
-    auto elem_eyelid = motion_id_mottbl_map.find(face_cl_mot_id);
-    if (elem_eyelid != motion_id_mottbl_map.end())
-        data.eyelid.mottbl_index = elem_eyelid->second;
-    data.eyelid.frame = face_cl_frame->GetValue();
-
-    auto elem_eyes = motion_id_mottbl_map.find(aft_mot_db->get_motion_id(eyes->GetSelectedItemStr().c_str()));
-    if (elem_eyes != motion_id_mottbl_map.end())
-        data.eyes.mottbl_index = elem_eyes->second;
-    data.eyes.frame = eyes_frame->GetValue();
-
-    auto elem_mouth = motion_id_mottbl_map.find(aft_mot_db->get_motion_id(mouth->GetSelectedItemStr().c_str()));
-    if (elem_mouth != motion_id_mottbl_map.end())
-        data.mouth.mottbl_index = elem_mouth->second;
-    data.mouth.frame = mouth_frame->GetValue();
+    GetMottblIndexFrame(data.eyelid, face_cl_mot_id, face_cl_frame->GetValue());
+    GetMottblIndexFrame(data.eyes, aft_mot_db->get_motion_id(
+        eyes->GetSelectedItemStr().c_str()), eyes_frame->GetValue());
+    GetMottblIndexFrame(data.mouth, aft_mot_db->get_motion_id(
+        mouth->GetSelectedItemStr().c_str()), mouth_frame->GetValue());
 
     return data;
 }
 
 bool DataTestFaceMotDw::GetEnable() {
     return enable->value;
+}
+
+inline void DataTestFaceMotDw::GetMottblIndexFrame(
+    DataTestFaceMotDw::MotionData& data, uint32_t motion_id, float_t value) {
+    auto elem = motion_id_mottbl_map.find(motion_id);
+    if (elem != motion_id_mottbl_map.end())
+        data.mottbl_index = elem->second;
+    data.frame = value;
 }
 
 dw::ListBox* DataTestFaceMotDw::InitAddMottblMapMotions(dw::Composite* parent, int32_t type) {
