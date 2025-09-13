@@ -879,8 +879,10 @@ void x_pv_play_data::reset() {
         int32_t mottbl_index = hand_anim_id_to_mottbl_index(2);
 
         rob_chr->reset_data(&rob_chr->pv_data, aft_bone_data, aft_mot_db);
-        rob_chr->set_hand_l_mottbl_motion(0, mottbl_index, 1.0f, 0, 0.0f, 0.0f, 1.0f, -1, 0.0f, aft_mot_db);
-        rob_chr->set_hand_r_mottbl_motion(0, mottbl_index, 1.0f, 0, 0.0f, 0.0f, 1.0f, -1, 0.0f, aft_mot_db);
+        rob_chr->set_hand_l_mottbl_motion(0, mottbl_index, 1.0f, ROB_PARTIAL_MOTION_PLAYBACK_STOP,
+            0.0f, 0.0f, 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE, 0.0f, aft_mot_db);
+        rob_chr->set_hand_r_mottbl_motion(0, mottbl_index, 1.0f, ROB_PARTIAL_MOTION_PLAYBACK_STOP,
+            0.0f, 0.0f, 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE, 0.0f, aft_mot_db);
         rob_chr->set_visibility(false);
     }
 
@@ -2039,7 +2041,7 @@ void x_pv_game_music::ctrl(float_t delta_time) {
         fade_in.remain -= delta_time;
         if (fade_in.remain > 0.0f) {
             int32_t value = fade_in.value;
-            if (fade_in.time > 0.0)
+            if (fade_in.time > 0.0f)
                 value = (int32_t)((float_t)value - (float_t)(value
                     - fade_in.start) * (fade_in.remain / fade_in.time));
             set_volume_map(0, value);
@@ -2143,7 +2145,7 @@ void x_pv_game_music::file_load(int32_t type, std::string&& file_path, bool play
         fade_out.start = get_volume(0);
         fade_out.value = 0;
         fade_out.time = 0.0f;
-        fade_out.remain = 0.0;
+        fade_out.remain = 0.0f;
         fade_out.action = play_on_end
             ? X_PV_GAME_MUSIC_ACTION_PLAY : X_PV_GAME_MUSIC_ACTION_STOP;
     }
@@ -3288,8 +3290,8 @@ bool x_pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         int32_t mottbl_index = mouth_anim_id_to_mottbl_index(mouth_anim_id);
         blend_duration /= anim_frame_speed;
 
-        rob_chr->set_mouth_mottbl_motion(0, mottbl_index, value,
-            0, blend_duration, 0.0f, 1.0f, -1, 0.0f, aft_mot_db);
+        rob_chr->set_mouth_mottbl_motion(0, mottbl_index, value, ROB_PARTIAL_MOTION_PLAYBACK_STOP,
+            blend_duration, 0.0f, 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE, 0.0f, aft_mot_db);
     } break;
     case DSC_X_HAND_ANIM: {
         chara_id = data[0];
@@ -3327,12 +3329,12 @@ bool x_pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
 
         switch (hand_index) {
         case 0:
-            rob_chr->set_hand_l_mottbl_motion(0, mottbl_index, value,
-                0, blend_duration, 0.0f, 1.0f, -1, 0.0f, aft_mot_db);
+            rob_chr->set_hand_l_mottbl_motion(0, mottbl_index, value, ROB_PARTIAL_MOTION_PLAYBACK_STOP,
+                blend_duration, 0.0f, 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE, 0.0f, aft_mot_db);
             break;
         case 1:
-            rob_chr->set_hand_r_mottbl_motion(0, mottbl_index, value,
-                0, blend_duration, 0.0f, 1.0f, -1, 0.0f, aft_mot_db);
+            rob_chr->set_hand_r_mottbl_motion(0, mottbl_index, value, ROB_PARTIAL_MOTION_PLAYBACK_STOP,
+                blend_duration, 0.0f, 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE, 0.0f, aft_mot_db);
             break;
         }
     } break;
@@ -3370,7 +3372,8 @@ bool x_pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         blend_duration /= anim_frame_speed;
 
         rob_chr->set_eyes_mottbl_motion(0, mottbl_index, value,
-            mottbl_index == 224 ? 1 : 0, blend_duration, 0.0f, 1.0f, -1, 0.0f, aft_mot_db);
+            mottbl_index == 224 ? ROB_PARTIAL_MOTION_PLAYBACK_CHARA_MOTION : ROB_PARTIAL_MOTION_PLAYBACK_STOP,
+            blend_duration, 0.0f, 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE, 0.0f, aft_mot_db);
     } break;
     case DSC_X_EXPRESSION: {
         chara_id = data[0];
@@ -3405,8 +3408,10 @@ bool x_pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         int32_t mottbl_index = expression_id_to_mottbl_index(expression_id);
         blend_duration /= anim_frame_speed;
 
-        rob_chr->set_face_mottbl_motion(0, mottbl_index, value, mottbl_index >= 214
-            && mottbl_index <= 223 ? 1 : 0, blend_duration, 0.0f, 1.0f, -1, 0.0f, true, aft_mot_db);
+        rob_chr->set_face_mottbl_motion(0, mottbl_index, value,
+            mottbl_index >= 214 && mottbl_index <= 223
+            ? ROB_PARTIAL_MOTION_PLAYBACK_CHARA_MOTION : ROB_PARTIAL_MOTION_PLAYBACK_STOP,
+            blend_duration, 0.0f, 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE, 0.0f, true, aft_mot_db);
 
     } break;
     case DSC_X_LOOK_CAMERA: {
@@ -3447,8 +3452,10 @@ bool x_pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
 
         int32_t mottbl_index = expression_id_to_mottbl_index(expression_id);
 
-        rob_chr->set_face_mottbl_motion(0, mottbl_index, 1.0f, mottbl_index >= 214
-            && mottbl_index <= 223 ? 1 : 0, 0.0f, 0.0f, 1.0f, -1, 0.0f, true, aft_mot_db);
+        rob_chr->set_face_mottbl_motion(0, mottbl_index, 1.0f,
+            mottbl_index >= 214 && mottbl_index <= 223
+            ? ROB_PARTIAL_MOTION_PLAYBACK_CHARA_MOTION : ROB_PARTIAL_MOTION_PLAYBACK_STOP,
+            0.0f, 0.0f, 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE, 0.0f, true, aft_mot_db);
     } break;
     case DSC_X_DUMMY: {
 
@@ -3481,8 +3488,8 @@ bool x_pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
 
         int32_t mottbl_index = mouth_anim_id_to_mottbl_index(mouth_anim_id);
 
-        rob_chr->set_mouth_mottbl_motion(0, mottbl_index, 1.0f,
-            0, 0.1f, 0.0f, 1.0f, -1, 0.0f, aft_mot_db);
+        rob_chr->set_mouth_mottbl_motion(0, mottbl_index, 1.0f, ROB_PARTIAL_MOTION_PLAYBACK_STOP,
+            0.1f, 0.0f, 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE, 0.0f, aft_mot_db);
     } break;
     case DSC_X_SET_CHARA: {
         chara_id = data[0];

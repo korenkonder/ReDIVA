@@ -242,8 +242,8 @@ enum mot_bone_index {
     MOT_BONE_MAX                     = 0xC9,
 };
 
-enum mot_play_frame_data_loop_state {
-    MOT_PLAY_FRAME_DATA_LOOP_NONE       = -1,
+enum mot_play_frame_data_loop_state : uint32_t {
+    MOT_PLAY_FRAME_DATA_LOOP_NONE       = (uint32_t)-1,
     MOT_PLAY_FRAME_DATA_LOOP_ONCE       = 0x00,
     MOT_PLAY_FRAME_DATA_LOOP_CONTINUOUS = 0x01,
     MOT_PLAY_FRAME_DATA_LOOP_RESET      = 0x02,
@@ -251,8 +251,8 @@ enum mot_play_frame_data_loop_state {
     MOT_PLAY_FRAME_DATA_LOOP_MAX        = 0x04,
 };
 
-enum mot_play_frame_data_playback_state {
-    MOT_PLAY_FRAME_DATA_PLAYBACK_NONE     = -1,
+enum mot_play_frame_data_playback_state : uint32_t {
+    MOT_PLAY_FRAME_DATA_PLAYBACK_NONE     = (uint32_t)-1,
     MOT_PLAY_FRAME_DATA_PLAYBACK_STOP     = 0x00,
     MOT_PLAY_FRAME_DATA_PLAYBACK_FORWARD  = 0x01,
     MOT_PLAY_FRAME_DATA_PLAYBACK_BACKWARD = 0x02,
@@ -803,6 +803,25 @@ enum rob_osage_parts_bit {
     ROB_OSAGE_PARTS_ANGEL_R_BIT     = 0x1000,
 };
 
+enum rob_partial_motion_loop_state : uint32_t {
+    ROB_PARTIAL_MOTION_LOOP_NONE       = (uint32_t)-1,
+    ROB_PARTIAL_MOTION_LOOP_ONCE       = 0x00,
+    ROB_PARTIAL_MOTION_LOOP_CONTINUOUS = 0x01,
+    ROB_PARTIAL_MOTION_LOOP_RESET      = 0x02,
+    ROB_PARTIAL_MOTION_LOOP_REVERSE    = 0x03,
+    ROB_PARTIAL_MOTION_LOOP_MAX        = 0x04,
+};
+
+enum rob_partial_motion_playback_state : uint32_t {
+    ROB_PARTIAL_MOTION_PLAYBACK_NONE         = (uint32_t)-1,
+    ROB_PARTIAL_MOTION_PLAYBACK_STOP         = 0x00,
+    ROB_PARTIAL_MOTION_PLAYBACK_CHARA_MOTION = 0x01,
+    ROB_PARTIAL_MOTION_PLAYBACK_FORWARD      = 0x02,
+    ROB_PARTIAL_MOTION_PLAYBACK_DURATION     = 0x03,
+    ROB_PARTIAL_MOTION_PLAYBACK_BACKWARD     = 0x04,
+    ROB_PARTIAL_MOTION_PLAYBACK_MAX          = 0x05,
+};
+
 enum ExNodeType {
     EX_NONE       = 0x00,
     EX_OSAGE      = 0x01,
@@ -1301,7 +1320,7 @@ struct rob_chara_look_anim {
     rob_chara_look_anim();
 
     void reset();
-    void set(bool update_view_point, bool enable, float_t head_rot_strength,
+    void set(bool update_view_point, bool rotation_enable, float_t head_rot_strength,
         float_t eyes_rot_strength, float_t duration, float_t eyes_rot_step, float_t a8, bool ft);
     void set_eyes_xrot_adjust(float_t neg, float_t pos);
     void set_target_view_point(const vec3& value);
@@ -1407,7 +1426,7 @@ struct rob_chara_bone_data {
     void set_hand_r_blend_duration(float_t duration, float_t step, float_t offset);
     void set_hand_r_frame(float_t frame);
     void set_hand_r_step(float_t step);
-    void set_look_anim(bool update_view_point, bool enable, float_t head_rot_strength,
+    void set_look_anim(bool update_view_point, bool rotation_enable, float_t head_rot_strength,
         float_t eyes_rot_strength, float_t duration, float_t eyes_rot_step, float_t a8, bool ft);
     void set_look_anim_target_view_point(const vec3& value);
     void set_motion_blend_duration(float_t duration, float_t step, float_t offset);
@@ -1457,7 +1476,7 @@ struct rob_chara_pv_data {
 struct struc_218 {
     vec3 bone_offset;
     float_t scale;
-    int32_t bone_index;
+    rob_bone_index bone_index;
     int32_t field_14;
 };
 
@@ -2804,13 +2823,13 @@ struct RobSubAction {
     void SetSubActParam(SubActParam* value);
 };
 
-struct struc_389 {
+struct rob_chara_motion_frame_data {
     float_t frame;
     float_t prev_frame;
     float_t last_set_frame;
 };
 
-struct struc_406 {
+struct rob_chara_motion_step_data {
     float_t frame;
     float_t field_4;
     float_t step;
@@ -2821,21 +2840,21 @@ public:
     struct Data {
         uint32_t motion_id;
         int32_t mottbl_index;
-        int32_t state;
+        rob_partial_motion_playback_state playback_state;
         float_t frame;
-        float_t play_frame_step;
+        float_t step;
         float_t frame_count;
         float_t blend_duration;
         float_t blend_step;
         float_t blend_offset;
-        float_t field_24;
-        struc_389* frame_data;
-        struc_406* step_data;
-        int32_t field_38;
+        float_t play_duration;
+        rob_chara_motion_frame_data* frame_data;
+        rob_chara_motion_step_data* step_data;
+        rob_partial_motion_loop_state loop_state;
 
-        inline Data() : motion_id(), mottbl_index(), state(), frame(),
-            play_frame_step(), frame_count(), blend_duration(), blend_step(),
-            blend_offset(), field_24(), frame_data(), step_data(), field_38() {
+        inline Data() : motion_id(-1), mottbl_index(), playback_state(ROB_PARTIAL_MOTION_PLAYBACK_NONE), frame(),
+            step(), frame_count(), blend_duration(), blend_step(), blend_offset(), play_duration(),
+            frame_data(), step_data(), loop_state(ROB_PARTIAL_MOTION_LOOP_NONE) {
             Reset();
         }
 
@@ -2846,17 +2865,17 @@ public:
         inline void Reset() {
             motion_id = -1;
             mottbl_index = 6;
-            state = -1;
+            playback_state = ROB_PARTIAL_MOTION_PLAYBACK_NONE;
             frame = 0.0f;
-            play_frame_step = 1.0f;
+            step = 1.0f;
             frame_count = 0.0f;
             blend_duration = 0.0f;
             blend_step = 1.0f;
             blend_offset = 1.0f;
-            field_24 = 0.0f;
+            play_duration = 0.0f;
             frame_data = 0;
             step_data = 0;
-            field_38 = -1;
+            loop_state = ROB_PARTIAL_MOTION_LOOP_NONE;
         }
     } data;
 
@@ -2864,6 +2883,16 @@ public:
     virtual ~RobPartialMotion();
 
     virtual void Reset() = 0;
+
+    bool CheckEnded();
+    bool CheckPlaybackStateBackward();
+    bool CheckPlaybackStateCharaMotion();
+    bool CheckPlaybackStateDuration();
+    bool CheckPlaybackStateForward();
+    bool CheckPlaybackStateStop();
+    bool CheckPlaybackStateValid();
+    void GetFrameStep();
+    void Step();
 };
 
 class RobFaceMotion : public RobPartialMotion {
@@ -3010,8 +3039,8 @@ struct rob_chara_data_arm_adjust {
 struct rob_chara_motion {
     uint32_t motion_id;
     uint32_t prev_motion_id;
-    struc_389 frame_data;
-    struc_406 step_data;
+    rob_chara_motion_frame_data frame_data;
+    rob_chara_motion_step_data step_data;
     float_t step;
     int32_t field_24;
     uint8_t field_28;
@@ -3578,7 +3607,7 @@ struct rob_chara {
     chara_index chara_index;
     int32_t cos_id;
     float_t frame_speed;
-    void* field_20;
+    rob_chara* field_20;
     rob_chara_bone_data* bone_data;
     rob_chara_item_equip* item_equip;
     rob_chara_item_cos_data item_cos_data;
@@ -3623,17 +3652,20 @@ struct rob_chara {
     void set_data_miku_rot_position(const vec3& value);
     void set_data_miku_rot_rot_y_int16(int16_t value);
     void set_disable_collision(rob_osage_parts parts, bool disable);
-    void set_eyelid_mottbl_motion(int32_t type,
-        int32_t mottbl_index, float_t value, int32_t state, float_t blend_duration,
-        float_t a7, float_t step, int32_t a9, float_t blend_offset, const motion_database* mot_db);
+    void set_eyelid_mottbl_motion(int32_t type, int32_t mottbl_index,
+        float_t value, rob_partial_motion_playback_state playback_state, float_t blend_duration,
+        float_t play_duration, float_t step, rob_partial_motion_loop_state loop_state,
+        float_t blend_offset, const motion_database* mot_db);
     void set_eyelid_mottbl_motion_from_face(int32_t a2,
         float_t blend_duration, float_t value, float_t blend_offset, const motion_database* mot_db);
-    void set_eyes_mottbl_motion(int32_t type,
-        int32_t mottbl_index, float_t value, int32_t state, float_t blend_duration,
-        float_t a7, float_t step, int32_t a9, float_t blend_offset, const motion_database* mot_db);
+    void set_eyes_mottbl_motion(int32_t type, int32_t mottbl_index,
+        float_t value, rob_partial_motion_playback_state playback_state, float_t blend_duration,
+        float_t play_duration, float_t step, rob_partial_motion_loop_state loop_state,
+        float_t blend_offset, const motion_database* mot_db);
     void set_face_mottbl_motion(int32_t type, int32_t mottbl_index,
-        float_t value, int32_t state, float_t blend_duration, float_t a7,
-        float_t step, int32_t a9, float_t blend_offset, bool a11, const motion_database* mot_db);
+        float_t value, rob_partial_motion_playback_state playback_state, float_t blend_duration, float_t play_duration,
+        float_t step, rob_partial_motion_loop_state loop_state,
+        float_t blend_offset, bool a11, const motion_database* mot_db);
     void set_face_object(object_info obj_info, int32_t a3);
     void set_face_object_index(int32_t index);
     void set_frame(float_t frame);
@@ -3641,17 +3673,19 @@ struct rob_chara {
     void set_hand_item_l(int32_t uid);
     void set_hand_item_r(int32_t uid);
     void set_hand_l_mottbl_motion(int32_t type, int32_t mottbl_index,
-        float_t value, int32_t state, float_t blend_duration, float_t a7,
-        float_t step, int32_t a9, float_t blend_offset, const motion_database* mot_db);
+        float_t value, rob_partial_motion_playback_state playback_state, float_t blend_duration,
+        float_t play_duration, float_t step, rob_partial_motion_loop_state loop_state,
+        float_t blend_offset, const motion_database* mot_db);
     void set_hand_r_mottbl_motion(int32_t type, int32_t mottbl_index,
-        float_t value, int32_t state, float_t blend_duration, float_t a7,
-        float_t step, int32_t a9, float_t blend_offset, const motion_database* mot_db);
+        float_t value, rob_partial_motion_playback_state playback_state, float_t blend_duration,
+        float_t play_duration, float_t step, rob_partial_motion_loop_state loop_state,
+        float_t blend_offset, const motion_database* mot_db);
     void set_left_hand_scale(float_t value);
-    void set_look_camera(bool update_view_point, bool enable, float_t head_rot_strength,
+    void set_look_camera(bool update_view_point, bool rotation_enable, float_t head_rot_strength,
         float_t eyes_rot_strength, float_t blend_duration, float_t eyes_rot_step, float_t a8, bool ft);
-    void set_look_camera_new(bool enable, float_t head_rot_strength,
+    void set_look_camera_new(bool rotation_enable, float_t head_rot_strength,
         float_t eyes_rot_strength, float_t blend_duration, float_t eyes_rot_step, float_t a8);
-    void set_look_camera_old(bool enable, float_t head_rot_strength,
+    void set_look_camera_old(bool rotation_enable, float_t head_rot_strength,
         float_t eyes_rot_strength, float_t blend_duration, float_t eyes_rot_step, float_t a8);
     bool set_motion_id(uint32_t motion_id, float_t frame,
         float_t blend_duration, bool blend, bool set_motion_reset_data,
@@ -3661,8 +3695,9 @@ struct rob_chara {
     void set_motion_skin_param(uint32_t motion_id, float_t frame);
     void set_motion_step(float_t value);
     void set_mouth_mottbl_motion(int32_t type, int32_t mottbl_index,
-        float_t value, int32_t state, float_t blend_duration, float_t a7,
-        float_t step, int32_t a9, float_t blend_offset, const motion_database* mot_db);
+        float_t value, rob_partial_motion_playback_state playback_state, float_t blend_duration,
+        float_t play_duration, float_t step, rob_partial_motion_loop_state loop_state,
+        float_t blend_offset, const motion_database* mot_db);
     void set_osage_move_cancel(uint8_t id, float_t value);
     void set_osage_reset();
     void set_osage_step(float_t value);

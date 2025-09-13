@@ -1310,123 +1310,123 @@ static const mothead_func_struct mothead_func_array[] = {
 };
 
 static const struc_218 stru_140A24B50[] = {
-    { { 0.02f , -0.005f,  0.0f   }, 0.09f , 0xAB, 0 },
-    { { 0.17f , -0.02f ,  0.03f  }, 0.09f , 0x05, 1 },
-    { { 0.17f , -0.02f , -0.03f  }, 0.09f , 0x05, 1 },
-    { { 0.0f  ,  0.02f ,  0.0f   }, 0.04f , 0x08, 0 },
-    { { 0.005f,  0.0f  ,  0.08f  }, 0.12f , 0x0A, 1 },
-    { { 0.03f ,  0.0f  ,  0.015f }, 0.055f, 0x8A, 1 },
-    { { 0.15f ,  0.0f  ,  0.01f  }, 0.05f , 0x8A, 0 },
-    { { 0.05f ,  0.0f  ,  0.01f  }, 0.05f , 0x8B, 0 },
-    { { 0.17f ,  0.0f  ,  0.015f }, 0.06f , 0x8B, 0 },
-    { { 0.08f ,  0.0f  ,  0.0f   }, 0.07f , 0x8C, 1 },
-    { { 0.03f ,  0.0f  , -0.015f }, 0.055f, 0x67, 1 },
-    { { 0.15f ,  0.0f  , -0.01f  }, 0.05f , 0x67, 0 },
-    { { 0.05f ,  0.0f  , -0.01f  }, 0.05f , 0x68, 0 },
-    { { 0.17f ,  0.0f  , -0.015f }, 0.06f , 0x68, 0 },
-    { { 0.08f ,  0.0f  ,  0.0f   }, 0.07f , 0x69, 1 },
-    { { 0.04f , -0.02f , -0.02f  }, 0.13f , 0xB3, 1 },
-    { { 0.26f , -0.02f , -0.025f }, 0.09f , 0xB3, 0 },
-    { { 0.08f ,  0.0f  , -0.02f  }, 0.09f , 0xB4, 0 },
-    { { 0.28f ,  0.0f  , -0.02f  }, 0.09f , 0xB4, 0 },
-    { { 0.03f , -0.02f , -0.01f  }, 0.07f , 0xB5, 0 },
-    { { 0.02f , -0.02f , -0.02f  }, 0.035f, 0xB6, 0 },
-    { { 0.04f , -0.02f ,  0.02f  }, 0.13f , 0xAD, 1 },
-    { { 0.26f , -0.02f ,  0.025f }, 0.09f , 0xAD, 0 },
-    { { 0.09f ,  0.0f  ,  0.02f  }, 0.09f , 0xAE, 0 },
-    { { 0.28f ,  0.0f  ,  0.02f  }, 0.09f , 0xAE, 0 },
-    { { 0.03f , -0.02f ,  0.01f  }, 0.07f , 0xAF, 0 },
-    { { 0.02f , -0.02f ,  0.02f  }, 0.035f, 0xB0, 0 },
+    { { 0.02f , -0.005f,  0.0f   }, 0.09f , ROB_BONE_KL_KOSI_ETC_WJ, 0 },
+    { { 0.17f , -0.02f ,  0.03f  }, 0.09f , ROB_BONE_CL_MUNE       , 1 },
+    { { 0.17f , -0.02f , -0.03f  }, 0.09f , ROB_BONE_CL_MUNE       , 1 },
+    { { 0.0f  ,  0.02f ,  0.0f   }, 0.04f , ROB_BONE_KL_KUBI       , 0 },
+    { { 0.005f,  0.0f  ,  0.08f  }, 0.12f , ROB_BONE_CL_KAO        , 1 },
+    { { 0.03f ,  0.0f  ,  0.015f }, 0.055f, ROB_BONE_KATA_R_WJ_CU  , 1 },
+    { { 0.15f ,  0.0f  ,  0.01f  }, 0.05f , ROB_BONE_KATA_R_WJ_CU  , 0 },
+    { { 0.05f ,  0.0f  ,  0.01f  }, 0.05f , ROB_BONE_UDE_R_WJ      , 0 },
+    { { 0.17f ,  0.0f  ,  0.015f }, 0.06f , ROB_BONE_UDE_R_WJ      , 0 },
+    { { 0.08f ,  0.0f  ,  0.0f   }, 0.07f , ROB_BONE_KL_TE_R_WJ    , 1 },
+    { { 0.03f ,  0.0f  , -0.015f }, 0.055f, ROB_BONE_KATA_L_WJ_CU  , 1 },
+    { { 0.15f ,  0.0f  , -0.01f  }, 0.05f , ROB_BONE_KATA_L_WJ_CU  , 0 },
+    { { 0.05f ,  0.0f  , -0.01f  }, 0.05f , ROB_BONE_UDE_L_WJ      , 0 },
+    { { 0.17f ,  0.0f  , -0.015f }, 0.06f , ROB_BONE_UDE_L_WJ      , 0 },
+    { { 0.08f ,  0.0f  ,  0.0f   }, 0.07f , ROB_BONE_KL_TE_L_WJ    , 1 },
+    { { 0.04f , -0.02f , -0.02f  }, 0.13f , ROB_BONE_J_MOMO_R_WJ   , 1 },
+    { { 0.26f , -0.02f , -0.025f }, 0.09f , ROB_BONE_J_MOMO_R_WJ   , 0 },
+    { { 0.08f ,  0.0f  , -0.02f  }, 0.09f , ROB_BONE_J_SUNE_R_WJ   , 0 },
+    { { 0.28f ,  0.0f  , -0.02f  }, 0.09f , ROB_BONE_J_SUNE_R_WJ   , 0 },
+    { { 0.03f , -0.02f , -0.01f  }, 0.07f , ROB_BONE_KL_ASI_R_WJ_CO, 0 },
+    { { 0.02f , -0.02f , -0.02f  }, 0.035f, ROB_BONE_KL_TOE_R_WJ   , 0 },
+    { { 0.04f , -0.02f ,  0.02f  }, 0.13f , ROB_BONE_J_MOMO_L_WJ   , 1 },
+    { { 0.26f , -0.02f ,  0.025f }, 0.09f , ROB_BONE_J_MOMO_L_WJ   , 0 },
+    { { 0.09f ,  0.0f  ,  0.02f  }, 0.09f , ROB_BONE_J_SUNE_L_WJ   , 0 },
+    { { 0.28f ,  0.0f  ,  0.02f  }, 0.09f , ROB_BONE_J_SUNE_L_WJ   , 0 },
+    { { 0.03f , -0.02f ,  0.01f  }, 0.07f , ROB_BONE_KL_ASI_L_WJ_CO, 0 },
+    { { 0.02f , -0.02f ,  0.02f  }, 0.035f, ROB_BONE_KL_TOE_L_WJ   , 0 },
 };
 
 static const struc_218 stru_140A25090[] = {
-    { { -0.00391f, -0.08831f,  0.0f     }, 0.09f , 0xAB, 0 },
-    { {  0.17f   , -0.02f   ,  0.03f    }, 0.09f , 0x05, 1 },
-    { {  0.17f   , -0.02f   , -0.03f    }, 0.09f , 0x05, 1 },
-    { {  0.0f    ,  0.02f   ,  0.0f     }, 0.04f , 0x08, 0 },
-    { {  0.05025f,  0.0f    , -0.00181f }, 0.12f , 0x0A, 1 },
-    { {  0.03f   ,  0.0f    ,  0.015f   }, 0.055f, 0x8A, 1 },
-    { {  0.15f   ,  0.0f    ,  0.01f    }, 0.05f , 0x8A, 0 },
-    { {  0.05f   ,  0.0f    ,  0.01f    }, 0.05f , 0x8B, 0 },
-    { {  0.17f   ,  0.0f    ,  0.015f   }, 0.06f , 0x8B, 0 },
-    { {  0.08f   ,  0.0f    ,  0.0f     }, 0.07f , 0x8C, 1 },
-    { {  0.03f   ,  0.0f    , -0.015f   }, 0.055f, 0x67, 1 },
-    { {  0.15f   ,  0.0f    , -0.01f    }, 0.05f , 0x67, 0 },
-    { {  0.05f   ,  0.0f    , -0.01f    }, 0.05f , 0x68, 0 },
-    { {  0.17f   ,  0.0f    , -0.015f   }, 0.06f , 0x68, 0 },
-    { {  0.08f   ,  0.0f    ,  0.0f     }, 0.07f , 0x69, 1 },
-    { {  0.04f   , -0.02f   , -0.02f    }, 0.13f , 0xB3, 1 },
-    { {  0.26f   , -0.02f   , -0.025f   }, 0.09f , 0xB3, 0 },
-    { {  0.08f   ,  0.0f    , -0.02f    }, 0.09f , 0xB4, 0 },
-    { {  0.28f   ,  0.0f    , -0.02f    }, 0.09f , 0xB4, 0 },
-    { {  0.03f   , -0.02f   , -0.01f    }, 0.07f , 0xB5, 0 },
-    { {  0.02f   , -0.02f   , -0.02f    }, 0.035f, 0xB6, 0 },
-    { {  0.04f   , -0.02f   ,  0.02f    }, 0.13f , 0xAD, 1 },
-    { {  0.26f   , -0.02f   ,  0.025f   }, 0.09f , 0xAD, 0 },
-    { {  0.08f   ,  0.0f    ,  0.02f    }, 0.09f , 0xAE, 0 },
-    { {  0.28f   ,  0.0f    ,  0.02f    }, 0.09f , 0xAE, 0 },
-    { {  0.03f   , -0.02f   ,  0.01f    }, 0.07f , 0xAF, 0 },
-    { {  0.02f   , -0.02f   ,  0.02f    }, 0.035f, 0xB0, 0 },
+    { { -0.00391f, -0.08831f,  0.0f     }, 0.09f , ROB_BONE_KL_KOSI_ETC_WJ, 0 },
+    { {  0.17f   , -0.02f   ,  0.03f    }, 0.09f , ROB_BONE_CL_MUNE       , 1 },
+    { {  0.17f   , -0.02f   , -0.03f    }, 0.09f , ROB_BONE_CL_MUNE       , 1 },
+    { {  0.0f    ,  0.02f   ,  0.0f     }, 0.04f , ROB_BONE_KL_KUBI       , 0 },
+    { {  0.05025f,  0.0f    , -0.00181f }, 0.12f , ROB_BONE_CL_KAO        , 1 },
+    { {  0.03f   ,  0.0f    ,  0.015f   }, 0.055f, ROB_BONE_KATA_R_WJ_CU  , 1 },
+    { {  0.15f   ,  0.0f    ,  0.01f    }, 0.05f , ROB_BONE_KATA_R_WJ_CU  , 0 },
+    { {  0.05f   ,  0.0f    ,  0.01f    }, 0.05f , ROB_BONE_UDE_R_WJ      , 0 },
+    { {  0.17f   ,  0.0f    ,  0.015f   }, 0.06f , ROB_BONE_UDE_R_WJ      , 0 },
+    { {  0.08f   ,  0.0f    ,  0.0f     }, 0.07f , ROB_BONE_KL_TE_R_WJ    , 1 },
+    { {  0.03f   ,  0.0f    , -0.015f   }, 0.055f, ROB_BONE_KATA_L_WJ_CU  , 1 },
+    { {  0.15f   ,  0.0f    , -0.01f    }, 0.05f , ROB_BONE_KATA_L_WJ_CU  , 0 },
+    { {  0.05f   ,  0.0f    , -0.01f    }, 0.05f , ROB_BONE_UDE_L_WJ      , 0 },
+    { {  0.17f   ,  0.0f    , -0.015f   }, 0.06f , ROB_BONE_UDE_L_WJ      , 0 },
+    { {  0.08f   ,  0.0f    ,  0.0f     }, 0.07f , ROB_BONE_KL_TE_L_WJ    , 1 },
+    { {  0.04f   , -0.02f   , -0.02f    }, 0.13f , ROB_BONE_J_MOMO_R_WJ   , 1 },
+    { {  0.26f   , -0.02f   , -0.025f   }, 0.09f , ROB_BONE_J_MOMO_R_WJ   , 0 },
+    { {  0.08f   ,  0.0f    , -0.02f    }, 0.09f , ROB_BONE_J_SUNE_R_WJ   , 0 },
+    { {  0.28f   ,  0.0f    , -0.02f    }, 0.09f , ROB_BONE_J_SUNE_R_WJ   , 0 },
+    { {  0.03f   , -0.02f   , -0.01f    }, 0.07f , ROB_BONE_KL_ASI_R_WJ_CO, 0 },
+    { {  0.02f   , -0.02f   , -0.02f    }, 0.035f, ROB_BONE_KL_TOE_R_WJ   , 0 },
+    { {  0.04f   , -0.02f   ,  0.02f    }, 0.13f , ROB_BONE_J_MOMO_L_WJ   , 1 },
+    { {  0.26f   , -0.02f   ,  0.025f   }, 0.09f , ROB_BONE_J_MOMO_L_WJ   , 0 },
+    { {  0.08f   ,  0.0f    ,  0.02f    }, 0.09f , ROB_BONE_J_SUNE_L_WJ   , 0 },
+    { {  0.28f   ,  0.0f    ,  0.02f    }, 0.09f , ROB_BONE_J_SUNE_L_WJ   , 0 },
+    { {  0.03f   , -0.02f   ,  0.01f    }, 0.07f , ROB_BONE_KL_ASI_L_WJ_CO, 0 },
+    { {  0.02f   , -0.02f   ,  0.02f    }, 0.035f, ROB_BONE_KL_TOE_L_WJ   , 0 },
 };
 
 static const struc_218 stru_140A24E00[] = {
-    { { 0.02f    , -0.005f,  0.0f   }, 0.09f , 0xAB, 0 },
-    { { 0.165f   , -0.02f ,  0.015f }, 0.105f, 0x05, 1 },
-    { { 0.165f   , -0.02f , -0.015f }, 0.105f, 0x05, 1 },
-    { { 0.0f     ,  0.02f ,  0.0f   }, 0.04f , 0x08, 0 },
-    { { 0.005f   ,  0.0f  ,  0.08f  }, 0.12f , 0x0A, 1 },
-    { { 0.03f    ,  0.0f  ,  0.015f }, 0.055f, 0x8A, 1 },
-    { { 0.15f    ,  0.0f  ,  0.01f  }, 0.05f , 0x8A, 0 },
-    { { 0.05f    ,  0.0f  ,  0.01f  }, 0.05f , 0x8B, 0 },
-    { { 0.17f    ,  0.0f  ,  0.015f }, 0.06f , 0x8B, 0 },
-    { { 0.08f    ,  0.0f  ,  0.0f   }, 0.07f , 0x8C, 1 },
-    { { 0.03f    ,  0.0f  , -0.015f }, 0.055f, 0x67, 1 },
-    { { 0.15f    ,  0.0f  , -0.01f  }, 0.05f , 0x67, 0 },
-    { { 0.05f    ,  0.0f  , -0.01f  }, 0.05f , 0x68, 0 },
-    { { 0.17f    ,  0.0f  , -0.015f }, 0.06f , 0x68, 0 },
-    { { 0.08f    ,  0.0f  ,  0.0f   }, 0.07f , 0x69, 1 },
-    { { 0.04f    , -0.02f , -0.02f  }, 0.13f , 0xB3, 1 },
-    { { 0.26f    , -0.02f , -0.025f }, 0.09f , 0xB3, 0 },
-    { { 0.08f    ,  0.0f  , -0.02f  }, 0.09f , 0xB4, 0 },
-    { { 0.28f    ,  0.0f  , -0.02f  }, 0.09f , 0xB4, 0 },
-    { { 0.03f    , -0.02f , -0.01f  }, 0.07f , 0xB5, 0 },
-    { { 0.02f    , -0.02f , -0.02f  }, 0.035f, 0xB6, 0 },
-    { { 0.04f    , -0.02f ,  0.02f  }, 0.13f , 0xAD, 1 },
-    { { 0.26f    , -0.02f ,  0.025f }, 0.09f , 0xAD, 0 },
-    { { 0.08f    ,  0.0f  ,  0.02f  }, 0.09f , 0xAE, 0 },
-    { { 0.28f    ,  0.0f  ,  0.02f  }, 0.09f , 0xAE, 0 },
-    { { 0.03f    , -0.02f ,  0.01f  }, 0.07f , 0xAF, 0 },
-    { { 0.02f    , -0.02f ,  0.02f  }, 0.035f, 0xB0, 0 },
+    { { 0.02f    , -0.005f,  0.0f   }, 0.09f , ROB_BONE_KL_KOSI_ETC_WJ, 0 },
+    { { 0.165f   , -0.02f ,  0.015f }, 0.105f, ROB_BONE_CL_MUNE       , 1 },
+    { { 0.165f   , -0.02f , -0.015f }, 0.105f, ROB_BONE_CL_MUNE       , 1 },
+    { { 0.0f     ,  0.02f ,  0.0f   }, 0.04f , ROB_BONE_KL_KUBI       , 0 },
+    { { 0.005f   ,  0.0f  ,  0.08f  }, 0.12f , ROB_BONE_CL_KAO        , 1 },
+    { { 0.03f    ,  0.0f  ,  0.015f }, 0.055f, ROB_BONE_KATA_R_WJ_CU  , 1 },
+    { { 0.15f    ,  0.0f  ,  0.01f  }, 0.05f , ROB_BONE_KATA_R_WJ_CU  , 0 },
+    { { 0.05f    ,  0.0f  ,  0.01f  }, 0.05f , ROB_BONE_UDE_R_WJ      , 0 },
+    { { 0.17f    ,  0.0f  ,  0.015f }, 0.06f , ROB_BONE_UDE_R_WJ      , 0 },
+    { { 0.08f    ,  0.0f  ,  0.0f   }, 0.07f , ROB_BONE_KL_TE_R_WJ    , 1 },
+    { { 0.03f    ,  0.0f  , -0.015f }, 0.055f, ROB_BONE_KATA_L_WJ_CU  , 1 },
+    { { 0.15f    ,  0.0f  , -0.01f  }, 0.05f , ROB_BONE_KATA_L_WJ_CU  , 0 },
+    { { 0.05f    ,  0.0f  , -0.01f  }, 0.05f , ROB_BONE_UDE_L_WJ      , 0 },
+    { { 0.17f    ,  0.0f  , -0.015f }, 0.06f , ROB_BONE_UDE_L_WJ      , 0 },
+    { { 0.08f    ,  0.0f  ,  0.0f   }, 0.07f , ROB_BONE_KL_TE_L_WJ    , 1 },
+    { { 0.04f    , -0.02f , -0.02f  }, 0.13f , ROB_BONE_J_MOMO_R_WJ   , 1 },
+    { { 0.26f    , -0.02f , -0.025f }, 0.09f , ROB_BONE_J_MOMO_R_WJ   , 0 },
+    { { 0.08f    ,  0.0f  , -0.02f  }, 0.09f , ROB_BONE_J_SUNE_R_WJ   , 0 },
+    { { 0.28f    ,  0.0f  , -0.02f  }, 0.09f , ROB_BONE_J_SUNE_R_WJ   , 0 },
+    { { 0.03f    , -0.02f , -0.01f  }, 0.07f , ROB_BONE_KL_ASI_R_WJ_CO, 0 },
+    { { 0.02f    , -0.02f , -0.02f  }, 0.035f, ROB_BONE_KL_TOE_R_WJ   , 0 },
+    { { 0.04f    , -0.02f ,  0.02f  }, 0.13f , ROB_BONE_J_MOMO_L_WJ   , 1 },
+    { { 0.26f    , -0.02f ,  0.025f }, 0.09f , ROB_BONE_J_MOMO_L_WJ   , 0 },
+    { { 0.08f    ,  0.0f  ,  0.02f  }, 0.09f , ROB_BONE_J_SUNE_L_WJ   , 0 },
+    { { 0.28f    ,  0.0f  ,  0.02f  }, 0.09f , ROB_BONE_J_SUNE_L_WJ   , 0 },
+    { { 0.03f    , -0.02f ,  0.01f  }, 0.07f , ROB_BONE_KL_ASI_L_WJ_CO, 0 },
+    { { 0.02f    , -0.02f ,  0.02f  }, 0.035f, ROB_BONE_KL_TOE_L_WJ   , 0 },
 };
 
 static const struc_218 stru_140A25340[] = {
-    { { -0.00391f, -0.08831f,  0.0f     }, 0.09f , 0xAB, 0 },
-    { {  0.165f  , -0.02f   ,  0.015f   }, 0.105f, 0x05, 1 },
-    { {  0.165f  , -0.02f   , -0.015f   }, 0.105f, 0x05, 1 },
-    { {  0.0f    ,  0.02f   ,  0.0f     }, 0.04f , 0x08, 0 },
-    { {  0.05025f,  0.0f    , -0.00181f }, 0.12f , 0x0A, 1 },
-    { {  0.03f   ,  0.0f    ,  0.015f   }, 0.055f, 0x8A, 1 },
-    { {  0.15f   ,  0.0f    ,  0.01f    }, 0.05f , 0x8A, 0 },
-    { {  0.05f   ,  0.0f    ,  0.01f    }, 0.05f , 0x8B, 0 },
-    { {  0.17f   ,  0.0f    ,  0.015f   }, 0.06f , 0x8B, 0 },
-    { {  0.08f   ,  0.0f    ,  0.0f     }, 0.07f , 0x8C, 1 },
-    { {  0.03f   ,  0.0f    , -0.015f   }, 0.055f, 0x67, 1 },
-    { {  0.15f   ,  0.0f    , -0.01f    }, 0.05f , 0x67, 0 },
-    { {  0.05f   ,  0.0f    , -0.01f    }, 0.05f , 0x68, 0 },
-    { {  0.17f   ,  0.0f    , -0.015f   }, 0.06f , 0x68, 0 },
-    { {  0.08f   ,  0.0f    ,  0.0f     }, 0.07f , 0x69, 1 },
-    { {  0.04f   , -0.02f   , -0.02f    }, 0.13f , 0xB3, 1 },
-    { {  0.26f   , -0.02f   , -0.025f   }, 0.09f , 0xB3, 0 },
-    { {  0.08f   ,  0.0f    , -0.02f    }, 0.09f , 0xB4, 0 },
-    { {  0.28f   ,  0.0f    , -0.02f    }, 0.09f , 0xB4, 0 },
-    { {  0.03f   , -0.02f   , -0.01f    }, 0.07f , 0xB5, 0 },
-    { {  0.02f   , -0.02f   , -0.02f    }, 0.035f, 0xB6, 0 },
-    { {  0.04f   , -0.02f   ,  0.02f    }, 0.13f , 0xAD, 1 },
-    { {  0.26f   , -0.02f   ,  0.025f   }, 0.09f , 0xAD, 0 },
-    { {  0.08f   ,  0.0f    ,  0.02f    }, 0.09f , 0xAE, 0 },
-    { {  0.28f   ,  0.0f    ,  0.02f    }, 0.09f , 0xAE, 0 },
-    { {  0.03f   , -0.02f   ,  0.01f    }, 0.07f , 0xAF, 0 },
-    { {  0.02f   , -0.02f   ,  0.02f    }, 0.035f, 0xB0, 0 },
+    { { -0.00391f, -0.08831f,  0.0f     }, 0.09f , ROB_BONE_KL_KOSI_ETC_WJ, 0 },
+    { {  0.165f  , -0.02f   ,  0.015f   }, 0.105f, ROB_BONE_CL_MUNE       , 1 },
+    { {  0.165f  , -0.02f   , -0.015f   }, 0.105f, ROB_BONE_CL_MUNE       , 1 },
+    { {  0.0f    ,  0.02f   ,  0.0f     }, 0.04f , ROB_BONE_KL_KUBI       , 0 },
+    { {  0.05025f,  0.0f    , -0.00181f }, 0.12f , ROB_BONE_CL_KAO        , 1 },
+    { {  0.03f   ,  0.0f    ,  0.015f   }, 0.055f, ROB_BONE_KATA_R_WJ_CU  , 1 },
+    { {  0.15f   ,  0.0f    ,  0.01f    }, 0.05f , ROB_BONE_KATA_R_WJ_CU  , 0 },
+    { {  0.05f   ,  0.0f    ,  0.01f    }, 0.05f , ROB_BONE_UDE_R_WJ      , 0 },
+    { {  0.17f   ,  0.0f    ,  0.015f   }, 0.06f , ROB_BONE_UDE_R_WJ      , 0 },
+    { {  0.08f   ,  0.0f    ,  0.0f     }, 0.07f , ROB_BONE_KL_TE_R_WJ    , 1 },
+    { {  0.03f   ,  0.0f    , -0.015f   }, 0.055f, ROB_BONE_KATA_L_WJ_CU  , 1 },
+    { {  0.15f   ,  0.0f    , -0.01f    }, 0.05f , ROB_BONE_KATA_L_WJ_CU  , 0 },
+    { {  0.05f   ,  0.0f    , -0.01f    }, 0.05f , ROB_BONE_UDE_L_WJ      , 0 },
+    { {  0.17f   ,  0.0f    , -0.015f   }, 0.06f , ROB_BONE_UDE_L_WJ      , 0 },
+    { {  0.08f   ,  0.0f    ,  0.0f     }, 0.07f , ROB_BONE_KL_TE_L_WJ    , 1 },
+    { {  0.04f   , -0.02f   , -0.02f    }, 0.13f , ROB_BONE_J_MOMO_R_WJ   , 1 },
+    { {  0.26f   , -0.02f   , -0.025f   }, 0.09f , ROB_BONE_J_MOMO_R_WJ   , 0 },
+    { {  0.08f   ,  0.0f    , -0.02f    }, 0.09f , ROB_BONE_J_SUNE_R_WJ   , 0 },
+    { {  0.28f   ,  0.0f    , -0.02f    }, 0.09f , ROB_BONE_J_SUNE_R_WJ   , 0 },
+    { {  0.03f   , -0.02f   , -0.01f    }, 0.07f , ROB_BONE_KL_ASI_R_WJ_CO, 0 },
+    { {  0.02f   , -0.02f   , -0.02f    }, 0.035f, ROB_BONE_KL_TOE_R_WJ   , 0 },
+    { {  0.04f   , -0.02f   ,  0.02f    }, 0.13f , ROB_BONE_J_MOMO_L_WJ   , 1 },
+    { {  0.26f   , -0.02f   ,  0.025f   }, 0.09f , ROB_BONE_J_MOMO_L_WJ   , 0 },
+    { {  0.08f   ,  0.0f    ,  0.02f    }, 0.09f , ROB_BONE_J_SUNE_L_WJ   , 0 },
+    { {  0.28f   ,  0.0f    ,  0.02f    }, 0.09f , ROB_BONE_J_SUNE_L_WJ   , 0 },
+    { {  0.03f   , -0.02f   ,  0.01f    }, 0.07f , ROB_BONE_KL_ASI_L_WJ_CO, 0 },
+    { {  0.02f   , -0.02f   ,  0.02f    }, 0.035f, ROB_BONE_KL_TOE_L_WJ   , 0 },
 };
 
 static const struc_870 stru_140A255C8 = {
@@ -3843,12 +3843,6 @@ void rob_chara::set_chara_size(float_t value) {
     data.adjust_data.item_scale = value; // X
 }
 
-static bool sub_14053F290(RobPartialMotion* a1);
-static bool sub_14053F280(RobPartialMotion* a1);
-static bool sub_14053F2A0(RobPartialMotion* a1);
-static bool sub_14053F270(RobPartialMotion* a1);
-static bool sub_14053F2B0(RobPartialMotion* a1);
-
 static void rob_chara_set_eyelid_motion(rob_chara* rob_chr,
     RobEyelidMotion* motion, int32_t type, const motion_database* mot_db) {
     if (type == 1 || type == 2) {
@@ -3864,7 +3858,7 @@ static void rob_chara_set_eyelid_motion(rob_chara* rob_chr,
 
     rob_chr->bone_data->load_eyelid_motion(motion->data.motion_id, mot_db);
     rob_chr->bone_data->set_eyelid_frame(motion->data.frame);
-    rob_chr->bone_data->set_eyelid_step(motion->data.play_frame_step);
+    rob_chr->bone_data->set_eyelid_step(motion->data.step);
     rob_chr->bone_data->set_eyelid_blend_duration(
         motion->data.blend_duration, motion->data.blend_step, motion->data.blend_offset);
 }
@@ -3884,7 +3878,7 @@ static void rob_chara_set_eyes_motion(rob_chara* rob_chr,
 
     rob_chr->bone_data->load_eyes_motion(motion->data.motion_id, mot_db);
     rob_chr->bone_data->set_eyes_frame(motion->data.frame);
-    rob_chr->bone_data->set_eyes_step(motion->data.play_frame_step);
+    rob_chr->bone_data->set_eyes_step(motion->data.step);
     rob_chr->bone_data->set_eyes_blend_duration(
         motion->data.blend_duration, motion->data.blend_step, motion->data.blend_offset);
 }
@@ -3904,7 +3898,7 @@ static void rob_chara_set_face_motion(rob_chara* rob_chr,
 
     rob_chr->bone_data->load_face_motion(motion->data.motion_id, mot_db);
     rob_chr->bone_data->set_face_frame(motion->data.frame);
-    rob_chr->bone_data->set_face_step(motion->data.play_frame_step);
+    rob_chr->bone_data->set_face_step(motion->data.step);
     rob_chr->bone_data->set_face_blend_duration(
         motion->data.blend_duration, motion->data.blend_step, motion->data.blend_offset);
 }
@@ -3932,7 +3926,7 @@ static void rob_chara_set_hand_l_motion(rob_chara* rob_chr,
 
     rob_chr->bone_data->load_hand_l_motion(motion->data.motion_id, mot_db);
     rob_chr->bone_data->set_hand_l_frame(motion->data.frame);
-    rob_chr->bone_data->set_hand_l_step(motion->data.play_frame_step);
+    rob_chr->bone_data->set_hand_l_step(motion->data.step);
     rob_chr->bone_data->set_hand_l_blend_duration(
         motion->data.blend_duration, motion->data.blend_step, motion->data.blend_offset);
 }
@@ -3960,7 +3954,7 @@ static void rob_chara_set_hand_r_motion(rob_chara* rob_chr,
 
     rob_chr->bone_data->load_hand_r_motion(motion->data.motion_id, mot_db);
     rob_chr->bone_data->set_hand_r_frame(motion->data.frame);
-    rob_chr->bone_data->set_hand_r_step(motion->data.play_frame_step);
+    rob_chr->bone_data->set_hand_r_step(motion->data.step);
     rob_chr->bone_data->set_hand_r_blend_duration(
         motion->data.blend_duration, motion->data.blend_step, motion->data.blend_offset);
 }
@@ -3980,7 +3974,7 @@ static void rob_chara_set_mouth_motion(rob_chara* rob_chr,
 
     rob_chr->bone_data->load_mouth_motion(motion->data.motion_id, mot_db);
     rob_chr->bone_data->set_mouth_frame(motion->data.frame);
-    rob_chr->bone_data->set_mouth_step(motion->data.play_frame_step);
+    rob_chr->bone_data->set_mouth_step(motion->data.step);
     rob_chr->bone_data->set_mouth_blend_duration(
         motion->data.blend_duration, motion->data.blend_step, motion->data.blend_offset);
 }
@@ -4120,22 +4114,23 @@ void rob_chara::set_disable_collision(rob_osage_parts parts, bool disable) {
     item_equip->set_disable_collision(parts, disable);
 }
 
-void rob_chara::set_eyelid_mottbl_motion(int32_t type,
-    int32_t mottbl_index, float_t value, int32_t state, float_t blend_duration,
-    float_t a7, float_t step, int32_t a9, float_t blend_offset, const motion_database* mot_db) {
+void rob_chara::set_eyelid_mottbl_motion(int32_t type, int32_t mottbl_index,
+    float_t value, rob_partial_motion_playback_state playback_state, float_t blend_duration,
+    float_t play_duration, float_t step, rob_partial_motion_loop_state loop_state,
+    float_t blend_offset, const motion_database* mot_db) {
     RobEyelidMotion motion;
     motion.data.motion_id = get_rob_cmn_mottbl_motion_id(mottbl_index);
     motion.data.mottbl_index = mottbl_index;
-    motion.data.state = state;
-    motion.data.play_frame_step = step;
+    motion.data.playback_state = playback_state;
+    motion.data.step = step;
     motion.data.blend_duration = blend_duration;
     motion.data.blend_offset = blend_offset;
-    motion.data.field_24 = a7;
-    if (sub_14053F290(&motion)) {
+    motion.data.play_duration = play_duration;
+    if (motion.CheckPlaybackStateCharaMotion()) {
         motion.data.frame_data = &data.motion.frame_data;
         motion.data.step_data = &data.motion.step_data;
     }
-    motion.data.field_38 = a9;
+    motion.data.loop_state = loop_state;
     if (motion.data.motion_id != -1) {
         motion.data.frame_count = motion_storage_get_mot_data_frame_count(motion.data.motion_id, mot_db);
         motion.data.frame = (motion.data.frame_count - 1.0f) * value;
@@ -4239,7 +4234,7 @@ void rob_chara::set_eyelid_mottbl_motion_from_face(int32_t a2,
             motion.data = data.motion.field_150.face.data;
         }
         else {
-            motion.data.state = 0;
+            motion.data.playback_state = ROB_PARTIAL_MOTION_PLAYBACK_STOP;
             motion.data.frame_count = motion_storage_get_mot_data_frame_count(motion_id, mot_db);
             motion.data.frame = (motion.data.frame_count - 1.0f) * value;
         }
@@ -4255,22 +4250,23 @@ void rob_chara::set_eyelid_mottbl_motion_from_face(int32_t a2,
     rob_chara_set_eyelid_motion(this, &motion, 0, mot_db);
 }
 
-void rob_chara::set_eyes_mottbl_motion(int32_t type,
-    int32_t mottbl_index, float_t value, int32_t state, float_t blend_duration,
-    float_t a7, float_t step, int32_t a9, float_t blend_offset, const motion_database* mot_db) {
+void rob_chara::set_eyes_mottbl_motion(int32_t type, int32_t mottbl_index,
+    float_t value, rob_partial_motion_playback_state playback_state, float_t blend_duration,
+    float_t play_duration, float_t step, rob_partial_motion_loop_state loop_state,
+    float_t blend_offset, const motion_database* mot_db) {
     RobEyesMotion motion;
     motion.data.motion_id = get_rob_cmn_mottbl_motion_id(mottbl_index);
     motion.data.mottbl_index = mottbl_index;
-    motion.data.state = state;
-    motion.data.play_frame_step = step;
+    motion.data.playback_state = playback_state;
+    motion.data.step = step;
     motion.data.blend_duration = blend_duration;
     motion.data.blend_offset = blend_offset;
-    motion.data.field_24 = a7;
-    if (sub_14053F290(&motion)) {
+    motion.data.play_duration = play_duration;
+    if (motion.CheckPlaybackStateCharaMotion()) {
         motion.data.frame_data = &data.motion.frame_data;
         motion.data.step_data = &data.motion.step_data;
     }
-    motion.data.field_38 = a9;
+    motion.data.loop_state = loop_state;
     if (motion.data.motion_id != -1) {
         motion.data.frame_count = motion_storage_get_mot_data_frame_count(motion.data.motion_id, mot_db);
         motion.data.frame = (motion.data.frame_count - 1.0f) * value;
@@ -4285,22 +4281,23 @@ static void sub_140553970(rob_chara* rob_chr, object_info a2, int32_t type) {
         rob_chr->data.motion.field_150.head_object = a2;
 }
 
-void rob_chara::set_face_mottbl_motion(int32_t type,
-    int32_t mottbl_index, float_t value, int32_t state, float_t blend_duration,
-    float_t a7, float_t step, int32_t a9, float_t blend_offset, bool a11, const motion_database* mot_db) {
+void rob_chara::set_face_mottbl_motion(int32_t type, int32_t mottbl_index,
+    float_t value, rob_partial_motion_playback_state playback_state, float_t blend_duration,
+    float_t play_duration, float_t step, rob_partial_motion_loop_state loop_state,
+    float_t blend_offset, bool a11, const motion_database* mot_db) {
     RobFaceMotion motion;
     motion.data.motion_id = get_rob_cmn_mottbl_motion_id(mottbl_index);
     motion.data.mottbl_index = mottbl_index;
-    motion.data.state = state;
-    motion.data.play_frame_step = step;
+    motion.data.playback_state = playback_state;
+    motion.data.step = step;
     motion.data.blend_duration = blend_duration;
     motion.data.blend_offset = blend_offset;
-    motion.data.field_24 = a7;
-    if (sub_14053F290(&motion)) {
+    motion.data.play_duration = play_duration;
+    if (motion.CheckPlaybackStateCharaMotion()) {
         motion.data.frame_data = &data.motion.frame_data;
         motion.data.step_data = &data.motion.step_data;
     }
-    motion.data.field_38 = a9;
+    motion.data.loop_state = loop_state;
     if (motion.data.motion_id != -1) {
         motion.data.frame_count = motion_storage_get_mot_data_frame_count(motion.data.motion_id, mot_db);
         motion.data.frame = (motion.data.frame_count - 1.0f) * value;
@@ -4418,16 +4415,18 @@ static void sub_140551870(rob_chara* rob_chr, float_t blend_duration,
 
 static void sub_140550B90(rob_chara* rob_chr, float_t blend_duration,
     float_t blend_offset, const motion_database* aft_mot_db) {
-    rob_chr->set_hand_l_mottbl_motion(1, 192, 0.0f, -1, 0.0f, 0.0f, 1.0f, -1, 0.0f, aft_mot_db);
+    rob_chr->set_hand_l_mottbl_motion(1, 192, 0.0f, ROB_PARTIAL_MOTION_PLAYBACK_NONE,
+        0.0f, 0.0f, 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE, 0.0f, aft_mot_db);
     sub_140551870(rob_chr, blend_duration, blend_offset, aft_mot_db);
 }
 
-static void sub_140554690(rob_chara* rob_chr, int32_t mottbl_index, float_t value,
-    int32_t state, float_t blend_duration, float_t a6, float_t step,
-    int32_t a8, float_t blend_offset, const motion_database* aft_mot_db) {
+static void sub_140554690(rob_chara* rob_chr, int32_t mottbl_index,
+    float_t value, rob_partial_motion_playback_state playback_state, float_t blend_duration,
+    float_t play_duration, float_t step, rob_partial_motion_loop_state loop_state,
+    float_t blend_offset, const motion_database* aft_mot_db) {
     rob_chr->data.motion.field_2A |= 0x04;
-    rob_chr->set_hand_l_mottbl_motion(1, mottbl_index, value, state,
-        blend_duration, a6, step, a8, blend_offset, aft_mot_db);
+    rob_chr->set_hand_l_mottbl_motion(1, mottbl_index, value, playback_state,
+        blend_duration, play_duration, step, loop_state, blend_offset, aft_mot_db);
 }
 
 static void sub_1405519B0(rob_chara* rob_chr, float_t blend_duration,
@@ -4447,15 +4446,16 @@ static void sub_1405519B0(rob_chara* rob_chr, float_t blend_duration,
 
 static void sub_140550C10(rob_chara* rob_chr, float_t blend_duration,
     float_t blend_offset, const motion_database* aft_mot_db) {
-    rob_chr->set_hand_r_mottbl_motion(1, 192, 0.0f, -1, 0.0f, 0.0f, 1.0f, -1, 0.0f, aft_mot_db);
+    rob_chr->set_hand_r_mottbl_motion(1, 192, 0.0f, ROB_PARTIAL_MOTION_PLAYBACK_NONE,
+        0.0f, 0.0f, 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE, 0.0f, aft_mot_db);
     sub_1405519B0(rob_chr, blend_duration, blend_offset, aft_mot_db);
 }
 static void sub_140554710(rob_chara* rob_chr, int32_t mottbl_index, float_t value,
-    int32_t state, float_t blend_duration, float_t a6, float_t step,
-    int32_t a8, float_t blend_offset, const motion_database* aft_mot_db) {
+    rob_partial_motion_playback_state playback_state, float_t blend_duration, float_t play_duration, float_t step,
+    rob_partial_motion_loop_state loop_state, float_t blend_offset, const motion_database* aft_mot_db) {
     rob_chr->data.motion.field_2A |= 0x08;
-    rob_chr->set_hand_r_mottbl_motion(1, mottbl_index, value, state,
-        blend_duration, a6, step, a8, blend_offset, aft_mot_db);
+    rob_chr->set_hand_r_mottbl_motion(1, mottbl_index, value, playback_state,
+        blend_duration, play_duration, step, loop_state, blend_offset, aft_mot_db);
 }
 
 void rob_chara::set_hand_item(int32_t uid, float_t blend_duration) {
@@ -4486,14 +4486,16 @@ void rob_chara::set_hand_item(int32_t uid, float_t blend_duration) {
     if (obj_left.is_null())
         sub_140550B90(this, blend_duration, 0.0f, aft_mot_db);
     else {
-        sub_140554690(this, mottbl_index, 1.0f, 0, blend_duration, 0.0f, 1.0f, -1, 0.0f, aft_mot_db);
+        sub_140554690(this, mottbl_index, 1.0f, ROB_PARTIAL_MOTION_PLAYBACK_STOP, blend_duration,
+            0.0f, 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE, 0.0f, aft_mot_db);
         rob_chara_set_hand_l_object(this, obj_left, 1);
     }
 
     if (obj_right.is_null())
         sub_140550C10(this, blend_duration, 0.0f, aft_mot_db);
     else {
-        sub_140554710(this, mottbl_index, 1.0f, 0, blend_duration, 0.0f, 1.0f, -1, 0.0f, aft_mot_db);
+        sub_140554710(this, mottbl_index, 1.0f, ROB_PARTIAL_MOTION_PLAYBACK_STOP, blend_duration,
+            0.0f, 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE, 0.0f, aft_mot_db);
         rob_chara_set_hand_r_object(this, obj_right, 1);
     }
 
@@ -4518,21 +4520,22 @@ void rob_chara::set_hand_item_r(int32_t uid) {
 }
 
 void rob_chara::set_hand_l_mottbl_motion(int32_t type,
-    int32_t mottbl_index, float_t value, int32_t state, float_t blend_duration,
-    float_t a7, float_t step, int32_t a9, float_t blend_offset, const motion_database* mot_db) {
+    int32_t mottbl_index, float_t value, rob_partial_motion_playback_state playback_state, float_t blend_duration,
+    float_t play_duration, float_t step, rob_partial_motion_loop_state loop_state,
+    float_t blend_offset, const motion_database* mot_db) {
     RobHandMotion motion;
     motion.data.motion_id = get_rob_cmn_mottbl_motion_id(mottbl_index);
     motion.data.mottbl_index = mottbl_index;
-    motion.data.state = state;
-    motion.data.play_frame_step = step;
+    motion.data.playback_state = playback_state;
+    motion.data.step = step;
     motion.data.blend_duration = blend_duration;
     motion.data.blend_offset = blend_offset;
-    motion.data.field_24 = a7;
-    if (sub_14053F290(&motion)) {
+    motion.data.play_duration = play_duration;
+    if (motion.CheckPlaybackStateCharaMotion()) {
         motion.data.frame_data = &data.motion.frame_data;
         motion.data.step_data = &data.motion.step_data;
     }
-    motion.data.field_38 = a9;
+    motion.data.loop_state = loop_state;
     if (motion.data.motion_id != -1) {
         motion.data.frame_count = motion_storage_get_mot_data_frame_count(motion.data.motion_id, mot_db);
         motion.data.frame = (motion.data.frame_count - 1.0f) * value;
@@ -4541,21 +4544,22 @@ void rob_chara::set_hand_l_mottbl_motion(int32_t type,
 }
 
 void rob_chara::set_hand_r_mottbl_motion(int32_t type,
-    int32_t mottbl_index, float_t value, int32_t state, float_t blend_duration,
-    float_t a7, float_t step, int32_t a9, float_t blend_offset, const motion_database* mot_db) {
+    int32_t mottbl_index, float_t value, rob_partial_motion_playback_state playback_state, float_t blend_duration,
+    float_t play_duration, float_t step, rob_partial_motion_loop_state loop_state,
+    float_t blend_offset, const motion_database* mot_db) {
     RobHandMotion motion;
     motion.data.motion_id = get_rob_cmn_mottbl_motion_id(mottbl_index);
     motion.data.mottbl_index = mottbl_index;
-    motion.data.state = state;
-    motion.data.play_frame_step = step;
+    motion.data.playback_state = playback_state;
+    motion.data.step = step;
     motion.data.blend_duration = blend_duration;
     motion.data.blend_offset = blend_offset;
-    motion.data.field_24 = a7;
-    if (sub_14053F290(&motion)) {
+    motion.data.play_duration = play_duration;
+    if (motion.CheckPlaybackStateCharaMotion()) {
         motion.data.frame_data = &data.motion.frame_data;
         motion.data.step_data = &data.motion.step_data;
     }
-    motion.data.field_38 = a9;
+    motion.data.loop_state = loop_state;
     if (motion.data.motion_id != -1) {
         motion.data.frame_count = motion_storage_get_mot_data_frame_count(motion.data.motion_id, mot_db);
         motion.data.frame = (motion.data.frame_count - 1.0f) * value;
@@ -4567,23 +4571,23 @@ void rob_chara::set_left_hand_scale(float_t value) {
     data.adjust_data.left_hand_scale = value;
 }
 
-void rob_chara::set_look_camera(bool update_view_point, bool enable, float_t head_rot_strength,
+void rob_chara::set_look_camera(bool update_view_point, bool rotation_enable, float_t head_rot_strength,
     float_t eyes_rot_strength, float_t blend_duration, float_t eyes_rot_step, float_t a8, bool ft) {
-    bone_data->set_look_anim(update_view_point, enable, head_rot_strength,
+    bone_data->set_look_anim(update_view_point, rotation_enable, head_rot_strength,
         eyes_rot_strength, blend_duration, eyes_rot_step, a8, ft);
     if (fabsf(blend_duration) <= 0.000001f)
         data.field_2 |= 0x80;
 }
 
-void rob_chara::set_look_camera_new(bool enable, float_t head_rot_strength,
+void rob_chara::set_look_camera_new(bool rotation_enable, float_t head_rot_strength,
     float_t eyes_rot_strength, float_t blend_duration, float_t eyes_rot_step, float_t a8) {
-    set_look_camera(true, enable, head_rot_strength,
+    set_look_camera(true, rotation_enable, head_rot_strength,
         eyes_rot_strength, blend_duration, eyes_rot_step, a8, true);
 }
 
-void rob_chara::set_look_camera_old(bool enable, float_t head_rot_strength,
+void rob_chara::set_look_camera_old(bool rotation_enable, float_t head_rot_strength,
     float_t eyes_rot_strength, float_t blend_duration, float_t eyes_rot_step, float_t a8) {
-    set_look_camera(true, enable, head_rot_strength,
+    set_look_camera(true, rotation_enable, head_rot_strength,
         eyes_rot_strength, blend_duration, eyes_rot_step, a8, false);
 }
 
@@ -4637,21 +4641,22 @@ void rob_chara::set_motion_step(float_t value) {
 }
 
 void rob_chara::set_mouth_mottbl_motion(int32_t type,
-    int32_t mottbl_index, float_t value, int32_t state, float_t blend_duration,
-    float_t a7, float_t step, int32_t a9, float_t blend_offset, const motion_database* mot_db) {
+    int32_t mottbl_index, float_t value, rob_partial_motion_playback_state playback_state, float_t blend_duration,
+    float_t play_duration, float_t step, rob_partial_motion_loop_state loop_state,
+    float_t blend_offset, const motion_database* mot_db) {
     RobMouthMotion motion;
     motion.data.motion_id = get_rob_cmn_mottbl_motion_id(mottbl_index);
     motion.data.mottbl_index = mottbl_index;
-    motion.data.state = state;
-    motion.data.play_frame_step = step;
+    motion.data.playback_state = playback_state;
+    motion.data.step = step;
     motion.data.blend_duration = blend_duration;
     motion.data.blend_offset = blend_offset;
-    motion.data.field_24 = a7;
-    if (sub_14053F290(&motion)) {
+    motion.data.play_duration = play_duration;
+    if (motion.CheckPlaybackStateCharaMotion()) {
         motion.data.frame_data = &data.motion.frame_data;
         motion.data.step_data = &data.motion.step_data;
     }
-    motion.data.field_38 = a9;
+    motion.data.loop_state = loop_state;
     if (motion.data.motion_id != -1) {
         motion.data.frame_count = motion_storage_get_mot_data_frame_count(motion.data.motion_id, mot_db);
         motion.data.frame = (motion.data.frame_count - 1.0f) * value;
@@ -6951,13 +6956,13 @@ static void mothead_func_49(mothead_func_data* func_data,
 }
 
 static void rob_chara_set_face_motion_id(rob_chara* rob_chr, uint32_t motion_id,
-    float_t frame, int32_t state, float_t blend_duration, float_t a6,
-    float_t step, int32_t a8, float_t blend_offset, const motion_database* mot_db);
+    float_t frame, rob_partial_motion_playback_state playback_state, float_t blend_duration, float_t play_duration,
+    float_t step, rob_partial_motion_loop_state loop_state, float_t blend_offset, const motion_database* mot_db);
 
 static void mothead_func_50_set_face_motion_id(mothead_func_data* func_data,
     const void* data, const mothead_data* mhd_data, int32_t frame, const motion_database* mot_db) {
     rob_chara_set_face_motion_id(func_data->rob_chr, ((int32_t*)data)[0],
-        ((float_t*)data)[1], 0, 0.0f, 0.0f, 1.0f, -1, 0.0f, mot_db);
+        ((float_t*)data)[1], ROB_PARTIAL_MOTION_PLAYBACK_STOP, 0.0f, 0.0f, 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE, 0.0f, mot_db);
 }
 
 static void mothead_func_51(mothead_func_data* func_data,
@@ -6972,52 +6977,61 @@ static void mothead_func_52(mothead_func_data* func_data,
 
 static void mothead_func_53_set_face_mottbl_motion(mothead_func_data* func_data,
     const void* data, const mothead_data* mhd_data, int32_t frame, const motion_database* mot_db) {
-     func_data->rob_chr->set_face_mottbl_motion(0, ((int32_t*)data)[0], ((float_t*)data)[1], ((int32_t*)data)[3],
-         ((float_t*)data)[2] * 6.0f, ((float_t*)data)[4], 1.0f, -1, 0.0f, false, mot_db);
+     func_data->rob_chr->set_face_mottbl_motion(0, ((int32_t*)data)[0], ((float_t*)data)[1],
+         (rob_partial_motion_playback_state)((int32_t*)data)[3], ((float_t*)data)[2] * 6.0f,
+         ((float_t*)data)[4], 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE, 0.0f, false, mot_db);
 }
 
 static void mothead_func_54_set_hand_r_mottbl_motion(mothead_func_data* func_data,
     const void* data, const mothead_data* mhd_data, int32_t frame, const motion_database* mot_db) {
-    func_data->rob_chr->set_hand_r_mottbl_motion(0, ((int32_t*)data)[0], ((float_t*)data)[1], ((int32_t*)data)[3],
-        ((float_t*)data)[2] * 12.0f, ((float_t*)data)[4], 1.0f, -1, 0.0f, mot_db);
+    func_data->rob_chr->set_hand_r_mottbl_motion(0, ((int32_t*)data)[0], ((float_t*)data)[1],
+        (rob_partial_motion_playback_state)((int32_t*)data)[3], ((float_t*)data)[2] * 12.0f,
+        ((float_t*)data)[4], 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE, 0.0f, mot_db);
 }
 
 static void mothead_func_55_set_hand_l_mottbl_motion(mothead_func_data* func_data,
     const void* data, const mothead_data* mhd_data, int32_t frame, const motion_database* mot_db) {
-    func_data->rob_chr->set_hand_l_mottbl_motion(0, ((int32_t*)data)[0], ((float_t*)data)[1], ((int32_t*)data)[3],
-        ((float_t*)data)[2] * 12.0f, ((float_t*)data)[4], 1.0f, -1, 0.0f, mot_db);
+    func_data->rob_chr->set_hand_l_mottbl_motion(0, ((int32_t*)data)[0], ((float_t*)data)[1],
+        (rob_partial_motion_playback_state)((int32_t*)data)[3], ((float_t*)data)[2] * 12.0f,
+        ((float_t*)data)[4], 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE, 0.0f, mot_db);
 }
 
 static void mothead_func_56_set_mouth_mottbl_motion(mothead_func_data* func_data,
     const void* data, const mothead_data* mhd_data, int32_t frame, const motion_database* mot_db) {
-    func_data->rob_chr->set_mouth_mottbl_motion(0, ((int32_t*)data)[0], ((float_t*)data)[1], ((int32_t*)data)[3],
-        ((float_t*)data)[2] * 6.0f, ((float_t*)data)[4], 1.0f, -1, 0.0f, mot_db);
+    func_data->rob_chr->set_mouth_mottbl_motion(0, ((int32_t*)data)[0], ((float_t*)data)[1],
+        (rob_partial_motion_playback_state)((int32_t*)data)[3], ((float_t*)data)[2] * 6.0f,
+        ((float_t*)data)[4], 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE, 0.0f, mot_db);
 }
 
 static void mothead_func_57_set_eyes_mottbl_motion(mothead_func_data* func_data,
     const void* data, const mothead_data* mhd_data, int32_t frame, const motion_database* mot_db) {
-    func_data->rob_chr->set_eyes_mottbl_motion(0, ((int32_t*)data)[0], ((float_t*)data)[1], ((int32_t*)data)[3],
-        ((float_t*)data)[2] * 6.0f, ((float_t*)data)[4], 1.0f, -1, 0.0f, mot_db);
+    func_data->rob_chr->set_eyes_mottbl_motion(0, ((int32_t*)data)[0], ((float_t*)data)[1],
+        (rob_partial_motion_playback_state)((int32_t*)data)[3], ((float_t*)data)[2] * 6.0f,
+        ((float_t*)data)[4], 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE, 0.0f, mot_db);
 }
 
 static void mothead_func_58_set_eyelid_mottbl_motion(mothead_func_data* func_data,
     const void* data, const mothead_data* mhd_data, int32_t frame, const motion_database* mot_db) {
-    func_data->rob_chr->set_eyelid_mottbl_motion(0, ((int32_t*)data)[0], ((float_t*)data)[1], ((int32_t*)data)[3],
-        ((float_t*)data)[2] * 6.0f, ((float_t*)data)[4], 1.0f, -1, 0.0f, mot_db);
+    func_data->rob_chr->set_eyelid_mottbl_motion(0, ((int32_t*)data)[0], ((float_t*)data)[1],
+        (rob_partial_motion_playback_state)((int32_t*)data)[3], ((float_t*)data)[2] * 6.0f,
+        ((float_t*)data)[4], 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE, 0.0f, mot_db);
 }
 
 static void rob_chara_set_eyelid_motion_id(rob_chara* rob_chr, uint32_t motion_id,
-    float_t frame, int32_t state, float_t blend_duration, float_t a6,
-    float_t step, int32_t a8, float_t blend_offset, const motion_database* mot_db);
+    float_t frame, rob_partial_motion_playback_state playback_state, float_t blend_duration, float_t play_duration,
+    float_t step, rob_partial_motion_loop_state loop_state, float_t blend_offset, const motion_database* mot_db);
 static void rob_chara_set_eyes_motion_id(rob_chara* rob_chr, uint32_t motion_id,
-    float_t frame, int32_t state, float_t blend_duration, float_t a6,
-    float_t step, int32_t a8, float_t blend_offset, const motion_database* mot_db);
+    float_t frame, rob_partial_motion_playback_state playback_state, float_t blend_duration, float_t play_duration,
+    float_t step, rob_partial_motion_loop_state loop_state, float_t blend_offset, const motion_database* mot_db);
 
 static void rob_chara_set_head_object(rob_chara* rob_chr, int32_t head_object_id, const motion_database* mot_db) {
     rob_chr->data.motion.field_150.head_object = rob_chara_get_head_object(rob_chr, head_object_id);
-    rob_chara_set_face_motion_id(rob_chr, -1, 0.0f, -1, 0.0f, 0.0f, 1.0f, -1, 0.0f, mot_db);
-    rob_chara_set_eyelid_motion_id(rob_chr, -1, 0.0f, -1, 0.0f, 0.0f, 1.0f, -1, 0.0f, mot_db);
-    rob_chara_set_eyes_motion_id(rob_chr, -1, 0.0f, -1, 0.0f, 0.0f, 1.0f, -1, 0.0f, mot_db);
+    rob_chara_set_face_motion_id(rob_chr, -1, 0.0f, ROB_PARTIAL_MOTION_PLAYBACK_NONE,
+        0.0f, 0.0f, 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE, 0.0f, mot_db);
+    rob_chara_set_eyelid_motion_id(rob_chr, -1, 0.0f, ROB_PARTIAL_MOTION_PLAYBACK_NONE,
+        0.0f, 0.0f, 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE, 0.0f, mot_db);
+    rob_chara_set_eyes_motion_id(rob_chr, -1, 0.0f, ROB_PARTIAL_MOTION_PLAYBACK_NONE,
+        0.0f, 0.0f, 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE, 0.0f, mot_db);
     rob_chr->bone_data->look_anim.disable = true;
 }
 
@@ -8188,219 +8202,199 @@ static void sub_1405077D0(rob_chara* rob_chr, const bone_database* bone_data, co
 static void rob_chara_set_face_motion(rob_chara* rob_chr,
     RobFaceMotion* motion, int32_t type, const motion_database* mot_db);
 
-static bool sub_14053F290(RobPartialMotion* a1) {
-    return a1->data.state == 1;
-}
-
-static bool sub_14053F280(RobPartialMotion* a1) {
-    return a1->data.state == 2;
-}
-
-static bool sub_14053F2A0(RobPartialMotion* a1) {
-    return a1->data.state == 3;
-}
-
-static bool sub_14053F270(RobPartialMotion* a1) {
-    return a1->data.state == 4;
-}
-
-static bool sub_14053F2B0(RobPartialMotion* a1) {
-    return a1->data.state <= 4;
-}
-
-static bool sub_14053F1B0(RobPartialMotion* a1) {
-    if (!sub_14053F2B0(a1))
-        return false;
-
-    if (sub_14053F280(a1)) {
-        if (a1->data.field_38 > 3 && (a1->data.frame_count - 1.0f) < a1->data.frame)
-            return true;
-    }
-    else if (sub_14053F270(a1)) {
-        if (a1->data.field_38 > 3 && a1->data.frame < 0.0f)
-            return true;
-    }
-    else if (sub_14053F2A0(a1)) {
-        return a1->data.field_24 <= 0.0f;
-    }
-    return false;
-}
-
+// 0x140553420
 static void rob_chara_set_face_motion_id(rob_chara* rob_chr, uint32_t motion_id,
-    float_t frame, int32_t state, float_t blend_duration, float_t a6,
-    float_t step, int32_t a8, float_t blend_offset, const motion_database* mot_db) {
+    float_t frame, rob_partial_motion_playback_state playback_state, float_t blend_duration, float_t play_duration,
+    float_t step, rob_partial_motion_loop_state loop_state,
+    float_t blend_offset, const motion_database* mot_db) {
     RobFaceMotion motion;
     motion.data.blend_duration = blend_duration;
     motion.data.blend_offset = blend_offset;
     if (motion_id != -1) {
         motion.data.motion_id = motion_id;
-        motion.data.state = state;
+        motion.data.playback_state = playback_state;
         motion.data.frame = frame;
-        motion.data.play_frame_step = step;
+        motion.data.step = step;
         motion.data.frame_count = motion_storage_get_mot_data_frame_count(motion_id, mot_db);
-        motion.data.field_24 = a6;
-        if (sub_14053F290(&motion)) {
+        motion.data.play_duration = play_duration;
+        if (motion.CheckPlaybackStateCharaMotion()) {
             motion.data.frame_data = &rob_chr->data.motion.frame_data;
             motion.data.step_data = &rob_chr->data.motion.step_data;
         }
-        motion.data.field_38 = a8;
+        motion.data.loop_state = loop_state;
     }
     rob_chara_set_face_motion(rob_chr, &motion, 0, mot_db);
 }
 
 static void sub_1405509D0(rob_chara* rob_chr, const motion_database* mot_db) {
-    if (sub_14053F1B0(&rob_chr->data.motion.field_150.face))
-        rob_chara_set_face_motion_id(rob_chr, -1, 0.0f, -1, 6.0f, 0.0f, 1.0f, -1, 0.0f, mot_db);
+    if (rob_chr->data.motion.field_150.face.CheckEnded())
+        rob_chara_set_face_motion_id(rob_chr, -1, 0.0f, ROB_PARTIAL_MOTION_PLAYBACK_NONE,
+            6.0f, 0.0f, 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE, 0.0f, mot_db);
 }
 
 static void rob_chara_set_hand_l_motion(rob_chara* rob_chr,
     RobHandMotion* motion, int32_t type, const motion_database* mot_db);
 
-static void sub_140553E30(rob_chara* rob_chr, uint32_t motion_id,
-    float_t frame, int32_t state, float_t blend_duration, float_t a6,
-    float_t step, int32_t a8, float_t blend_offset, const motion_database* mot_db) {
+// 0x140553E30
+static void rob_chara_set_hand_l_motion_id(rob_chara* rob_chr, uint32_t motion_id,
+    float_t frame, rob_partial_motion_playback_state playback_state, float_t blend_duration, float_t play_duration,
+    float_t step, rob_partial_motion_loop_state loop_state,
+    float_t blend_offset, const motion_database* mot_db) {
     RobHandMotion motion;
     motion.data.blend_duration = blend_duration;
     motion.data.blend_offset = blend_offset;
     if (motion_id != -1) {
         motion.data.motion_id = motion_id;
-        motion.data.state = state;
+        motion.data.playback_state = playback_state;
         motion.data.frame = frame;
-        motion.data.play_frame_step = step;
+        motion.data.step = step;
         motion.data.frame_count = motion_storage_get_mot_data_frame_count(motion_id, mot_db);
-        motion.data.field_24 = a6;
-        if (sub_14053F290(&motion)) {
+        motion.data.play_duration = play_duration;
+        if (motion.CheckPlaybackStateCharaMotion()) {
             motion.data.frame_data = &rob_chr->data.motion.frame_data;
             motion.data.step_data = &rob_chr->data.motion.step_data;
         }
-        motion.data.field_38 = a8;
+        motion.data.loop_state = loop_state;
     }
     rob_chara_set_hand_l_motion(rob_chr, &motion, 0, mot_db);
 }
 
 static void sub_140550A40(rob_chara* rob_chr, const motion_database* mot_db) {
-    if (sub_14053F1B0(&rob_chr->data.motion.field_150.hand_l))
-        sub_140553E30(rob_chr, -1, 0.0f, -1, 12.0f, 0.0f, 1.0f, -1, 0.0f, mot_db);
+    if (rob_chr->data.motion.field_150.hand_l.CheckEnded())
+        rob_chara_set_hand_l_motion_id(rob_chr, -1, 0.0f, ROB_PARTIAL_MOTION_PLAYBACK_NONE,
+            12.0f, 0.0f, 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE, 0.0f, mot_db);
 }
 
 static void rob_chara_set_hand_r_motion(rob_chara* rob_chr,
     RobHandMotion* motion, int32_t type, const motion_database* mot_db);
 
-static void sub_140554370(rob_chara* rob_chr, uint32_t motion_id,
-    float_t frame, int32_t state, float_t blend_duration, float_t a6,
-    float_t step, int32_t a8, float_t blend_offset, const motion_database* mot_db) {
+// 0x140554370
+static void rob_chara_set_hand_r_motion_id(rob_chara* rob_chr, uint32_t motion_id,
+    float_t frame, rob_partial_motion_playback_state playback_state, float_t blend_duration, float_t play_duration,
+    float_t step, rob_partial_motion_loop_state loop_state,
+    float_t blend_offset, const motion_database* mot_db) {
     RobHandMotion motion;
     motion.data.blend_duration = blend_duration;
     motion.data.blend_offset = blend_offset;
     if (motion_id != -1) {
         motion.data.motion_id = motion_id;
-        motion.data.state = state;
+        motion.data.playback_state = playback_state;
         motion.data.frame = frame;
-        motion.data.play_frame_step = step;
+        motion.data.step = step;
         motion.data.frame_count = motion_storage_get_mot_data_frame_count(motion_id, mot_db);
-        motion.data.field_24 = a6;
-        if (sub_14053F290(&motion)) {
+        motion.data.play_duration = play_duration;
+        if (motion.CheckPlaybackStateCharaMotion()) {
             motion.data.frame_data = &rob_chr->data.motion.frame_data;
             motion.data.step_data = &rob_chr->data.motion.step_data;
         }
-        motion.data.field_38 = a8;
+        motion.data.loop_state = loop_state;
     }
     rob_chara_set_hand_r_motion(rob_chr, &motion, 0, mot_db);
 }
 
 static void sub_140550AB0(rob_chara* rob_chr, const motion_database* mot_db) {
-    if (sub_14053F1B0(&rob_chr->data.motion.field_150.hand_r))
-        sub_140553E30(rob_chr, -1, 0.0f, -1, 12.0f, 0.0f, 1.0f, -1, 0.0f, mot_db);
+    if (rob_chr->data.motion.field_150.hand_r.CheckEnded())
+        rob_chara_set_hand_r_motion_id(rob_chr, -1, 0.0f, ROB_PARTIAL_MOTION_PLAYBACK_NONE,
+            12.0f, 0.0f, 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE, 0.0f, mot_db);
 }
 
 static void rob_chara_set_mouth_motion(rob_chara* rob_chr,
     RobMouthMotion* motion, int32_t type, const motion_database* mot_db);
 
-static void sub_140554C40(rob_chara* rob_chr, uint32_t motion_id,
-    float_t frame, int32_t state, float_t blend_duration, float_t a6,
-    float_t step, int32_t a8, float_t blend_offset, const motion_database* mot_db) {
+// 0x140554C40
+static void rob_chara_set_mouth_motion_id(rob_chara* rob_chr, uint32_t motion_id,
+    float_t frame, rob_partial_motion_playback_state playback_state, float_t blend_duration, float_t play_duration,
+    float_t step, rob_partial_motion_loop_state loop_state,
+    float_t blend_offset, const motion_database* mot_db) {
     RobMouthMotion motion;
     motion.data.blend_duration = blend_duration;
     motion.data.blend_offset = blend_offset;
     if (motion_id != -1) {
         motion.data.motion_id = motion_id;
-        motion.data.state = state;
+        motion.data.playback_state = playback_state;
         motion.data.frame = frame;
-        motion.data.play_frame_step = step;
+        motion.data.step = step;
         motion.data.frame_count = motion_storage_get_mot_data_frame_count(motion_id, mot_db);
-        motion.data.field_24 = a6;
-        if (sub_14053F290(&motion)) {
+        motion.data.play_duration = play_duration;
+        if (motion.CheckPlaybackStateCharaMotion()) {
             motion.data.frame_data = &rob_chr->data.motion.frame_data;
             motion.data.step_data = &rob_chr->data.motion.step_data;
         }
-        motion.data.field_38 = a8;
+        motion.data.loop_state = loop_state;
     }
     rob_chara_set_mouth_motion(rob_chr, &motion, 0, mot_db);
 }
 
 static void sub_140550B20(rob_chara* rob_chr, const motion_database* mot_db) {
-    if (sub_14053F1B0(&rob_chr->data.motion.field_150.mouth))
-        sub_140554C40(rob_chr, -1, 0.0f, -1, 6.0f, 0.0f, 1.0f, -1, 0.0f, mot_db);
+    if (rob_chr->data.motion.field_150.mouth.CheckEnded())
+        rob_chara_set_mouth_motion_id(rob_chr, -1, 0.0f, ROB_PARTIAL_MOTION_PLAYBACK_NONE,
+            6.0f, 0.0f, 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE, 0.0f, mot_db);
 }
 
 static void rob_chara_set_eyes_motion(rob_chara* rob_chr,
     RobEyesMotion* motion, int32_t type, const motion_database* mot_db);
 
+// 0x140552F10
 static void rob_chara_set_eyes_motion_id(rob_chara* rob_chr, uint32_t motion_id,
-    float_t frame, int32_t state, float_t blend_duration, float_t a6,
-    float_t step, int32_t a8, float_t blend_offset, const motion_database* mot_db) {
+    float_t frame, rob_partial_motion_playback_state playback_state, float_t blend_duration, float_t play_duration,
+    float_t step, rob_partial_motion_loop_state loop_state,
+    float_t blend_offset, const motion_database* mot_db) {
     RobEyesMotion motion;
     motion.data.blend_duration = blend_duration;
     motion.data.blend_offset = blend_offset;
     if (motion_id != -1) {
         motion.data.motion_id = motion_id;
-        motion.data.state = state;
+        motion.data.playback_state = playback_state;
         motion.data.frame = frame;
-        motion.data.play_frame_step = step;
+        motion.data.step = step;
         motion.data.frame_count = motion_storage_get_mot_data_frame_count(motion_id, mot_db);
-        motion.data.field_24 = a6;
-        if (sub_14053F290(&motion)) {
+        motion.data.play_duration = play_duration;
+        if (motion.CheckPlaybackStateCharaMotion()) {
             motion.data.frame_data = &rob_chr->data.motion.frame_data;
             motion.data.step_data = &rob_chr->data.motion.step_data;
         }
-        motion.data.field_38 = a8;
+        motion.data.loop_state = loop_state;
     }
     rob_chara_set_eyes_motion(rob_chr, &motion, 0, mot_db);
 }
 
 static void sub_140550960(rob_chara* rob_chr, const motion_database* mot_db) {
-    if (sub_14053F1B0(&rob_chr->data.motion.field_150.eyes))
-        rob_chara_set_eyes_motion_id(rob_chr, -1, 0.0f, -1, 6.0f, 0.0f, 1.0f, -1, 0.0f, mot_db);
+    if (rob_chr->data.motion.field_150.eyes.CheckEnded())
+        rob_chara_set_eyes_motion_id(rob_chr, -1, 0.0f, ROB_PARTIAL_MOTION_PLAYBACK_NONE,
+            6.0f, 0.0f, 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE, 0.0f, mot_db);
 }
 
 static void rob_chara_set_eyelid_motion(rob_chara* rob_chr,
     RobEyelidMotion* motion, int32_t type, const motion_database* mot_db);
 
+// 0x140552A90
 static void rob_chara_set_eyelid_motion_id(rob_chara* rob_chr, uint32_t motion_id,
-    float_t frame, int32_t state, float_t blend_duration, float_t a6,
-    float_t step, int32_t a8, float_t blend_offset, const motion_database* mot_db) {
+    float_t frame, rob_partial_motion_playback_state playback_state, float_t blend_duration, float_t play_duration,
+    float_t step, rob_partial_motion_loop_state loop_state,
+    float_t blend_offset, const motion_database* mot_db) {
     RobEyelidMotion motion;
     motion.data.blend_duration = blend_duration;
     motion.data.blend_offset = blend_offset;
     if (motion_id != -1) {
         motion.data.motion_id = motion_id;
-        motion.data.state = state;
+        motion.data.playback_state = playback_state;
         motion.data.frame = frame;
-        motion.data.play_frame_step = step;
+        motion.data.step = step;
         motion.data.frame_count = motion_storage_get_mot_data_frame_count(motion_id, mot_db);
-        motion.data.field_24 = a6;
-        if (sub_14053F290(&motion)) {
+        motion.data.play_duration = play_duration;
+        if (motion.CheckPlaybackStateCharaMotion()) {
             motion.data.frame_data = &rob_chr->data.motion.frame_data;
             motion.data.step_data = &rob_chr->data.motion.step_data;
         }
-        motion.data.field_38 = a8;
+        motion.data.loop_state = loop_state;
     }
     rob_chara_set_eyelid_motion(rob_chr, &motion, 0, mot_db);
 }
 
 static void sub_1405508F0(rob_chara* rob_chr, const motion_database* mot_db) {
-    if (sub_14053F1B0(&rob_chr->data.motion.field_150.eyelid))
-        rob_chara_set_eyelid_motion_id(rob_chr, -1, 0.0f, -1, 6.0f, 0.0f, 1.0f, -1, 0.0f, mot_db);
+    if (rob_chr->data.motion.field_150.eyelid.CheckEnded())
+        rob_chara_set_eyelid_motion_id(rob_chr, -1, 0.0f, ROB_PARTIAL_MOTION_PLAYBACK_NONE,
+            6.0f, 0.0f, 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE, 0.0f, mot_db);
 }
 
 static bool sub_1404190E0(rob_chara_bone_data* rob_bone_data) {
@@ -8463,17 +8457,6 @@ static void sub_140415400(mot_play_data* play_data) {
 static void sub_14041DA00(rob_chara_bone_data* rob_bone_data) {
     for (motion_blend_mot*& i : rob_bone_data->motion_loaded)
         sub_140415400(&i->mot_play_data);
-}
-
-static void sub_14053F2C0(RobPartialMotion* a1) {
-    if (!sub_14053F290(a1))
-        return;
-
-    if (a1->data.frame_data)
-        a1->data.frame = a1->data.frame_data->frame;
-
-    if (a1->data.step_data)
-        a1->data.play_frame_step = a1->data.step_data->frame;
 }
 
 static object_info sub_140550330(rob_chara* rob_chr) {
@@ -8574,51 +8557,51 @@ static void sub_140504710(rob_chara* rob_chr, const motion_database* mot_db,
     sub_14041CA10(rob_chr->bone_data, &rob_chr->data.motion.field_140);
     sub_14041DA00(rob_chr->bone_data);
 
-    RobFaceMotion* v2 = &rob_chr->data.motion.field_150.face;
+    RobFaceMotion* face = &rob_chr->data.motion.field_150.face;
     if ((rob_chr->data.motion.field_29 & 0x04))
-        v2 = &rob_chr->data.motion.field_3B0.face;
-    sub_14053F2C0(v2);
-    rob_chr->bone_data->set_face_frame(v2->data.frame);
-    rob_chr->bone_data->set_face_step(v2->data.play_frame_step);
+        face = &rob_chr->data.motion.field_3B0.face;
+    face->GetFrameStep();
+    rob_chr->bone_data->set_face_frame(face->data.frame);
+    rob_chr->bone_data->set_face_step(face->data.step);
 
-    RobHandMotion* v3 = &rob_chr->data.motion.field_150.hand_l;
+    RobHandMotion* hand_l = &rob_chr->data.motion.field_150.hand_l;
     if (rob_chr->data.motion.field_29 & 0x08)
-        v3 = &rob_chr->data.motion.field_3B0.hand_l;
+        hand_l = &rob_chr->data.motion.field_3B0.hand_l;
     else if (rob_chr->data.motion.field_2A & 0x04)
-        v3 = &rob_chr->data.motion.hand_l;
-    sub_14053F2C0(v3);
-    rob_chr->bone_data->set_hand_l_frame(v3->data.frame);
-    rob_chr->bone_data->set_hand_l_step(v3->data.play_frame_step);
+        hand_l = &rob_chr->data.motion.hand_l;
+    hand_l->GetFrameStep();
+    rob_chr->bone_data->set_hand_l_frame(hand_l->data.frame);
+    rob_chr->bone_data->set_hand_l_step(hand_l->data.step);
 
-    RobHandMotion* v4 = &rob_chr->data.motion.field_150.hand_r;
+    RobHandMotion* hand_r = &rob_chr->data.motion.field_150.hand_r;
     if (rob_chr->data.motion.field_29 & 0x10)
-        v4 = &rob_chr->data.motion.field_3B0.hand_r;
+        hand_r = &rob_chr->data.motion.field_3B0.hand_r;
     else if (rob_chr->data.motion.field_2A & 0x08)
-        v4 = &rob_chr->data.motion.hand_r;
-    sub_14053F2C0(v4);
-    rob_chr->bone_data->set_hand_r_frame(v4->data.frame);
-    rob_chr->bone_data->set_hand_r_step(v4->data.play_frame_step);
+        hand_r = &rob_chr->data.motion.hand_r;
+    hand_r->GetFrameStep();
+    rob_chr->bone_data->set_hand_r_frame(hand_r->data.frame);
+    rob_chr->bone_data->set_hand_r_step(hand_r->data.step);
 
-    RobMouthMotion* v5 = &rob_chr->data.motion.field_150.mouth;
+    RobMouthMotion* mouth = &rob_chr->data.motion.field_150.mouth;
     if (rob_chr->data.motion.field_29 & 0x20)
-        v5 = &rob_chr->data.motion.field_3B0.mouth;
-    sub_14053F2C0(v5);
-    rob_chr->bone_data->set_mouth_frame(v5->data.frame);
-    rob_chr->bone_data->set_mouth_step(v5->data.play_frame_step);
+        mouth = &rob_chr->data.motion.field_3B0.mouth;
+    mouth->GetFrameStep();
+    rob_chr->bone_data->set_mouth_frame(mouth->data.frame);
+    rob_chr->bone_data->set_mouth_step(mouth->data.step);
 
-    RobEyesMotion* v6 = &rob_chr->data.motion.field_150.eyes;
+    RobEyesMotion* eyes = &rob_chr->data.motion.field_150.eyes;
     if (rob_chr->data.motion.field_29 & 0x40)
-        v6 = &rob_chr->data.motion.field_3B0.eyes;
-    sub_14053F2C0(v6);
-    rob_chr->bone_data->set_eyes_frame(v6->data.frame);
-    rob_chr->bone_data->set_eyes_step(v6->data.play_frame_step);
+        eyes = &rob_chr->data.motion.field_3B0.eyes;
+    eyes->GetFrameStep();
+    rob_chr->bone_data->set_eyes_frame(eyes->data.frame);
+    rob_chr->bone_data->set_eyes_step(eyes->data.step);
 
-    RobEyelidMotion* v7 = &rob_chr->data.motion.field_150.eyelid;
+    RobEyelidMotion* eyelid = &rob_chr->data.motion.field_150.eyelid;
     if (rob_chr->data.motion.field_29 & 0x80)
-        v7 = &rob_chr->data.motion.field_3B0.eyelid;
-    sub_14053F2C0(v7);
-    rob_chr->bone_data->set_eyelid_frame(v7->data.frame);
-    rob_chr->bone_data->set_eyelid_step(v7->data.play_frame_step);
+        eyelid = &rob_chr->data.motion.field_3B0.eyelid;
+    eyelid->GetFrameStep();
+    rob_chr->bone_data->set_eyelid_frame(eyelid->data.frame);
+    rob_chr->bone_data->set_eyelid_step(eyelid->data.step);
 
     object_info v8 = sub_140550330(rob_chr);
     if (rob_chara_get_object_info(rob_chr, ITEM_ATAMA) != v8)
@@ -12772,20 +12755,20 @@ void rob_chara_look_anim::reset() {
     type = 0;
 }
 
-void rob_chara_look_anim::set(bool update_view_point, bool enable, float_t head_rot_strength,
+void rob_chara_look_anim::set(bool update_view_point, bool rotation_enable, float_t head_rot_strength,
     float_t eyes_rot_strength, float_t duration, float_t eyes_rot_step, float_t a8, bool ft) {
     this->update_view_point = update_view_point;
     const bool prev_head_rotation = head_rotation;
-    if (!prev_head_rotation && enable)
+    if (!prev_head_rotation && rotation_enable)
         init_head_rotation = true;
-    head_rotation = enable;
-    if (!eyes_rotation && enable)
+    head_rotation = rotation_enable;
+    if (!eyes_rotation && rotation_enable)
         init_eyes_rotation = true;
-    eyes_rotation = enable;
+    eyes_rotation = rotation_enable;
     this->head_rot_strength = head_rot_strength >= 0.0f ? head_rot_strength : 1.0f;
     this->eyes_rot_strength = eyes_rot_strength >= 0.0f ? eyes_rot_strength : 1.0f;
     this->eyes_rot_step = eyes_rot_step >= 0.0f ? eyes_rot_step : 1.0f;
-    this->duration = (!prev_head_rotation && enable || prev_head_rotation && !enable)
+    this->duration = (!prev_head_rotation && rotation_enable || prev_head_rotation && !rotation_enable)
         && duration >= 0.0f ? duration : 0.0f;
     eyes_rot_frame = 0.0f;
     step = 1.0f;
@@ -13204,9 +13187,9 @@ void rob_chara_bone_data::set_hand_r_step(float_t step) {
     hand_r.set_step(step);
 }
 
-void rob_chara_bone_data::set_look_anim(bool update_view_point, bool enable, float_t head_rot_strength,
+void rob_chara_bone_data::set_look_anim(bool update_view_point, bool rotation_enable, float_t head_rot_strength,
     float_t eyes_rot_strength, float_t duration, float_t eyes_rot_step, float_t a8, bool ft) {
-    look_anim.set(update_view_point, enable, head_rot_strength,
+    look_anim.set(update_view_point, rotation_enable, head_rot_strength,
         eyes_rot_strength, duration, eyes_rot_step, a8, ft);
 }
 
@@ -15273,6 +15256,134 @@ RobPartialMotion::RobPartialMotion() {
 
 RobPartialMotion::~RobPartialMotion() {
 
+}
+
+// 0x14053F1B0
+bool RobPartialMotion::CheckEnded() {
+    if (!CheckPlaybackStateValid())
+        return false;
+
+    if (CheckPlaybackStateForward()) {
+        if (data.loop_state >= ROB_PARTIAL_MOTION_LOOP_MAX && (data.frame_count - 1.0f) < data.frame)
+            return true;
+    }
+    else if (CheckPlaybackStateBackward()) {
+        if (data.loop_state >= ROB_PARTIAL_MOTION_LOOP_MAX && data.frame < 0.0f)
+            return true;
+    }
+    else if (CheckPlaybackStateDuration()) {
+        return data.play_duration <= 0.0f;
+    }
+    return false;
+}
+
+// 0x14053F270
+bool RobPartialMotion::CheckPlaybackStateBackward() {
+    return data.playback_state == ROB_PARTIAL_MOTION_PLAYBACK_BACKWARD;
+}
+
+// 0x14053F290
+bool RobPartialMotion::CheckPlaybackStateCharaMotion() {
+    return data.playback_state == ROB_PARTIAL_MOTION_PLAYBACK_CHARA_MOTION;
+}
+
+// 0x14053F2A0
+bool RobPartialMotion::CheckPlaybackStateDuration() {
+    return data.playback_state == ROB_PARTIAL_MOTION_PLAYBACK_DURATION;
+}
+
+// 0x14053F280
+bool RobPartialMotion::CheckPlaybackStateForward() {
+    return data.playback_state == ROB_PARTIAL_MOTION_PLAYBACK_FORWARD;
+}
+
+// 0x14053F260
+bool RobPartialMotion::CheckPlaybackStateStop() {
+    return data.playback_state == ROB_PARTIAL_MOTION_PLAYBACK_STOP;
+}
+
+// 0x14053F2B0
+bool RobPartialMotion::CheckPlaybackStateValid() {
+    return data.playback_state < ROB_PARTIAL_MOTION_PLAYBACK_MAX;
+}
+
+// 0x14053F2C0
+void RobPartialMotion::GetFrameStep() {
+    if (!CheckPlaybackStateCharaMotion())
+        return;
+
+    if (data.frame_data)
+        data.frame = data.frame_data->frame;
+
+    if (data.step_data)
+        data.step = data.step_data->frame;
+}
+
+// 0x14053F300
+void RobPartialMotion::Step() {
+    if (!CheckPlaybackStateValid())
+        return;
+
+    if (CheckPlaybackStateForward()) {
+        float_t frame = data.frame + data.step;
+        float_t last_frame = data.frame_count - 1.0f;
+        switch (data.loop_state) {
+        case ROB_PARTIAL_MOTION_LOOP_ONCE:
+            if (frame > last_frame)
+                frame = last_frame;
+            break;
+        case ROB_PARTIAL_MOTION_LOOP_CONTINUOUS:
+            if (frame >= last_frame)
+                frame = fmodf(frame - last_frame, last_frame);
+            break;
+        case ROB_PARTIAL_MOTION_LOOP_RESET:
+            if (frame > last_frame)
+                frame = 0.0f;
+            break;
+        case ROB_PARTIAL_MOTION_LOOP_REVERSE:
+            if (frame > last_frame) {
+                data.playback_state = ROB_PARTIAL_MOTION_PLAYBACK_BACKWARD;
+                frame = last_frame - fmodf(frame - last_frame, last_frame);
+            }
+            break;
+        }
+        data.frame = frame;
+    }
+    else if (CheckPlaybackStateBackward()) {
+        float_t frame = data.frame - data.step;
+        float_t last_frame = data.frame_count - 1.0f;
+        switch (data.loop_state) {
+        case ROB_PARTIAL_MOTION_LOOP_ONCE:
+            if (frame < 0.0f)
+                frame = 0.0f;
+            break;
+        case ROB_PARTIAL_MOTION_LOOP_CONTINUOUS:
+            if (frame <= 0.0f)
+                frame = last_frame - fmodf(-frame, last_frame);
+            break;
+        case ROB_PARTIAL_MOTION_LOOP_RESET:
+            if (frame < 0.0f)
+                frame = last_frame;
+            break;
+        case ROB_PARTIAL_MOTION_LOOP_REVERSE:
+            if (frame < 0.0f) {
+                data.playback_state = ROB_PARTIAL_MOTION_PLAYBACK_FORWARD;
+                frame = fmodf(-frame, last_frame);
+            }
+            break;
+        }
+        data.frame = frame;
+    }
+    else if (CheckPlaybackStateDuration()) {
+        if (data.play_duration >= 0.0f)
+            data.play_duration -= data.step;
+    }
+    else if (CheckPlaybackStateCharaMotion()) {
+        if (data.frame_data)
+            data.frame = data.frame_data->frame;
+        if (data.step_data)
+            data.step = data.step_data->frame;
+    }
 }
 
 RobFaceMotion::RobFaceMotion() {
@@ -18984,11 +19095,16 @@ void PvOsageManager::sub_1404F7BD0(bool not_reset) {
         rob_chara* rob_chr = rob_chara_array_get(chara_id);
         rob_chr->set_motion_id(rob_chr->get_rob_cmn_mottbl_motion_id(0),
             0.0f, 0.0f, true, false, MOTION_BLEND_CROSS, aft_bone_data, aft_mot_db);
-        rob_chr->set_face_mottbl_motion(0, 6, 0.0f, -1, 0.0f, 0.0f, 1.0f, -1, 0.0f, true, aft_mot_db);
-        rob_chr->set_hand_l_mottbl_motion(0, 192, 0.0f, -1, 0.0f, 0.0f, 1.0f, -1, 0.0f, aft_mot_db);
-        rob_chr->set_hand_r_mottbl_motion(0, 192, 0.0f, -1, 0.0f, 0.0f, 1.0f, -1, 0.0f, aft_mot_db);
-        rob_chr->set_mouth_mottbl_motion(0, 131, 0.0f, -1, 0.0f, 0.0f, 1.0f, -1, 0.0f, aft_mot_db);
-        rob_chr->set_eyes_mottbl_motion(0, 165, 0.0f, -1, 0.0f, 0.0f, 1.0f, -1, 0.0f, aft_mot_db);
+        rob_chr->set_face_mottbl_motion(0, 6, 0.0f, ROB_PARTIAL_MOTION_PLAYBACK_NONE,
+            0.0f, 0.0f, 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE, 0.0f, true, aft_mot_db);
+        rob_chr->set_hand_l_mottbl_motion(0, 192, 0.0f, ROB_PARTIAL_MOTION_PLAYBACK_NONE,
+            0.0f, 0.0f, 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE, 0.0f, aft_mot_db);
+        rob_chr->set_hand_r_mottbl_motion(0, 192, 0.0f, ROB_PARTIAL_MOTION_PLAYBACK_NONE,
+            0.0f, 0.0f, 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE, 0.0f, aft_mot_db);
+        rob_chr->set_mouth_mottbl_motion(0, 131, 0.0f, ROB_PARTIAL_MOTION_PLAYBACK_NONE,
+            0.0f, 0.0f, 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE, 0.0f, aft_mot_db);
+        rob_chr->set_eyes_mottbl_motion(0, 165, 0.0f, ROB_PARTIAL_MOTION_PLAYBACK_NONE,
+            0.0f, 0.0f, 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE, 0.0f, aft_mot_db);
         rob_chr->set_eyelid_mottbl_motion_from_face(0, 0.0f, -1.0f, 0.0f, aft_mot_db);
     }
     Reset();
@@ -20517,90 +20633,24 @@ bool TaskRobPrepareControl::init() {
     return true;
 }
 
-static void sub_14053F300(RobPartialMotion* a1) {
-    if (!sub_14053F2B0(a1))
-        return;
-
-    if (sub_14053F280(a1)) {
-        float_t frame = a1->data.frame + a1->data.play_frame_step;
-        float_t last_frame = a1->data.frame_count - 1.0f;
-        switch (a1->data.field_38) {
-        case 0:
-            if (frame > last_frame)
-                frame = last_frame;
-            break;
-        case 1:
-            if (frame >= last_frame)
-                frame = fmodf(frame - last_frame, last_frame);
-            break;
-        case 2:
-            if (frame > last_frame)
-                frame = 0.0f;
-            break;
-        case 3:
-            if (frame > last_frame) {
-                a1->data.state = 4;
-                frame = last_frame - fmodf(frame - last_frame, last_frame);
-            }
-            break;
-        }
-        a1->data.frame = frame;
-    }
-    else if (sub_14053F270(a1)) {
-        float_t frame = a1->data.frame - a1->data.play_frame_step;
-        float_t last_frame = a1->data.frame_count - 1.0f;
-        switch (a1->data.field_38) {
-        case 0:
-            if (frame < 0.0f)
-                frame = 0.0f;
-            break;
-        case 1:
-            if (frame <= 0.0f)
-                frame = last_frame - fmodf(-frame, last_frame);
-            break;
-        case 2:
-            if (frame < 0.0f)
-                frame = last_frame;
-            break;
-        case 3:
-            if (frame < 0.0f) {
-                a1->data.state = 2;
-                frame = fmodf(-frame, last_frame);
-            }
-            break;
-        }
-        a1->data.frame = frame;
-    }
-    else if (sub_14053F2A0(a1)) {
-        if (a1->data.field_24 >= 0.0f)
-            a1->data.field_24 -= a1->data.play_frame_step;
-    }
-    else if (sub_14053F290(a1)) {
-        if (a1->data.frame_data)
-            a1->data.frame = a1->data.frame_data->frame;
-        if (a1->data.step_data)
-            a1->data.play_frame_step = a1->data.step_data->frame;
-    }
-}
-
 static void sub_140548660(rob_chara* rob_chr) {
     rob_chr->data.motion.frame_data.prev_frame = rob_chr->data.motion.frame_data.frame;
     rob_chr->bone_data->motion_step();
     if (rob_chr->data.motion.field_28 & 0x80)
         rob_chr->bone_data->set_frame(rob_chr->data.motion.frame_data.last_set_frame);
     rob_chr->data.motion.frame_data.frame = rob_chr->bone_data->get_frame();
-    sub_14053F300(&rob_chr->data.motion.field_150.face);
-    sub_14053F300(&rob_chr->data.motion.field_150.hand_l);
-    sub_14053F300(&rob_chr->data.motion.field_150.hand_r);
-    sub_14053F300(&rob_chr->data.motion.field_150.mouth);
-    sub_14053F300(&rob_chr->data.motion.field_150.eyes);
-    sub_14053F300(&rob_chr->data.motion.field_150.eyelid);
-    sub_14053F300(&rob_chr->data.motion.field_3B0.face);
-    sub_14053F300(&rob_chr->data.motion.field_3B0.hand_l);
-    sub_14053F300(&rob_chr->data.motion.field_3B0.hand_r);
-    sub_14053F300(&rob_chr->data.motion.field_3B0.mouth);
-    sub_14053F300(&rob_chr->data.motion.field_3B0.eyes);
-    sub_14053F300(&rob_chr->data.motion.field_3B0.eyelid);
+    rob_chr->data.motion.field_150.face.Step();
+    rob_chr->data.motion.field_150.hand_l.Step();
+    rob_chr->data.motion.field_150.hand_r.Step();
+    rob_chr->data.motion.field_150.mouth.Step();
+    rob_chr->data.motion.field_150.eyes.Step();
+    rob_chr->data.motion.field_150.eyelid.Step();
+    rob_chr->data.motion.field_3B0.face.Step();
+    rob_chr->data.motion.field_3B0.hand_l.Step();
+    rob_chr->data.motion.field_3B0.hand_r.Step();
+    rob_chr->data.motion.field_3B0.mouth.Step();
+    rob_chr->data.motion.field_3B0.eyes.Step();
+    rob_chr->data.motion.field_3B0.eyelid.Step();
 }
 
 static void sub_140548460(rob_chara* rob_chr) {

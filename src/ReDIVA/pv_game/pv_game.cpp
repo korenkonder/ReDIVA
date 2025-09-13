@@ -385,8 +385,10 @@ void pv_game_data::reset() {
         rob_chara* rob_chr = i.rob_chr;
         if (rob_chr) {
             rob_chr->reset_data(&rob_chr->pv_data, aft_bone_data, aft_mot_db);
-            rob_chr->set_hand_l_mottbl_motion(0, 194, 1.0, 0, 0.0, 0.0, 1.0, -1, 0.0, aft_mot_db);
-            rob_chr->set_hand_r_mottbl_motion(0, 194, 1.0, 0, 0.0, 0.0, 1.0, -1, 0.0, aft_mot_db);
+            rob_chr->set_hand_l_mottbl_motion(0, 194, 1.0f, ROB_PARTIAL_MOTION_PLAYBACK_STOP,
+                0.0f, 0.0f, 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE, 0.0f, aft_mot_db);
+            rob_chr->set_hand_r_mottbl_motion(0, 194, 1.0f, ROB_PARTIAL_MOTION_PLAYBACK_STOP,
+                0.0f, 0.0f, 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE, 0.0f, aft_mot_db);
             rob_chr->set_visibility(true);
         }
 
@@ -3590,8 +3592,10 @@ bool pv_game::load() {
 
         for (pv_game_chara& i : data.chara)
             if (i.check_chara()) {
-                i.rob_chr->set_hand_l_mottbl_motion(0, 194, 1.0f, 0, 0.0f, 0.0f, 1.0f, -1, 0.0f, aft_mot_db);
-                i.rob_chr->set_hand_r_mottbl_motion(0, 194, 1.0f, 0, 0.0f, 0.0f, 1.0f, -1, 0.0f, aft_mot_db);
+                i.rob_chr->set_hand_l_mottbl_motion(0, 194, 1.0f, ROB_PARTIAL_MOTION_PLAYBACK_STOP,
+                    0.0f, 0.0f, 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE, 0.0f, aft_mot_db);
+                i.rob_chr->set_hand_r_mottbl_motion(0, 194, 1.0f, ROB_PARTIAL_MOTION_PLAYBACK_STOP,
+                    0.0f, 0.0f, 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE, 0.0f, aft_mot_db);
             }
 
         const pv_db_pv_difficulty* diff = get_pv_db_pv()->get_difficulty(
@@ -3797,8 +3801,10 @@ bool pv_game::load() {
                 rob_chara_age_age_array_set_skip(rob_chr->chara_id, 1);
                 rob_chara_age_age_array_set_skip(rob_chr->chara_id, 2);
             }
-            rob_chr->set_hand_l_mottbl_motion(0, 194, 1.0f, 0, 0.0f, 0.0f, 1.0f, -1, 0.0f, aft_mot_db);
-            rob_chr->set_hand_r_mottbl_motion(0, 194, 1.0f, 0, 0.0f, 0.0f, 1.0f, -1, 0.0f, aft_mot_db);
+            rob_chr->set_hand_l_mottbl_motion(0, 194, 1.0f, ROB_PARTIAL_MOTION_PLAYBACK_STOP,
+                0.0f, 0.0f, 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE, 0.0f, aft_mot_db);
+            rob_chr->set_hand_r_mottbl_motion(0, 194, 1.0f, ROB_PARTIAL_MOTION_PLAYBACK_STOP,
+                0.0f, 0.0f, 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE, 0.0f, aft_mot_db);
         }
 
         for (int32_t& i : data.campv_auth_3d_uids) {
@@ -4513,7 +4519,7 @@ void pv_game::title_image_ctrl(bool dont_wait) {
     int32_t& state = data.title_image_state;
     switch (data.title_image_state) {
     case 0:
-        if (sub_14013C8C0()->sub_1400E7910() == 3 || diff->title_image.time == -1.0) {
+        if (sub_14013C8C0()->sub_1400E7910() == 3 || diff->title_image.time == -1.0f) {
             state = 3;
             break;
         }
@@ -4852,7 +4858,7 @@ int32_t pv_game::sub_1400FC780(float_t delta_time) {
 
         data.play_data.field_650 = 1;
         data.play_data.field_654 = 1.0f;
-        data.play_data.field_65C = 0.0;
+        data.play_data.field_65C = 0.0f;
         return 0;
     case 1:
         if (data.play_data.field_654 * 0.95f > data.play_data.field_65C)
@@ -4904,7 +4910,7 @@ int32_t pv_game::sub_1400FC780(float_t delta_time) {
         return 0;
     case 41:
         /*if (!data.pv_end_fadeout)
-            task_mask_screen_fade_out(1.0, 0);*/
+            task_mask_screen_fade_out(1.0f, 0);*/
 
         data.play_data.field_650 = 42;
         data.play_data.field_654 = 1.1f;

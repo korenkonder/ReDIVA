@@ -1258,7 +1258,8 @@ bool DtmMot::ctrl() {
         rob_chr->sub_140509D30();
 
         if (data_test_mot_dw_array_get(chara_id)) {
-            data_test_mot_dw_array_get(chara_id)->SetFrameSlider(GetFrame(), GetFrameCount() + pre_offset + post_offset);
+            data_test_mot_dw_array_get(chara_id)->SetFrameSlider(GetFrame(),
+                GetFrameCount() + pre_offset + post_offset);
             data_test_mot_dw_array_get(chara_id)->SetFrameLabel(GetFrame(), GetFrameCount());
         }
 
@@ -1276,7 +1277,8 @@ bool DtmMot::ctrl() {
                 continue;
             }
 
-            float_t frame = (float_t)(int32_t)prj::roundf(set_motion.data()[set_motion_index].frame_stage_index.first);
+            float_t frame = (float_t)(int32_t)prj::roundf(
+                set_motion.data()[set_motion_index].frame_stage_index.first);
             if (frame > this->frame)
                 break;
 
@@ -1432,13 +1434,13 @@ void DtmMot::CtrlFaceMot() {
     DataTestFaceMotDw::Data data = face_mot_dw->GetData();
     rob_chara* rob_chr = rob_chara_array_get(chara_id);
     rob_chr->set_face_mottbl_motion(0, data.face.mottbl_index, data.face.frame * 0.01f,
-        0, 0.0f, 0.0f, 1.0f, -1, 0.0f, false, aft_mot_db);
+        ROB_PARTIAL_MOTION_PLAYBACK_STOP, 0.0f, 0.0f, 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE, 0.0f, false, aft_mot_db);
     rob_chr->set_eyelid_mottbl_motion(0, data.eyelid.mottbl_index, data.eyelid.frame * 0.01f,
-        0, 0.0f, 0.0f, 1.0f, -1, 0.0f, aft_mot_db);
+        ROB_PARTIAL_MOTION_PLAYBACK_STOP, 0.0f, 0.0f, 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE, 0.0f, aft_mot_db);
     rob_chr->set_eyes_mottbl_motion(0, data.eyes.mottbl_index, data.eyes.frame * 0.01f,
-        0, 0.0f, 0.0f, 1.0f, -1, 0.0f, aft_mot_db);
+        ROB_PARTIAL_MOTION_PLAYBACK_STOP, 0.0f, 0.0f, 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE, 0.0f, aft_mot_db);
     rob_chr->set_mouth_mottbl_motion(0, data.mouth.mottbl_index, data.mouth.frame * 0.01f,
-        0, 0.0f, 0.0f, 1.0f, -1, 0.0f, aft_mot_db);
+        ROB_PARTIAL_MOTION_PLAYBACK_STOP, 0.0f, 0.0f, 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE, 0.0f, aft_mot_db);
 }
 
 void DtmMot::GetABLoop(bool& ab_loop, float_t& a_frame, float_t& b_frame) {
