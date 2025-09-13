@@ -429,6 +429,7 @@ opd_node_data::opd_node_data(float_t length, vec3 rotation) {
     this->rotation = rotation;
 }
 
+// 0x140482DF0
 void opd_node_data::lerp(opd_node_data& dst, const opd_node_data& src0, const opd_node_data& src1, float_t blend) {
     dst.length = lerp_def(src0.length, src1.length, blend);
     dst.rotation = vec3::lerp(src0.rotation, src1.rotation, blend);
@@ -438,6 +439,7 @@ opd_node_data_pair::opd_node_data_pair() {
 
 }
 
+// 0x140482100
 void opd_node_data_pair::set_data(opd_blend_data* blend_data, const opd_node_data& node_data) {
     if (!blend_data->use_blend)
         curr = node_data;
