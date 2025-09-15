@@ -1716,7 +1716,7 @@ DataTestFaceMotDw::DataTestFaceMotDw(int32_t chara_id) {
     face = InitAddMottblMapMotions(motion_group, 0);
 
     face_frame = dw::Slider::Create(motion_group);
-    face_frame->SetText("Frame  ");
+    face_frame->SetText("Frame");
     face_frame->format = "%4.0f";
     face_frame->SetParams(0.0f, 0.0f, 100.0f, 10.0f, 1.0f, 10.0f);
 
