@@ -60,6 +60,9 @@ void bone_database::read(const char* path, bool modern) {
 
     if (!modern) {
         char* path_bin = str_utils_add(path, ".bin");
+        if (!path_bin)
+            return;
+
         if (path_check_file_exists(path_bin)) {
             file_stream s;
             s.open(path_bin, "rb");
@@ -76,6 +79,9 @@ void bone_database::read(const char* path, bool modern) {
     }
     else {
         char* path_bon = str_utils_add(path, ".bon");
+        if (!path_bon)
+            return;
+
         if (path_check_file_exists(path_bon)) {
             f2_struct st;
             st.read(path_bon);
@@ -96,6 +102,9 @@ void bone_database::read(const wchar_t* path, bool modern) {
 
     if (!modern) {
         wchar_t* path_bin = str_utils_add(path, L".bin");
+        if (!path_bin)
+            return;
+
         if (path_check_file_exists(path_bin)) {
             file_stream s;
             s.open(path_bin, L"rb");
@@ -112,6 +121,9 @@ void bone_database::read(const wchar_t* path, bool modern) {
     }
     else {
         wchar_t* path_bon = str_utils_add(path, L".bon");
+        if (!path_bon)
+            return;
+
         if (path_check_file_exists(path_bon)) {
             f2_struct st;
             st.read(path_bon);
@@ -153,6 +165,9 @@ void bone_database::write(const char* path) {
 
     if (!modern) {
         char* path_bin = str_utils_add(path, ".bin");
+        if (!path_bin)
+            return;
+
         file_stream s;
         s.open(path_bin, "wb");
         if (s.check_not_null())
@@ -161,6 +176,9 @@ void bone_database::write(const char* path) {
     }
     else {
         char* path_bon = str_utils_add(path, ".bon");
+        if (!path_bon)
+            return;
+
         file_stream s;
         s.open(path_bon, "wb");
         if (s.check_not_null())
@@ -175,6 +193,9 @@ void bone_database::write(const wchar_t* path) {
 
     if (!modern) {
         wchar_t* path_bin = str_utils_add(path, L".bin");
+        if (!path_bin)
+            return;
+
         file_stream s;
         s.open(path_bin, L"wb");
         if (s.check_not_null())
@@ -183,6 +204,9 @@ void bone_database::write(const wchar_t* path) {
     }
     else {
         wchar_t* path_bon = str_utils_add(path, L".bon");
+        if (!path_bon)
+            return;
+
         file_stream s;
         s.open(path_bon, L"wb");
         if (s.check_not_null())

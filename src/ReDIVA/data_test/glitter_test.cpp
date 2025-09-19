@@ -187,20 +187,20 @@ void TaskDataTestGlitterParticle::disp() {
 
     disp = Glitter::glt_particle_manager->GetDispCount(Glitter::PARTICLE_QUAD);
     ctrl = Glitter::glt_particle_manager->GetCtrlCount(Glitter::PARTICLE_QUAD);
-    print_work.printf_align_left(" Quad: ctrl%d, disp%d\n", disp, ctrl);
+    print_work.printf_align_left(" Quad: ctrl%d, disp%d\n", (uint32_t)disp, (uint32_t)ctrl);
 
     disp = Glitter::glt_particle_manager->GetDispCount(Glitter::PARTICLE_LOCUS);
     ctrl = Glitter::glt_particle_manager->GetCtrlCount(Glitter::PARTICLE_LOCUS);
-    print_work.printf_align_left("Locus: ctrl%d, disp%d\n", disp, ctrl);
+    print_work.printf_align_left("Locus: ctrl%d, disp%d\n", (uint32_t)disp, (uint32_t)ctrl);
 
     disp = Glitter::glt_particle_manager->GetDispCount(Glitter::PARTICLE_LINE);
     ctrl = Glitter::glt_particle_manager->GetCtrlCount(Glitter::PARTICLE_LINE);
-    print_work.printf_align_left(" Line: ctrl%d, disp%d\n", disp, ctrl);
+    print_work.printf_align_left(" Line: ctrl%d, disp%d\n", (uint32_t)disp, (uint32_t)ctrl);
 
     // Added
     disp = Glitter::glt_particle_manager->GetDispCount(Glitter::PARTICLE_MESH);
     ctrl = Glitter::glt_particle_manager->GetCtrlCount(Glitter::PARTICLE_MESH);
-    print_work.printf_align_left(" Mesh: ctrl%d, disp%d\n", disp, ctrl);
+    print_work.printf_align_left(" Mesh: ctrl%d, disp%d\n", (uint32_t)disp, (uint32_t)ctrl);
 
 }
 

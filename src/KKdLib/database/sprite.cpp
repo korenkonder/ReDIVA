@@ -71,6 +71,9 @@ void sprite_database_file::read(const char* path, bool modern) {
 
     if (!modern) {
         char* path_bin = str_utils_add(path, ".bin");
+        if (!path_bin)
+            return;
+
         if (path_check_file_exists(path_bin)) {
             file_stream s;
             s.open(path_bin, "rb");
@@ -87,6 +90,9 @@ void sprite_database_file::read(const char* path, bool modern) {
     }
     else {
         char* path_spi = str_utils_add(path, ".spi");
+        if (!path_spi)
+            return;
+
         if (path_check_file_exists(path_spi)) {
             f2_struct st;
             st.read(path_spi);
@@ -107,6 +113,9 @@ void sprite_database_file::read(const wchar_t* path, bool modern) {
 
     if (!modern) {
         wchar_t* path_bin = str_utils_add(path, L".bin");
+        if (!path_bin)
+            return;
+
         if (path_check_file_exists(path_bin)) {
             file_stream s;
             s.open(path_bin, L"rb");
@@ -123,6 +132,9 @@ void sprite_database_file::read(const wchar_t* path, bool modern) {
     }
     else {
         wchar_t* path_spi = str_utils_add(path, L".spi");
+        if (!path_spi)
+            return;
+
         if (path_check_file_exists(path_spi)) {
             f2_struct st;
             st.read(path_spi);
@@ -164,6 +176,9 @@ void sprite_database_file::write(const char* path) {
 
     if (!modern) {
         char* path_bin = str_utils_add(path, ".bin");
+        if (!path_bin)
+            return;
+
         file_stream s;
         s.open(path_bin, "wb");
         if (s.check_not_null())
@@ -172,6 +187,9 @@ void sprite_database_file::write(const char* path) {
     }
     else {
         char* path_spi = str_utils_add(path, ".spi");
+        if (!path_spi)
+            return;
+
         file_stream s;
         s.open(path_spi, "wb");
         if (s.check_not_null())
@@ -186,6 +204,9 @@ void sprite_database_file::write(const wchar_t* path) {
 
     if (!modern) {
         wchar_t* path_bin = str_utils_add(path, L".bin");
+        if (!path_bin)
+            return;
+
         file_stream s;
         s.open(path_bin, L"wb");
         if (s.check_not_null())
@@ -194,6 +215,9 @@ void sprite_database_file::write(const wchar_t* path) {
     }
     else {
         wchar_t* path_spi = str_utils_add(path, L".spi");
+        if (!path_spi)
+            return;
+
         file_stream s;
         s.open(path_spi, L"wb");
         if (s.check_not_null())

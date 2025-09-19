@@ -36,28 +36,34 @@ void hnd_itm::read(const char* path) {
     if (!path)
         return;
 
-    char* path_bin = str_utils_add(path, ".txt");
-    if (path_check_file_exists(path_bin)) {
+    char* path_txt = str_utils_add(path, ".txt");
+    if (!path_txt)
+        return;
+
+    if (path_check_file_exists(path_txt)) {
         file_stream s;
-        s.open(path_bin, "rb");
+        s.open(path_txt, "rb");
         if (s.check_not_null())
             hnd_itm_read_inner(this, s);
     }
-    free_def(path_bin);
+    free_def(path_txt);
 }
 
 void hnd_itm::read(const wchar_t* path) {
     if (!path)
         return;
 
-    wchar_t* path_bin = str_utils_add(path, L".txt");
-    if (path_check_file_exists(path_bin)) {
+    wchar_t* path_txt = str_utils_add(path, L".txt");
+    if (!path_txt)
+        return;
+
+    if (path_check_file_exists(path_txt)) {
         file_stream s;
-        s.open(path_bin, L"rb");
+        s.open(path_txt, L"rb");
         if (s.check_not_null())
             hnd_itm_read_inner(this, s);
     }
-    free_def(path_bin);
+    free_def(path_txt);
 }
 
 void hnd_itm::read(const void* data, size_t size) {
@@ -73,24 +79,30 @@ void hnd_itm::write(const char* path) {
     if (!path || !ready)
         return;
 
-    char* path_bin = str_utils_add(path, ".txt");
+    char* path_txt = str_utils_add(path, ".txt");
+    if (!path_txt)
+        return;
+
     file_stream s;
-    s.open(path_bin, "wb");
+    s.open(path_txt, "wb");
     if (s.check_not_null())
         hnd_itm_write_inner(this, s);
-    free_def(path_bin);
+    free_def(path_txt);
 }
 
 void hnd_itm::write(const wchar_t* path) {
     if (!path || !ready)
         return;
 
-    wchar_t* path_bin = str_utils_add(path, L".txt");
+    wchar_t* path_txt = str_utils_add(path, L".txt");
+    if (!path_txt)
+        return;
+
     file_stream s;
-    s.open(path_bin, L"wb");
+    s.open(path_txt, L"wb");
     if (s.check_not_null())
         hnd_itm_write_inner(this, s);
-    free_def(path_bin);
+    free_def(path_txt);
 }
 
 void hnd_itm::write(void** data, size_t* size) {

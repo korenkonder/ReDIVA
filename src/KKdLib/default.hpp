@@ -22,6 +22,51 @@
 #pragma warning(disable: 26812)
 
 template <typename T>
+inline _Check_return_ _Ret_maybenull_ _Post_writable_byte_size_(sizeof(T)) T* malloc_T() {
+    return (T*)malloc(sizeof(T));
+}
+
+template <typename T>
+inline _Check_return_ _Ret_maybenull_ _Post_writable_byte_size_(sizeof(T) * count) T* malloc_T(_In_ size_t count) {
+    return (T*)malloc(sizeof(T) * count);
+}
+
+template <typename T>
+inline T* memset_T(_Out_writes_bytes_all_(sizeof(T)) T* dest, _In_ int32_t ch) {
+    return (T*)memset(dest, ch, sizeof(T));
+}
+
+template <typename T>
+inline T* memset_T(_Out_writes_bytes_all_(sizeof(T) * count) T* dest, _In_ int32_t ch, _In_ size_t count) {
+    return (T*)memset(dest, ch, sizeof(T) * count);
+}
+
+inline _Check_return_ _Ret_maybenull_ void* malloc_memset(_In_ size_t size, _In_ int32_t ch = 0) {
+    void* ptr = malloc(size);
+    if (ptr)
+        return memset(ptr, ch, size);
+    return ptr;
+}
+
+template <typename T>
+inline _Check_return_ _Ret_maybenull_ T* malloc_memset_T() {
+    T* ptr = (T*)malloc(sizeof(T));
+    if (ptr)
+        return (T*)memset(ptr, 0, sizeof(T));
+    return ptr;
+}
+
+template <typename T>
+inline _Check_return_ _Ret_maybenull_ T* malloc_memset_T(_In_ size_t count) {
+    T* ptr = (T*)malloc(sizeof(T) * count);
+    if (ptr)
+        free(ptr);
+    ptr = 0;
+        return (T*)memset(ptr, 0, sizeof(T) * count);
+    return ptr;
+}
+
+template <typename T>
 inline void free_def(T& ptr) {
     if (ptr)
         free(ptr);
@@ -328,7 +373,7 @@ inline double_t reverse_endianness_double_t(double_t value) {
     return *(double_t*)&v;
 }
 
-inline void printf_debug(const char* fmt, ...) {
+inline void printf_debug(_In_z_ _Printf_format_string_ const char* fmt, ...) {
 #ifdef DEBUG
     va_list args;
     va_start(args, fmt);
@@ -337,7 +382,7 @@ inline void printf_debug(const char* fmt, ...) {
 #endif
 }
 
-inline void wprintf_debug(const wchar_t* fmt, ...) {
+inline void wprintf_debug(_In_z_ _Printf_format_string_ const wchar_t* fmt, ...) {
 #ifdef DEBUG
     va_list args;
     va_start(args, fmt);
@@ -346,7 +391,7 @@ inline void wprintf_debug(const wchar_t* fmt, ...) {
 #endif
 }
 
-inline constexpr size_t utf8_length(const char* s) {
+inline _Check_return_ constexpr size_t utf8_length(_In_z_ const char* s) {
     if (!s)
         return 0;
 
@@ -356,7 +401,7 @@ inline constexpr size_t utf8_length(const char* s) {
     return len;
 }
 
-inline constexpr size_t utf16_length(const wchar_t* s) {
+inline _Check_return_ constexpr size_t utf16_length(_In_z_ const wchar_t* s) {
     if (!s)
         return 0;
 
@@ -366,7 +411,7 @@ inline constexpr size_t utf16_length(const wchar_t* s) {
     return len;
 }
 
-inline constexpr bool utf8_check_for_ascii_only(const char* s) {
+inline _Check_return_ constexpr bool utf8_check_for_ascii_only(_In_z_ const char* s) {
     char c = 0;
     while (c = *s++)
         if (c & 0x80)
@@ -374,7 +419,7 @@ inline constexpr bool utf8_check_for_ascii_only(const char* s) {
     return true;
 }
 
-inline constexpr size_t utf8_to_utf16_length(const char* s) {
+inline _Check_return_ constexpr size_t utf8_to_utf16_length(_In_z_ const char* s) {
     if (!s)
         return 0;
 
@@ -422,7 +467,7 @@ inline constexpr size_t utf8_to_utf16_length(const char* s) {
     return length;
 }
 
-inline constexpr size_t utf8_to_utf16_length(const char* s, size_t length) {
+inline _Check_return_ constexpr size_t utf8_to_utf16_length(_In_z_ const char* s, _In_ size_t length) {
     if (!s || !length)
         return 0;
 
@@ -471,7 +516,7 @@ inline constexpr size_t utf8_to_utf16_length(const char* s, size_t length) {
     return _length;
 }
 
-inline constexpr size_t utf16_to_utf8_length(const wchar_t* s) {
+inline _Check_return_ constexpr size_t utf16_to_utf8_length(_In_z_ const wchar_t* s) {
     if (!s)
         return 0;
 
@@ -507,7 +552,7 @@ inline constexpr size_t utf16_to_utf8_length(const wchar_t* s) {
     return length;
 }
 
-inline constexpr size_t utf16_to_utf8_length(const wchar_t* s, size_t length) {
+inline _Check_return_ constexpr size_t utf16_to_utf8_length(_In_z_ const wchar_t* s, _In_ size_t length) {
     if (!s || !length)
         return 0;
 
@@ -544,10 +589,10 @@ inline constexpr size_t utf16_to_utf8_length(const wchar_t* s, size_t length) {
     return _length;
 }
 
-extern wchar_t* utf8_to_utf16(const char* s);
-extern wchar_t* utf8_to_utf16(const char* s, size_t length);
-extern char* utf16_to_utf8(const wchar_t* s);
-extern char* utf16_to_utf8(const wchar_t* s, size_t length);
+extern _Check_return_ _Ret_maybenull_z_ wchar_t* utf8_to_utf16(_In_z_ const char* s);
+extern _Check_return_ _Ret_maybenull_z_ wchar_t* utf8_to_utf16(_In_z_ const char* s, _In_ size_t length);
+extern _Check_return_ _Ret_maybenull_z_ char* utf16_to_utf8(_In_z_ const wchar_t* s);
+extern _Check_return_ _Ret_maybenull_z_ char* utf16_to_utf8(_In_z_ const wchar_t* s, _In_ size_t length);
 extern std::wstring utf8_to_utf16(const std::string& s);
 extern std::string utf16_to_utf8(const std::wstring& s);
 

@@ -181,6 +181,9 @@ void dds::read(const wchar_t* path) {
     data.shrink_to_fit();
 
     wchar_t* path_dds = str_utils_add(path, L".dds");
+    if (!path_dds)
+        return;
+
     file_stream s;
     s.open(path_dds, L"rb");
     if (s.check_not_null()) {
@@ -358,6 +361,9 @@ void dds::write(const wchar_t* path) {
     }
 
     wchar_t* path_dds = str_utils_add(path, L".dds");
+    if (!path_dds)
+        return;
+
     file_stream s;
     s.open(path_dds, L"wb");
     if (s.check_not_null()) {

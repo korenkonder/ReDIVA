@@ -27,6 +27,9 @@ stage_param_rain::~stage_param_rain() {
 
 void stage_param_rain::read(const char* path) {
     char* path_txt = str_utils_add(path, ".txt");
+    if (!path_txt)
+        return;
+
     if (path_check_file_exists(path_txt)) {
         file_stream s;
         s.open(path_txt, "rb");
@@ -38,6 +41,9 @@ void stage_param_rain::read(const char* path) {
 
 void stage_param_rain::read(const wchar_t* path) {
     wchar_t* path_txt = str_utils_add(path, L".txt");
+    if (!path_txt)
+        return;
+
     if (path_check_file_exists(path_txt)) {
         file_stream s;
         s.open(path_txt, L"rb");
@@ -58,6 +64,9 @@ void stage_param_rain::write(const char* path) {
         return;
 
     char* path_txt = str_utils_add(path, ".txt");
+    if (!path_txt)
+        return;
+
     file_stream s;
     s.open(path_txt, "wb");
     if (s.check_not_null())
@@ -70,6 +79,9 @@ void stage_param_rain::write(const wchar_t* path) {
         return;
 
     wchar_t* path_txt = str_utils_add(path, L".txt");
+    if (!path_txt)
+        return;
+
     file_stream s;
     s.open(path_txt, L"wb");
     if (s.check_not_null())

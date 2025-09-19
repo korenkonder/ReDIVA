@@ -5,7 +5,8 @@
 
 #include "str_utils.hpp"
 
-bool str_utils_check_ends_with(const char* str, const char* mask) {
+_Check_return_ bool str_utils_check_ends_with(
+    _In_z_ const char* str, _In_z_ const char* mask) {
     if (!str || !mask)
         return false;
 
@@ -23,7 +24,8 @@ bool str_utils_check_ends_with(const char* str, const char* mask) {
     return false;
 }
 
-bool str_utils_check_ends_with(const wchar_t* str, const wchar_t* mask) {
+_Check_return_ bool str_utils_check_ends_with(
+    _In_z_ const wchar_t* str, _In_z_ const wchar_t* mask) {
     if (!str || !mask)
         return false;
 
@@ -41,35 +43,40 @@ bool str_utils_check_ends_with(const wchar_t* str, const wchar_t* mask) {
     return false;
 }
 
-const char* str_utils_get_next_int32_t(const char* str, int32_t& value, const char split) {
+_Check_return_ _Ret_maybenull_ const char* str_utils_get_next_int32_t(
+    _In_opt_z_ const char* str, _Out_ int32_t& value, _In_ const char split) {
     std::string s;
     str = str_utils_get_next_string(str, s, split);
     sscanf_s(s.c_str(), "%d", &value);
     return str;
 }
 
-const wchar_t* str_utils_get_next_int32_t(const wchar_t* str, int32_t& value, const wchar_t split) {
+_Check_return_ _Ret_maybenull_ const wchar_t* str_utils_get_next_int32_t(
+    _In_opt_z_ const wchar_t* str, _Out_ int32_t& value, _In_ const wchar_t split) {
     std::wstring s;
     str = str_utils_get_next_string(str, s, split);
     swscanf_s(s.c_str(), L"%d", &value);
     return str;
 }
 
-const char* str_utils_get_next_float_t(const char* str, float_t& value, const char split) {
+_Check_return_ _Ret_maybenull_ const char* str_utils_get_next_float_t(
+    _In_opt_z_ const char* str, _Out_ float_t& value, _In_ const char split) {
     std::string s;
     str = str_utils_get_next_string(str, s, split);
     sscanf_s(s.c_str(), "%f", &value);
     return str;
 }
 
-const wchar_t* str_utils_get_next_float_t(const wchar_t* str, float_t& value, const wchar_t split) {
+_Check_return_ _Ret_maybenull_ const wchar_t* str_utils_get_next_float_t(
+    _In_opt_z_ const wchar_t* str, _Out_ float_t& value, _In_ const wchar_t split) {
     std::wstring s;
     str = str_utils_get_next_string(str, s, split);
     swscanf_s(s.c_str(), L"%f", &value);
     return str;
 }
 
-const char* str_utils_get_next_string(const char* str, std::string& value, const char split) {
+_Check_return_ _Ret_maybenull_ const char* str_utils_get_next_string(
+    _In_opt_z_ const char* str, _Out_ std::string& value, _In_ const char split) {
     value.clear();
 
     if (!str)
@@ -86,7 +93,8 @@ const char* str_utils_get_next_string(const char* str, std::string& value, const
     return *t ? t : 0;
 }
 
-const wchar_t* str_utils_get_next_string(const wchar_t* str, std::wstring& value, const wchar_t split) {
+_Check_return_ _Ret_maybenull_ const wchar_t* str_utils_get_next_string(
+    _In_opt_z_ const wchar_t* str, _Out_ std::wstring& value, _In_ const wchar_t split) {
     value.clear();
 
     if (!str)
@@ -103,7 +111,8 @@ const wchar_t* str_utils_get_next_string(const wchar_t* str, std::wstring& value
     return *t ? t : 0;
 }
 
-char* str_utils_split_get_right(const char* str, const char split) {
+_Check_return_ _Ret_maybenull_ char* str_utils_split_get_right(
+    _In_z_ const char* str, _In_ const char split) {
     if (!str)
         return 0;
 
@@ -119,7 +128,8 @@ char* str_utils_split_get_right(const char* str, const char split) {
     return p;
 }
 
-wchar_t* str_utils_split_get_right(const wchar_t* str, const wchar_t split) {
+_Check_return_ _Ret_maybenull_ wchar_t* str_utils_split_get_right(
+    _In_z_ const wchar_t* str, _In_ const wchar_t split) {
     if (!str)
         return 0;
 
@@ -135,7 +145,8 @@ wchar_t* str_utils_split_get_right(const wchar_t* str, const wchar_t split) {
     return p;
 }
 
-char* str_utils_split_get_left(const char* str, const char split) {
+_Check_return_ _Ret_maybenull_ char* str_utils_split_get_left(
+    _In_z_ const char* str, _In_ const char split) {
     if (!str)
         return 0;
 
@@ -148,7 +159,8 @@ char* str_utils_split_get_left(const char* str, const char split) {
     return p;
 }
 
-wchar_t* str_utils_split_get_left(const wchar_t* str, const wchar_t split) {
+_Check_return_ _Ret_maybenull_ wchar_t* str_utils_split_get_left(
+    _In_z_ const wchar_t* str, _In_ const wchar_t split) {
     if (!str)
         return 0;
 
@@ -161,7 +173,8 @@ wchar_t* str_utils_split_get_left(const wchar_t* str, const wchar_t split) {
     return p;
 }
 
-char* str_utils_split_get_right_include(const char* str, const char split) {
+_Check_return_ _Ret_maybenull_ char* str_utils_split_get_right_include(
+    _In_z_ const char* str, _In_ const char split) {
     if (!str)
         return 0;
 
@@ -176,7 +189,8 @@ char* str_utils_split_get_right_include(const char* str, const char split) {
     return p;
 }
 
-wchar_t* str_utils_split_get_right_include(const wchar_t* str, const wchar_t split) {
+_Check_return_ _Ret_maybenull_ wchar_t* str_utils_split_get_right_include(
+    _In_z_ const wchar_t* str, _In_ const wchar_t split) {
     if (!str)
         return 0;
 
@@ -191,7 +205,8 @@ wchar_t* str_utils_split_get_right_include(const wchar_t* str, const wchar_t spl
     return p;
 }
 
-char* str_utils_split_get_left_include(const char* str, const char split) {
+_Check_return_ _Ret_maybenull_ char* str_utils_split_get_left_include(
+    _In_z_ const char* str, _In_ const char split) {
     if (!str)
         return 0;
 
@@ -205,7 +220,8 @@ char* str_utils_split_get_left_include(const char* str, const char split) {
     return p;
 }
 
-wchar_t* str_utils_split_get_left_include(const wchar_t* str, const wchar_t split) {
+_Check_return_ _Ret_maybenull_ wchar_t* str_utils_split_get_left_include(
+    _In_z_ const wchar_t* str, _In_ const wchar_t split) {
     if (!str)
         return 0;
 
@@ -219,7 +235,8 @@ wchar_t* str_utils_split_get_left_include(const wchar_t* str, const wchar_t spli
     return p;
 }
 
-char* str_utils_split_right_get_right(const char* str, const char split) {
+_Check_return_ _Ret_maybenull_ char* str_utils_split_right_get_right(
+    _In_z_ const char* str, _In_ const char split) {
     if (!str)
         return 0;
 
@@ -235,7 +252,8 @@ char* str_utils_split_right_get_right(const char* str, const char split) {
     return p;
 }
 
-wchar_t* str_utils_split_right_get_right(const wchar_t* str, const wchar_t split) {
+_Check_return_ _Ret_maybenull_ wchar_t* str_utils_split_right_get_right(
+    _In_z_ const wchar_t* str, _In_ const wchar_t split) {
     if (!str)
         return 0;
 
@@ -251,7 +269,8 @@ wchar_t* str_utils_split_right_get_right(const wchar_t* str, const wchar_t split
     return p;
 }
 
-char* str_utils_split_right_get_left(const char* str, const char split) {
+_Check_return_ _Ret_maybenull_ char* str_utils_split_right_get_left(
+    _In_z_ const char* str, _In_ const char split) {
     if (!str)
         return 0;
 
@@ -264,7 +283,8 @@ char* str_utils_split_right_get_left(const char* str, const char split) {
     return p;
 }
 
-wchar_t* str_utils_split_right_get_left(const wchar_t* str, const wchar_t split) {
+_Check_return_ _Ret_maybenull_ wchar_t* str_utils_split_right_get_left(
+    _In_z_ const wchar_t* str, _In_ const wchar_t split) {
     if (!str)
         return 0;
 
@@ -277,7 +297,8 @@ wchar_t* str_utils_split_right_get_left(const wchar_t* str, const wchar_t split)
     return p;
 }
 
-char* str_utils_split_right_get_right_include(const char* str, const char split) {
+_Check_return_ _Ret_maybenull_ char* str_utils_split_right_get_right_include(
+    _In_z_ const char* str, _In_ const char split) {
     if (!str)
         return 0;
 
@@ -292,7 +313,8 @@ char* str_utils_split_right_get_right_include(const char* str, const char split)
     return p;
 }
 
-wchar_t* str_utils_split_right_get_right_include(const wchar_t* str, const wchar_t split) {
+_Check_return_ _Ret_maybenull_ wchar_t* str_utils_split_right_get_right_include(
+    _In_z_ const wchar_t* str, _In_ const wchar_t split) {
     if (!str)
         return 0;
 
@@ -307,7 +329,8 @@ wchar_t* str_utils_split_right_get_right_include(const wchar_t* str, const wchar
     return p;
 }
 
-char* str_utils_split_right_get_left_include(const char* str, const char split) {
+_Check_return_ _Ret_maybenull_ char* str_utils_split_right_get_left_include(
+    _In_z_ const char* str, _In_ const char split) {
     if (!str)
         return 0;
 
@@ -322,7 +345,8 @@ char* str_utils_split_right_get_left_include(const char* str, const char split) 
     return p;
 }
 
-wchar_t* str_utils_split_right_get_left_include(const wchar_t* str, const wchar_t split) {
+_Check_return_ _Ret_maybenull_ wchar_t* str_utils_split_right_get_left_include(
+    _In_z_ const wchar_t* str, _In_ const wchar_t split) {
     if (!str)
         return 0;
 
@@ -337,7 +361,8 @@ wchar_t* str_utils_split_right_get_left_include(const wchar_t* str, const wchar_
     return p;
 }
 
-char* str_utils_get_extension(const char* str) {
+_Check_return_ _Ret_maybenull_ char* str_utils_get_extension(
+    _In_z_ const char* str) {
     if (!str)
         return 0;
 
@@ -345,7 +370,8 @@ char* str_utils_get_extension(const char* str) {
     return str_utils_split_right_get_right_include(t ? t + 1 : str, '.');
 }
 
-wchar_t* str_utils_get_extension(const wchar_t* str) {
+_Check_return_ _Ret_maybenull_ wchar_t* str_utils_get_extension(
+    _In_z_ const wchar_t* str) {
     if (!str)
         return 0;
 
@@ -353,7 +379,8 @@ wchar_t* str_utils_get_extension(const wchar_t* str) {
     return str_utils_split_right_get_right_include(t ? t + 1 : str, L'.');
 }
 
-char* str_utils_get_without_extension(const char* str) {
+_Check_return_ _Ret_maybenull_ char* str_utils_get_without_extension(
+    _In_z_ const char* str) {
     if (!str)
         return 0;
 
@@ -361,7 +388,8 @@ char* str_utils_get_without_extension(const char* str) {
     return str_utils_split_right_get_left(t ? t + 1 : str, '.');
 }
 
-wchar_t* str_utils_get_without_extension(const wchar_t* str) {
+_Check_return_ _Ret_maybenull_ wchar_t* str_utils_get_without_extension(
+    _In_z_ const wchar_t* str) {
     if (!str)
         return 0;
 
@@ -369,7 +397,8 @@ wchar_t* str_utils_get_without_extension(const wchar_t* str) {
     return str_utils_split_right_get_left(t ? t + 1 : str, L'.');
 }
 
-char* str_utils_add(const char* str0, const char* str1) {
+_Check_return_ _Ret_maybenull_ char* str_utils_add(
+    _In_z_ const char* str0, _In_z_ const char* str1) {
     if (str0 && str1) {
         size_t str0_len = utf8_length(str0);
         size_t str1_len = utf8_length(str1);
@@ -386,7 +415,8 @@ char* str_utils_add(const char* str0, const char* str1) {
         return 0;
 }
 
-wchar_t* str_utils_add(const wchar_t* str0, const wchar_t* str1) {
+_Check_return_ _Ret_maybenull_ wchar_t* str_utils_add(
+    _In_z_ const wchar_t* str0, _In_z_ const wchar_t* str1) {
     if (str0 && str1) {
         size_t str0_len = utf16_length(str0);
         size_t str1_len = utf16_length(str1);
@@ -403,7 +433,8 @@ wchar_t* str_utils_add(const wchar_t* str0, const wchar_t* str1) {
         return 0;
 }
 
-char* str_utils_copy(const char* str) {
+_Check_return_ _Ret_maybenull_ char* str_utils_copy(
+    _In_z_ const char* str) {
     if (!str)
         return 0;
 
@@ -413,7 +444,8 @@ char* str_utils_copy(const char* str) {
     return p;
 }
 
-wchar_t* str_utils_copy(const wchar_t* str) {
+_Check_return_ _Ret_maybenull_ wchar_t* str_utils_copy(
+    _In_z_ const wchar_t* str) {
     if (!str)
         return 0;
 
@@ -423,7 +455,8 @@ wchar_t* str_utils_copy(const wchar_t* str) {
     return p;
 }
 
-inline int32_t str_utils_compare_length(const char* str0, size_t str0_len, const char* str1, size_t str1_len) {
+_Check_return_ int32_t str_utils_compare_length(
+    _In_z_ const char* str0, _In_ size_t str0_len, _In_z_ const char* str1, _In_ size_t str1_len) {
     if (!str0_len)
         return -*str1;
     else if (!str1_len)
@@ -460,7 +493,8 @@ inline int32_t str_utils_compare_length(const char* str0, size_t str0_len, const
     return c0 - c1;
 }
 
-inline int32_t str_utils_compare_length(const wchar_t* str0, size_t str0_len, const wchar_t* str1, size_t str1_len) {
+_Check_return_ int32_t str_utils_compare_length(
+    _In_z_ const wchar_t* str0, _In_ size_t str0_len, _In_z_ const wchar_t* str1, _In_ size_t str1_len) {
     if (!str0_len)
         return -*str1;
     else if (!str1_len)
@@ -497,8 +531,9 @@ inline int32_t str_utils_compare_length(const wchar_t* str0, size_t str0_len, co
     return c0 - c1;
 }
 
-size_t str_utils_get_substring_offset(const char* str0, size_t str0_len,
-    size_t str0_off, const char* str1, size_t str1_len) {
+_Check_return_ size_t str_utils_get_substring_offset(
+    _In_z_ const char* str0, _In_ size_t str0_len, _In_ size_t str0_off,
+    _In_z_ const char* str1, _In_ size_t str1_len) {
     if (!str1_len && str0_off <= str0_len)
         return str0_off;
 
@@ -520,8 +555,9 @@ size_t str_utils_get_substring_offset(const char* str0, size_t str0_len,
     return -1;
 }
 
-size_t str_utils_get_substring_offset(const wchar_t* str0, size_t str0_len,
-    size_t str0_off, const wchar_t* str1, size_t str1_len) {
+_Check_return_ size_t str_utils_get_substring_offset(
+    _In_z_ const wchar_t* str0, _In_ size_t str0_len, _In_ size_t str0_off,
+    _In_z_ const wchar_t* str1, _In_ size_t str1_len) {
     if (!str1_len && str0_off <= str0_len)
         return str0_off;
 
@@ -543,17 +579,18 @@ size_t str_utils_get_substring_offset(const wchar_t* str0, size_t str0_len,
     return -1;
 }
 
-bool str_utils_text_file_parse(const void* data, size_t size,
-    char*& buf, char**& lines, size_t& count) {
+_Check_return_ bool str_utils_text_file_parse(
+    _In_ const void* data, _In_ size_t size, _Out_ char*& buf, _Out_ char**& lines, _Out_ size_t& count) {
+    buf = 0;
+    lines = 0;
+    count = 0;
+
     if (!data || !size)
         return false;
 
     const char* d = (const char*)data;
     bool del = false;
     size_t c;
-    buf = 0;
-    lines = 0;
-    count = 0;
     if ((uint8_t)d[0] == 0x00)
         return false;
     else if (d[0] == 0xFF) {

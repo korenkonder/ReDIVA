@@ -55,6 +55,9 @@ void diva::read(const char* path) {
         return;
 
     char* path_diva = str_utils_add(path, ".diva");
+    if (!path_diva)
+        return;
+
     file_stream s;
     s.open(path_diva, "rb");
     if (s.check_not_null()) {
@@ -74,6 +77,9 @@ void diva::read(const wchar_t* path) {
         return;
 
     wchar_t* path_diva = str_utils_add(path, L".diva");
+    if (!path_diva)
+        return;
+
     file_stream s;
     s.open(path_diva, L"rb");
     if (s.check_not_null()) {
@@ -99,6 +105,9 @@ void diva::write(const char* path) {
     }
 
     char* path_diva = str_utils_add(path, ".diva");
+    if (!path_diva)
+        return;
+
     file_stream s;
     s.open(path_diva, "wb");
     if (s.check_not_null())
@@ -118,6 +127,9 @@ void diva::write(const wchar_t* path) {
         return;
 
     wchar_t* path_diva = str_utils_add(path, L".diva");
+    if (!path_diva)
+        return;
+
     file_stream s;
     s.open(path_diva, L"wb");
     if (s.check_not_null())

@@ -62,6 +62,9 @@ void motion_database_file::read(const char* path) {
         return;
 
     char* path_farc = str_utils_add(path, ".farc");
+    if (!path_farc)
+        return;
+
     if (path_check_file_exists(path_farc)) {
         farc f;
         f.read(path_farc, true, false);
@@ -81,6 +84,9 @@ void motion_database_file::read(const wchar_t* path) {
         return;
 
     wchar_t* path_farc = str_utils_add(path, L".farc");
+    if (!path_farc)
+        return;
+
     if (path_check_file_exists(path_farc)) {
         farc f;
         f.read(path_farc, true, false);

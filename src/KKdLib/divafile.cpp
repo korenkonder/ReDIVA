@@ -22,6 +22,9 @@ namespace divafile {
 
     void decrypt(const wchar_t* path) {
         wchar_t* file_temp = str_utils_add(path, L"_dec");
+        if (!file_temp)
+            return;
+
         file_stream s_enc;
         s_enc.open(path, L"rb");
         if (s_enc.check_not_null()) {
@@ -106,6 +109,9 @@ namespace divafile {
 
     void encrypt(const wchar_t* path) {
         wchar_t* file_temp = str_utils_add(path, L"_enc");
+        if (!file_temp)
+            return;
+
         file_stream s_dec;
         s_dec.open(path, L"rb");
         if (s_dec.check_not_null()) {

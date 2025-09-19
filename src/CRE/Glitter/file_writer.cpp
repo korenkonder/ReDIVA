@@ -2214,18 +2214,20 @@ namespace Glitter {
         }
 
         char* temp = str_utils_add(path, file);
-        if (glt_type != Glitter::FT && save_lst) {
+        if (glt_type != Glitter::FT && save_lst && temp) {
             char* list_temp = str_utils_add(temp, ".glitter.txt");
-            file_stream s;
-            s.open(list_temp, "wb");
-            if (s.check_not_null()) {
-                for (Glitter::Effect*& i : eff_group->effects)
-                    if (i) {
-                        s.write_string(i->name);
-                        s.write_char('\n');
-                    }
+            if (list_temp) {
+                file_stream s;
+                s.open(list_temp, "wb");
+                if (s.check_not_null()) {
+                    for (Glitter::Effect*& i : eff_group->effects)
+                        if (i) {
+                            s.write_string(i->name);
+                            s.write_char('\n');
+                        }
+                }
+                free_def(list_temp);
             }
-            free_def(list_temp);
         }
         f.write(temp, signature, flags, true, false);
         free_def(temp);

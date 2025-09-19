@@ -54,7 +54,7 @@ void* force_malloc(size_t size) {
     return buf;
 }
 
-wchar_t* utf8_to_utf16(const char* s) {
+_Check_return_ _Ret_maybenull_z_ wchar_t* utf8_to_utf16(_In_z_ const char* s) {
     if (!s)
         return 0;
 
@@ -109,7 +109,7 @@ wchar_t* utf8_to_utf16(const char* s) {
     return str;
 }
 
-wchar_t* utf8_to_utf16(const char* s, size_t length) {
+_Check_return_ _Ret_maybenull_z_ wchar_t* utf8_to_utf16(_In_z_ const char* s, _In_ size_t length) {
     if (!s || !length)
         return 0;
 
@@ -165,7 +165,7 @@ wchar_t* utf8_to_utf16(const char* s, size_t length) {
     return str;
 }
 
-char* utf16_to_utf8(const wchar_t* s) {
+_Check_return_ _Ret_maybenull_z_ char* utf16_to_utf8(_In_z_ const wchar_t* s) {
     if (!s)
         return 0;
 
@@ -217,7 +217,7 @@ char* utf16_to_utf8(const wchar_t* s) {
     return str;
 }
 
-char* utf16_to_utf8(const wchar_t* s, size_t length) {
+_Check_return_ _Ret_maybenull_z_ char* utf16_to_utf8(_In_z_ const wchar_t* s, _In_ size_t length) {
     if (!s || !length)
         return 0;
 

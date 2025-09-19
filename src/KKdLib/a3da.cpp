@@ -327,6 +327,9 @@ void a3da::read(const char* path) {
         return;
 
     char* path_a3da = str_utils_add(path, (char*)".a3da");
+    if (!path_a3da)
+        return;
+
     if (path_check_file_exists(path_a3da)) {
         file_stream s;
         s.open(path_a3da, "rb");
@@ -341,6 +344,9 @@ void a3da::read(const wchar_t* path) {
         return;
 
     wchar_t* path_a3da = str_utils_add(path, (wchar_t*)L".a3da");
+    if (!path_a3da)
+        return;
+
     if (path_check_file_exists(path_a3da)) {
         file_stream s;
         s.open(path_a3da, L"rb");
@@ -364,6 +370,9 @@ void a3da::write(const char* path) {
         return;
 
     char* path_a3da = str_utils_add(path, ".a3da");
+    if (!path_a3da)
+        return;
+
     file_stream s;
     s.open(path_a3da, "wb");
     if (s.check_not_null())
@@ -376,6 +385,9 @@ void a3da::write(const wchar_t* path) {
         return;
 
     wchar_t* path_a3da = str_utils_add(path, L".a3da");
+    if (!path_a3da)
+        return;
+
     file_stream s;
     s.open(path_a3da, L"wb");
     if (s.check_not_null())

@@ -8,8 +8,14 @@
 #include "file_stream.hpp"
 #include <fstream>
 
-bool path_check_path_exists(const char* path) {
+bool path_check_path_exists(_In_z_ const char* path) {
+    if (!path)
+        return false;
+
     wchar_t* path_temp = utf8_to_utf16(path);
+    if (!path_temp)
+        return false;
+
     DWORD ftyp = GetFileAttributesW(path_temp);
     free_def(path_temp);
     if (ftyp == INVALID_FILE_ATTRIBUTES)
@@ -18,7 +24,10 @@ bool path_check_path_exists(const char* path) {
         return true;
 }
 
-bool path_check_path_exists(const wchar_t* path) {
+bool path_check_path_exists(_In_z_ const wchar_t* path) {
+    if (!path)
+        return false;
+
     DWORD ftyp = GetFileAttributesW(path);
     if (ftyp == INVALID_FILE_ATTRIBUTES)
         return false;
@@ -26,8 +35,14 @@ bool path_check_path_exists(const wchar_t* path) {
         return true;
 }
 
-bool path_check_file_exists(const char* path) {
+bool path_check_file_exists(_In_z_ const char* path) {
+    if (!path)
+        return false;
+
     wchar_t* path_temp = utf8_to_utf16(path);
+    if (!path_temp)
+        return false;
+
     DWORD ftyp = GetFileAttributesW(path_temp);
     free_def(path_temp);
     if (ftyp == INVALID_FILE_ATTRIBUTES)
@@ -36,7 +51,10 @@ bool path_check_file_exists(const char* path) {
         return ftyp & FILE_ATTRIBUTE_DIRECTORY ? false : true;
 }
 
-bool path_check_file_exists(const wchar_t* path) {
+bool path_check_file_exists(_In_z_ const wchar_t* path) {
+    if (!path)
+        return false;
+
     DWORD ftyp = GetFileAttributesW(path);
     if (ftyp == INVALID_FILE_ATTRIBUTES)
         return false;
@@ -44,8 +62,14 @@ bool path_check_file_exists(const wchar_t* path) {
         return ftyp & FILE_ATTRIBUTE_DIRECTORY ? false : true;
 }
 
-bool path_check_directory_exists(const char* path) {
+bool path_check_directory_exists(_In_z_ const char* path) {
+    if (!path)
+        return false;
+
     wchar_t* path_temp = utf8_to_utf16(path);
+    if (!path_temp)
+        return false;
+
     DWORD ftyp = GetFileAttributesW(path_temp);
     free_def(path_temp);
     if (ftyp == INVALID_FILE_ATTRIBUTES)
@@ -54,7 +78,10 @@ bool path_check_directory_exists(const char* path) {
         return ftyp & FILE_ATTRIBUTE_DIRECTORY ? true : false;
 }
 
-bool path_check_directory_exists(const wchar_t* path) {
+bool path_check_directory_exists(_In_z_ const wchar_t* path) {
+    if (!path)
+        return false;
+
     DWORD ftyp = GetFileAttributesW(path);
     if (ftyp == INVALID_FILE_ATTRIBUTES)
         return false;
@@ -62,8 +89,14 @@ bool path_check_directory_exists(const wchar_t* path) {
         return ftyp & FILE_ATTRIBUTE_DIRECTORY ? true : false;
 }
 
-std::vector<std::string> path_get_files(const char* path) {
+std::vector<std::string> path_get_files(_In_z_ const char* path) {
+    if (!path)
+        return {};
+
     wchar_t* dir_temp = utf8_to_utf16(path);
+    if (!dir_temp)
+        return {};
+
     size_t dir_len = utf16_length(dir_temp);
     if (!dir_temp)
         return {};
@@ -88,14 +121,17 @@ std::vector<std::string> path_get_files(const char* path) {
         char* file_temp = utf16_to_utf8(fdata.cFileName);
         if (file_temp) {
             files.push_back(file_temp);
-            free(file_temp);
+            free_def(file_temp);
         }
     } while (FindNextFileW(h, &fdata));
     FindClose(h);
     return files;
 }
 
-std::vector<std::wstring> path_get_files(const wchar_t* path) {
+std::vector<std::wstring> path_get_files(_In_z_ const wchar_t* path) {
+    if (!path)
+        return {};
+
     size_t dir_len = utf16_length(path);
 
     std::wstring dir;
@@ -121,8 +157,14 @@ std::vector<std::wstring> path_get_files(const wchar_t* path) {
 }
 
 std::vector<std::string> path_get_directories(
-    const char* path, const char** exclude_list, size_t exclude_count) {
+    _In_z_ const char* path, _In_opt_ const char** exclude_list, _In_opt_ size_t exclude_count) {
+    if (!path)
+        return {};
+
     wchar_t* dir_temp = utf8_to_utf16(path);
+    if (!dir_temp)
+        return {};
+
     size_t dir_len = utf16_length(dir_temp);
     if (!dir_temp)
         return {};
@@ -178,7 +220,10 @@ std::vector<std::string> path_get_directories(
 }
 
 std::vector<std::wstring> path_get_directories(
-    const wchar_t* path, const wchar_t** exclude_list, size_t exclude_count) {
+    _In_z_ const wchar_t* path, _In_opt_ const wchar_t** exclude_list, _In_opt_ size_t exclude_count) {
+    if (!path)
+        return {};
+
     size_t dir_len = utf16_length(path);
 
     std::wstring dir;
@@ -227,8 +272,14 @@ std::vector<std::wstring> path_get_directories(
 }
 
 std::vector<std::string> path_get_directories_recursive(
-    const char* path, const char** exclude_list, size_t exclude_count) {
+    _In_z_ const char* path, _In_opt_ const char** exclude_list, _In_opt_ size_t exclude_count) {
+    if (!path)
+        return {};
+
     wchar_t* dir_temp = utf8_to_utf16(path);
+    if (!dir_temp)
+        return {};
+
     size_t dir_len = utf16_length(dir_temp);
     if (!dir_temp)
         return {};
@@ -321,7 +372,10 @@ std::vector<std::string> path_get_directories_recursive(
 }
 
 std::vector<std::wstring> path_get_directories_recursive(
-    const wchar_t* path, const wchar_t** exclude_list, size_t exclude_count) {
+    _In_z_ const wchar_t* path, _In_opt_ const wchar_t** exclude_list, _In_opt_ size_t exclude_count) {
+    if (!path)
+        return {};
+
     size_t dir_len = utf16_length(path);
 
     std::wstring dir;
@@ -408,7 +462,7 @@ std::vector<std::wstring> path_get_directories_recursive(
     return directories;
 }
 
-void path_get_full_path(std::string& str) {
+void path_get_full_path(_Inout_ std::string& str) {
     wchar_t buf[MAX_PATH * 2];
     buf[0] = 0;
     wchar_t* utf16_temp = utf8_to_utf16(str.c_str());
@@ -416,20 +470,20 @@ void path_get_full_path(std::string& str) {
         GetFullPathNameW(utf16_temp, MAX_PATH * 2, buf, 0);
     free_def(utf16_temp);
 
-    char* utf0_temp = utf16_to_utf8(buf);
-    if (utf0_temp)
-        str.assign(utf0_temp);
-    free_def(utf0_temp);
+    char* utf8_temp = utf16_to_utf8(buf);
+    if (utf8_temp)
+        str.assign(utf8_temp);
+    free_def(utf8_temp);
 }
 
-void path_get_full_path(std::wstring& str) {
+void path_get_full_path(_Inout_ std::wstring& str) {
     wchar_t buf[MAX_PATH * 2];
     buf[0] = 0;
     GetFullPathNameW(str.c_str(), MAX_PATH * 2, buf, 0);
     str.assign(buf);
 }
 
-bool path_create_file(const char* path) {
+bool path_create_file(_In_z_ const char* path) {
     file_stream fs;
     fs.open(path, "wb");
     bool ret = fs.check_not_null();
@@ -437,7 +491,7 @@ bool path_create_file(const char* path) {
     return ret;
 }
 
-bool path_create_file(const wchar_t* path) {
+bool path_create_file(_In_z_ const wchar_t* path) {
     file_stream fs;
     fs.open(path, L"wb");
     bool ret = fs.check_not_null();
@@ -445,8 +499,11 @@ bool path_create_file(const wchar_t* path) {
     return ret;
 }
 
-bool path_create_directory(const char* path) {
+bool path_create_directory(_In_z_ const char* path) {
     wchar_t* path_temp = utf8_to_utf16(path);
+    if (!path_temp)
+        return false;
+
     const wchar_t* _path = path_temp;
     while (true) {
         const wchar_t* c = wcschr(_path, L'\\');
@@ -469,8 +526,11 @@ bool path_create_directory(const char* path) {
     return ret;
 }
 
-bool path_create_directory(const wchar_t* path) {
+bool path_create_directory(_In_z_ const wchar_t* path) {
     const wchar_t* _path = path;
+    if (!_path)
+        return false;
+
     while (true) {
         const wchar_t* c = wcschr(_path, L'\\');
         if (!c)
@@ -488,18 +548,24 @@ bool path_create_directory(const wchar_t* path) {
     return path_check_directory_exists(path) || CreateDirectoryW(path, 0);
 }
 
-bool path_delete_file(const char* path) {
+bool path_delete_file(_In_z_ const char* path) {
     wchar_t* path_temp = utf8_to_utf16(path);
+    if (!path_temp)
+        return false;
+
     bool ret = !path_check_file_exists(path_temp) || DeleteFileW(path_temp);
     free_def(path_temp);
     return ret;
 }
 
-bool path_delete_file(const wchar_t* path) {
+bool path_delete_file(_In_z_ const wchar_t* path) {
+    if (!path)
+        return false;
+
     return !path_check_file_exists(path) || DeleteFileW(path);
 }
 
-bool path_delete_directory(const char* path) {
+bool path_delete_directory(_In_z_ const char* path) {
     std::string dir;
     dir.assign(path);
     if (dir.size() && dir.back() != L'\\' && dir.back() != L'/')
@@ -514,12 +580,15 @@ bool path_delete_directory(const char* path) {
         path_delete_directory((dir + i).c_str());
 
     wchar_t* path_temp = utf8_to_utf16(path);
+    if (!path_temp)
+        return false;
+
     bool ret = !path_check_directory_exists(path_temp) || RemoveDirectoryW(path_temp);
     free_def(path_temp);
     return ret;
 }
 
-bool path_delete_directory(const wchar_t* path) {
+bool path_delete_directory(_In_z_ const wchar_t* path) {
     std::wstring dir;
     dir.assign(path);
     if (dir.size() && dir.back() != L'\\' && dir.back() != L'/')
@@ -536,7 +605,7 @@ bool path_delete_directory(const wchar_t* path) {
     return !path_check_directory_exists(path) || RemoveDirectoryW(path);
 }
 
-bool path_copy_file(const char* src, const char* dst) {
+bool path_copy_file(_In_z_ const char* src, _In_z_ const char* dst) {
     if (!path_check_file_exists(src)
         || path_check_directory_exists(dst))
         return false;
@@ -558,7 +627,7 @@ bool path_copy_file(const char* src, const char* dst) {
     return true;
 }
 
-bool path_copy_file(const wchar_t* src, const wchar_t* dst) {
+bool path_copy_file(_In_z_ const wchar_t* src, _In_z_ const wchar_t* dst) {
     if (!path_check_file_exists(src)
         || path_check_directory_exists(dst))
         return false;
@@ -576,9 +645,14 @@ bool path_copy_file(const wchar_t* src, const wchar_t* dst) {
     return true;
 }
 
-int32_t path_compare_files(const char* path_1, const char* path_2) {
+_Check_return_ int32_t path_compare_files(_In_z_ const char* path_1, _In_z_ const char* path_2) {
     wchar_t* path_1_temp = utf8_to_utf16(path_1);
     wchar_t* path_2_temp = utf8_to_utf16(path_2);
+    if (!path_1_temp || !path_2_temp) {
+        free_def(path_1_temp);
+        free_def(path_2_temp);
+        return 0;
+    }
 
     int32_t ret;
     if (!path_check_path_exists(path_1_temp))
@@ -607,8 +681,8 @@ int32_t path_compare_files(const char* path_1, const char* path_2) {
             std::ifstream ifs_1(path_1_temp, std::ios::in | std::ios::binary);
             std::ifstream ifs_2(path_2_temp, std::ios::in | std::ios::binary);
             while (ifs_1.good() && ifs_2.good()) {
-                char buf_1[0x200];
-                char buf_2[0x200];
+                char buf_1[0x400];
+                char buf_2[0x400];
                 ifs_1.read(buf_1, sizeof(buf_1));
                 ifs_2.read(buf_2, sizeof(buf_2));
                 if (ifs_1.gcount() != ifs_2.gcount()) {
@@ -630,7 +704,7 @@ int32_t path_compare_files(const char* path_1, const char* path_2) {
     return ret;
 }
 
-int32_t path_compare_files(const wchar_t* path_1, const wchar_t* path_2) {
+_Check_return_ int32_t path_compare_files(_In_z_ const wchar_t* path_1, _In_z_ const wchar_t* path_2) {
     int32_t ret;
     if (!path_check_path_exists(path_1))
         ret = -1;
@@ -658,8 +732,8 @@ int32_t path_compare_files(const wchar_t* path_1, const wchar_t* path_2) {
             std::ifstream ifs_1(path_1, std::ios::in | std::ios::binary);
             std::ifstream ifs_2(path_2, std::ios::in | std::ios::binary);
             while (ifs_1.good() && ifs_2.good()) {
-                char buf_1[0x200];
-                char buf_2[0x200];
+                char buf_1[0x400];
+                char buf_2[0x400];
                 ifs_1.read(buf_1, sizeof(buf_1));
                 ifs_2.read(buf_2, sizeof(buf_2));
                 if (ifs_1.gcount() != ifs_2.gcount()) {
@@ -678,7 +752,7 @@ int32_t path_compare_files(const wchar_t* path_1, const wchar_t* path_2) {
     return ret;
 }
 
-bool path_fs_copy_file(const char* src, const char* dst) {
+bool path_fs_copy_file(_In_z_ const char* src, _In_z_ const char* dst) {
     std::string _dst(dst);
     _dst.append(".fs_copy_file.tmp");
     if (path_copy_file(src, _dst.c_str()))
@@ -686,7 +760,7 @@ bool path_fs_copy_file(const char* src, const char* dst) {
     return false;
 }
 
-bool path_fs_copy_file(const wchar_t* src, const wchar_t* dst) {
+bool path_fs_copy_file(_In_z_ const wchar_t* src, _In_z_ const wchar_t* dst) {
     std::wstring _dst(dst);
     _dst.append(L".fs_copy_file.tmp");
     if (path_copy_file(src, _dst.c_str()))
@@ -694,17 +768,26 @@ bool path_fs_copy_file(const wchar_t* src, const wchar_t* dst) {
     return false;
 }
 
-bool path_move_file(const char* old_path, const char* new_path) {
+bool path_move_file(_In_z_ const char* old_path, _In_z_ const char* new_path) {
+    if (!old_path || !new_path)
+        return false;
+
     wchar_t* old_path_temp = utf8_to_utf16(old_path);
     wchar_t* new_path_temp = utf8_to_utf16(new_path);
-    path_delete_file(new_path_temp);
-    bool ret = MoveFileW(old_path_temp, new_path_temp);
+    bool ret = false;
+    if (old_path_temp && new_path_temp) {
+        path_delete_file(new_path_temp);
+        ret = MoveFileW(old_path_temp, new_path_temp);
+    }
     free_def(old_path_temp);
     free_def(new_path_temp);
     return ret;
 }
 
-bool path_move_file(const wchar_t* old_path, const wchar_t* new_path) {
+bool path_move_file(_In_z_ const wchar_t* old_path, _In_z_ const wchar_t* new_path) {
+    if (!old_path || !new_path)
+        return false;
+
     path_delete_file(new_path);
     return MoveFileW(old_path, new_path);
 }

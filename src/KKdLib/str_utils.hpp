@@ -9,51 +9,87 @@
 #include <vector>
 #include "default.hpp"
 
-inline int32_t str_utils_compare(const char* str0, const char* str1) {
+inline _Check_return_ int32_t str_utils_compare(_In_z_ const char* str0, _In_z_ const char* str1) {
     return strcmp(str0, str1);
 }
 
-inline int32_t str_utils_compare(const wchar_t* str0, const wchar_t* str1) {
+inline _Check_return_ int32_t str_utils_compare(_In_z_ const wchar_t* str0, _In_z_ const wchar_t* str1) {
     return wcscmp(str0, str1);
 }
 
-extern bool str_utils_check_ends_with(const char* str, const char* mask);
-extern bool str_utils_check_ends_with(const wchar_t* str, const wchar_t* mask);
-extern const char* str_utils_get_next_int32_t(const char* str, int32_t& value, const char split);
-extern const wchar_t* str_utils_get_next_int32_t(const wchar_t* str, int32_t& value, const wchar_t split);
-extern const char* str_utils_get_next_float_t(const char* str, float_t& value, const char split);
-extern const wchar_t* str_utils_get_next_float_t(const wchar_t* str, float_t& value, const wchar_t split);
-extern const char* str_utils_get_next_string(const char* str, std::string& value, const char split);
-extern const wchar_t* str_utils_get_next_string(const wchar_t* str, std::wstring& value, const wchar_t split);
-extern char* str_utils_split_get_right(const char* str, const char split);
-extern wchar_t* str_utils_split_get_right(const wchar_t* str, const wchar_t split);
-extern char* str_utils_split_get_left(const char* str, const char split);
-extern wchar_t* str_utils_split_get_left(const wchar_t* str, const wchar_t split);
-extern char* str_utils_split_get_right_include(const char* str, const char split);
-extern wchar_t* str_utils_split_get_right_include(const wchar_t* str, const wchar_t split);
-extern char* str_utils_split_get_left_include(const char* str, const char split);
-extern wchar_t* str_utils_split_get_left_include(const wchar_t* str, const wchar_t split);
-extern char* str_utils_split_right_get_right(const char* str, const char split);
-extern wchar_t* str_utils_split_right_get_right(const wchar_t* str, const wchar_t split);
-extern char* str_utils_split_right_get_left(const char* str, const char split);
-extern wchar_t* str_utils_split_right_get_left(const wchar_t* str, const wchar_t split);
-extern char* str_utils_split_right_get_right_include(const char* str, const char split);
-extern wchar_t* str_utils_split_right_get_right_include(const wchar_t* str, const wchar_t split);
-extern char* str_utils_split_right_get_left_include(const char* str, const char split);
-extern wchar_t* str_utils_split_right_get_left_include(const wchar_t* str, const wchar_t split);
-extern char* str_utils_get_extension(const char* str);
-extern wchar_t* str_utils_get_extension(const wchar_t* str);
-extern char* str_utils_get_without_extension(const char* str);
-extern wchar_t* str_utils_get_without_extension(const wchar_t* str);
-extern char* str_utils_add(const char* str0, const char* str1);
-extern wchar_t* str_utils_add(const wchar_t* str0, const wchar_t* str1);
-extern char* str_utils_copy(const char* str);
-extern wchar_t* str_utils_copy(const wchar_t* str);
-extern int32_t str_utils_compare_length(const char* str0, size_t str0_len, const char* str1, size_t str1_len);
-extern int32_t str_utils_compare_length(const wchar_t* str0, size_t str0_len, const wchar_t* str1, size_t str1_len);
-extern size_t str_utils_get_substring_offset(const char* str0, size_t str0_len,
-    size_t str0_off, const char* str1, size_t str1_len);
-extern size_t str_utils_get_substring_offset(const wchar_t* str0, size_t str0_len,
-    size_t str0_off, const wchar_t* str1, size_t str1_len);
-extern bool str_utils_text_file_parse(const void* data, size_t size,
-    char*& buf, char**& lines, size_t& count);
+extern _Check_return_ bool str_utils_check_ends_with(
+    _In_z_ const char* str, _In_z_ const char* mask);
+extern _Check_return_ bool str_utils_check_ends_with(
+    _In_z_ const wchar_t* str, _In_z_ const wchar_t* mask);
+extern _Check_return_ _Ret_maybenull_ const char* str_utils_get_next_int32_t(
+    _In_opt_z_ const char* str, _Out_ int32_t& value, _In_ const char split);
+extern _Check_return_ _Ret_maybenull_ const wchar_t* str_utils_get_next_int32_t(
+    _In_opt_z_ const wchar_t* str, _Out_ int32_t& value, _In_ const wchar_t split);
+extern _Check_return_ _Ret_maybenull_ const char* str_utils_get_next_float_t(
+    _In_opt_z_ const char* str, _Out_ float_t& value, _In_ const char split);
+extern _Check_return_ _Ret_maybenull_ const wchar_t* str_utils_get_next_float_t(
+    _In_opt_z_ const wchar_t* str, _Out_ float_t& value, _In_ const wchar_t split);
+extern _Check_return_ _Ret_maybenull_ const char* str_utils_get_next_string(
+    _In_opt_z_ const char* str, _Out_ std::string& value, _In_ const char split);
+extern _Check_return_ _Ret_maybenull_ const wchar_t* str_utils_get_next_string(
+    _In_opt_z_ const wchar_t* str, _Out_ std::wstring& value, _In_ const wchar_t split);
+extern _Check_return_ _Ret_maybenull_ char* str_utils_split_get_right(
+    _In_z_ const char* str, _In_ const char split);
+extern _Check_return_ _Ret_maybenull_ wchar_t* str_utils_split_get_right(
+    _In_z_ const wchar_t* str, _In_ const wchar_t split);
+extern _Check_return_ _Ret_maybenull_ char* str_utils_split_get_left(
+    _In_z_ const char* str, _In_ const char split);
+extern _Check_return_ _Ret_maybenull_ wchar_t* str_utils_split_get_left(
+    _In_z_ const wchar_t* str, _In_ const wchar_t split);
+extern _Check_return_ _Ret_maybenull_ char* str_utils_split_get_right_include(
+    _In_z_ const char* str, _In_ const char split);
+extern _Check_return_ _Ret_maybenull_ wchar_t* str_utils_split_get_right_include(
+    _In_z_ const wchar_t* str, _In_ const wchar_t split);
+extern _Check_return_ _Ret_maybenull_ char* str_utils_split_get_left_include(
+    _In_z_ const char* str, _In_ const char split);
+extern _Check_return_ _Ret_maybenull_ wchar_t* str_utils_split_get_left_include(
+    _In_z_ const wchar_t* str, _In_ const wchar_t split);
+extern _Check_return_ _Ret_maybenull_ char* str_utils_split_right_get_right(
+    _In_z_ const char* str, _In_ const char split);
+extern _Check_return_ _Ret_maybenull_ wchar_t* str_utils_split_right_get_right(
+    _In_z_ const wchar_t* str, _In_ const wchar_t split);
+extern _Check_return_ _Ret_maybenull_ char* str_utils_split_right_get_left(
+    _In_z_ const char* str, _In_ const char split);
+extern _Check_return_ _Ret_maybenull_ wchar_t* str_utils_split_right_get_left(
+    _In_z_ const wchar_t* str, _In_ const wchar_t split);
+extern _Check_return_ _Ret_maybenull_ char* str_utils_split_right_get_right_include(
+    _In_z_ const char* str, _In_ const char split);
+extern _Check_return_ _Ret_maybenull_ wchar_t* str_utils_split_right_get_right_include(
+    _In_z_ const wchar_t* str, _In_ const wchar_t split);
+extern _Check_return_ _Ret_maybenull_ char* str_utils_split_right_get_left_include(
+    _In_z_ const char* str, _In_ const char split);
+extern _Check_return_ _Ret_maybenull_ wchar_t* str_utils_split_right_get_left_include(
+    _In_z_ const wchar_t* str, _In_ const wchar_t split);
+extern _Check_return_ _Ret_maybenull_ char* str_utils_get_extension(
+    _In_z_ const char* str);
+extern _Check_return_ _Ret_maybenull_ wchar_t* str_utils_get_extension(
+    _In_z_ const wchar_t* str);
+extern _Check_return_ _Ret_maybenull_ char* str_utils_get_without_extension(
+    _In_z_ const char* str);
+extern _Check_return_ _Ret_maybenull_ wchar_t* str_utils_get_without_extension(
+    _In_z_ const wchar_t* str);
+extern _Check_return_ _Ret_maybenull_ char* str_utils_add(
+    _In_z_ const char* str0, _In_z_ const char* str1);
+extern _Check_return_ _Ret_maybenull_ wchar_t* str_utils_add(
+    _In_z_ const wchar_t* str0, _In_z_ const wchar_t* str1);
+extern _Check_return_ _Ret_maybenull_ char* str_utils_copy(
+    _In_z_ const char* str);
+extern _Check_return_ _Ret_maybenull_ wchar_t* str_utils_copy(
+    _In_z_ const wchar_t* str);
+extern _Check_return_ int32_t str_utils_compare_length(
+    _In_z_ const char* str0, _In_ size_t str0_len, _In_z_ const char* str1, _In_ size_t str1_len);
+extern _Check_return_ int32_t str_utils_compare_length(
+    _In_z_ const wchar_t* str0, _In_ size_t str0_len, _In_z_ const wchar_t* str1, _In_ size_t str1_len);
+extern _Check_return_ size_t str_utils_get_substring_offset(
+    _In_z_ const char* str0, _In_ size_t str0_len, _In_ size_t str0_off,
+    _In_z_ const char* str1, _In_ size_t str1_len);
+extern _Check_return_ size_t str_utils_get_substring_offset(
+    _In_z_ const wchar_t* str0, _In_ size_t str0_len, _In_ size_t str0_off,
+    _In_z_ const wchar_t* str1, _In_ size_t str1_len);
+extern _Check_return_ bool str_utils_text_file_parse(
+    _In_ const void* data, _In_ size_t size, _Out_ char*& buf, _Out_ char**& lines, _Out_ size_t& count);

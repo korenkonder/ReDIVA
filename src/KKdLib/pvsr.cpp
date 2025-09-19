@@ -122,6 +122,9 @@ void pvsr::read(const char* path) {
         return;
 
     char* path_pvsr = str_utils_add(path, ".pvsr");
+    if (!path_pvsr)
+        return;
+
     if (path_check_file_exists(path_pvsr)) {
         file_stream s;
         s.open(path_pvsr, "rb");
@@ -136,6 +139,9 @@ void pvsr::read(const wchar_t* path) {
         return;
 
     wchar_t* path_pvsr = str_utils_add(path, L".pvsr");
+    if (!path_pvsr)
+        return;
+
     if (path_check_file_exists(path_pvsr)) {
         file_stream s;
         s.open(path_pvsr, L"rb");

@@ -64,11 +64,11 @@ namespace ImGui {
 
         char* label_temp = str_utils_copy(label);
         char* temp;
-        if (temp = strstr(label_temp, "##"))
+        if (label_temp && (temp = strstr(label_temp, "##")))
             *temp = 0;
         TableNextColumn();
         GetContentRegionAvailSetNextItemWidth();
-        Text(label_temp);
+        Text(label_temp ? label_temp : "");
         if (label_temp)
             free(label_temp);
 
@@ -314,12 +314,12 @@ namespace ImGui {
 
         char* label_temp = str_utils_copy(label);
         char* temp;
-        if (temp = strstr(label_temp, "##"))
+        if (label_temp && (temp = strstr(label_temp, "##")))
             *temp = 0;
         TableNextColumn();
         GetContentRegionAvailSetNextItemWidth();
         DisableElementPush(enable);
-        Text(label_temp);
+        Text(label_temp ? label_temp : "");
         DisableElementPop(enable);
         if (label_temp)
             free(label_temp);

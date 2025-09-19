@@ -118,7 +118,8 @@ farc_file* farc::add_file(const wchar_t* name) {
     files.push_back({});
     if (name) {
         char* name_temp = utf16_to_utf8(name);
-        files.back().name.assign(name_temp);
+        if (name_temp)
+            files.back().name.assign(name_temp);
         free_def(name_temp);
     }
 
@@ -254,6 +255,9 @@ void farc::read(const wchar_t* path, bool unpack, bool save) {
         return;
 
     char* dir_temp = utf16_to_utf8(full_path_buf);
+    if (!dir_temp)
+        return;
+
     size_t dir_temp_len = utf8_length(dir_temp);
     file_path.assign(dir_temp, dir_temp_len);
     directory_path.assign(dir_temp, dir_temp_len);
@@ -356,6 +360,9 @@ void farc::write(const wchar_t* path, farc_signature signature,
         return;
 
     char* dir_temp = utf16_to_utf8(full_path_buf);
+    if (!dir_temp)
+        return;
+
     size_t dir_temp_len = utf8_length(dir_temp);
     directory_path.assign(dir_temp, dir_temp_len);
     file_path.assign(dir_temp, dir_temp_len);
@@ -394,7 +401,8 @@ bool farc::load_file(void* data, const char* dir, const char* file, uint32_t has
 
     char buf[0x1000];
     memcpy(buf, dir, dir_len);
-    memcpy(buf + dir_len, file, file_len + 1);
+    memcpy(buf + dir_len, file, file_len);
+    buf[dir_len + file_len] = 0;
     if (!path_check_file_exists(buf))
         return false;
 
@@ -946,7 +954,8 @@ static void farc_unpack_files(farc* f, stream& s, bool save) {
 
     if (save) {
         wchar_t* dir_temp = utf8_to_utf16(f->directory_path.c_str());
-        path_create_directory(dir_temp);
+        if (dir_temp)
+            path_create_directory(dir_temp);
         free_def(dir_temp);
     }
 

@@ -157,7 +157,7 @@ int32_t file_stream::set_position(int64_t pos, int32_t seek) {
     return _fseeki64(stream, pos, seek);
 }
 
-void file_stream::open(const char* path, const char* mode) {
+void file_stream::open(_In_z_ const char* path, _In_z_ const char* mode) {
     close();
 
     if (!path || !mode)
@@ -165,13 +165,15 @@ void file_stream::open(const char* path, const char* mode) {
 
     wchar_t* temp_path = utf8_to_utf16(path);
     wchar_t* temp_mode = utf8_to_utf16(mode);
-    stream = _wfsopen(temp_path, temp_mode, _SH_DENYNO);
-    get_length();
-    free_def(temp_path);
-    free_def(temp_mode);
+    if (temp_path && temp_mode) {
+        stream = _wfsopen(temp_path, temp_mode, _SH_DENYNO);
+        get_length();
+    }
+    free(temp_path);
+    free(temp_mode);
 }
 
-void file_stream::open(const wchar_t* path, const wchar_t* mode) {
+void file_stream::open(_In_z_ const wchar_t* path, _In_z_ const wchar_t* mode) {
     close();
 
     if (!path || !mode)

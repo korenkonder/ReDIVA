@@ -51,6 +51,9 @@ void texture_database_file::read(const char* path, bool modern) {
 
     if (!modern) {
         char* path_bin = str_utils_add(path, ".bin");
+        if (!path_bin)
+            return;
+
         if (path_check_file_exists(path_bin)) {
             file_stream s;
             s.open(path_bin, "rb");
@@ -67,6 +70,9 @@ void texture_database_file::read(const char* path, bool modern) {
     }
     else {
         char* path_txi = str_utils_add(path, ".txi");
+        if (!path_txi)
+            return;
+
         if (path_check_file_exists(path_txi)) {
             f2_struct st;
             st.read(path_txi);
@@ -87,6 +93,9 @@ void texture_database_file::read(const wchar_t* path, bool modern) {
 
     if (!modern) {
         wchar_t* path_bin = str_utils_add(path, L".bin");
+        if (!path_bin)
+            return;
+
         if (path_check_file_exists(path_bin)) {
             file_stream s;
             s.open(path_bin, L"rb");
@@ -103,6 +112,9 @@ void texture_database_file::read(const wchar_t* path, bool modern) {
     }
     else {
         wchar_t* path_txi = str_utils_add(path, L".txi");
+        if (!path_txi)
+            return;
+
         if (path_check_file_exists(path_txi)) {
             f2_struct st;
             st.read(path_txi);
@@ -144,6 +156,9 @@ void texture_database_file::write(const char* path) {
 
     if (!modern) {
         char* path_bin = str_utils_add(path, ".bin");
+        if (!path_bin)
+            return;
+
         file_stream s;
         s.open(path_bin, "wb");
         if (s.check_not_null())
@@ -152,6 +167,9 @@ void texture_database_file::write(const char* path) {
     }
     else {
         char* path_txi = str_utils_add(path, ".txi");
+        if (!path_txi)
+            return;
+
         file_stream s;
         s.open(path_txi, "wb");
         if (s.check_not_null())
@@ -166,6 +184,9 @@ void texture_database_file::write(const wchar_t* path) {
 
     if (!modern) {
         wchar_t* path_bin = str_utils_add(path, L".bin");
+        if (!path_bin)
+            return;
+
         file_stream s;
         s.open(path_bin, L"wb");
         if (s.check_not_null())
@@ -174,6 +195,9 @@ void texture_database_file::write(const wchar_t* path) {
     }
     else {
         wchar_t* path_txi = str_utils_add(path, L".txi");
+        if (!path_txi)
+            return;
+
         file_stream s;
         s.open(path_txi, L"wb");
         if (s.check_not_null())

@@ -1457,7 +1457,7 @@ static void glitter_editor_open_window(GlitterEditor* glt_edt) {
     ofn.lpstrTitle = L"File to Open";
     if (GetOpenFileNameW(&ofn)) {
         char* file_temp = utf16_to_utf8(file);
-        glt_edt->file.assign(file_temp);
+        glt_edt->file.assign(file_temp ? file_temp : "");
         free_def(file_temp);
         glt_edt->load_popup = true;
     }
@@ -1491,7 +1491,8 @@ static void glitter_editor_save_as_window(GlitterEditor* glt_edt) {
     ofn.Flags = OFN_NONETWORKBUTTON;
     if (GetSaveFileNameW(&ofn)) {
         char* file_temp = utf16_to_utf8(file);
-        glt_edt->file.assign(file_temp);
+        if (file_temp)
+            glt_edt->file.assign(file_temp);
         free_def(file_temp);
         glitter_editor_save(glt_edt);
     }
@@ -1568,7 +1569,7 @@ static void glitter_editor_load_file(GlitterEditor* glt_edt, const char* path, c
             if (elem != hashes.end())
                 e->name.assign(elem->second);
             else {
-                printf_debug("Couldn't find name for hash 0x%08X\n", e->data.name_hash);
+                printf_debug("Couldn't find name for hash 0x%08X\n", (uint32_t)e->data.name_hash);
                 load_success = false;
             }
         }
@@ -1595,7 +1596,7 @@ static void glitter_editor_load_file(GlitterEditor* glt_edt, const char* path, c
             if (elem != hashes.end())
                 e->name.assign(elem->second);
             else {
-                printf_debug("Couldn't find name for hash 0x%016X\n", e->data.name_hash);
+                printf_debug("Couldn't find name for hash 0x%016llX\n", e->data.name_hash);
                 load_success = false;
             }
         }

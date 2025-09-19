@@ -129,17 +129,17 @@ std::wstring stream::read_wstring_null_terminated_offset(int64_t offset) {
     return str;
 }
 
-char* stream::read_utf8_string_null_terminated() {
+_Check_return_ _Ret_maybenull_z_ char* stream::read_utf8_string_null_terminated() {
     int64_t offset = get_position();
     return read_utf8_string_null_terminated_offset(offset);
 }
 
-wchar_t* stream::read_utf16_string_null_terminated() {
+_Check_return_ _Ret_maybenull_z_ wchar_t* stream::read_utf16_string_null_terminated() {
     int64_t offset = get_position();
     return read_utf16_string_null_terminated_offset(offset);
 }
 
-char* stream::read_utf8_string_null_terminated_offset(int64_t offset) {
+_Check_return_ _Ret_maybenull_z_ char* stream::read_utf8_string_null_terminated_offset(int64_t offset) {
     size_t len = read_utf8_string_null_terminated_offset_length(offset);
     if (!len) {
         return 0;
@@ -153,7 +153,7 @@ char* stream::read_utf8_string_null_terminated_offset(int64_t offset) {
     return str;
 }
 
-wchar_t* stream::read_utf16_string_null_terminated_offset(int64_t offset) {
+_Check_return_ _Ret_maybenull_z_ wchar_t* stream::read_utf16_string_null_terminated_offset(int64_t offset) {
     size_t len = read_utf16_string_null_terminated_offset_length(offset);
     if (!len) {
         position_pop();
@@ -635,20 +635,20 @@ void stream::write_wstring_null_terminated(const std::wstring& str) {
     write_uint16_t(0);
 }
 
-void stream::write_utf8_string(const char* str) {
+void stream::write_utf8_string(_In_z_ const char* str) {
     write(str, utf8_length(str));
 }
 
-void stream::write_utf16_string(const wchar_t* str) {
+void stream::write_utf16_string(_In_z_ const wchar_t* str) {
     write(str, sizeof(wchar_t) * utf16_length(str));
 }
 
-void stream::write_utf8_string_null_terminated(const char* str) {
+void stream::write_utf8_string_null_terminated(_In_z_ const char* str) {
     write(str, utf8_length(str));
     write_uint8_t(0);
 }
 
-void stream::write_utf16_string_null_terminated(const wchar_t* str) {
+void stream::write_utf16_string_null_terminated(_In_z_ const wchar_t* str) {
     write(str, sizeof(wchar_t) * utf16_length(str));
     write_uint16_t(0);
 }

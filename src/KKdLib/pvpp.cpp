@@ -84,6 +84,9 @@ void pvpp::read(const char* path) {
         return;
 
     char* path_pvpp = str_utils_add(path, ".pvpp");
+    if (!path_pvpp)
+        return;
+
     if (path_check_file_exists(path_pvpp)) {
         file_stream s;
         s.open(path_pvpp, "rb");
@@ -98,6 +101,9 @@ void pvpp::read(const wchar_t* path) {
         return;
 
     wchar_t* path_pvpp = str_utils_add(path, L".pvpp");
+    if (!path_pvpp)
+        return;
+
     if (path_check_file_exists(path_pvpp)) {
         file_stream s;
         s.open(path_pvpp, L"rb");

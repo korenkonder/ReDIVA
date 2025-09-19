@@ -34,6 +34,8 @@ inline uint64_t hash_utf8_fnv1a64m(const char* data, bool make_upper = false) {
 
 inline uint64_t hash_utf16_fnv1a64m(const wchar_t* data, bool make_upper = false) {
     char* temp = utf16_to_utf8(data);
+    if (!temp)
+        return hash_fnv1a64m(0, 0, make_upper);
     uint64_t hash = hash_fnv1a64m(temp, utf8_length(temp), make_upper);
     free_def(temp);
     return hash;
@@ -49,6 +51,8 @@ inline uint32_t hash_utf8_murmurhash(const char* data, uint32_t seed = 0, bool u
 
 inline uint32_t hash_utf16_murmurhash(const wchar_t* data, uint32_t seed = 0, bool upper = false) {
     char* temp = utf16_to_utf8(data);
+    if (!temp)
+        return hash_murmurhash(0, 0, seed, upper);
     uint32_t hash = hash_murmurhash(temp, utf8_length(temp), seed, upper);
     free_def(temp);
     return hash;
@@ -64,6 +68,8 @@ inline uint16_t hash_utf8_crc16_ccitt(const char* data, bool make_upper = false)
 
 inline uint16_t hash_utf16_crc16_ccitt(const wchar_t* data, bool make_upper = false) {
     char* temp = utf16_to_utf8(data);
+    if (!temp)
+        return hash_murmurhash(0, 0, make_upper);
     uint16_t hash = hash_crc16_ccitt(temp, utf8_length(temp), make_upper);
     free_def(temp);
     return hash;
@@ -96,6 +102,9 @@ inline uint64_t hash_utf8_xxh3_64bits(const char* data, bool make_upper = false)
 inline uint64_t hash_utf16_xxh3_64bits(const wchar_t* data, bool make_upper = false) {
     if (make_upper) { // Modification for only uppercase latin text
         char* temp = utf16_to_utf8(data);
+        if (!temp)
+            return hash_xxh3_64bits(0, 0);
+
         size_t size = utf8_length(temp);
 
         uint8_t* d = (uint8_t*)temp;
@@ -111,6 +120,9 @@ inline uint64_t hash_utf16_xxh3_64bits(const wchar_t* data, bool make_upper = fa
     }
 
     char* temp = utf16_to_utf8(data);
+    if (!temp)
+        return hash_xxh3_64bits(0, 0);
+
     size_t size = utf8_length(temp);
     uint64_t hash = hash_xxh3_64bits(temp, size);
     free_def(temp);
@@ -161,6 +173,9 @@ inline uint64_t hash_utf8_adler32(uint32_t adler, const char* data, bool make_up
 inline uint64_t hash_utf16_adler32(uint32_t adler, const wchar_t* data, bool make_upper = false) {
     if (make_upper) { // Modification for only uppercase latin text
         char* temp = utf16_to_utf8(data);
+        if (!temp)
+            return hash_adler32(adler, 0, 0);
+
         size_t size = utf8_length(temp);
 
         uint8_t* d = (uint8_t*)temp;
@@ -176,6 +191,9 @@ inline uint64_t hash_utf16_adler32(uint32_t adler, const wchar_t* data, bool mak
     }
 
     char* temp = utf16_to_utf8(data);
+    if (!temp)
+        return hash_adler32(adler, 0, 0);
+
     size_t size = utf8_length(temp);
     uint64_t hash = hash_adler32(adler, temp, size);
     free_def(temp);

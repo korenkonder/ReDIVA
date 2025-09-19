@@ -117,10 +117,10 @@ public:
     std::wstring read_wstring_null_terminated();
     std::string read_string_null_terminated_offset(int64_t offset);
     std::wstring read_wstring_null_terminated_offset(int64_t offset);
-    char* read_utf8_string_null_terminated();
-    wchar_t* read_utf16_string_null_terminated();
-    char* read_utf8_string_null_terminated_offset(int64_t offset);
-    wchar_t* read_utf16_string_null_terminated_offset(int64_t offset);
+    _Check_return_ _Ret_maybenull_z_ char* read_utf8_string_null_terminated();
+    _Check_return_ _Ret_maybenull_z_ wchar_t* read_utf16_string_null_terminated();
+    _Check_return_ _Ret_maybenull_z_ char* read_utf8_string_null_terminated_offset(int64_t offset);
+    _Check_return_ _Ret_maybenull_z_ wchar_t* read_utf16_string_null_terminated_offset(int64_t offset);
     size_t read_utf8_string_null_terminated_length();
     size_t read_utf16_string_null_terminated_length();
     size_t read_utf8_string_null_terminated_offset_length(int64_t offset);
@@ -130,10 +130,10 @@ public:
     void write_wstring(const std::wstring& str);
     void write_string_null_terminated(const std::string& str);
     void write_wstring_null_terminated(const std::wstring& str);
-    void write_utf8_string(const char* str);
-    void write_utf16_string(const wchar_t* str);
-    void write_utf8_string_null_terminated(const char* str);
-    void write_utf16_string_null_terminated(const wchar_t* str);
+    void write_utf8_string(_In_z_ const char* str);
+    void write_utf16_string(_In_z_ const wchar_t* str);
+    void write_utf8_string_null_terminated(_In_z_ const char* str);
+    void write_utf16_string_null_terminated(_In_z_ const wchar_t* str);
 
     int64_t read_offset(int64_t offset, bool is_x);
     int64_t read_offset_f2(int64_t offset);

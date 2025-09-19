@@ -74,6 +74,9 @@ void aet_database_file::read(const char* path, bool modern) {
 
     if (!modern) {
         char* path_bin = str_utils_add(path, ".bin");
+        if (!path_bin)
+            return;
+
         if (path_check_file_exists(path_bin)) {
             file_stream s;
             s.open(path_bin, "rb");
@@ -90,6 +93,9 @@ void aet_database_file::read(const char* path, bool modern) {
     }
     else {
         char* path_aei = str_utils_add(path, ".aei");
+        if (!path_aei)
+            return;
+
         if (path_check_file_exists(path_aei)) {
             f2_struct st;
             st.read(path_aei);
@@ -110,6 +116,9 @@ void aet_database_file::read(const wchar_t* path, bool modern) {
 
     if (!modern) {
         wchar_t* path_bin = str_utils_add(path, L".bin");
+        if (!path_bin)
+            return;
+
         if (path_check_file_exists(path_bin)) {
             file_stream s;
             s.open(path_bin, L"rb");
@@ -126,6 +135,9 @@ void aet_database_file::read(const wchar_t* path, bool modern) {
     }
     else {
         wchar_t* path_aei = str_utils_add(path, L".aei");
+        if (!path_aei)
+            return;
+
         if (path_check_file_exists(path_aei)) {
             f2_struct st;
             st.read(path_aei);
@@ -167,6 +179,9 @@ void aet_database_file::write(const char* path) {
 
     if (!modern) {
         char* path_bin = str_utils_add(path, ".bin");
+        if (!path_bin)
+            return;
+
         file_stream s;
         s.open(path_bin, "wb");
         if (s.check_not_null())
@@ -175,6 +190,9 @@ void aet_database_file::write(const char* path) {
     }
     else {
         char* path_aei = str_utils_add(path, ".aei");
+        if (!path_aei)
+            return;
+
         file_stream s;
         s.open(path_aei, "wb");
         if (s.check_not_null())
@@ -189,6 +207,9 @@ void aet_database_file::write(const wchar_t* path) {
 
     if (!modern) {
         wchar_t* path_bin = str_utils_add(path, L".bin");
+        if (!path_bin)
+            return;
+
         file_stream s;
         s.open(path_bin, L"wb");
         if (s.check_not_null())
@@ -197,6 +218,9 @@ void aet_database_file::write(const wchar_t* path) {
     }
     else {
         wchar_t* path_aei = str_utils_add(path, L".aei");
+        if (!path_aei)
+            return;
+
         file_stream s;
         s.open(path_aei, L"wb");
         if (s.check_not_null())

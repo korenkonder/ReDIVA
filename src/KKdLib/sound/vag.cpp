@@ -172,6 +172,9 @@ vag::~vag() {
 
 void vag::read(const char* path) {
     char* path_vag = str_utils_add(path, ".vag");
+    if (!path_vag)
+        return;
+
     file_stream s;
     s.open(path_vag, "rb");
     if (s.check_not_null()) {
@@ -191,6 +194,9 @@ void vag::read(const char* path) {
 
 void vag::read(const wchar_t* path) {
     wchar_t* path_vag = str_utils_add(path, L".vag");
+    if (!path_vag)
+        return;
+
     file_stream s;
     s.open(path_vag, L"rb");
     if (s.check_not_null()) {
@@ -220,6 +226,9 @@ void vag::write(const char* path, vag_option option) {
     size = align_val_divide(num_samples, BLOCK_SIZE, BLOCK_SIZE);
 
     char* path_vag = str_utils_add(path, ".vag");
+    if (!path_vag)
+        return;
+
     file_stream s;
     s.open(path_vag, "wb");
     if (s.check_not_null())
@@ -241,6 +250,9 @@ void vag::write(const wchar_t* path, vag_option option) {
     size = align_val_divide(num_samples, BLOCK_SIZE, BLOCK_SIZE);
 
     wchar_t* path_vag = str_utils_add(path, L".vag");
+    if (!path_vag)
+        return;
+
     file_stream s;
     s.open(path_vag, L"wb");
     if (s.check_not_null())

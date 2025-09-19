@@ -24,6 +24,9 @@ light_param_ibl::~light_param_ibl() {
 
 void light_param_ibl::read(const char* path) {
     char* path_ibl = str_utils_add(path, ".ibl");
+    if (!path_ibl)
+        return;
+
     if (path_check_file_exists(path_ibl)) {
         file_stream s;
         s.open(path_ibl, "rb");
@@ -35,6 +38,9 @@ void light_param_ibl::read(const char* path) {
 
 void light_param_ibl::read(const wchar_t* path) {
     wchar_t* path_ibl = str_utils_add(path, L".ibl");
+    if (!path_ibl)
+        return;
+
     if (path_check_file_exists(path_ibl)) {
         file_stream s;
         s.open(path_ibl, L"rb");

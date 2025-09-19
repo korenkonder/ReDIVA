@@ -27,6 +27,9 @@ void dof::read(const char* path) {
         return;
 
     char* path_dft = str_utils_add(path, ".dft");
+    if (!path_dft)
+        return;
+
     if (path_check_file_exists(path_dft)) {
         f2_struct st;
         st.read(path_dft);
@@ -44,10 +47,13 @@ void dof::read(const wchar_t* path) {
     if (!path)
         return;
 
-    wchar_t* path_dex = str_utils_add(path, L".dft");
-    if (path_check_file_exists(path_dex)) {
+    wchar_t* path_dft = str_utils_add(path, L".dft");
+    if (!path_dft)
+        return;
+
+    if (path_check_file_exists(path_dft)) {
         f2_struct st;
-        st.read(path_dex);
+        st.read(path_dft);
         if (st.header.signature == reverse_endianness_uint32_t('DOFT')) {
             memory_stream s_doft;
             s_doft.open(st.data);
@@ -55,7 +61,7 @@ void dof::read(const wchar_t* path) {
             dof_read_inner(this, s_doft, st.header.get_length());
         }
     }
-    free_def(path_dex);
+    free_def(path_dft);
 }
 
 void dof::read(const void* data, size_t size) {
@@ -76,24 +82,30 @@ void dof::write(const char* path) {
     if (!path || !ready)
         return;
 
-    char* path_dex = str_utils_add(path, ".dft");
+    char* path_dft = str_utils_add(path, ".dft");
+    if (!path_dft)
+        return;
+
     file_stream s;
-    s.open(path_dex, "wb");
+    s.open(path_dft, "wb");
     if (s.check_not_null())
         dof_write_inner(this, s);
-    free_def(path_dex);
+    free_def(path_dft);
 }
 
 void dof::write(const wchar_t* path) {
     if (!path || !ready)
         return;
 
-    wchar_t* path_dex = str_utils_add(path, L".dft");
+    wchar_t* path_dft = str_utils_add(path, L".dft");
+    if (!path_dft)
+        return;
+
     file_stream s;
-    s.open(path_dex, L"wb");
+    s.open(path_dft, L"wb");
     if (s.check_not_null())
         dof_write_inner(this, s);
-    free_def(path_dex);
+    free_def(path_dft);
 }
 
 void dof::write(void** data, size_t* size) {

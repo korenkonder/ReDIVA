@@ -41,7 +41,7 @@ namespace Glitter {
         char* file_temp = utf16_to_utf8(file);
         this->path = path_temp ? path_temp
             : (GLT_VAL != Glitter::FT ? "root+/particle/" : "rom/particle/");
-        this->file = file_temp;
+        this->file = file_temp ? file_temp : "";
         this->emission = emission;
         this->type = GLT_VAL;
         this->hash = GLT_VAL != Glitter::FT

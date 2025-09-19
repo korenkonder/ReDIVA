@@ -5,7 +5,7 @@
 
 #include "msgpack.hpp"
 
-msgpack* msgpack::get_by_index(size_t index) {
+_Ret_maybenull_ msgpack* msgpack::get_by_index(_In_ size_t index) {
     if (type != MSGPACK_ARRAY)
         return 0;
 
@@ -15,7 +15,7 @@ msgpack* msgpack::get_by_index(size_t index) {
     return 0;
 }
 
-void msgpack::set_by_index(msgpack* m, size_t index) {
+void msgpack::set_by_index(_In_ msgpack* m, _In_ size_t index) {
     if (type != MSGPACK_ARRAY)
         return;
 
@@ -26,7 +26,7 @@ void msgpack::set_by_index(msgpack* m, size_t index) {
     }
 }
 
-msgpack* msgpack::get_by_name(const char* name) {
+_Ret_maybenull_ msgpack* msgpack::get_by_name(_In_z_ const char* name) {
     if (type != MSGPACK_MAP)
         return 0;
 
@@ -38,7 +38,7 @@ msgpack* msgpack::get_by_name(const char* name) {
     return 0;
 }
 
-void msgpack::set_by_name(const char* name, msgpack* m) {
+void msgpack::set_by_name(_In_z_ const char* name, _In_ msgpack* m) {
     if (type != MSGPACK_MAP)
         return;
 
@@ -49,10 +49,11 @@ void msgpack::set_by_name(const char* name, msgpack* m) {
             return;
         }
 
+#pragma warning(suppress: 6031)
     append(name, m);
 }
 
-msgpack* msgpack::append(const char* name, msgpack* m) {
+_Ret_maybenull_ msgpack* msgpack::append(_In_z_ const char* name, _Inout_ msgpack* m) {
     if (type != MSGPACK_MAP)
         return 0;
 
@@ -69,7 +70,7 @@ msgpack* msgpack::append(const char* name, msgpack* m) {
     }
 }
 
-msgpack* msgpack::append(const char* name, msgpack& m) {
+_Ret_maybenull_ msgpack* msgpack::append(_In_z_ const char* name, _Inout_ msgpack& m) {
     if (type != MSGPACK_MAP)
         return 0;
 
@@ -86,7 +87,7 @@ msgpack* msgpack::append(const char* name, msgpack& m) {
     }
 }
 
-msgpack* msgpack::append(const char* name, msgpack&& m) {
+_Ret_maybenull_ msgpack* msgpack::append(_In_z_ const char* name, _Inout_ msgpack&& m) {
     if (type != MSGPACK_MAP)
         return 0;
 
@@ -103,14 +104,14 @@ msgpack* msgpack::append(const char* name, msgpack&& m) {
     }
 }
 
-msgpack* msgpack::read(const char* name) {
+_Ret_maybenull_ msgpack* msgpack::read(_In_opt_z_ const char* name) {
     if (!this)
         return 0;
 
     return name ? get_by_name(name) : this;
 }
 
-msgpack* msgpack::read(const char* name, msgpack_type type) {
+_Ret_maybenull_ msgpack* msgpack::read(_In_opt_z_ const char* name, _In_ msgpack_type type) {
     if (!this)
         return 0;
 
@@ -125,7 +126,7 @@ msgpack* msgpack::read(const char* name, msgpack_type type) {
     return 0;
 }
 
-msgpack* msgpack::read_array(const char* name) {
+_Ret_maybenull_ msgpack* msgpack::read_array(_In_opt_z_ const char* name) {
     if (!this)
         return 0;
 
@@ -135,7 +136,7 @@ msgpack* msgpack::read_array(const char* name) {
     return 0;
 }
 
-msgpack* msgpack::read_map(const char* name) {
+_Ret_maybenull_ msgpack* msgpack::read_map(_In_opt_z_ const char* name) {
     if (!this)
         return 0;
 
@@ -145,7 +146,7 @@ msgpack* msgpack::read_map(const char* name) {
     return 0;
 }
 
-bool msgpack::read_bool(const char* name) {
+bool msgpack::read_bool(_In_opt_z_ const char* name) {
     if (!this)
         return 0;
 
@@ -155,7 +156,7 @@ bool msgpack::read_bool(const char* name) {
     return 0;
 }
 
-int8_t msgpack::read_int8_t(const char* name) {
+int8_t msgpack::read_int8_t(_In_opt_z_ const char* name) {
     if (!this)
         return 0;
 
@@ -172,7 +173,7 @@ int8_t msgpack::read_int8_t(const char* name) {
     return 0;
 }
 
-uint8_t msgpack::read_uint8_t(const char* name) {
+uint8_t msgpack::read_uint8_t(_In_opt_z_ const char* name) {
     if (!this)
         return 0;
 
@@ -189,7 +190,7 @@ uint8_t msgpack::read_uint8_t(const char* name) {
     return 0;
 }
 
-int16_t msgpack::read_int16_t(const char* name) {
+int16_t msgpack::read_int16_t(_In_opt_z_ const char* name) {
     if (!this)
         return 0;
 
@@ -210,7 +211,7 @@ int16_t msgpack::read_int16_t(const char* name) {
     return 0;
 }
 
-uint16_t msgpack::read_uint16_t(const char* name) {
+uint16_t msgpack::read_uint16_t(_In_opt_z_ const char* name) {
     if (!this)
         return 0;
 
@@ -231,7 +232,7 @@ uint16_t msgpack::read_uint16_t(const char* name) {
     return 0;
 }
 
-int32_t msgpack::read_int32_t(const char* name) {
+int32_t msgpack::read_int32_t(_In_opt_z_ const char* name) {
     if (!this)
         return 0;
 
@@ -256,7 +257,7 @@ int32_t msgpack::read_int32_t(const char* name) {
     return 0;
 }
 
-uint32_t msgpack::read_uint32_t(const char* name) {
+uint32_t msgpack::read_uint32_t(_In_opt_z_ const char* name) {
     if (!this)
         return 0;
 
@@ -281,7 +282,7 @@ uint32_t msgpack::read_uint32_t(const char* name) {
     return 0;
 }
 
-int64_t msgpack::read_int64_t(const char* name) {
+int64_t msgpack::read_int64_t(_In_opt_z_ const char* name) {
     if (!this)
         return 0;
 
@@ -310,7 +311,7 @@ int64_t msgpack::read_int64_t(const char* name) {
     return 0;
 }
 
-uint64_t msgpack::read_uint64_t(const char* name) {
+uint64_t msgpack::read_uint64_t(_In_opt_z_ const char* name) {
     if (!this)
         return 0;
 
@@ -339,7 +340,7 @@ uint64_t msgpack::read_uint64_t(const char* name) {
     return 0;
 }
 
-float_t msgpack::read_float_t(const char* name) {
+float_t msgpack::read_float_t(_In_opt_z_ const char* name) {
     if (!this)
         return 0;
 
@@ -372,7 +373,7 @@ float_t msgpack::read_float_t(const char* name) {
     return 0;
 }
 
-double_t msgpack::read_double_t(const char* name) {
+double_t msgpack::read_double_t(_In_opt_z_ const char* name) {
     if (!this)
         return 0;
 
@@ -405,7 +406,7 @@ double_t msgpack::read_double_t(const char* name) {
     return 0;
 }
 
-char* msgpack::read_utf8_string(const char* name) {
+_Check_return_ _Ret_maybenull_z_ char* msgpack::read_utf8_string(_In_opt_z_ const char* name) {
     if (!this)
         return 0;
 
@@ -420,7 +421,7 @@ char* msgpack::read_utf8_string(const char* name) {
     return 0;
 }
 
-wchar_t* msgpack::read_utf16_string(const char* name) {
+_Check_return_ _Ret_maybenull_z_ wchar_t* msgpack::read_utf16_string(_In_opt_z_ const char* name) {
     if (!this)
         return 0;
 
@@ -430,7 +431,7 @@ wchar_t* msgpack::read_utf16_string(const char* name) {
     return 0;
 }
 
-std::string msgpack::read_string(const char* name) {
+std::string msgpack::read_string(_In_opt_z_ const char* name) {
     if (!this)
         return {};
 
@@ -440,7 +441,7 @@ std::string msgpack::read_string(const char* name) {
     return {};
 }
 
-std::wstring msgpack::read_wstring(const char* name) {
+std::wstring msgpack::read_wstring(_In_opt_z_ const char* name) {
     if (!this)
         return {};
 

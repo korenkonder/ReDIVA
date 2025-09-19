@@ -34,8 +34,8 @@ public:
     virtual int64_t get_position() override;
     virtual int32_t set_position(int64_t pos, int32_t seek) override;
 
-    void open(const char* path, const char* mode);
-    void open(const wchar_t* path, const wchar_t* mode);
+    void open(_In_z_ const char* path, _In_z_ const char* mode);
+    void open(_In_z_ const wchar_t* path, _In_z_ const wchar_t* mode);
 
     template <typename T>
     size_t read_data(T& data) {

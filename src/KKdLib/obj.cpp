@@ -2992,11 +2992,12 @@ static obj_skin_block_constraint* obj_classic_read_skin_block_constraint(
     char* name = s.read_utf8_string_null_terminated_offset(name_offset);
 
     cns->name_index = 0;
-    for (const char** i = str; *i; i++)
-        if (!str_utils_compare(name, *i)) {
-            cns->name_index = 0x8000 | (int32_t)(i - str);
-            break;
-        }
+    if (name)
+        for (const char** i = str; *i; i++)
+            if (!str_utils_compare(name, *i)) {
+                cns->name_index = 0x8000 | (int32_t)(i - str);
+                break;
+            }
     free_def(name);
 
     cns->coupling = (obj_skin_block_constraint_coupling)s.read_uint32_t();
@@ -3004,7 +3005,11 @@ static obj_skin_block_constraint* obj_classic_read_skin_block_constraint(
     uint32_t source_node_name_offset = s.read_uint32_t();
     cns->source_node_name = obj_read_utf8_string_null_terminated_offset(alloc, s, source_node_name_offset);
 
-    if (!str_utils_compare(type, "Orientation")) {
+    if (!type) {
+        cns->type = OBJ_SKIN_BLOCK_CONSTRAINT_NONE;
+        cns->data = 0;
+    }
+    else if (!str_utils_compare(type, "Orientation")) {
         cns->type = OBJ_SKIN_BLOCK_CONSTRAINT_ORIENTATION;
 
         obj_skin_block_constraint_orientation* orientation
@@ -3190,11 +3195,12 @@ static obj_skin_block_expression* obj_classic_read_skin_block_expression(
     char* name = s.read_utf8_string_null_terminated_offset(name_offset);
 
     exp->name_index = 0;
-    for (const char** i = str; *i; i++)
-        if (!str_utils_compare(name, *i)) {
-            exp->name_index = 0x8000 | (int32_t)(i - str);
-            break;
-        }
+    if (name)
+        for (const char** i = str; *i; i++)
+            if (!str_utils_compare(name, *i)) {
+                exp->name_index = 0x8000 | (int32_t)(i - str);
+                break;
+            }
     free_def(name);
 
     int32_t num_expression = s.read_int32_t();
@@ -3247,11 +3253,12 @@ static obj_skin_block_motion* obj_classic_read_skin_block_motion(
     char* name = s.read_utf8_string_null_terminated_offset(name_offset);
 
     mot->name_index = 0;
-    for (const char** i = str; *i; i++)
-        if (!str_utils_compare(name, *i)) {
-            mot->name_index = 0x8000 | (int32_t)(i - str);
-            break;
-        }
+    if (name)
+        for (const char** i = str; *i; i++)
+            if (!str_utils_compare(name, *i)) {
+                mot->name_index = 0x8000 | (int32_t)(i - str);
+                break;
+            }
     free_def(name);
 
     mot->node_array = 0;
@@ -7054,12 +7061,13 @@ static obj_skin_block_constraint* obj_modern_read_skin_block_constraint(
     int64_t name_offset = s.read_offset(header_length, is_x);
     char* name = s.read_utf8_string_null_terminated_offset(name_offset);
 
-    uint32_t name_index = 0;
-    for (const char** i = str; *i; i++)
-        if (!str_utils_compare(name, *i)) {
-            cns->name_index = 0x8000 | (int32_t)(i - str);
-            break;
-        }
+    cns->name_index = 0;
+    if (name)
+        for (const char** i = str; *i; i++)
+            if (!str_utils_compare(name, *i)) {
+                cns->name_index = 0x8000 | (int32_t)(i - str);
+                break;
+            }
     free_def(name);
 
     cns->coupling = (obj_skin_block_constraint_coupling)s.read_uint32_t_reverse_endianness();
@@ -7067,7 +7075,11 @@ static obj_skin_block_constraint* obj_modern_read_skin_block_constraint(
     int64_t source_node_name_offset = s.read_offset(header_length, is_x);
     cns->source_node_name = obj_read_utf8_string_null_terminated_offset(alloc, s, source_node_name_offset);
 
-    if (!str_utils_compare(type, "Orientation")) {
+    if (!type) {
+        cns->type = OBJ_SKIN_BLOCK_CONSTRAINT_NONE;
+        cns->data = 0;
+    }
+    else if (!str_utils_compare(type, "Orientation")) {
         cns->type = OBJ_SKIN_BLOCK_CONSTRAINT_ORIENTATION;
 
         obj_skin_block_constraint_orientation* orientation
@@ -7253,11 +7265,12 @@ static obj_skin_block_expression* obj_modern_read_skin_block_expression(
     char* name = s.read_utf8_string_null_terminated_offset(name_offset);
 
     exp->name_index = 0;
-    for (const char** i = str; *i; i++)
-        if (!str_utils_compare(name, *i)) {
-            exp->name_index = 0x8000 | (int32_t)(i - str);
-            break;
-        }
+    if (name)
+        for (const char** i = str; *i; i++)
+            if (!str_utils_compare(name, *i)) {
+                exp->name_index = 0x8000 | (int32_t)(i - str);
+                break;
+            }
     free_def(name);
 
     int32_t num_expression = s.read_int32_t_reverse_endianness();
@@ -7330,11 +7343,12 @@ static obj_skin_block_motion* obj_modern_read_skin_block_motion(
     if (!is_x) {
         mot->name_index = 0;
         char* name = s.read_utf8_string_null_terminated_offset(name_offset);
-        for (const char** i = str; *i; i++)
-            if (!str_utils_compare(name, *i)) {
-                mot->name_index = 0x8000 | (int32_t)(i - str);
-                break;
-            }
+        if (name)
+            for (const char** i = str; *i; i++)
+                if (!str_utils_compare(name, *i)) {
+                    mot->name_index = 0x8000 | (int32_t)(i - str);
+                    break;
+                }
         free_def(name);
     }
     else

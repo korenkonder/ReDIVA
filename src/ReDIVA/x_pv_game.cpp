@@ -13078,7 +13078,8 @@ static void x_pv_game_write_glitter(Glitter::EffectGroup* eff_group, const auth_
 
         char path_buf[0x1000];
         memcpy(path_buf, dir, dir_len);
-        memcpy(path_buf + dir_len, file, file_len + 1);
+        memcpy(path_buf + dir_len, file, file_len);
+        path_buf[dir_len + file_len] = 0;
         if (!path_check_file_exists(path_buf))
             return false;
 
@@ -13161,7 +13162,7 @@ static void x_pv_game_write_glitter(Glitter::EffectGroup* eff_group, const auth_
             if (elem != x_data->glitter_list_murmurhash.end())
                 e->name.assign(elem->second);
             else {
-                printf_debug("Couldn't find name for hash 0x%08X\n", e->data.name_hash);
+                printf_debug("Couldn't find name for hash 0x%08X\n", (uint32_t)e->data.name_hash);
                 continue;
             }
         }

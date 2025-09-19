@@ -61,6 +61,9 @@ void auth_3d_database_file::read(const char* path) {
         return;
 
     char* path_bin = str_utils_add(path, ".bin");
+    if (!path_bin)
+        return;
+
     if (path_check_file_exists(path_bin)) {
         file_stream s;
         s.open(path_bin, "rb");
@@ -75,6 +78,9 @@ void auth_3d_database_file::read(const wchar_t* path) {
         return;
 
     wchar_t* path_bin = str_utils_add(path, L".bin");
+    if (!path_bin)
+        return;
+
     if (path_check_file_exists(path_bin)) {
         file_stream s;
         s.open(path_bin, L"rb");
@@ -98,6 +104,9 @@ void auth_3d_database_file::write(const char* path) {
         return;
 
     char* path_bin = str_utils_add(path, ".bin");
+    if (!path_bin)
+        return;
+
     file_stream s;
     s.open(path_bin, "wb");
     if (s.check_not_null())
@@ -110,6 +119,9 @@ void auth_3d_database_file::write(const wchar_t* path) {
         return;
 
     wchar_t* path_bin = str_utils_add(path, L".bin");
+    if (!path_bin)
+        return;
+
     file_stream s;
     s.open(path_bin, L"wb");
     if (s.check_not_null())

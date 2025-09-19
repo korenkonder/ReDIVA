@@ -55,32 +55,32 @@ struct msgpack {
     msgpack_type type;
     msgpack_data data;
 
-    msgpack* get_by_index(size_t index);
-    void set_by_index(msgpack* m, size_t index);
-    msgpack* get_by_name(const char* name);
-    void set_by_name(const char* name, msgpack* m);
-    msgpack* append(const char* name, msgpack* m);
-    msgpack* append(const char* name, msgpack& m);
-    msgpack* append(const char* name, msgpack&& m);
-    msgpack* read(const char* name);
-    msgpack* read(const char* name, msgpack_type type);
-    msgpack* read_array(const char* name = 0);
-    msgpack* read_map(const char* name = 0);
-    bool read_bool(const char* name = 0);
-    int8_t read_int8_t(const char* name = 0);
-    uint8_t read_uint8_t(const char* name = 0);
-    int16_t read_int16_t(const char* name = 0);
-    uint16_t read_uint16_t(const char* name = 0);
-    int32_t read_int32_t(const char* name = 0);
-    uint32_t read_uint32_t(const char* name = 0);
-    int64_t read_int64_t(const char* name = 0);
-    uint64_t read_uint64_t(const char* name = 0);
-    float_t read_float_t(const char* name = 0);
-    double_t read_double_t(const char* name = 0);
-    char* read_utf8_string(const char* name = 0);
-    wchar_t* read_utf16_string(const char* name = 0);
-    std::string read_string(const char* name = 0);
-    std::wstring read_wstring(const char* name = 0);
+    _Ret_maybenull_ msgpack* get_by_index(_In_ size_t index);
+    void set_by_index(_In_ msgpack* m, _In_ size_t index);
+    _Ret_maybenull_ msgpack* get_by_name(_In_z_ const char* name);
+    void set_by_name(_In_z_ const char* name, _In_ msgpack* m);
+    _Ret_maybenull_ msgpack* append(_In_z_ const char* name, _Inout_ msgpack* m);
+    _Ret_maybenull_ msgpack* append(_In_z_ const char* name, _Inout_ msgpack& m);
+    _Ret_maybenull_ msgpack* append(_In_z_ const char* name, _Inout_ msgpack&& m);
+    _Ret_maybenull_ msgpack* read(_In_opt_z_ const char* name);
+    _Ret_maybenull_ msgpack* read(_In_opt_z_ const char* name, _In_ msgpack_type type);
+    _Ret_maybenull_ msgpack* read_array(_In_opt_z_ const char* name = 0);
+    _Ret_maybenull_ msgpack* read_map(_In_opt_z_ const char* name = 0);
+    bool read_bool(_In_opt_z_ const char* name = 0);
+    int8_t read_int8_t(_In_opt_z_ const char* name = 0);
+    uint8_t read_uint8_t(_In_opt_z_ const char* name = 0);
+    int16_t read_int16_t(_In_opt_z_ const char* name = 0);
+    uint16_t read_uint16_t(_In_opt_z_ const char* name = 0);
+    int32_t read_int32_t(_In_opt_z_ const char* name = 0);
+    uint32_t read_uint32_t(_In_opt_z_ const char* name = 0);
+    int64_t read_int64_t(_In_opt_z_ const char* name = 0);
+    uint64_t read_uint64_t(_In_opt_z_ const char* name = 0);
+    float_t read_float_t(_In_opt_z_ const char* name = 0);
+    double_t read_double_t(_In_opt_z_ const char* name = 0);
+    _Check_return_ _Ret_maybenull_z_ char* read_utf8_string(_In_opt_z_ const char* name = 0);
+    _Check_return_ _Ret_maybenull_z_ wchar_t* read_utf16_string(_In_opt_z_ const char* name = 0);
+    std::string read_string(_In_opt_z_ const char* name = 0);
+    std::wstring read_wstring(_In_opt_z_ const char* name = 0);
 
     msgpack& operator=(const msgpack& m);
 
@@ -190,41 +190,44 @@ struct msgpack {
         data.str = new std::string;
         if (val) {
             char* temp = utf16_to_utf8(val);
-            data.str->assign(temp);
+            if (temp)
+                data.str->assign(temp);
             free_def(temp);
         }
     }
 
-    inline msgpack(std::string& val) : data() {
+    inline msgpack(const std::string& val) : data() {
         type = MSGPACK_STRING;
         data.str = new std::string;
         if (val.size())
             data.str->assign(val);
     }
 
-    inline msgpack(std::string&& val) : data() {
+    inline msgpack(const std::string&& val) : data() {
         type = MSGPACK_STRING;
         data.str = new std::string;
         if (val.size())
             data.str->assign(val);
     }
 
-    inline msgpack(std::wstring& val) : data() {
+    inline msgpack(const std::wstring& val) : data() {
         type = MSGPACK_STRING;
         data.str = new std::string;
         if (val.size()) {
             char* temp = utf16_to_utf8(val.c_str());
-            data.str->assign(temp);
+            if (temp)
+                data.str->assign(temp);
             free_def(temp);
         }
     }
 
-    inline msgpack(std::wstring&& val) : data() {
+    inline msgpack(const std::wstring&& val) : data() {
         type = MSGPACK_STRING;
         data.str = new std::string;
         if (val.size()) {
             char* temp = utf16_to_utf8(val.c_str());
-            data.str->assign(temp);
+            if (temp)
+                data.str->assign(temp);
             free_def(temp);
         }
     }
