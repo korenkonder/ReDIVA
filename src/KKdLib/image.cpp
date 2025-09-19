@@ -16,7 +16,7 @@ color_tone::color_tone() : reserved() {
     hue = 0.0f;
     saturation = 1.0f;
     value = 0.0f;
-    contrast = 1.0f;;
+    contrast = 1.0f;
     inverse = false;
 }
 

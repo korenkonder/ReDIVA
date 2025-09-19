@@ -76,7 +76,7 @@ inline uint16_t hash_string_crc16_ccitt(const std::string& data, bool make_upper
 inline uint64_t hash_utf8_xxh3_64bits(const char* data, bool make_upper = false) {
     if (make_upper) { // Modification for only uppercase latin text
         size_t size = utf8_length(data);
-        char* temp = force_malloc<char>(size + 1);;
+        char* temp = force_malloc<char>(size + 1);
         memmove(temp, data, size + 1);
 
         uint8_t* d = (uint8_t*)temp;
@@ -120,7 +120,7 @@ inline uint64_t hash_utf16_xxh3_64bits(const wchar_t* data, bool make_upper = fa
 inline uint64_t hash_string_xxh3_64bits(const std::string& data, bool make_upper = false) {
     if (make_upper) { // Modification for only uppercase latin text
         size_t size = data.size();
-        char* temp = force_malloc<char>(size + 1);;
+        char* temp = force_malloc<char>(size + 1);
         memmove(temp, data.data(), size + 1);
 
         uint8_t* d = (uint8_t*)temp;
@@ -138,10 +138,10 @@ inline uint64_t hash_string_xxh3_64bits(const std::string& data, bool make_upper
     return hash_xxh3_64bits(data.data(), data.size());
 }
 
-inline uint64_t hash_utf8_xxh3_64bits(uint32_t adler, const char* data, bool make_upper = false) {
+inline uint64_t hash_utf8_adler32(uint32_t adler, const char* data, bool make_upper = false) {
     if (make_upper) { // Modification for only uppercase latin text
         size_t size = utf8_length(data);
-        char* temp = force_malloc<char>(size + 1);;
+        char* temp = force_malloc<char>(size + 1);
         memmove(temp, data, size + 1);
 
         uint8_t* d = (uint8_t*)temp;
@@ -185,7 +185,7 @@ inline uint64_t hash_utf16_adler32(uint32_t adler, const wchar_t* data, bool mak
 inline uint64_t hash_string_adler32(uint32_t adler, const std::string& data, bool make_upper = false) {
     if (make_upper) { // Modification for only uppercase latin text
         size_t size = data.size();
-        char* temp = force_malloc<char>(size + 1);;
+        char* temp = force_malloc<char>(size + 1);
         memmove(temp, data.data(), size + 1);
 
         uint8_t* d = (uint8_t*)temp;

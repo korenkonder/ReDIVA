@@ -2474,7 +2474,7 @@ void RobOsage::CollideNodesTargetOsage(const mat4& root_matrix,
         if (i->bone_node_mat)
             mat4_scale_rot(&v64, &parent_scale, i->bone_node_mat);
 
-        i->reset_data.length = i->TranslateMat(v64, rot_clamped, parent_scale.x);;
+        i->reset_data.length = i->TranslateMat(v64, rot_clamped, parent_scale.x);
 
         i->delta_pos = (i->pos - i->fixed_pos) * inv_step;
 

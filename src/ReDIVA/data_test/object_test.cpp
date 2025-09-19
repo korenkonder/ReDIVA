@@ -380,7 +380,7 @@ void DataTestObjectManager::set_object_set_index(int32_t object_set_index) {
         obj_set_name.assign(obj_set_name.substr(0, 10));
 
     object_set_id = aft_obj_db->get_object_set_id(obj_set_name.c_str());
-    app::TaskWork::add_task(this, "DATA_TEST_OBJECT_MANAGER");;
+    app::TaskWork::add_task(this, "DATA_TEST_OBJECT_MANAGER");
 }
 
 void DataTestObjectManager::set_rotation(const vec3& value) {

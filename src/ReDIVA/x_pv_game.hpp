@@ -934,7 +934,7 @@ public:
         texture_database tex_db_base;
         texture_database_file tex_db;
         prj::vector_pair<uint32_t, uint32_t> tex_ids;
-        std::string mmp_base_path;;
+        std::string mmp_base_path;
 
         MMPData();
         ~MMPData();

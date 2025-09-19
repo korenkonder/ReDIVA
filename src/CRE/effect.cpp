@@ -4019,7 +4019,7 @@ void ParticleEmitterRob::ctrl(float_t delta_time) {
         return;
 
     vec3 prev_velocity = this->prev_velocity * emission_velocity_scale;
-    vec3 velocity = this->velocity * emission_velocity_scale;;
+    vec3 velocity = this->velocity * emission_velocity_scale;
     vec3 trans_diff = pos - prev_pos;
     vec3 velocity_diff = velocity - prev_velocity;
 
@@ -4035,7 +4035,7 @@ void ParticleEmitterRob::ctrl(float_t delta_time) {
         ptcl->position = rand_vec * 0.05f + (trans_diff * diff_scale + prev_pos);
         ptcl->direction = rand_vec * 0.65f + (velocity_diff * diff_scale + prev_velocity);
 
-        float_t size_scale = rand_a_get_float();;
+        float_t size_scale = rand_a_get_float();
 
         ptcl->flags = 0x01;
         ptcl->size = max_def(size_scale * size_scale * particle_size, 1.0f);
@@ -4267,7 +4267,7 @@ void water_particle::free() {
 void water_particle::reset() {
     splash = 0;
     color = 1.0f;
-    particle_size = 1.0f;;
+    particle_size = 1.0f;
     splash_count = 0;
     ptcl_data.clear();
     count = 0;

@@ -317,9 +317,9 @@ void stage_param_data_coli::load(const int32_t& pv_id) {
 }
 
 void stage_param_data_coli::reset() {
-    stage_ring_data.clear();;
-    mhd_id_ring_data.clear();;
-    stage_wind_file.clear();;
+    stage_ring_data.clear();
+    mhd_id_ring_data.clear();
+    stage_wind_file.clear();
     pv_id = -1;
 }
 

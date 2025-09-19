@@ -1918,7 +1918,7 @@ namespace Glitter {
                     *(uint32_t*)(d + 4) = c->repeat ? 1 : 0;
                     *(uint32_t*)(d + 8) = c->flags;
                     *(float_t*)(d + 12) = c->random_range;
-                    *(uint16_t*)(d + 16) = (uint16_t)c->keys.size();;;
+                    *(uint16_t*)(d + 16) = (uint16_t)c->keys.size();;
                     *(uint16_t*)(d + 18) = c->start_time;
                     *(uint16_t*)(d + 20) = c->end_time;
                 }
@@ -1948,7 +1948,7 @@ namespace Glitter {
                     *(uint32_t*)(d + 4) = c->repeat ? 1 : 0;
                     *(uint32_t*)(d + 8) = c->flags;
                     *(float_t*)(d + 12) = c->random_range;
-                    *(uint16_t*)(d + 28) = (uint16_t)c->keys.size();;
+                    *(uint16_t*)(d + 28) = (uint16_t)c->keys.size();
                     *(uint16_t*)(d + 30) = c->start_time;
                     *(uint16_t*)(d + 32) = c->end_time;
                 }

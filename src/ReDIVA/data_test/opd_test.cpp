@@ -481,7 +481,7 @@ void DataTestOpdDw::InitModule() {
     for (auto& i : module_table_handler_data_get_modules())
         list->AddItem(i.second.name);
     list->SetItemIndex(data.selected_module);
-    list->SetMaxItems(40);;
+    list->SetMaxItems(40);
     list->SetFont(dw::p_font_type_6x12);
 
     dw::Button* add = new dw::Button(comp, dw::FLAG_8);
