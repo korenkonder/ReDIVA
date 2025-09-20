@@ -436,6 +436,29 @@ int32_t interpolate_chs_reverse_sequence(const std::vector<float_t>& values_src,
             }
     }
 
+    if (values.size() >= 2) {
+        kft3* keys = values.data();
+        if (*(uint32_t*)&keys[0].value == *(uint32_t*)&keys[1].value
+            && *(uint32_t*)&keys[0].tangent1 == 0
+            && *(uint32_t*)&keys[0].tangent2 == 0
+            && *(uint32_t*)&keys[1].tangent1 == 0) {
+            keys[0].frame = keys[1].frame;
+            keys[0].tangent2 = keys[1].tangent2;
+            values.erase(values.begin() + 1);
+        }
+    }
+
+    if (values.size() >= 2) {
+        kft3* keys = values.data();
+        size_t length = values.size();
+        if (*(uint32_t*)&keys[length - 2].value == *(uint32_t*)&keys[length - 1].value
+            && *(uint32_t*)&keys[length - 2].tangent2 == 0
+            && *(uint32_t*)&keys[length - 1].tangent1 == 0
+            && *(uint32_t*)&keys[length - 1].tangent2 == 0) {
+            values.erase(values.begin() + (length - 1));
+        }
+    }
+
     kft3* keys = values.data();
     size_t length = values.size();
     for (size_t i = 0; i < count; i++) {
