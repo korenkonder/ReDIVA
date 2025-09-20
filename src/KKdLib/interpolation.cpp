@@ -155,7 +155,7 @@ int32_t interpolate_chs_reverse_sequence(const std::vector<float_t>& values_src,
         const float_t* arr = &values_src.data()[1];
 
         bool constant = true;
-        size_t i = count;
+        size_t i = count - 1;
         if (constant) {
             const vec4 p1[8] = { val, val, val, val, val, val, val, val };
             for (size_t j = i / 32; j; j--, i -= 32)
