@@ -15,8 +15,7 @@ class DataTestMot : public app::Task {
 public:
     struct Data {
         struct Offset {
-            float_t pre;
-            float_t post;
+            float_t array[2];
 
             Offset();
         };

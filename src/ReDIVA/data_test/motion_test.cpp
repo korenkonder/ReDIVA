@@ -383,8 +383,8 @@ static void motion_test_objset_load();
 static void motion_test_objset_unload();
 
 DataTestMot::Data::Offset::Offset() {
-    pre = 0.0f;
-    post = 0.0f;
+    array[0] = 0.0f;
+    array[1] = 0.0f;
 }
 
 DataTestMot::Data::Divide::Divide() {
@@ -540,8 +540,8 @@ bool DataTestMot::ctrl() {
     dtm_mot_array[1].SetRotationY(data.rot_y[1]);
     dtm_mot_array[0].SetTrans({ data.trans_x[0], 0.0f, 0.0f });
     dtm_mot_array[1].SetTrans({ data.trans_x[1], 0.0f, 0.0f });
-    dtm_mot_array[0].SetOffset(data.offset[0].pre, data.offset[0].post);
-    dtm_mot_array[1].SetOffset(data.offset[1].pre, data.offset[1].post);
+    dtm_mot_array[0].SetOffset(data.offset[0].array[0], data.offset[0].array[1]);
+    dtm_mot_array[1].SetOffset(data.offset[1].array[0], data.offset[1].array[1]);
     dtm_mot_array[0].SetStartFrame(data.start_frame[0]);
     dtm_mot_array[1].SetStartFrame(data.start_frame[1]);
 
@@ -879,9 +879,9 @@ void DataTestMotA3d::Sync1pFrame() {
     if (!data_test_mot_data_get()->sync_1p_frame)
         return;
 
-    float_t frame = dtm_mot_array->GetFrame();
+    float_t frame = dtm_mot_array[0].GetFrame();
     if (get_pause())
-        frame -= dtm_mot_array->GetStep();
+        frame -= dtm_mot_array[0].GetStep();
 
     for (auth_3d_id& i : auth_3d_ids)
         i.set_req_frame(frame);
@@ -915,7 +915,7 @@ bool DtmMot::init() {
     frame = 0.0f;
     delta_frame = 1.0f;
     state = 1;
-    looped = 0;
+    looped = false;
 
     if (chara_index < 0 || chara_index >= CHARA_MAX || cos_id >= 502) {
         state = 0;
@@ -1422,10 +1422,7 @@ bool DtmMot::CheckFirstFrame() {
 
 void DtmMot::CtrlFaceMot() {
     DataTestFaceMotDw* face_mot_dw = data_test_face_mot_dw_array_get(chara_id);
-    if (!face_mot_dw)
-        return;
-
-    if (!face_mot_dw->GetEnable())
+    if (!face_mot_dw || !face_mot_dw->GetEnable())
         return;
 
     data_struct* aft_data = &data_list[DATA_AFT];
@@ -2144,7 +2141,7 @@ DataTestMotDw::CreateDebugCamProc::~CreateDebugCamProc() {
 }
 
 void DataTestMotDw::CreateDebugCamProc::Callback(dw::SelectionListener::CallbackData* data) {
-
+    //set_debug_camera_set_mode_lock();
 }
 
 DataTestMotDw::DataTestMotDw(int32_t chara_id, DtmMot* dtm_mot) {
