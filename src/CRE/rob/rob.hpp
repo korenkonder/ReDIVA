@@ -3901,6 +3901,8 @@ extern bool rob_chara_check_for_ageageagain_module(chara_index chara_index, int3
 
 extern bool rob_chara_pv_data_array_check_chara_id(int32_t chara_id);
 
+extern uint32_t rob_cmn_mottbl_get_motion_id(chara_index chara_index, int32_t a2, int32_t id);
+
 extern void rob_sleeve_handler_data_get_sleeve_data(
     ::chara_index chara_index, int32_t cos, rob_sleeve_data& l, rob_sleeve_data& r);
 extern bool rob_sleeve_handler_data_load();

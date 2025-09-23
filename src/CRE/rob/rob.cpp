@@ -2933,19 +2933,7 @@ uint32_t rob_chara::get_rob_cmn_mottbl_motion_id(int32_t id) {
         return data.motion.motion_id;
     else if (id >= 226 && id <= 235)
         return pv_data.motion_face_ids[id - 226];
-
-    int32_t v2 = data.field_8.field_1A4;
-    if (rob_cmn_mottbl_data
-        && chara_index >= 0 && chara_index < rob_cmn_mottbl_data->chara_count
-        && id >= 0 && id < rob_cmn_mottbl_data->mottbl_indices_count) {
-        rob_cmn_mottbl_sub_header* v4 = (rob_cmn_mottbl_sub_header*)((uint8_t*)rob_cmn_mottbl_data
-            + rob_cmn_mottbl_data->subheaders_offset);
-        if (v2 >= 0 && v2 < v4[chara_index].field_4)
-            return ((uint32_t*)((uint8_t*)rob_cmn_mottbl_data
-                + *(uint32_t*)((uint8_t*)rob_cmn_mottbl_data
-                    + v2 * sizeof(uint32_t) + v4[chara_index].data_offset)))[id];
-    }
-    return -1;
+    return rob_cmn_mottbl_get_motion_id(chara_index, data.field_8.field_1A4, id);
 }
 
 float_t rob_chara::get_pos_scale(int32_t bone, vec3& pos) {
@@ -11737,6 +11725,21 @@ bool rob_chara_check_for_ageageagain_module(chara_index chara_index, int32_t cos
 
 bool rob_chara_pv_data_array_check_chara_id(int32_t chara_id) {
     return rob_chara_pv_data_array[chara_id].type != ROB_CHARA_TYPE_NONE;
+}
+
+// 0x1405376C0
+uint32_t rob_cmn_mottbl_get_motion_id(chara_index chara_index, int32_t a2, int32_t id) {
+    if (rob_cmn_mottbl_data
+        && chara_index >= 0 && chara_index < rob_cmn_mottbl_data->chara_count
+        && id >= 0 && id < rob_cmn_mottbl_data->mottbl_indices_count) {
+        rob_cmn_mottbl_sub_header* v4 = (rob_cmn_mottbl_sub_header*)((uint8_t*)rob_cmn_mottbl_data
+            + rob_cmn_mottbl_data->subheaders_offset);
+        if (a2 >= 0 && a2 < v4[chara_index].field_4)
+            return ((uint32_t*)((uint8_t*)rob_cmn_mottbl_data
+                + *(uint32_t*)((uint8_t*)rob_cmn_mottbl_data
+                    + a2 * sizeof(uint32_t) + v4[chara_index].data_offset)))[id];
+    }
+    return -1;
 }
 
 void rob_sleeve_handler_data_get_sleeve_data(
