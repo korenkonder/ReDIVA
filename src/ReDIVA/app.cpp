@@ -197,6 +197,50 @@ uint32_t spr_fnt_bold24_set_id; // 472
 uint32_t spr_fnt_cmn_set_id;    // 43
 
 #if DISPLAY_IBL
+const float_t box_vertices[] = {
+    -1.0f,  1.0f, -1.0f,
+    -1.0f, -1.0f, -1.0f,
+     1.0f, -1.0f, -1.0f,
+     1.0f, -1.0f, -1.0f,
+     1.0f,  1.0f, -1.0f,
+    -1.0f,  1.0f, -1.0f,
+
+    -1.0f, -1.0f,  1.0f,
+    -1.0f, -1.0f, -1.0f,
+    -1.0f,  1.0f, -1.0f,
+    -1.0f,  1.0f, -1.0f,
+    -1.0f,  1.0f,  1.0f,
+    -1.0f, -1.0f,  1.0f,
+
+     1.0f, -1.0f, -1.0f,
+     1.0f, -1.0f,  1.0f,
+     1.0f,  1.0f,  1.0f,
+     1.0f,  1.0f,  1.0f,
+     1.0f,  1.0f, -1.0f,
+     1.0f, -1.0f, -1.0f,
+
+    -1.0f, -1.0f,  1.0f,
+    -1.0f,  1.0f,  1.0f,
+     1.0f,  1.0f,  1.0f,
+     1.0f,  1.0f,  1.0f,
+     1.0f, -1.0f,  1.0f,
+    -1.0f, -1.0f,  1.0f,
+
+    -1.0f,  1.0f, -1.0f,
+     1.0f,  1.0f, -1.0f,
+     1.0f,  1.0f,  1.0f,
+     1.0f,  1.0f,  1.0f,
+    -1.0f,  1.0f,  1.0f,
+    -1.0f,  1.0f, -1.0f,
+
+    -1.0f, -1.0f, -1.0f,
+    -1.0f, -1.0f,  1.0f,
+     1.0f, -1.0f, -1.0f,
+     1.0f, -1.0f, -1.0f,
+    -1.0f, -1.0f,  1.0f,
+     1.0f, -1.0f,  1.0f
+};
+
 struct cubemap_display_batch_shader_data {
     vec4 g_vp[4];
     vec4 g_texture_lod;
@@ -539,55 +583,11 @@ bool app_render_data::load() {
 #endif
 
 #if DISPLAY_IBL
-    const float_t box_vertices[] = {
-        -1.0f,  1.0f, -1.0f,
-        -1.0f, -1.0f, -1.0f,
-         1.0f, -1.0f, -1.0f,
-         1.0f, -1.0f, -1.0f,
-         1.0f,  1.0f, -1.0f,
-        -1.0f,  1.0f, -1.0f,
-
-        -1.0f, -1.0f,  1.0f,
-        -1.0f, -1.0f, -1.0f,
-        -1.0f,  1.0f, -1.0f,
-        -1.0f,  1.0f, -1.0f,
-        -1.0f,  1.0f,  1.0f,
-        -1.0f, -1.0f,  1.0f,
-
-         1.0f, -1.0f, -1.0f,
-         1.0f, -1.0f,  1.0f,
-         1.0f,  1.0f,  1.0f,
-         1.0f,  1.0f,  1.0f,
-         1.0f,  1.0f, -1.0f,
-         1.0f, -1.0f, -1.0f,
-
-        -1.0f, -1.0f,  1.0f,
-        -1.0f,  1.0f,  1.0f,
-         1.0f,  1.0f,  1.0f,
-         1.0f,  1.0f,  1.0f,
-         1.0f, -1.0f,  1.0f,
-        -1.0f, -1.0f,  1.0f,
-
-        -1.0f,  1.0f, -1.0f,
-         1.0f,  1.0f, -1.0f,
-         1.0f,  1.0f,  1.0f,
-         1.0f,  1.0f,  1.0f,
-        -1.0f,  1.0f,  1.0f,
-        -1.0f,  1.0f, -1.0f,
-
-        -1.0f, -1.0f, -1.0f,
-        -1.0f, -1.0f,  1.0f,
-         1.0f, -1.0f, -1.0f,
-         1.0f, -1.0f, -1.0f,
-        -1.0f, -1.0f,  1.0f,
-         1.0f, -1.0f,  1.0f
-    };
-
     glGenVertexArrays(1, &ibl_vao);
     gl_state.bind_vertex_array(ibl_vao, true);
 
-    ibl_vbo.Create(sizeof(box_vertices), box_vertices);
-    gl_state.bind_array_buffer(ibl_vbo.Bind);
+    ibl_vbo.Create(gl_state, sizeof(box_vertices), box_vertices);
+    gl_state.bind_array_buffer(ibl_vbo);
 
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float_t) * 3, (void*)0);
@@ -595,7 +595,7 @@ bool app_render_data::load() {
     gl_state.bind_array_buffer(0);
     gl_state.bind_vertex_array(0);
 
-    cubemap_display_ubo.Create(sizeof(cubemap_display_batch_shader_data));
+    cubemap_display_ubo.Create(gl_state, sizeof(cubemap_display_batch_shader_data));
 #endif
 
     return true;
@@ -1561,14 +1561,43 @@ static void render_context_disp(render_context* rctx) {
 
 #if DISPLAY_IBL
     if (display_ibl) {
-        rctx->screen_buffer.Bind(post_rend_data_ctx.state);
-
         mat4 mat;
         mat4_translate_y(1.4f, &mat);
         mat4_scale_rot(&mat, 1.125f, 1.125f, 1.125f, &mat);
         mat4_mul(&mat, &rctx->camera->view, &mat);
         //mat4_clear_trans(&mat, &mat);
         mat4_mul(&mat, &rctx->camera->projection, &mat);
+
+        const int32_t box_indices[] = {
+             0,  1,  2,  4,
+             6,  7,  8, 10,
+            12, 13, 14, 16,
+            18, 19, 20, 22,
+            24, 25, 26, 28,
+            30, 31, 32, 35,
+        };
+
+        std::pair<float_t, int32_t> faces[6];
+        for (int32_t i = 0; i < 6; i++) {
+            double_t sum = 0.0;
+            for (int32_t j = 0; j < 4; j++) {
+                vec3 pos;
+                mat4_transform_point(&mat, (vec3*)&box_vertices[box_indices[i * 4 + j] * 3], &pos);
+                sum += pos.z;
+            }
+            faces[i] = { (float_t)(sum / 4.0), i };
+        }
+
+        qsort(faces, 6, sizeof(std::pair<float_t, int32_t>),
+            [](const void* a, const void* b) -> int32_t {
+                std::pair<float_t, int32_t>* fa = (std::pair<float_t, int32_t>*)a;
+                std::pair<float_t, int32_t>* fb = (std::pair<float_t, int32_t>*)b;
+                if (fa->first < fb->first) return  1;
+                if (fa->first > fb->first) return -1;
+                return 0;
+            });
+
+        rctx->screen_buffer.Bind(post_rend_data_ctx.state);
 
         cubemap_display_batch_shader_data shader_data = {};
         mat4_transpose(&mat, &mat);
@@ -1585,7 +1614,8 @@ static void render_context_disp(render_context* rctx) {
         post_rend_data_ctx.state.bind_vertex_array(ibl_vao);
         post_rend_data_ctx.state.active_bind_texture_cube_map(0,
             light_param_data_storage_data_get_ibl_textures()[max_def(ibl_index - 1, 0)]);
-        post_rend_data_ctx.state.draw_arrays(GL_TRIANGLES, 0, 36);
+        for (int32_t i = 0; i < 6; i++)
+            post_rend_data_ctx.state.draw_arrays(GL_TRIANGLES, faces[i].second * 6, 6);
         post_rend_data_ctx.state.bind_vertex_array(0);
     }
 #endif
