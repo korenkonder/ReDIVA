@@ -370,7 +370,7 @@ struct OpdMakeManager : app::Task {
     OpdMakeManagerData* GetData();
 };
 
-struct struc_380 {
+struct mothead_mot_func_data {
     rob_chara* rob_chara;
     rob_chara_data* rob_chara_data;
     struc_223* field_10;
@@ -387,6 +387,7 @@ struct mothead_func_data {
 
 typedef void(*mothead_func)(mothead_func_data*, const void*,
     const mothead_data*, int32_t, const motion_database*);
+typedef void(*mothead_mot_func)(mothead_mot_func_data*, const void*, const mothead_mot_data*);
 
 struct mothead_func_struct {
     mothead_func func;
@@ -1082,6 +1083,145 @@ static void mothead_func_79_rob_chara_coli_ring(mothead_func_data* func_data,
 static void mothead_func_80_adjust_get_global_pos(mothead_func_data* func_data,
     const void* data, const mothead_data* mhd_data, int32_t frame, const motion_database* mot_db);
 
+static void mothead_mot_func_0(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_1(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_2(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_3(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_4(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_5(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_6(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_7(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_8(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_9(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_10(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_11(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_12(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_13(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_14(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_15(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_16(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_17(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_18(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_19(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_20(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_21(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_22(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_23(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_24(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_25(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_26(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_27(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_28(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_29(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_30(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_31(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_32(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_33(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_34(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_35(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_36(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_37(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_38(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_39(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_40(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_41(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_42(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_43(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_44(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_45(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_46(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_47(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_48(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_49(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_50(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_51(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_52(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_53(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_54(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_55(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_56(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_57(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_58(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_59(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_60(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_61(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_62(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_63(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_64(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_65(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_66(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_67(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+static void mothead_mot_func_68(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data);
+
 static void motion_blend_mot_interpolate(motion_blend_mot* a1);
 static void motion_blend_mot_load_bone_data(motion_blend_mot* a1,
     rob_chara_bone_data* a2, PFNMOTIONBONECHECKFUNC bone_check_func, const bone_database* bone_data);
@@ -1307,6 +1447,78 @@ static const mothead_func_struct mothead_func_array[] = {
     { mothead_func_78, 0 },
     { mothead_func_79_rob_chara_coli_ring, 0 },
     { mothead_func_80_adjust_get_global_pos, 0 },
+};
+
+static const mothead_mot_func mothead_mot_func_array[] = {
+    mothead_mot_func_0,
+    mothead_mot_func_1,
+    mothead_mot_func_2,
+    mothead_mot_func_3,
+    mothead_mot_func_4,
+    mothead_mot_func_5,
+    mothead_mot_func_6,
+    mothead_mot_func_7,
+    mothead_mot_func_8,
+    mothead_mot_func_9,
+    mothead_mot_func_10,
+    mothead_mot_func_11,
+    mothead_mot_func_12,
+    mothead_mot_func_13,
+    mothead_mot_func_14,
+    mothead_mot_func_15,
+    mothead_mot_func_16,
+    mothead_mot_func_17,
+    mothead_mot_func_18,
+    mothead_mot_func_19,
+    mothead_mot_func_20,
+    mothead_mot_func_21,
+    mothead_mot_func_22,
+    mothead_mot_func_23,
+    mothead_mot_func_24,
+    mothead_mot_func_25,
+    mothead_mot_func_26,
+    mothead_mot_func_27,
+    mothead_mot_func_28,
+    mothead_mot_func_29,
+    mothead_mot_func_30,
+    mothead_mot_func_31,
+    mothead_mot_func_32,
+    mothead_mot_func_33,
+    mothead_mot_func_34,
+    mothead_mot_func_35,
+    mothead_mot_func_36,
+    mothead_mot_func_37,
+    mothead_mot_func_38,
+    mothead_mot_func_39,
+    mothead_mot_func_40,
+    mothead_mot_func_41,
+    mothead_mot_func_42,
+    mothead_mot_func_43,
+    mothead_mot_func_44,
+    mothead_mot_func_45,
+    mothead_mot_func_46,
+    mothead_mot_func_47,
+    mothead_mot_func_48,
+    mothead_mot_func_49,
+    mothead_mot_func_40,
+    mothead_mot_func_51,
+    mothead_mot_func_52,
+    mothead_mot_func_53,
+    mothead_mot_func_54,
+    mothead_mot_func_55,
+    mothead_mot_func_56,
+    mothead_mot_func_57,
+    mothead_mot_func_58,
+    mothead_mot_func_59,
+    mothead_mot_func_60,
+    mothead_mot_func_61,
+    mothead_mot_func_62,
+    mothead_mot_func_63,
+    mothead_mot_func_64,
+    mothead_mot_func_65,
+    mothead_mot_func_66,
+    mothead_mot_func_67,
+    mothead_mot_func_68,
 };
 
 static const struc_218 stru_140A24B50[] = {
@@ -3157,145 +3369,24 @@ static void sub_140555B00(rob_chara* rob_chr, bool a2) {
         (float_t)((double_t)rob_chr->data.field_1588.field_0.field_274 * M_PI * (1.0 / 32768.0)));
 }
 
-static void mothead_apply_mot_inner(struc_380* a1, int32_t type, const mothead_mot_data* a3) {
-    struc_652* v19 = &a1->field_10->field_0;
-    const void* v35 = a3->data;
-    switch (type) {
-    case 0x00: {
-        if (v19->field_58 != -1)
-            break;
-
-        uint32_t v8 = 0;
-        if (!a3 || a3->type < 0)
-            break;
-
-        prj::vector_pair<const void*, uint32_t> v31; // Was std::list
-        while (a3->type != 0)
-            if ((a3++)->type < 0)
-                return;
-
-        if (!a3->data)
-            break;
-
-        do {
-            if (!a3->type) {
-                const void* v10 = a3->data;
-                if (!v10)
-                    break;
-
-                v8 += ((uint16_t*)v10)[11];
-                v31.push_back({ v10, v8 });
-            }
-            a3++;
-        } while (a3->type >= 0);
-
-        if (!v8 || !v31.size())
-            break;
-
-        if (v31.size() > 1) {
-            uint32_t v15 = rand_state_array_get_int(1) % v8;
-            for (std::pair<const void*, uint32_t>& i : v31)
-                if (v15 < i.second) {
-                    v35 = i.first;
-                    break;
-                }
-        }
-
-        v19->field_58 = ((int16_t*)v35)[0];
-        v19->field_5C = ((int32_t*)v35)[1];
-        v19->field_60 = ((int32_t*)v35)[2];
-        v19->field_64 = ((int32_t*)v35)[3];
-        v19->field_68 = ((int32_t*)v35)[4];
-        v19->loop_count = ((int16_t*)v35)[5];
-        v19->loop_begin = (float_t)((int16_t*)v35)[12];
-        v19->loop_end = (float_t)((int16_t*)v35)[13];
-    } break;
-    case 0x01: {
-        v19->field_78 = (float_t)((int16_t*)v35)[0];
-        if (((int16_t*)v35)[1] >= 0)
-            v19->field_7C = (float_t)((int16_t*)v35)[1];
-        if (((int16_t*)v35)[2] >= 0)
-            v19->field_80 = (float_t)((int16_t*)v35)[2];
-        v19->field_20.field_0 |= 2;
-        a1->rob_chara_data->motion.field_24 = 0;
-    } break;
-    case 0x02: {
-        v19->field_1E8 = ((int32_t*)v35)[0];
-        v19->field_1EC = (float_t)((int16_t*)v35)[2];
-        v19->field_1F0 = (float_t)((int16_t*)v35)[3];
-        v19->field_1F4 = (float_t)((int16_t*)v35)[4];
-        v19->field_1F8 = (float_t)((int16_t*)v35)[5];
-        v19->field_1FC = ((float_t*)v35)[3];
-        v19->field_200 += ((float_t*)v35)[4];
-        a1->rob_chara_data->field_8.field_B8.field_10.y = -get_osage_gravity_const() * ((float_t*)v35)[4];
-        if (v19->field_1F4 < v19->field_1F0)
-            v19->field_1F4 = v19->field_1F0;
-    } break;
-    case 0x28: {
-        v19->field_238 = ((int16_t*)v35)[0];
-        if (a1->rob_chara_data->motion.field_28 & 0x08)
-            v19->field_23C = -((float_t*)v35)[1];
-        else
-            v19->field_23C = ((float_t*)v35)[1];
-        v19->field_240 = ((int32_t*)v35)[2];
-        a1->rob_chara_data->field_8.field_B8.field_10.y = -get_osage_gravity_const() * ((float_t*)v35)[3];
-    } break;
-    case 0x29: {
-        if (v19->field_244 <= 0)
-            v19->field_248 = a3;
-        v19->field_244++;
-    } break;
-    case 0x2E: {
-        if (v19->field_10.field_0 & 0x100) {
-            if (a1->rob_chara_data->motion.field_28 & 0x08)
-                v19->field_274 = -((int16_t*)v35)[0];
-            else
-                v19->field_274 = ((int16_t*)v35)[0];
-        }
-    } break;
-    case 0x33: {
-        if (a1->rob_chara_data->motion.field_28 & 0x08)
-            v19->field_2B8 = -((int16_t*)v35)[0];
-        else
-            v19->field_2B8 = ((int16_t*)v35)[0];
-    } break;
-    case 0x37: {
-        v19->field_2BC = ((int32_t*)v35)[0];
-        v19->field_2C0 = ((float_t*)v35)[1];
-        v19->field_2C4 = ((float_t*)v35)[2];
-    } break;
-    case 0x40: {
-        float_t v31 = ((float_t*)v35)[0];
-        if (a1->rob_chara_data->motion.field_28 & 0x08)
-            v31 = -v31;
-        v19->field_318.x = v31;
-        v19->field_318.y = ((float_t*)v35)[1];
-        v19->field_318.z = ((float_t*)v35)[2];
-    } break;
-    case 0x42: {
-        v19->field_324 = ((float_t*)v35)[0];
-        if (v19->field_324 < 0.0f)
-            v19->field_324 = -v19->field_324;
-    } break;
-    case 0x44: {
-        if (((int32_t*)v35)[0] > 0)
-            v19->iterations = ((int32_t*)v35)[0];
-    } break;
-    }
+// 0x140536D30
+static void mothead_apply_mot_inner(mothead_mot_func_data* func_data, int32_t type, const mothead_mot_data* mhd_mot_data) {
+    mothead_mot_func_array[type](func_data, mhd_mot_data->data, mhd_mot_data);
 }
 
-static void mothead_apply_mot(struc_223* a1, rob_chara* rob_chr, const mothead_mot_data* a3) {
-    if (!a3 || !a3->data)
+// 0x140537380
+static void mothead_apply_mot(struc_223* a1, rob_chara* rob_chr, const mothead_mot_data* mhd_mot_data) {
+    if (!mhd_mot_data || !mhd_mot_data->data)
         return;
 
-    struc_380 v5;
-    v5.rob_chara = rob_chr;
-    v5.rob_chara_data = &rob_chr->data;
-    v5.field_10 = &rob_chr->data.field_1588;
+    mothead_mot_func_data func_data;
+    func_data.rob_chara = rob_chr;
+    func_data.rob_chara_data = &rob_chr->data;
+    func_data.field_10 = &rob_chr->data.field_1588;
 
-    while (a3->data && a3->type >= 0) {
-        mothead_apply_mot_inner(&v5, a3->type, a3);
-        a3++;
+    while (mhd_mot_data->data && mhd_mot_data->type >= 0) {
+        mothead_apply_mot_inner(&func_data, mhd_mot_data->type, mhd_mot_data);
+        mhd_mot_data++;
     }
 }
 
@@ -4887,6 +4978,23 @@ LABEL_23:
     }
 }
 
+// 0x1405333E0
+static void mothead_apply_inner(mothead_func_data* func_data,
+    int32_t func_id, const struc_377& a3, int32_t frame, const motion_database* mot_db) {
+    if (func_id < 0 || func_id >= MOTHEAD_DATA_MAX
+        || !mothead_func_array[func_id].func || (mothead_func_array[func_id].flags & 0x01))
+        return;
+
+    if (frame <= 0)
+        mothead_func_array[func_id].func(func_data, a3.current->data, a3.current, frame, mot_db);
+    else {
+        frame -= a3.current->frame;
+        if (frame <= 1)
+            mothead_func_array[func_id].func(func_data, a3.current->data, a3.current, frame, mot_db);
+    }
+}
+
+// 0x1405338F0
 static void mothead_apply(struc_223* a1, rob_chara* rob_chr, float_t frame, const motion_database* mot_db) {
     a1->field_330.field_338 = 0;
 
@@ -4894,35 +5002,20 @@ static void mothead_apply(struc_223* a1, rob_chara* rob_chr, float_t frame, cons
     if (!v4.current)
         return;
 
-    mothead_func_data v7;
-    v7.rob_chr = rob_chr;
-    v7.rob_chr_data = &rob_chr->data;
+    mothead_func_data func_data;
+    func_data.rob_chr = rob_chr;
+    func_data.rob_chr_data = &rob_chr->data;
     if (rob_chr->field_20)
-        v7.field_10 = (rob_chara_data*)((size_t)rob_chr->field_20 + 0x440);
+        func_data.field_10 = (rob_chara_data*)((size_t)rob_chr->field_20 + 0x440);
     else
-        v7.field_10 = 0;
-    v7.field_18 = rob_chr;
-    v7.field_28 = &rob_chr->data.field_1588;
-    v7.field_20 = &rob_chr->data;
+        func_data.field_10 = 0;
+    func_data.field_18 = rob_chr;
+    func_data.field_28 = &rob_chr->data.field_1588;
+    func_data.field_20 = &rob_chr->data;
 
     int32_t frame_int = (int32_t)frame;
     while (v4.current->frame <= frame_int && v4.current->type >= MOTHEAD_DATA_TYPE_0) {
-        if (v4.current->type >= MOTHEAD_DATA_MAX) {
-            v4.current++;
-            continue;
-        }
-
-        mothead_data_type type = v4.current->type;
-        mothead_func func = mothead_func_array[type].func;
-        if (func) {
-            if (!(mothead_func_array[type].flags & 0x01) || frame_int <= 0)
-                func(&v7, v4.current->data, v4.current, frame_int, mot_db);
-            else {
-                frame_int -= v4.current->frame;
-                if (frame_int <= 1)
-                    func(&v7, v4.current->data, v4.current, frame_int, mot_db);
-            }
-        }
+        mothead_apply_inner(&func_data, v4.current->type, v4, frame_int, mot_db);
         v4.current++;
     }
 }
@@ -7365,6 +7458,450 @@ static void mothead_func_80_adjust_get_global_pos(mothead_func_data* func_data,
     const void* data, const mothead_data* mhd_data, int32_t frame, const motion_database* mot_db) {
     func_data->rob_chr_data->adjust_data.get_global_pos = ((uint8_t*)data)[0];
 }
+
+static void mothead_mot_func_0(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+    if (func_data->field_10->field_0.field_58 != -1)
+        return;
+
+    std::list<std::pair<const void*, uint32_t>> v23;
+    uint32_t v8 = 0;
+    if (!mhd_mot_data || mhd_mot_data->type < 0)
+        return;
+
+    while (mhd_mot_data->type)
+        if ((mhd_mot_data++)->type < 0)
+            return;
+
+    if (!mhd_mot_data->data)
+        return;
+
+    const void* _data = mhd_mot_data->data;
+    v8 += ((uint16_t*)_data)[11];
+    v23.push_back({ _data, v8 });
+    mhd_mot_data++;
+
+    do {
+        if (!mhd_mot_data->type) {
+            const void* data = mhd_mot_data->data;
+            if (!data)
+                break;
+
+            v8 += ((uint16_t*)data)[11];
+            v23.push_back({ data, v8 });
+        }
+        mhd_mot_data++;
+    } while (mhd_mot_data->type >= 0);
+
+    if (!v8 || !v23.size())
+        return;
+
+    if (v23.size() > 1) {
+        uint32_t v15 = rand_state_array_get_int(1) % v8;
+        for (const std::pair<const void*, uint32_t>& i : v23)
+            if (v15 < i.second) {
+                data = i.first;
+                break;
+            }
+    }
+
+    v23.clear();
+
+    struc_223* v19 = func_data->field_10;
+    v19->field_0.field_58 = ((int16_t*)data)[0];
+    v19->field_0.field_5C = ((int32_t*)data)[1];
+    v19->field_0.field_60 = ((int32_t*)data)[2];
+    v19->field_0.field_64 = ((int32_t*)data)[3];
+    v19->field_0.field_68 = ((int32_t*)data)[4];
+    v19->field_0.loop_count = ((int16_t*)data)[10];
+    v19->field_0.loop_begin = (float_t)((int16_t*)data)[12];
+    v19->field_0.loop_end = (float_t)((int16_t*)data)[13];
+}
+
+static void mothead_mot_func_1(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+    func_data->field_10->field_0.field_78 = (float_t)((int16_t*)data)[0];
+    if (((int16_t*)data)[1] >= 0)
+        func_data->field_10->field_0.field_7C = (float_t)((int16_t*)data)[1];
+    if (((int16_t*)data)[2] >= 0)
+        func_data->field_10->field_0.field_80 = (float_t)((int16_t*)data)[2];
+    func_data->field_10->field_0.field_20.field_0 |= 0x02;
+    func_data->rob_chara_data->motion.field_24 = 0;
+}
+
+static void mothead_mot_func_2(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+    func_data->field_10->field_0.field_1E8 = ((int32_t*)data)[0];
+    func_data->field_10->field_0.field_1EC = (float_t)((int16_t*)data)[2];
+    func_data->field_10->field_0.field_1F0 = (float_t)((int16_t*)data)[3];
+    func_data->field_10->field_0.field_1F4 = (float_t)((int16_t*)data)[4];
+    func_data->field_10->field_0.field_1F8 = (float_t)((int16_t*)data)[5];
+    func_data->field_10->field_0.field_1FC = ((float_t*)data)[3];
+    func_data->field_10->field_0.field_200 += ((float_t*)data)[4];
+    func_data->rob_chara_data->field_8.field_B8.field_10.y = -(get_osage_gravity_const() * ((float_t*)data)[4]);
+
+    if (func_data->field_10->field_0.field_1F4 < func_data->field_10->field_0.field_1F0)
+        func_data->field_10->field_0.field_1F4 = func_data->field_10->field_0.field_1F0;
+}
+
+static void mothead_mot_func_3(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_4(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_5(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_6(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_7(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_8(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_9(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_10(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_11(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_12(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_13(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_14(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_15(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_16(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_17(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_18(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_19(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_20(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_21(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_22(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_23(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_24(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_25(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_26(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_27(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_28(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_29(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_30(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_31(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_32(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_33(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_34(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_35(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_36(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_37(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_38(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_39(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_40(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+    func_data->field_10->field_0.field_238 = ((int16_t*)data)[0];
+    if (func_data->rob_chara_data->motion.field_28 & 0x08)
+        func_data->field_10->field_0.field_23C = -((float_t*)data)[1];
+    else
+        func_data->field_10->field_0.field_23C = ((float_t*)data)[1];
+    func_data->field_10->field_0.field_240 = ((int32_t*)data)[2];
+    func_data->rob_chara_data->field_8.field_B8.field_10.y = -(get_osage_gravity_const() * ((float_t*)data)[3]);
+}
+
+static void mothead_mot_func_41(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+    if (func_data->field_10->field_0.field_244 <= 0)
+        func_data->field_10->field_0.field_248 = mhd_mot_data;
+    func_data->field_10->field_0.field_244++;
+}
+
+static void mothead_mot_func_42(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_43(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_44(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_45(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_46(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+    if (func_data->field_10->field_0.field_10.field_0 & 0x100)
+        if (func_data->rob_chara_data->motion.field_28 & 0x08)
+            func_data->field_10->field_0.field_274 = -((int16_t*)data)[0];
+        else
+            func_data->field_10->field_0.field_274 = ((int16_t*)data)[0];
+}
+
+static void mothead_mot_func_47(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_48(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_49(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_50(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_51(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+    if (func_data->rob_chara_data->motion.field_28 & 0x08)
+        func_data->field_10->field_0.field_2B8 = -((int16_t*)data)[0];
+    else
+        func_data->field_10->field_0.field_2B8 = ((int16_t*)data)[0];
+}
+
+static void mothead_mot_func_52(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_53(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_54(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_55(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+    func_data->field_10->field_0.field_2BC = ((int32_t*)data)[0];
+    func_data->field_10->field_0.field_2C0 = ((float_t*)data)[1];
+    func_data->field_10->field_0.field_2C4 = ((float_t*)data)[2];
+}
+
+static void mothead_mot_func_56(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_57(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_58(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_59(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_60(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_61(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_62(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_63(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_64(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_65(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+    if (func_data->rob_chara_data->motion.field_28 & 0x08)
+        func_data->field_10->field_0.field_318.x = -((float_t*)data)[0];
+    else
+        func_data->field_10->field_0.field_318.x = ((float_t*)data)[0];
+    func_data->field_10->field_0.field_318.y = ((float_t*)data)[1];
+    func_data->field_10->field_0.field_318.z = ((float_t*)data)[2];
+}
+
+static void mothead_mot_func_66(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+    func_data->field_10->field_0.field_324 = *(float_t*)data;
+
+    float_t v4 = func_data->field_10->field_0.field_324;
+    if (v4 < 0.0f)
+        func_data->field_10->field_0.field_324 = v4 * -1.0f;
+}
+
+static void mothead_mot_func_67(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+
+}
+
+static void mothead_mot_func_68(mothead_mot_func_data* func_data,
+    const void* data, const mothead_mot_data* mhd_mot_data) {
+    int32_t iterations = *(int32_t*)data;
+    if (iterations > 0)
+        func_data->field_10->field_0.iterations = iterations;
+}
+
 
 static bool sub_140410250(const struc_313* a1, size_t a2) {
     return !!(a1->bitfield.data()[a2 >> 5] & (1 << (a2 & 0x1F)));
