@@ -281,19 +281,19 @@ void texture_get_format_type_by_internal_format(GLenum internal_format, GLenum* 
     GLenum _type;
     switch (internal_format) {
     case GL_ALPHA8:
-        _format = GL_RED;
+        _format = GL_RED; // GL_ALPHA
         _type = GL_UNSIGNED_BYTE;
         break;
     case GL_LUMINANCE8:
-        _format = GL_RED;
+        _format = GL_RED; // GL_LUMINANCE
         _type = GL_UNSIGNED_BYTE;
         break;
     case GL_LUMINANCE8_ALPHA8:
-        _format = GL_RG;
+        _format = GL_RG; // GL_LUMINANCE_ALPHA
         _type = GL_UNSIGNED_BYTE;
         break;
     case GL_INTENSITY8:
-        _format = GL_RED;
+        _format = GL_RED; // GL_INTENSITY
         _type = GL_UNSIGNED_BYTE;
         break;
     case GL_RGB5:
@@ -334,9 +334,9 @@ void texture_get_format_type_by_internal_format(GLenum internal_format, GLenum* 
         _format = GL_RED;
         _type = GL_FLOAT;
         break;
-    case GL_RG16F: // Added
+    case GL_RG16F:
         _format = GL_RG;
-        _type = GL_HALF_FLOAT;
+        _type = GL_HALF_FLOAT; // GL_FLOAT
         break;
     case GL_RG32F:
         _format = GL_RG;
@@ -358,9 +358,9 @@ void texture_get_format_type_by_internal_format(GLenum internal_format, GLenum* 
         break;
     case GL_RGBA16F:
         _format = GL_RGBA;
-        _type = GL_HALF_FLOAT;
+        _type = GL_HALF_FLOAT; // GL_FLOAT
         break;
-    case GL_DEPTH24_STENCIL8:
+    case GL_DEPTH24_STENCIL8: // Added
         _format = GL_DEPTH_STENCIL;
         _type = GL_UNSIGNED_INT_24_8;
         break;
@@ -372,10 +372,18 @@ void texture_get_format_type_by_internal_format(GLenum internal_format, GLenum* 
         _format = GL_RGB;
         _type = GL_UNSIGNED_INT_5_9_9_9_REV;
         break;
+    //case GL_LUMINANCE32F: // 0x8818
+    //    _format = GL_RED; // GL_LUMINANCE
+    //    _type = GL_FLOAT;
+    //    break;
     case GL_DEPTH_COMPONENT32F:
         _format = GL_DEPTH_COMPONENT;
         _type = GL_FLOAT;
         break;
+    //case GL_DEPTH_COMPONENT32F_NV: // 0x8DAB
+    //    _format = GL_DEPTH_COMPONENT;
+    //    _type = GL_FLOAT;
+    //    break;
     case GL_COMPRESSED_RED_RGTC1:
         _format = GL_RED;
         _type = GL_ZERO;
@@ -402,7 +410,7 @@ int32_t texture_get_size(GLenum internal_format, int32_t width, int32_t height) 
     case GL_ALPHA8:
     case GL_LUMINANCE8:
     case GL_INTENSITY8:
-    case GL_R8:
+    case GL_R8: // Added
         return size;
     case GL_LUMINANCE8_ALPHA8:
     case GL_RGB5:
@@ -417,13 +425,15 @@ int32_t texture_get_size(GLenum internal_format, int32_t width, int32_t height) 
     case GL_DEPTH_COMPONENT32:
     case GL_R32F:
     case GL_RG16F:
-    case GL_DEPTH24_STENCIL8:
-    case GL_DEPTH_COMPONENT32F:
+    //case GL_LUMINANCE32F: // 0x8818
+    case GL_DEPTH24_STENCIL8: // Added
     case GL_R11F_G11F_B10F:
     case GL_RGB9_E5:
+    case GL_DEPTH_COMPONENT32F:
+    //case GL_DEPTH_COMPONENT32F_NV: // 0x8DAB
         return size * 4;
-    case GL_RGBA16F:
     case GL_RG32F:
+    case GL_RGBA16F:
         return size * 8;
     case GL_RGBA32F:
         return size * 16;
@@ -432,13 +442,17 @@ int32_t texture_get_size(GLenum internal_format, int32_t width, int32_t height) 
     case GL_COMPRESSED_RED_RGTC1:
         width = align_val(width, 4);
         height = align_val(height, 4);
-        return width * height / 2;
+        // [width] * [height] * [raw bpp] / [bits in bytes] / [comp bpp]
+        // int64_t to prevent overflow
+        return (int32_t)((int64_t)width * height * 32 / 8 / 8);
     case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
     case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
     case GL_COMPRESSED_RG_RGTC2:
         width = align_val(width, 4);
         height = align_val(height, 4);
-        return width * height;
+        // [width] * [height] * [raw bpp] / [bits in bytes] / [comp bpp]
+        // int64_t to prevent overflow
+        return (int32_t)((int64_t)width * height * 32 / 8 / 4);
     default:
         return 0;
     }
@@ -466,22 +480,20 @@ const char* texture_get_internal_format_name(GLenum internal_format) {
         return "DEPTH16";
     case GL_DEPTH_COMPONENT24:
         return "DEPTH24";
+    case GL_DEPTH_COMPONENT32:
+        return "DEPTH32";
     case GL_COMPRESSED_RGB_S3TC_DXT1_EXT:
         return "DXT1";
     case GL_COMPRESSED_RGBA_S3TC_DXT1_EXT:
-        return "DXT1A";
+        return "DXT1a";
     case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
         return "DXT3";
     case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
         return "DXT5";
-    case GL_DEPTH24_STENCIL8: // Added
-        return "DEPTH24_STENCIL8";
-    case GL_COMPRESSED_RED_RGTC1_EXT:
+    case GL_COMPRESSED_RED_RGTC1:
         return "RGTC1(BC4)";
-    case GL_COMPRESSED_RED_GREEN_RGTC2_EXT:
+    case GL_COMPRESSED_RG_RGTC2:
         return "RGTC2(BC5)";
-    case GL_DEPTH_COMPONENT32F:
-        return "DEPTH32";
     default:
         return "unknown";
     }
@@ -619,8 +631,8 @@ static int32_t texture_load_pixels(GLenum target, GLenum internal_format,
     case GL_COMPRESSED_RGBA_S3TC_DXT1_EXT:
     case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
     case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
-    case GL_COMPRESSED_RED_RGTC1_EXT:
-    case GL_COMPRESSED_RED_GREEN_RGTC2_EXT: {
+    case GL_COMPRESSED_RED_RGTC1:
+    case GL_COMPRESSED_RG_RGTC2: {
         int32_t size = texture_get_size(internal_format, width, height);
         glCompressedTexImage2D(target, level, internal_format, width, height, 0, size, data);
     } break;
@@ -654,14 +666,14 @@ static texture* texture_load_tex(texture_id id, GLenum target,
         swizzle[3] = GL_RED;
         glTexParameteriv(target, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
         break;
-    case GL_COMPRESSED_RED_RGTC1_EXT:
+    case GL_COMPRESSED_RED_RGTC1:
         swizzle[0] = GL_RED;
         swizzle[1] = GL_RED;
         swizzle[2] = GL_RED;
         swizzle[3] = GL_ONE;
         glTexParameteriv(target, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
         break;
-    case GL_COMPRESSED_RED_GREEN_RGTC2_EXT:
+    case GL_COMPRESSED_RG_RGTC2:
         swizzle[0] = GL_RED;
         swizzle[1] = GL_GREEN;
         swizzle[2] = GL_ZERO;
@@ -746,8 +758,8 @@ static texture* texture_load_tex(texture_id id, GLenum target,
     case GL_COMPRESSED_RGBA_S3TC_DXT1_EXT:
     case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
     case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
-    case GL_COMPRESSED_RED_RGTC1_EXT:
-    case GL_COMPRESSED_RED_GREEN_RGTC2_EXT:
+    case GL_COMPRESSED_RED_RGTC1:
+    case GL_COMPRESSED_RG_RGTC2:
         enum_or(tex->flags, TEXTURE_BLOCK_COMPRESSION);
         break;
     }
@@ -795,9 +807,9 @@ static GLenum texture_txp_get_gl_internal_format(txp* t) {
     case TXP_BC3:
         return GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
     case TXP_BC4:
-        return GL_COMPRESSED_RED_RGTC1_EXT;
+        return GL_COMPRESSED_RED_RGTC1;
     case TXP_BC5:
-        return GL_COMPRESSED_RED_GREEN_RGTC2_EXT;
+        return GL_COMPRESSED_RG_RGTC2;
     case TXP_L8:
         return GL_LUMINANCE8;
     case TXP_L8A8:
