@@ -1704,15 +1704,20 @@ namespace Vulkan {
             return VK_FORMAT_R8_UNORM;
         case GL_RGB5:
             return VK_FORMAT_R5G6B5_UNORM_PACK16;
+        case GL_RGB8:
+            return VK_FORMAT_R8G8B8A8_UNORM;
         case GL_RGBA4:
             return VK_FORMAT_R4G4B4A4_UNORM_PACK16;
         case GL_RGB5_A1:
             return VK_FORMAT_R5G5B5A1_UNORM_PACK16;
-        case GL_RGB8:
         case GL_RGBA8:
             return VK_FORMAT_R8G8B8A8_UNORM;
+        case GL_DEPTH_COMPONENT16:
+            return VK_FORMAT_D16_UNORM;
         case GL_DEPTH_COMPONENT24:
             return VK_FORMAT_D24_UNORM_S8_UINT;
+        case GL_DEPTH_COMPONENT32:
+            return VK_FORMAT_D32_SFLOAT;
         case GL_R8:
             return VK_FORMAT_R8_UNORM;
         case GL_RG8:
@@ -6593,7 +6598,6 @@ namespace Vulkan {
         case GL_DEPTH_COMPONENT32F:
             break;
         default:
-            printf("e");
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
             return;
         }
@@ -6602,8 +6606,10 @@ namespace Vulkan {
             || (type == GL_UNSIGNED_SHORT_4_4_4_4_REV || type == GL_UNSIGNED_SHORT_1_5_5_5_REV
                 || type == GL_UNSIGNED_INT_5_9_9_9_REV) && format != GL_RGBA
             || ((target != GL_TEXTURE_2D || format != GL_DEPTH_COMPONENT || pixels)
-                && internal_format == GL_DEPTH_COMPONENT16 && internal_format != GL_DEPTH_COMPONENT24
-                && internal_format == GL_DEPTH24_STENCIL8 && internal_format== GL_DEPTH_COMPONENT32F)) {
+                && (internal_format == GL_DEPTH_COMPONENT16 || internal_format == GL_DEPTH_COMPONENT24
+                    || internal_format == GL_DEPTH_COMPONENT32 || internal_format == GL_DEPTH_COMPONENT32F))
+            || ((target != GL_TEXTURE_2D || format != GL_DEPTH_STENCIL || pixels)
+                && (internal_format == GL_DEPTH24_STENCIL8))) {
             gl_wrap_manager_ptr->push_error(GL_INVALID_OPERATION);
             return;
         }
