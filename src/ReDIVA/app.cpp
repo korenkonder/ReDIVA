@@ -467,12 +467,28 @@ int32_t app_main(const app_init_struct& ais) {
                 return ret;
             }
         }
+#ifdef USE_OPENGL
+        else {
 #if RENDER_DEBUG
-        else if (GLAD_GL_VERSION_4_3) {
-            glEnable(GL_DEBUG_OUTPUT);
-            glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-            glDebugMessageCallback(render_debug_output, 0);
-            glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, 0, GL_TRUE);
+            if (GLAD_GL_VERSION_4_3) {
+                glEnable(GL_DEBUG_OUTPUT);
+                glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+                glDebugMessageCallback(render_debug_output, 0);
+                glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, 0, GL_TRUE);
+            }
+#endif
+
+            const char* vendor_string = (const char*)glGetString(GL_VENDOR);
+            if (strstr(vendor_string, "AMD") || strstr(vendor_string, "ATI"))
+                sv_gpu_vendor = GPU_VENDOR_AMD;
+            else if (strstr(vendor_string, "Apple"))
+                sv_gpu_vendor = GPU_VENDOR_APPLE;
+            else if (strstr(vendor_string, "NVIDIA"))
+                sv_gpu_vendor = GPU_VENDOR_NVIDIA;
+            else if (strstr(vendor_string, "Intel"))
+                sv_gpu_vendor = GPU_VENDOR_INTEL;
+            else
+                sv_gpu_vendor = GPU_VENDOR_UNKNOWN;
         }
 #endif
 
@@ -2512,6 +2528,17 @@ static int32_t app_pick_physical_device() {
 
     VkPhysicalDeviceProperties properties;
     vkGetPhysicalDeviceProperties(vulkan_physical_device, &properties);
+
+    if (properties.vendorID == 0x1002)
+        sv_gpu_vendor = GPU_VENDOR_AMD;
+    else if (properties.vendorID == 0x106B)
+        sv_gpu_vendor = GPU_VENDOR_APPLE;
+    else if (properties.vendorID == 0x10DE)
+        sv_gpu_vendor = GPU_VENDOR_NVIDIA;
+    else if (properties.vendorID == 0x8086)
+        sv_gpu_vendor = GPU_VENDOR_INTEL;
+    else
+        sv_gpu_vendor = GPU_VENDOR_UNKNOWN;
 
     vulkan_physical_device_limits = properties.limits;
     memcpy(vulkan_device_name, properties.deviceName, VK_MAX_PHYSICAL_DEVICE_NAME_SIZE);

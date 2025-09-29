@@ -803,7 +803,7 @@ void shader_set_data::load(farc* f, bool ignore_cache,
         if (FAILED(SHGetFolderPathW(0, CSIDL_LOCAL_APPDATA, 0, 0, temp_buf)))
             return;
 
-        const bool apple = !!strstr((const char*)glGetString(GL_VENDOR), "Apple");
+        const bool apple = sv_gpu_vendor == GPU_VENDOR_APPLE;
 
         if (strstr((const char*)glGetString(GL_VERSION), "Mesa"))
             ignore_cache = true;

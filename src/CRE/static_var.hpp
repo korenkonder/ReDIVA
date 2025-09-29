@@ -19,6 +19,14 @@ enum draw_pass_3d_type {
     DRAW_PASS_3D_MAX,
 };
 
+enum gpu_vendor {
+    GPU_VENDOR_UNKNOWN = 0,
+    GPU_VENDOR_AMD,
+    GPU_VENDOR_APPLE,
+    GPU_VENDOR_NVIDIA,
+    GPU_VENDOR_INTEL,
+};
+
 enum uniform_name {
     U_NONE = 0,
     U_ALPHA_MASK,
@@ -112,6 +120,8 @@ extern bool sv_anisotropy_changed;
 extern int32_t sv_anisotropy;
 
 extern bool sv_better_reflect;
+
+extern gpu_vendor sv_gpu_vendor;
 
 extern bool sv_shared_storage_uniform_buffer;
 

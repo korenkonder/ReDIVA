@@ -18,6 +18,8 @@ int32_t sv_anisotropy = 1;
 
 bool sv_better_reflect = false;
 
+gpu_vendor sv_gpu_vendor = GPU_VENDOR_UNKNOWN;
+
 bool sv_shared_storage_uniform_buffer = true;
 
 const vec3 sv_rgb_to_luma = {
