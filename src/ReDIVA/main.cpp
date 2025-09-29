@@ -1201,8 +1201,14 @@ int32_t wmain(int32_t argc, wchar_t** argv) {
     }
 
     bool vulkan = false;
-    if (argc >= 2 && !wcscmp(argv[1], L"--vulkan"))
-        vulkan = true;
+    const wchar_t* config_path = 0;
+    if (argc >= 2)
+        for (int32_t i = 1; i < argc; i++) {
+            if (!wcscmp(argv[i], L"--vulkan"))
+                vulkan = true;
+            else if (!wcscmp(argv[i], L"--config") && i + 1 < argc)
+                config_path = argv[i + 1];
+        }
 
     /*process_edit_dsc();
     return 0;*/
@@ -1226,7 +1232,7 @@ int32_t wmain(int32_t argc, wchar_t** argv) {
 
     //a3da_to_dft_dsc(269);
 
-    app_main({ vulkan });
+    app_main({ vulkan, config_path });
 
     timeEndPeriod(1);
     return 0;

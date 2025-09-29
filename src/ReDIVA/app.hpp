@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "../KKdLib/default.hpp"
 #include "../KKdLib/vec.hpp"
 
 enum render_scale {
@@ -30,19 +31,20 @@ struct app_init_struct {
     vec2i res;
     int32_t scale_index;
     bool vulkan;
+    const wchar_t* config_path;
 
-    inline app_init_struct() : scale_index(), vulkan() {
+    inline app_init_struct() : scale_index(), vulkan(), config_path() {
 
     }
 
-    inline app_init_struct(bool vulkan) : scale_index() {
-        this->vulkan = vulkan;
+    inline app_init_struct(bool vulkan, const wchar_t* config_path = 0)
+        : scale_index(), vulkan(vulkan), config_path(config_path) {
+
     }
 
-    inline app_init_struct(vec2i res, int32_t scale_index, bool vulkan) {
-        this->res = res;
-        this->scale_index = scale_index;
-        this->vulkan = vulkan;
+    inline app_init_struct(vec2i res, int32_t scale_index, bool vulkan, const wchar_t* config_path = 0)
+        : res(res), scale_index(scale_index), vulkan(vulkan), config_path(config_path) {
+
     }
 };
 

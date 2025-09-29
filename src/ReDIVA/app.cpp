@@ -258,7 +258,7 @@ static bool app_init(const app_init_struct& ais);
 static void app_main_loop(render_context* rctx);
 static void app_free();
 
-static render_context* render_context_load();
+static render_context* render_context_load(const wchar_t* config_path);
 static void render_context_ctrl(render_context* rctx);
 static void render_context_disp(render_context* rctx);
 static void render_context_imgui(render_context* rctx);
@@ -422,6 +422,12 @@ int32_t app_main(const app_init_struct& ais) {
     Vulkan::use = ais.vulkan;
 #endif
 
+    const wchar_t* config_path = L"ReDIVA_data.txt";
+    if (ais.config_path)
+        config_path = ais.config_path;
+
+    Sleep(5000);
+
     if (app_init(ais)) {
         window_handle = glfwGetWin32Window(window);
         glfwShowWindow(window);
@@ -469,6 +475,7 @@ int32_t app_main(const app_init_struct& ais) {
             glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, 0, GL_TRUE);
         }
 #endif
+
         glGetIntegerv(GL_MAX_TEXTURE_SIZE, &sv_max_texture_size);
         glGetIntegerv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &sv_max_texture_max_anisotropy);
         glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &sv_max_uniform_buffer_size);
@@ -482,7 +489,7 @@ int32_t app_main(const app_init_struct& ais) {
             close = false;
             reload_render = false;
 
-            render_context* rctx = render_context_load();
+            render_context* rctx = render_context_load(config_path);
 
 #if !(BAKE_PNG || BAKE_VIDEO)
             glfwGetFramebufferSize(window, &width, &height);
@@ -730,7 +737,7 @@ static void app_free() {
     glfwDestroyWindow(window);
 }
 
-static render_context* render_context_load() {
+static render_context* render_context_load(const wchar_t* config_path) {
     Vulkan::CommandBuffer command_buffer;
     if (Vulkan::use) {
         command_buffer.Create(vulkan_device, vulkan_command_pool);
@@ -744,7 +751,7 @@ static render_context* render_context_load() {
     sub_140194880(1);
 
     data_struct_init();
-    data_struct_load("ReDIVA_data.txt");
+    data_struct_load(config_path);
     data_struct_load_db();
 
     render_shaders_load();
