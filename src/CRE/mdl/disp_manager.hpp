@@ -316,8 +316,7 @@ namespace mdl {
 
         EtcObjType type;
         color4u8 color;
-        //bool fog;
-        bool constant; // Added
+        bool constant;
         Data data;
         GLsizei count; // Added
         size_t offset; // Added

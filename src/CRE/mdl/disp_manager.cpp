@@ -146,7 +146,6 @@ namespace mdl {
     EtcObj::EtcObj(EtcObjType type) : count(), offset() {
         this->type = type;
         color = 0xFFFFFFFF;
-        //fog = false;
         constant = false;
         switch (type) {
         case ETC_OBJ_TEAPOT:
