@@ -32,7 +32,7 @@ int32_t texture::get_height_align_mip_level(uint8_t mip_level) const {
 }
 
 int32_t texture::get_size_mip_level(uint8_t mip_level) const {
-    return texture_get_size(internal_format,
+    return texture_get_size(texture_get_working_internal_format(internal_format),
         get_width_mip_level(mip_level), get_height_mip_level(mip_level));
 }
 
@@ -99,8 +99,8 @@ void texture_apply_color_tone(const texture* chg_tex,
                 dxt5_image_apply_color_tone(width_align, height_align, size, (dxt5_block*)data, col_tone);
 
             texture_bind(chg_tex->target, chg_tex->glid);
-            uint32_t width = org_tex->get_width_mip_level(i);
-            uint32_t height = org_tex->get_height_mip_level(i);
+            int32_t width = org_tex->get_width_mip_level(i);
+            int32_t height = org_tex->get_height_mip_level(i);
             glCompressedTexSubImage2D(chg_tex->target, i, 0, 0, width, height,
                 chg_tex->internal_format, size, data);
         }
@@ -113,8 +113,8 @@ void texture_apply_color_tone(const texture* chg_tex,
             rgb565_image_apply_color_tone(width_align, height_align, size, (rgb565*)data, col_tone);
 
             texture_bind(chg_tex->target, chg_tex->glid);
-            uint32_t width = org_tex->get_width_mip_level(i);
-            uint32_t height = org_tex->get_height_mip_level(i);
+            int32_t width = org_tex->get_width_mip_level(i);
+            int32_t height = org_tex->get_height_mip_level(i);
             glTexSubImage2D(chg_tex->target, i, 0, 0, width, height,
                 GL_RGB, GL_UNSIGNED_SHORT_5_6_5, data);
         }
@@ -131,7 +131,8 @@ texture* texture_create_copy_texture(texture_id id, texture* org_tex) {
     GLenum format = GL_ZERO;
     GLenum type = GL_ZERO;
     if (!(org_tex->flags & TEXTURE_BLOCK_COMPRESSION))
-        texture_get_format_type_by_internal_format(org_tex->internal_format, &format, &type);
+        texture_get_format_type_by_internal_format(
+            texture_get_working_internal_format(org_tex->internal_format), &format, &type);
 
     std::vector<void*> vec_data;
     vec_data.reserve((size_t)org_tex->max_mipmap_level + 1);
@@ -168,7 +169,8 @@ texture* texture_create_copy_texture_apply_color_tone(
     GLenum format = GL_ZERO;
     GLenum type = GL_ZERO;
     if (!(org_tex->flags & TEXTURE_BLOCK_COMPRESSION))
-        texture_get_format_type_by_internal_format(org_tex->internal_format, &format, &type);
+        texture_get_format_type_by_internal_format(
+            texture_get_working_internal_format(org_tex->internal_format), &format, &type);
 
     std::vector<void*> vec_data;
     vec_data.reserve((size_t)org_tex->max_mipmap_level + 1);
