@@ -2048,22 +2048,22 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
     } break;
     case DSC_FT_AGEAGE_CTRL: {
         int32_t chara_id = data[0];
-        int32_t parts = data[0];
+        int32_t parts = data[1];
         int32_t npr = data[2];
-        int32_t rot_speed = data[3];
+        int32_t speed = data[3];
         int32_t skip = data[4];
         int32_t disp = data[5];
 
         switch (parts) {
         case 0:
-            rob_chara_age_age_array_set_params(chara_id, 1, npr, rot_speed, skip, disp);
-            rob_chara_age_age_array_set_params(chara_id, 2, npr, rot_speed, skip, disp);
+            rob_chara_age_age_array_set_params(chara_id, 1, npr, speed, skip, disp);
+            rob_chara_age_age_array_set_params(chara_id, 2, npr, speed, skip, disp);
             break;
         case 1:
-            rob_chara_age_age_array_set_params(chara_id, 1, npr, rot_speed, skip, disp);
+            rob_chara_age_age_array_set_params(chara_id, 1, npr, speed, skip, disp);
             break;
         case 2:
-            rob_chara_age_age_array_set_params(chara_id, 2, npr, rot_speed, skip, disp);
+            rob_chara_age_age_array_set_params(chara_id, 2, npr, speed, skip, disp);
             break;
         }
     } break;

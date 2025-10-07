@@ -519,7 +519,7 @@ struct rob_chara_age_age {
     float_t alpha;
     rob_chara_age_age_object object;
     bool npr;
-    float_t rot_speed;
+    float_t speed;
     bool step_full;
 
     rob_chara_age_age();
@@ -537,7 +537,7 @@ struct rob_chara_age_age {
     void set_skip();
     void set_move_cancel(float_t value);
     void set_npr(bool value);
-    void set_rot_speed(float_t value);
+    void set_speed(float_t value);
     void set_step(float_t value);
     void set_step_full();
 };
@@ -1266,7 +1266,7 @@ static void rob_chara_age_age_set_move_cancel(rob_chara_age_age* arr,
     int32_t chara_id, int32_t part_id, float_t value);
 static void rob_chara_age_age_set_npr(rob_chara_age_age* arr,
     int32_t chara_id, int32_t part_id, bool value);
-static void rob_chara_age_age_set_rot_speed(rob_chara_age_age* arr,
+static void rob_chara_age_age_set_speed(rob_chara_age_age* arr,
     int32_t chara_id, int32_t part_id, float_t value);
 static void rob_chara_age_age_set_skip(rob_chara_age_age* arr,
     int32_t chara_id, int32_t part_id);
@@ -10780,9 +10780,9 @@ static void rob_chara_age_age_set_npr(rob_chara_age_age* arr,
     arr[chara_id * 3 + part_id].set_npr(value);
 }
 
-static void rob_chara_age_age_set_rot_speed(rob_chara_age_age* arr,
+static void rob_chara_age_age_set_speed(rob_chara_age_age* arr,
     int32_t chara_id, int32_t part_id, float_t value) {
-    arr[chara_id * 3 + part_id].set_rot_speed(value);
+    arr[chara_id * 3 + part_id].set_speed(value);
 }
 
 static void rob_chara_age_age_set_skip(rob_chara_age_age* arr,
@@ -12105,19 +12105,19 @@ void rob_chara_age_age_array_set_npr(int32_t chara_id, int32_t part_id, bool val
 }
 
 void rob_chara_age_age_array_set_params(int32_t chara_id, int32_t part_id,
-    int32_t npr, int32_t rot_speed, int32_t skip, int32_t disp) {
+    int32_t npr, int32_t speed, int32_t skip, int32_t disp) {
     if (!npr || npr == 1)
         rob_chara_age_age_array_set_npr(chara_id, part_id, npr);
-    if (rot_speed != -1)
-        rob_chara_age_age_array_set_rot_speed(chara_id, part_id, (float_t)rot_speed * 0.001f);
+    if (speed != -1)
+        rob_chara_age_age_array_set_speed(chara_id, part_id, (float_t)speed * 0.001f);
     if (skip != -1)
         rob_chara_age_age_array_set_skip(chara_id, part_id);
     if (!disp || disp == 1)
         rob_chara_age_age_array_set_disp(chara_id, part_id, !!disp);
 }
 
-void rob_chara_age_age_array_set_rot_speed(int32_t chara_id, int32_t part_id, float_t value) {
-    rob_chara_age_age_set_rot_speed(rob_chara_age_age_array, chara_id, part_id, value);
+void rob_chara_age_age_array_set_speed(int32_t chara_id, int32_t part_id, float_t value) {
+    rob_chara_age_age_set_speed(rob_chara_age_age_array, chara_id, part_id, value);
 }
 
 void rob_chara_age_age_array_set_skip(int32_t chara_id, int32_t part_id) {
@@ -18686,7 +18686,7 @@ void rob_chara_age_age_data::reset() {
     alpha = 0.0f;
     mat_scale = mat4_null;
     mat = mat4_null;
-    prev_parent_mat;
+    prev_parent_mat = mat4_null;
     remaining = -1.0f;
     alive = false;
 }
@@ -19110,10 +19110,10 @@ void rob_chara_age_age::ctrl_data(rob_chara_age_age_data* data, mat4& mat) {
     }
     else if (data->alive) {
         if (data->remaining < 70.0f)
-            data->rot_z += step * data->rot_speed * rot_speed;
+            data->rot_z += step * data->rot_speed * speed;
         data->pos.x += (90.0f - data->remaining) * (float_t)(1.0 / 90.0)
-            * data->gravity * 2.5f * step * rot_speed;
-        data->pos.z -= (90.0f - data->remaining) * 0.000011f * step * rot_speed;
+            * data->gravity * 2.5f * step * speed;
+        data->pos.z -= (90.0f - data->remaining) * 0.000011f * step * speed;
 
         mat4 m;
         mat4_mul_translate(&mat, &init_data->pos, &m);
@@ -19195,7 +19195,7 @@ void rob_chara_age_age::load(object_info obj_info, rob_chara_age_age_data* data,
     move_cancel = 0.0f;
     alpha = 1.0f;
     npr = false;
-    rot_speed = 1.0f;
+    speed = 1.0f;
     step_full = false;
 
     count = min_def(count, 10);
@@ -19229,8 +19229,8 @@ void rob_chara_age_age::set_npr(bool value) {
     npr = value;
 }
 
-void rob_chara_age_age::set_rot_speed(float_t value) {
-    rot_speed = value;
+void rob_chara_age_age::set_speed(float_t value) {
+    speed = value;
 }
 
 void rob_chara_age_age::set_skip() {

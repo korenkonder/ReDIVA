@@ -3877,8 +3877,8 @@ extern void rob_chara_age_age_array_set_disp(int32_t chara_id, int32_t part_id, 
 extern void rob_chara_age_age_array_set_move_cancel(int32_t chara_id, int32_t part_id, float_t value);
 extern void rob_chara_age_age_array_set_npr(int32_t chara_id, int32_t part_id, bool value);
 extern void rob_chara_age_age_array_set_params(int32_t chara_id, int32_t part_id,
-    int32_t npr, int32_t rot_speed, int32_t skip, int32_t disp);
-extern void rob_chara_age_age_array_set_rot_speed(int32_t chara_id, int32_t part_id, float_t value);
+    int32_t npr, int32_t speed, int32_t skip, int32_t disp);
+extern void rob_chara_age_age_array_set_speed(int32_t chara_id, int32_t part_id, float_t value);
 extern void rob_chara_age_age_array_set_skip(int32_t chara_id, int32_t part_id);
 extern void rob_chara_age_age_array_set_step(int32_t chara_id, int32_t part_id, float_t step);
 extern void rob_chara_age_age_array_set_step_full(int32_t chara_id, int32_t part_id);

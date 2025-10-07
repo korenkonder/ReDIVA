@@ -160,7 +160,7 @@ static const dsc_func_ac dsc_ac_func[] = {
     { 102, 1, 1, u8"MOVIE_CUT_CHG" },
     { 103, 3, 3, u8"CHARA_LIGHT" },
     { 104, 3, 3, u8"STAGE_LIGHT" },
-    { 105, 8, 8, u8"AGEAGE_CTR" },          // AFT701
+    { 105, 8, 8, u8"AGEAGE_CTRL" },         // AFT701
     { 106, 2, 2, u8"PSE" },                 // FT
 };
 
