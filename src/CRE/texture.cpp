@@ -726,7 +726,7 @@ static texture* texture_load_tex(texture_id id, GLenum target,
                 if (texture_load_pixels(target_cube_map_array[i],
                     working_internal_format, mip_width, mip_height, j, data) < 0)
                     goto fail;
-                size += texture_get_size(internal_format, mip_width, mip_height);
+                size += texture_get_size(working_internal_format, mip_width, mip_height);
             }
     else
         for (int32_t i = 0; i <= max_mipmap_level; i++) {
@@ -741,7 +741,7 @@ static texture* texture_load_tex(texture_id id, GLenum target,
             if (texture_load_pixels(target,
                 working_internal_format, mip_width, mip_height, i, data) < 0)
                 goto fail;
-            size += texture_get_size(internal_format, mip_width, mip_height);
+            size += texture_get_size(working_internal_format, mip_width, mip_height);
         }
 
     texture_bind(target, 0);
