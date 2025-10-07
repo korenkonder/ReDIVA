@@ -531,6 +531,7 @@ struct render_context {
     ::camera* camera;
     draw_state* draw_state;
     mdl::DispManager* disp_manager;
+    mdl::EtcObjManager* etc_obj_manager;
     rndr::RenderManager* render_manager;
     sss_data* sss_data;
 
