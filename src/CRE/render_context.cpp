@@ -983,6 +983,7 @@ sprite_width(), sprite_height(), screen_x_offset(), screen_y_offset(), screen_wi
     camera = new ::camera;
     draw_state = new ::draw_state;
     disp_manager = new mdl::DispManager;
+    etc_obj_manager = new mdl::EtcObjManager;
     render_manager = new rndr::RenderManager;
     sss_data = new ::sss_data;
 
@@ -1241,6 +1242,11 @@ render_context::~render_context() {
     if (render_manager) {
         delete render_manager;
         render_manager = 0;
+    }
+
+    if (etc_obj_manager) {
+        delete etc_obj_manager;
+        etc_obj_manager = 0;
     }
 
     if (disp_manager) {

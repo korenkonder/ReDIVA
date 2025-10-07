@@ -312,17 +312,32 @@ namespace mdl {
             EtcObjCylinder cylinder; // Added
 
             Data();
+            Data(const EtcObjTeapot& other);
+            Data(const EtcObjGrid& other);
+            Data(const EtcObjCube& other);
+            Data(const EtcObjSphere& other);
+            Data(const EtcObjPlane& other);
+            Data(const EtcObjCone& other);
+            Data(const EtcObjLine& other);
+            Data(const EtcObjCross& other);
+            Data(const EtcObjCapsule& other); // Added
+            Data(const EtcObjCylinder& other); // Added
         };
 
         EtcObjType type;
         color4u8 color;
         bool constant;
         Data data;
-        GLsizei count; // Added
-        size_t offset; // Added
 
         EtcObj(EtcObjType type);
         ~EtcObj();
+    };
+
+    struct EtcObjData {
+        color4u8 color;
+        bool constant;
+        int32_t index;
+        int32_t count;
     };
 
     typedef void(*UserArgsFunc)(render_data_context& rend_data_ctx, void* data, const cam_data& cam, mat4* mat);
@@ -344,7 +359,7 @@ namespace mdl {
     struct ObjData {
         union Args {
             ObjSubMeshArgs sub_mesh;
-            EtcObj etc;
+            EtcObjData etc;
             UserArgs user;
             ObjTranslucentArgs translucent;
 
@@ -361,7 +376,7 @@ namespace mdl {
         ObjData();
         ~ObjData();
 
-        void init_etc(DispManager* disp_manager, const mat4& mat, const mdl::EtcObj& etc);
+        void init_etc(DispManager* disp_manager, const mat4& mat, int32_t index, int32_t count, const EtcObj& etc);
         void init_sub_mesh(DispManager* disp_manager, const mat4& mat, float_t radius, const obj_sub_mesh* sub_mesh,
             const obj_mesh* mesh, const obj_material_data* material, const std::vector<GLuint>* textures,
             int32_t mat_count, const mat4* mats, GLuint vertex_buffer, size_t vertex_buffer_offset,
@@ -389,6 +404,73 @@ namespace mdl {
         bool(*func)(const obj_bounding_sphere*, const mat4*);
     };
 
+    struct etc_obj_draw_param_attrib_member {
+        uint32_t primitive : 4;
+    };
+
+    union etc_obj_draw_param_attrib {
+        etc_obj_draw_param_attrib_member m;
+        uint32_t w;
+    };
+
+    struct etc_obj_draw_param {
+        union {
+            GLint first;
+            struct {
+                GLuint start;
+                GLuint end;
+            };
+        };
+        GLsizei count;
+        GLintptr offset;
+        etc_obj_draw_param_attrib attrib;
+    };
+
+    struct etc_obj_vertex_data {
+        vec3 position;
+        vec3 normal;
+
+        inline etc_obj_vertex_data(const vec3 position = vec3(0.0f), const vec3 normal = vec3(0.0f, 1.0f, 0.0f))
+            : position(position), normal(normal) {
+
+        }
+    };
+
+    struct EtcObjManager {
+        std::vector<etc_obj_draw_param> draw_param_buffer;
+        std::vector<uint8_t> vertex_buffer;
+        std::vector<uint32_t> index_buffer;
+        prj::vector_pair<std::pair<EtcObjType, int32_t>, EtcObj::Data> etc_obj_buffer;
+
+        GLuint vao;
+        GL::ArrayBuffer vbo;
+        size_t vbo_vertex_count;
+        GL::ElementArrayBuffer ebo;
+        size_t ebo_index_count;
+
+        EtcObjManager();
+        ~EtcObjManager();
+
+        bool add_capsule(int32_t& index, int32_t& count, const EtcObjCapsule& capsule); // Added
+        bool add_cone(int32_t& index, int32_t& count, const EtcObjCone& cone);
+        bool add_cross(int32_t& index, int32_t& count, const EtcObjCross& cross);
+        bool add_cube(int32_t& index, int32_t& count, const EtcObjCube& cube);
+        bool add_cylinder(int32_t& index, int32_t& count, const EtcObjCylinder& cylinder); // Added
+        template <typename T>
+        size_t add_data(T*& data, size_t num_vertex);
+        template <typename T>
+        bool add_data(int32_t& index, T*& data, size_t num_vertex, GLenum primitive);
+        bool add_grid(int32_t& index, int32_t& count, const EtcObjGrid& grid);
+        bool add_line(int32_t& index, int32_t& count, const EtcObjLine& line);
+        bool add_obj(int32_t& index, int32_t& count, const EtcObj& etc);
+        bool add_plane(int32_t& index, int32_t& count, const EtcObjPlane& plane);
+        bool add_sphere(int32_t& index, int32_t& count, const EtcObjSphere& sphere);
+        void clear();
+        void pre_draw();
+        void post_draw();
+        void update();
+    };
+
     struct DispManager {
         struct vertex_array {
             GLuint vertex_buffer;
@@ -406,22 +488,6 @@ namespace mdl {
             int32_t texcoord_array[2];
 
             void reset_vertex_attrib();
-        };
-
-        struct etc_vertex_array {
-            GL::ArrayBuffer vertex_buffer;
-            GL::ElementArrayBuffer index_buffer;
-            int32_t alive_time;
-            GLuint vertex_array;
-            EtcObj::Data data;
-            EtcObjType type;
-            bool indexed;
-            GLsizei count;
-            size_t offset;
-            GLsizei wire_count;
-            size_t wire_offset;
-            size_t max_vtx;
-            size_t max_idx;
         };
 
         mdl::ObjFlags obj_flags;
@@ -455,13 +521,11 @@ namespace mdl {
         int32_t material_list_count;
         material_list_struct material_list_array[MATERIAL_LIST_COUNT];
         std::vector<vertex_array> vertex_array_cache;
-        std::vector<etc_vertex_array> etc_vertex_array_cache;
 
         DispManager();
         ~DispManager();
 
         void add_vertex_array(ObjSubMeshArgs* args);
-        void add_vertex_array(EtcObj* etc, mat4& mat);
         void* alloc_data(int32_t size);
         ObjData* alloc_obj_data(ObjKind kind);
         mat4* alloc_mat4_array(int32_t count);
@@ -514,7 +578,6 @@ namespace mdl {
         void entry_obj_etc_screen(const mat4& mat, const EtcObj& etc);
         void entry_obj_user(const mat4& mat, UserArgsFunc func, void* data, ObjType type);
         GLuint get_vertex_array(const ObjSubMeshArgs* args);
-        GLuint get_vertex_array(const EtcObj* etc);
         bool get_chara_color();
         void get_material_list(int32_t& count, material_list_struct*& value);
         void get_morph(object_info& object, float_t& weight);
