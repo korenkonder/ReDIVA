@@ -19011,7 +19011,7 @@ rob_chara_age_age::rob_chara_age_age() {
     move_cancel = 0.0f;
     alpha = 1.0f;
     npr = false;
-    rot_speed = 1.0f;
+    speed = 1.0f;
     step_full = false;
 }
 
