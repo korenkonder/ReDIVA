@@ -34,7 +34,7 @@ void io_msgpack_read(stream& s, msgpack* msg) {
 }
 
 void io_msgpack_write(stream& s, msgpack* msg) {
-    if (s.check_null() || !msg)
+    if (!s.can_be_null() && s.check_null() || !msg)
         return;
 
     io_msgpack_write_inner(s, msg);

@@ -56,7 +56,7 @@ void io_json_read(stream& s, msgpack* msg) {
 }
 
 void io_json_write(stream& s, msgpack* msg) {
-    if (s.check_null() || !msg)
+    if (!s.can_be_null() && s.check_null() || !msg)
         return;
 
     io_json_write_inner(s, msg, 0);
