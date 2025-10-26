@@ -67,20 +67,19 @@ struct InputState {
     InputState();
     ~InputState();
 
-    bool CheckDown(int32_t index);
-    bool CheckDoubleTapped(int32_t index);
-    bool CheckHold(int32_t index);
-    bool CheckIntervalTapped(int32_t index);
-    bool CheckReleased(int32_t index);
-    bool CheckTapped(int32_t index);
-    void Ctrl();
-    bool GetKey();
+    bool CheckDown(int32_t index) const;
+    bool CheckDoubleTapped(int32_t index) const;
+    bool CheckHold(int32_t index) const;
+    bool CheckIntervalTapped(int32_t index) const;
+    bool CheckReleased(int32_t index) const;
+    bool CheckTapped(int32_t index) const;
+    bool GetKey() const;
     void Update(int32_t index, int32_t delta_frame);
 
-    int32_t sub_14018CCC0(int32_t index);
+    int32_t sub_14018CCC0(int32_t index) const;
 };
 
 extern void input_state_init();
 extern void input_state_ctrl();
-extern InputState* input_state_get(int32_t index);
+extern const InputState* input_state_get(int32_t index);
 extern void input_state_free();

@@ -202,43 +202,43 @@ InputState::~InputState() {
 
 }
 
-bool InputState::CheckDown(int32_t index) {
+bool InputState::CheckDown(int32_t index) const {
     if (index >= 0 && index < INPUT_BUTTON_COUNT)
         return !!Down[index];
     return false;
 }
 
-bool InputState::CheckDoubleTapped(int32_t index) {
+bool InputState::CheckDoubleTapped(int32_t index) const {
     if (index >= 0 && index < INPUT_BUTTON_COUNT)
         return !!DoubleTapped[index];
     return false;
 }
 
-bool InputState::CheckHold(int32_t index) {
+bool InputState::CheckHold(int32_t index) const {
     if (index >= 0 && index < INPUT_BUTTON_COUNT)
         return !!Hold[index];
     return false;
 }
 
-bool InputState::CheckIntervalTapped(int32_t index) {
+bool InputState::CheckIntervalTapped(int32_t index) const {
     if (index >= 0 && index < INPUT_BUTTON_COUNT)
         return !!IntervalTapped[index];
     return false;
 }
 
-bool InputState::CheckReleased(int32_t index) {
+bool InputState::CheckReleased(int32_t index) const {
     if (index >= 0 && index < INPUT_BUTTON_COUNT)
         return !!Released[index];
     return false;
 }
 
-bool InputState::CheckTapped(int32_t index) {
+bool InputState::CheckTapped(int32_t index) const {
     if (index >= 0 && index < INPUT_BUTTON_COUNT)
         return !!Tapped[index];
     return false;
 }
 
-bool InputState::GetKey() {
+bool InputState::GetKey() const {
     return key;
 }
 
@@ -374,7 +374,7 @@ void InputState::Update(int32_t index, int32_t delta_frame) {
     this->IntervalTapped = IntervalTapped;
 }
 
-int32_t InputState::sub_14018CCC0(int32_t index) {
+int32_t InputState::sub_14018CCC0(int32_t index) const {
     if (index >= 0 && index < 18)
         return field_80[index];
     return 0;
@@ -390,7 +390,7 @@ void input_state_ctrl() {
         input_state_ctrl(input_state);
 }
 
-InputState* input_state_get(int32_t index) {
+const InputState* input_state_get(int32_t index) {
     if (input_state && index >= 0 && index < 2)
         return &input_state[index];
     return 0;

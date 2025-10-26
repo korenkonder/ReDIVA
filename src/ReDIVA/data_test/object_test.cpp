@@ -172,7 +172,7 @@ bool TaskDataTestObj::ctrl() {
         break;
     }
 
-    InputState* input_state = input_state_get(0);
+    const InputState* input_state = input_state_get(0);
     if (input_state->CheckDown(39)) {
         if (input_state->CheckDown(96))
             data.rotation.y += (float_t)input_state->sub_14018CCC0(10);

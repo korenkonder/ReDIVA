@@ -87,7 +87,7 @@ bool TaskDataTestGlitterParticle::init() {
 }
 
 bool TaskDataTestGlitterParticle::ctrl() {
-    InputState* input_state = input_state_get(0);
+    const InputState* input_state = input_state_get(0);
     if (input_state) {
         if (input_state->CheckTapped(43))
             SetReload();

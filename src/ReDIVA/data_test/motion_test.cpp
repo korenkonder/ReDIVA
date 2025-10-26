@@ -2553,7 +2553,7 @@ void DataTestMotDw::StartCtrlResetCallback(dw::Widget* data) {
 }
 
 void DataTestMotDw::sub_14028D8B0() {
-    InputState* input_state = input_state_get(0);
+    const InputState* input_state = input_state_get(0);
 
     int32_t chara_list_dir = 0;
     if (input_state->CheckTapped(70))
@@ -2857,7 +2857,7 @@ void DataTestMotCtrlDw::Draw() {
     motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
     DataTestMot::Data* test_mot_data = data_test_mot_data_get();
-    InputState* input_state = input_state_get(0);
+    const InputState* input_state = input_state_get(0);
     if (input_state->CheckTapped(60))
         test_mot_data->reset_mot = true;
     else if (input_state->CheckTapped(50))

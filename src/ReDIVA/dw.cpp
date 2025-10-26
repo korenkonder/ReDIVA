@@ -3222,7 +3222,7 @@ field_1C(), field_1D(), field_20(), field_28(), key_input() {
 }
 
 void struc_751::sub_140300A10() {
-    InputState* input_state = input_state_get(0);
+    const InputState* input_state = input_state_get(0);
     mouse_input = 0;
     modifier = 0;
     field_28 = false;
@@ -3335,10 +3335,10 @@ void struc_751::sub_140300A10() {
     if (input_state->CheckIntervalTapped(77))
         key_input[0] = 0x1000015;
 
-    InputState* v12[2];
+    const InputState* v12[2];
     v12[0] = input_state_get(0);
     v12[1] = input_state_get(1);
-    for (InputState* i : v12) {
+    for (const InputState* i : v12) {
         if (i->CheckIntervalTapped(3))
             key_input[1] |= 0x1000000;
         if (i->CheckIntervalTapped(4))
