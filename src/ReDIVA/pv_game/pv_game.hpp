@@ -164,7 +164,7 @@ struct pv_game_data {
     int32_t target_count;
     int32_t field_2CF84;
     int32_t field_2CF88;
-    float_t field_2CF8C;
+    float_t demo_time_remain;
     int32_t score_slide_chain_bonus;
     int32_t slide_chain_length;
     int32_t field_2CF98;
@@ -208,7 +208,7 @@ struct pv_game_data {
     pv_disp2d* pv_disp2d;
     int32_t life_gauge_final;
     bool hit_border;
-    bool field_2D05D;
+    bool demo_font_disp;
     bool field_2D05E;
     bool start_fade;
     bool title_image_init;
@@ -230,9 +230,9 @@ struct pv_game_data {
     bool field_2D090;
     bool no_clear;
     bool disp_lyrics_now;
-    bool field_2D093;
+    bool fade_out;
     bool field_2D094;
-    bool field_2D095;
+    bool complete;
     bool field_2D096;
     bool success;
     int32_t title_image_state;
@@ -246,7 +246,6 @@ struct pv_game_data {
     bool field_2D0BC;
     bool next_stage;
     bool has_frame_texture;
-    int8_t field_2D0BF;
     int32_t movie_index;
     int32_t field_2D0C4;
     pv_game_chara chara[ROB_CHARA_COUNT];
@@ -372,12 +371,13 @@ struct pv_game {
     int32_t check_chrcam(const char* name, int32_t& uid);
     bool check_life_gauge_safety();
     int32_t ctrl(float_t delta_time, int64_t curr_time);
+    int32_t ctrl_end(float_t delta_time);
     void data_itmpv_disable();
     void disp();
     void disp_song_name();
     void edit_effect_ctrl(float_t delta_time);
     void edit_effect_set(int32_t index, float_t frame_speed, float_t delta_time);
-    void end(bool a2, bool set_fade);
+    void end(bool complete, bool set_fade);
     float_t get_aet_frame_max_frame(int32_t aet_frame, int32_t aet_index, std::pair<std::string,
         std::string>& aet_name_id, int64_t dsc_time, int64_t curr_time, float_t* max_frame);
     void get_aet_frame_max_frame_by_name(float_t& frame,
@@ -457,7 +457,6 @@ struct pv_game {
 
     void sub_1400FC500();
     void sub_1400FC6F0();
-    int32_t sub_1400FC780(float_t delta_time);
     float_t sub_1400FCEB0();
     int32_t sub_1400FDD80();
     void sub_140104FB0();

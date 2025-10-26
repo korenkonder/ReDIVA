@@ -413,7 +413,7 @@ state(), field_36C(), update(), field_374(), field_378(), field_37C(), score_spe
 value_text_display(), field_38C(), value_text_index(), value_text_time_offset(), combo_state(),
 combo_count(), combo_disp_time(), field_3AC(), field_3B0(), field_3B4(), field_3B8(),
 field_3BC(), aix(), ogg(), field_3C4(), ex_song_index(), field_5EC(), option(), field_5F4(),
-lyric(), lyric_set(), field_64C(), field_650(), field_654(), field_658(), field_65C() {
+lyric(), lyric_set(), ended(), end_state(), end_fade_out_duration(), field_658(), end_fade_out_time() {
     chance_points_pos = 0;
     slide_points_pos = 0;
     max_slide_points_pos = 0;

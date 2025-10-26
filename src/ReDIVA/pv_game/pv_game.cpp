@@ -290,21 +290,21 @@ pv_effect_resource::~pv_effect_resource() {
 pv_game_data::pv_game_data() : field_2CE98(), field_2CE9C(), field_2CF1C(), field_2CF20(), appear_state(),
 appear_time(), appear_duration(), field_2CF30(), field_2CF34(), field_2CF38(), life_gauge(), score_final(),
 challenge_time_total_bonus(), combo(), challenge_time_combo_count(), max_combo(), total_hit_count(), hit_count(),
-current_reference_score(), target_count(), field_2CF84(), field_2CF88(), field_2CF8C(), score_slide_chain_bonus(),
-slide_chain_length(), field_2CF98(), field_2CF9C(), field_2CFA0(), field_2CFA4(), pv(),field_2CFB0(),
-chance_point(), reference_score(), reference_score_no_flag(), reference_score_no_flag_life_bonus(),
+current_reference_score(), target_count(), field_2CF84(), field_2CF88(), demo_time_remain(),
+score_slide_chain_bonus(), slide_chain_length(), field_2CF98(), field_2CF9C(), field_2CFA0(), field_2CFA4(), pv(),
+field_2CFB0(), chance_point(), reference_score(), reference_score_no_flag(), reference_score_no_flag_life_bonus(),
 field_2CFE0(), field_2CFE4(), notes_passed(), field_2CFF0(), song_energy(), song_energy_base(),
 song_energy_border(), life_gauge_safety_time(), life_gauge_border(), stage_index(), music_play(),
 no_fail(), changed_field(), challenge_time_start(), challenge_time_end(), max_time(), max_time_float(),
 current_time_float(), current_time(), field_2D038(), field_2D03C(), score_hold_multi(),
 score_hold(), score_slide(), has_slide(), has_success_se(), pv_disp2d(), life_gauge_final(),
-hit_border(), field_2D05D(), field_2D05E(), start_fade(), title_image_init(), mute(),
+hit_border(), demo_font_disp(), field_2D05E(), start_fade(), title_image_init(), mute(),
 ex_stage(), play_success(), has_auth_3d_frame(), has_light_frame(), has_aet_frame(), has_aet_list(),
 field_index(), edit_effect_index(), slidertouch_counter(), change_field_branch_success_counter(),
 field_2D080(), field_2D084(), life_gauge_bonus(), life_gauge_total_bonus(), field_2D090(), no_clear(),
-disp_lyrics_now(), field_2D093(), field_2D094(), field_2D095(), field_2D096(), success(), title_image_state(),
+disp_lyrics_now(), fade_out(), field_2D094(), complete(), field_2D096(), success(), title_image_state(),
 field_2D09C(), use_osage_play_data(), pv_end_fadeout(), rival_percentage(), field_2D0A8(), field_2D0AC(),
-field_2D0B0(), field_2D0BC(), next_stage(), has_frame_texture(), field_2D0BF(), movie_index(), field_2D0C4(),
+field_2D0B0(), field_2D0BC(), next_stage(), has_frame_texture(), movie_index(), field_2D0C4(),
 field_2D7E8(), field_2D7EC(), field_2D808(), field_2D80C(), edit_effect(), camera_auth_3d_uid(),
 se_index(), task_effect_init(), field_2D87C(), current_field(), enable_movie(), field_2D8A4(),
 campv_index(), field_2D954(), field_2DAC8(), field_2DACC(), height_adjust(), field_2DB2C(), field_2DB34() {
@@ -1545,8 +1545,8 @@ int32_t pv_game::ctrl(float_t delta_time, int64_t curr_time) {
     }
 
     data.changed_field = 0;
-    if (data.play_data.field_64C) {
-        if (!data.field_2D093)
+    if (data.play_data.ended) {
+        if (!data.fade_out)
             data.pv_data.ctrl(delta_time, curr_time, false);
         else
             for (int32_t i = 0; i < TASK_MOVIE_COUNT; i++)
@@ -1591,7 +1591,7 @@ int32_t pv_game::ctrl(float_t delta_time, int64_t curr_time) {
         data.play_data.set_aet_song_energy();
         data.play_data.score_update(data.score_final, true);
 
-        return sub_1400FC780(delta_time);
+        return ctrl_end(delta_time);
     }
 
     if (end_pv) {
@@ -1656,8 +1656,8 @@ int32_t pv_game::ctrl(float_t delta_time, int64_t curr_time) {
 
     if (sub_14013C8C0()->sub_1400E7920()) {
         if (sub_14013C8C0()->sub_1400E7910() == 3) {
-            data.field_2CF8C -= delta_time;
-            if (data.field_2CF8C <= 0.0f)
+            data.demo_time_remain -= delta_time;
+            if (data.demo_time_remain <= 0.0f)
                 end(true, true);
         }
         else if (sub_14010EF00()) {
@@ -1770,14 +1770,94 @@ int32_t pv_game::ctrl(float_t delta_time, int64_t curr_time) {
     title_image_ctrl(false);
     data.play_data.set_aet_song_energy();
 
-    if (sub_14013C8C0()->sub_1400E7910() == 3 && data.field_2CF8C <= 5.0f && !data.field_2D05D) {
+    if (sub_14013C8C0()->sub_1400E7910() == 3 && data.demo_time_remain <= 5.0f && !data.demo_font_disp) {
         data.play_data.init_aet_demo_font();
-        data.field_2D05D = true;
+        data.demo_font_disp = true;
     }
 
     data.field_2D084 = data.field_2D080;
     data.field_2D080++;
     return 0;
+}
+
+int32_t pv_game::ctrl_end(float_t delta_time) {
+    data.play_data.end_fade_out_time += delta_time;
+    data.play_data.skin_danger_ctrl();
+
+    switch (data.play_data.end_state) {
+    case 0:
+        /*if (!this->data.pv_end_fadeout)
+            task_mask_screen_fade_out(0.75f, false);*/
+
+        data.play_data.end_state = 1;
+        data.play_data.end_fade_out_duration = 1.0f;
+        data.play_data.end_fade_out_time = 0.0f;
+        return 0;
+    case 1:
+        if (data.play_data.end_fade_out_duration * 0.95f > data.play_data.end_fade_out_time)
+            return 0;
+
+        data.fade_out = true;
+        break;
+    case 6:
+        if (data.play_data.end_fade_out_duration > data.play_data.end_fade_out_time)
+            return 0;
+
+        data.play_data.end_state = 34;
+        data.play_data.end_fade_out_duration = 0.0f;
+        data.play_data.end_fade_out_time = 0.0f;
+        return 0;
+    case 27:
+        data.play_data.init_aet_next_info();
+
+        data.play_data.end_state = 28;
+        data.play_data.end_fade_out_duration = 1.0f;
+        data.play_data.end_fade_out_time = 0.0f;
+        return 0;
+    case 28:
+    case 29:
+        if (data.pv_data.pv_end && !data.field_2D05E) {
+            data.field_2D05E = true;
+            //task_mask_screen_fade_out(0.75f, 0);
+        }
+
+        rctx_ptr->render.set_exposure(0.0f);
+
+        if (data.play_data.get_aet_next_info_disp())
+            return 0;
+
+        data.fade_out = true;
+        if (!data.field_2D05E) {
+            data.field_2D05E = true;
+            //task_mask_screen_fade_out(0.0f, 0);
+        }
+        break;
+    case 31:
+        if (data.play_data.end_fade_out_duration > data.play_data.end_fade_out_time)
+            return 0;
+
+        data.play_data.end_state = 32;
+        data.play_data.end_fade_out_duration = 1.0f;
+        data.play_data.end_fade_out_time = 0.0f;
+        return 0;
+    case 41:
+        /*if (!data.pv_end_fadeout)
+            task_mask_screen_fade_out(1.0f, 0);*/
+
+        data.play_data.end_state = 42;
+        data.play_data.end_fade_out_duration = 1.1f;
+        data.play_data.end_fade_out_time = 0.0f;
+        return 0;
+    case 42:
+        if (data.play_data.end_fade_out_duration > data.play_data.end_fade_out_time)
+            return 0;
+
+        data.fade_out = true;
+        if (sub_14013C8C0()->sub_1400E7910() == 3 && data.demo_time_remain > 0.0f)
+            return 3;
+        break;
+    }
+    return 1;
 }
 
 void pv_game::data_itmpv_disable() {
@@ -1800,7 +1880,7 @@ void pv_game::edit_effect_ctrl(float_t delta_time) {
     if (data.edit_effect.data.index < 0)
         return;
 
-    if (!data.play_data.field_64C)
+    if (!data.play_data.ended)
         data.edit_effect.data.delta_time = delta_time * data.edit_effect.data.speed;
     data.edit_effect.data.time += data.edit_effect.data.delta_time;
 
@@ -1859,9 +1939,9 @@ void pv_game::edit_effect_set(int32_t index, float_t speed, float_t delta_time) 
     data.edit_effect.data.delta_time = speed * delta_time;
 }
 
-void pv_game::end(bool a2, bool set_fade) {
-    data.play_data.field_64C = true;
-    data.field_2D095 = a2;
+void pv_game::end(bool complete, bool set_fade) {
+    data.play_data.ended = true;
+    data.complete = complete;
 
     if (set_fade)
         pv_game_music_get()->set_fade_out(0.75f, true);
@@ -1871,12 +1951,12 @@ void pv_game::end(bool a2, bool set_fade) {
     data.play_data.disable_update();
 
     if (sub_14013C8C0()->sub_1400E7920() || sub_14013C8C0()->sub_1400E7910() == 6)
-        data.play_data.field_650 = 41;
+        data.play_data.end_state = 41;
     else {
-        data.play_data.field_654 = 0.0f;
+        data.play_data.end_fade_out_duration = 0.0f;
         data.play_data.field_658 = 0;
-        data.play_data.field_65C = 0.0f;
-        data.play_data.field_650 = a2 ? 0 : 27;
+        data.play_data.end_fade_out_time = 0.0f;
+        data.play_data.end_state = complete ? 0 : 27;
 
         sub_14010F030();
     }
@@ -3673,7 +3753,7 @@ bool pv_game::load() {
 
         memset(data.play_data.lyric, 0, sizeof(data.play_data.lyric));
         data.play_data.lyric_set = false;
-        data.play_data.field_64C = false;
+        data.play_data.ended = false;
 
         memset(data.field_2CE9C, 0, sizeof(data.field_2CE9C));
         data.field_2CF1C = 0;
@@ -3690,7 +3770,7 @@ bool pv_game::load() {
 
         field_4 = false;
         if (sub_14013C8C0()->sub_1400E7910() == 3)
-            data.field_2CF8C = 30.0f;
+            data.demo_time_remain = 30.0f;
         data.field_2CF9C = 0;
         data.field_2CFA0 = 0;
         data.field_2CFA4 = 0;
@@ -3947,7 +4027,7 @@ void pv_game::reset() {
     memset(data.field_2CE9C, 0, sizeof(data.field_2CE9C));
     data.field_2CF1C = 0;
     data.field_2CF20 = false;
-    data.field_2CF8C = 0.0f;
+    data.demo_time_remain = 0.0f;
     data.field_2CF9C = 0;
     data.field_2CFA0 = 0;
     data.field_2CFA4 = 0;
@@ -4052,7 +4132,7 @@ void pv_game::reset() {
     data.has_success_se = false;
     data.pv_disp2d = 0;
     data.hit_border = false;
-    data.field_2D05D = false;
+    data.demo_font_disp = false;
     data.start_fade = true;
     data.title_image_init = false;
     data.field_index = 0;
@@ -4066,9 +4146,9 @@ void pv_game::reset() {
     data.life_gauge_total_bonus = 0;
     data.field_2D090 = 0;
     data.no_clear = true;
-    data.field_2D093 = false;
+    data.fade_out = false;
     data.field_2D094 = false;
-    data.field_2D095 = false;
+    data.complete = false;
     data.field_2D096 = false;
     data.use_osage_play_data = false;
     data.pv_end_fadeout = false;
@@ -4089,16 +4169,16 @@ void pv_game::reset() {
     data.field_2DB2C = 0;
     data.play_data.aix = false;
     data.play_data.ogg = false;
-    data.play_data.field_64C = false;
+    data.play_data.ended = false;
     data.field_2CF30 = 4;
     data.field_2CF34 = 0;
-    data.play_data.field_650 = 43;
-    data.play_data.field_654 = 0.0f;
+    data.play_data.end_state = 43;
+    data.play_data.end_fade_out_duration = 0.0f;
     data.appear_state = 3;
     data.appear_time = 0.0f;
     data.field_2CF38 = 0;
     data.play_data.field_658 = 0;
-    data.play_data.field_65C = 0.0f;
+    data.play_data.end_fade_out_time = 0.0f;
     data.appear_duration = 0.0f;
     data.target_count = 0;
     data.field_2CF84 = 0;
@@ -4284,8 +4364,8 @@ void pv_game::restart() {
 
     data.edit_effect.data.reset();
 
-    data.field_2D093 = false;
-    data.field_2D095 = false;
+    data.fade_out = false;
+    data.complete = false;
     data.field_2D096 = false;
 
     pv_expression_array_reset_data();
@@ -4766,7 +4846,7 @@ bool pv_game::unload() {
 
     data.play_data.unload();
 
-    data.play_data.field_64C = false;
+    data.play_data.ended = false;
 
     field_1 = false;
     field_2 = false;
@@ -4815,7 +4895,7 @@ bool pv_game::unload() {
 }
 
 void pv_game::sub_1400FC500() {
-    if (data.field_2D095) {
+    if (data.complete) {
         if (data.hit_count[0] + data.hit_count[1] == data.target_count)
             data.field_2CE98 = 5;
         else if (data.song_energy >= get_percentage_clear_excellent())
@@ -4841,91 +4921,10 @@ void pv_game::sub_1400FC500() {
 void pv_game::sub_1400FC6F0() {
     disp_song_name();
 
-    if (!data.play_data.field_64C && sub_14013C8C0()->sub_1400E7910() != 3 && data.play_data.lyric_set && data.disp_lyrics_now) {
+    if (!data.play_data.ended && sub_14013C8C0()->sub_1400E7910() != 3 && data.play_data.lyric_set && data.disp_lyrics_now) {
         bool h_center = sub_14013C8C0()->sub_1400E7910() == 2 || sub_14013C8C0()->sub_1400E7910() == 5;
         data.play_data.disp_lyric(data.play_data.lyric, h_center, this->data.play_data.lyric_color);
     }
-}
-
-int32_t pv_game::sub_1400FC780(float_t delta_time) {
-    data.play_data.field_65C += delta_time;
-    data.play_data.skin_danger_ctrl();
-
-    switch (data.play_data.field_650) {
-    case 0:
-        /*if (!this->data.pv_end_fadeout)
-            task_mask_screen_fade_out(0.75f, false);*/
-
-        data.play_data.field_650 = 1;
-        data.play_data.field_654 = 1.0f;
-        data.play_data.field_65C = 0.0f;
-        return 0;
-    case 1:
-        if (data.play_data.field_654 * 0.95f > data.play_data.field_65C)
-            return 0;
-
-        data.field_2D093 = true;
-        break;
-    case 6:
-        if (data.play_data.field_654 > data.play_data.field_65C)
-            return 0;
-
-        data.play_data.field_650 = 34;
-        data.play_data.field_654 = 0.0f;
-        data.play_data.field_65C = 0.0f;
-        return 0;
-    case 27:
-        data.play_data.init_aet_next_info();
-
-        data.play_data.field_650 = 28;
-        data.play_data.field_654 = 1.0f;
-        data.play_data.field_65C = 0.0f;
-        return 0;
-    case 28:
-    case 29:
-        if (data.pv_data.pv_end && !data.field_2D05E) {
-            data.field_2D05E = true;
-            //task_mask_screen_fade_out(0.75f, 0);
-        }
-
-        rctx_ptr->render.set_exposure(0.0f);
-
-        if (data.play_data.get_aet_next_info_disp())
-            return 0;
-
-        data.field_2D093 = true;
-        if (data.field_2D05E)
-            break;
-
-        data.field_2D05E = true;
-        //task_mask_screen_fade_out(0.0f, 0);
-        break;
-    case 31:
-        if (data.play_data.field_654 > data.play_data.field_65C)
-            return 0;
-
-        data.play_data.field_650 = 32;
-        data.play_data.field_654 = 1.0f;
-        data.play_data.field_65C = 0.0f;
-        return 0;
-    case 41:
-        /*if (!data.pv_end_fadeout)
-            task_mask_screen_fade_out(1.0f, 0);*/
-
-        data.play_data.field_650 = 42;
-        data.play_data.field_654 = 1.1f;
-        data.play_data.field_65C = 0.0f;
-        return 0;
-    case 42:
-        if (data.play_data.field_654 > data.play_data.field_65C)
-            return 0;
-
-        data.field_2D093 = true;
-        if (sub_14013C8C0()->sub_1400E7910() == 3 && data.field_2CF8C > 0.0f)
-            return 3;
-        break;
-    }
-    return 1;
 }
 
 float_t pv_game::sub_1400FCEB0() {
@@ -6174,7 +6173,7 @@ void pv_game_parent::ctrl(pv_game_parent* pvgmp) {
         break;
     case 2:
         pvgmp->playing = false;
-        /*if (pv_game_ptr->data.play_data.field_64C) {
+        /*if (pv_game_ptr->data.play_data.ended) {
             struc_662 v19;
             v19.field_0 = pv_game_ptr->data.field_2CE98;
             v19.total_hit_count[0] = pv_game_ptr->data.total_hit_count[0];

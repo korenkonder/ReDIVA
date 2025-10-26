@@ -218,11 +218,11 @@ struct pv_game_play_data {
     char lyric[76];
     bool lyric_set;
     color4u8 lyric_color;
-    bool field_64C;
-    int32_t field_650;
-    float_t field_654;
+    bool ended;
+    int32_t end_state;
+    float_t end_fade_out_duration;
     int32_t field_658;
-    float_t field_65C;
+    float_t end_fade_out_time;
 
     pv_game_play_data();
     ~pv_game_play_data();
