@@ -2367,12 +2367,7 @@ float_t pv_game::get_pv_sudden_timing() {
 }
 
 std::string pv_game::get_song_name() {
-    struc_717* v13 = sub_14038BB30();
-    struc_716* v15;
-    if (v13->field_0.stage_index >= 4)
-        v15 = &v13->field_28[2];
-    else
-        v15 = &v13->field_28[v13->field_0.stage_index];
+    struc_716* v15 = sub_14038BB30()->get_stage();
 
     const pv_db_pv* pv = data.pv;
     if (pv->another_song.size() && v15->field_2C.another_song_index < pv->another_song.size()) {
@@ -2417,12 +2412,7 @@ std::string pv_game::get_song_file_name(int32_t& ex_song_index) {
         }
     }
 
-    struc_717* v13 = sub_14038BB30();
-    struc_716* v15;
-    if (v13->field_0.stage_index >= 4)
-        v15 = &v13->field_28[2];
-    else
-        v15 = &v13->field_28[v13->field_0.stage_index];
+    struc_716* v15 = sub_14038BB30()->get_stage();
 
     if (pv->another_song.size() && v15->field_2C.another_song_index < pv->another_song.size()) {
         const std::string& another_song_file_name = pv->another_song[
@@ -5852,11 +5842,7 @@ void task_pv_game_init_pv() {
     PlayerData* player_data = player_data_array_get(0);
 
     struc_717* v0 = sub_14038BB30();
-    struc_716* v2;
-    if (v0->field_0.stage_index >= 0 && v0->field_0.stage_index < 4)
-        v2 = &v0->field_28[v0->field_0.stage_index];
-    else
-        v2 = &v0->field_28[2];
+    struc_716* v2 = v0->get_stage();
 
     int32_t stage_index = v0->field_0.stage_index;
     /*if (stage_index == sub_14038AEE0() - 1)
@@ -6039,13 +6025,7 @@ struc_717* sub_14038BB30() {
 }
 
 bool sub_1403F6B00() {
-    struc_717* v0 = sub_14038BB30();
-    struc_716* v2;
-    if (v0->field_0.stage_index >= 0 && v0->field_0.stage_index < 4)
-        v2 = &v0->field_28[v0->field_0.stage_index];
-    else
-        v2 = &v0->field_28[2];
-
+    struc_716* v2 = sub_14038BB30()->get_stage();
     for (int32_t i = 0; i < 5; i++)
         if (v2->field_4A8[i].field_0 != -1)
             return true;

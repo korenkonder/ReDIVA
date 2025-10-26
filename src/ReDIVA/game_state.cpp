@@ -1372,7 +1372,7 @@ bool SubGameState::Selector::Ctrl() {
                 struc_717* v0 = sub_14038BB30();
                 v0->field_0.stage_index = 0;
 
-                struc_716* v2 = &v0->field_28[v0->field_0.stage_index];
+                struc_716* v2 = v0->get_stage();
                 v2->field_2C.pv_id = sel->pv_id;
                 v2->field_2C.difficulty = sel->difficulty;
                 v2->field_2C.edition = sel->edition;

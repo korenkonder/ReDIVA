@@ -767,6 +767,13 @@ struct struc_717 {
 
     struc_717();
     ~struc_717();
+
+    inline struc_716* get_stage() {
+        if (field_0.stage_index >= 0 && field_0.stage_index < 4)
+            return &field_28[field_0.stage_index];
+        else
+            return &field_28[2];
+    }
 };
 
 #if PV_DEBUG
