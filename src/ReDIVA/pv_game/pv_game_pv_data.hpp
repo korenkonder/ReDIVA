@@ -322,11 +322,11 @@ struct pv_game_pv_data {
     pv_game_pv_data();
     ~pv_game_pv_data();
 
-    int64_t ctrl(float_t delta_time, int64_t curr_time, bool a4);
+    int64_t ctrl(float_t delta_time, int64_t curr_time, bool fade_out);
     //void dsc_buffer_counter_set();
     //void dsc_buffer_set(const void* data, uint32_t size);
     bool dsc_ctrl(float_t delta_time, int64_t curr_time,
-        float_t* dsc_time_offset, bool* music_play, bool a6, bool ignore_targets);
+        float_t* dsc_time_offset, bool* music_play, bool fade_out, bool ignore_targets);
     void dsc_reset_position();
     //void dsc_get_start_position(int32_t* value);
     dsc_data* find_func(int32_t func_name, int32_t* time,

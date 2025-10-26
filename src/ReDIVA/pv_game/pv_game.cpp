@@ -22,6 +22,7 @@
 #include "../game_state.hpp"
 #include "../imgui_helper.hpp"
 #include "../input.hpp"
+#include "../mask_screen.hpp"
 #include "../task_movie.hpp"
 #include "../wait_screen.hpp"
 #include "player_data.hpp"
@@ -1786,8 +1787,8 @@ int32_t pv_game::ctrl_end(float_t delta_time) {
 
     switch (data.play_data.end_state) {
     case 0:
-        /*if (!this->data.pv_end_fadeout)
-            task_mask_screen_fade_out(0.75f, false);*/
+        if (!data.pv_end_fadeout)
+            task_mask_screen_fade_out(0.75f, false);
 
         data.play_data.end_state = 1;
         data.play_data.end_fade_out_duration = 1.0f;
@@ -1818,7 +1819,7 @@ int32_t pv_game::ctrl_end(float_t delta_time) {
     case 29:
         if (data.pv_data.pv_end && !data.field_2D05E) {
             data.field_2D05E = true;
-            //task_mask_screen_fade_out(0.75f, 0);
+            task_mask_screen_fade_out(0.75f, 0);
         }
 
         rctx_ptr->render.set_exposure(0.0f);
@@ -1829,7 +1830,7 @@ int32_t pv_game::ctrl_end(float_t delta_time) {
         data.fade_out = true;
         if (!data.field_2D05E) {
             data.field_2D05E = true;
-            //task_mask_screen_fade_out(0.0f, 0);
+            task_mask_screen_fade_out(0.0f, 0);
         }
         break;
     case 31:
@@ -1841,8 +1842,8 @@ int32_t pv_game::ctrl_end(float_t delta_time) {
         data.play_data.end_fade_out_time = 0.0f;
         return 0;
     case 41:
-        /*if (!data.pv_end_fadeout)
-            task_mask_screen_fade_out(1.0f, 0);*/
+        if (!data.pv_end_fadeout)
+            task_mask_screen_fade_out(1.0f, 0);
 
         data.play_data.end_state = 42;
         data.play_data.end_fade_out_duration = 1.1f;

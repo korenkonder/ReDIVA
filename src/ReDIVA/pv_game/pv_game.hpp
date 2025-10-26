@@ -774,6 +774,13 @@ struct struc_717 {
         else
             return &field_28[2];
     }
+
+    inline void cycle_state_index() {
+        int32_t stage_index = field_0.stage_index;
+        if (++stage_index >= 4)
+            stage_index = 3;
+        field_0.stage_index = stage_index;
+    }
 };
 
 #if PV_DEBUG

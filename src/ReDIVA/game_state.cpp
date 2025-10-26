@@ -33,7 +33,9 @@
 #include "am_data.hpp"
 #include "data_initialize.hpp"
 #include "input_state.hpp"
+#include "mask_screen.hpp"
 #include "system_startup.hpp"
+#include "task_movie.hpp"
 #include "wait_screen.hpp"
 #include "x_pv_game.hpp"
 
@@ -63,12 +65,6 @@ struct GameState {
         static bool Dest();
     };
 
-    struct DataTest {
-        static bool Init();
-        static bool Ctrl();
-        static bool Dest();
-    };
-
     struct TestMode {
         static bool Init();
         static bool Ctrl();
@@ -76,6 +72,12 @@ struct GameState {
     };
 
     struct AppError {
+        static bool Init();
+        static bool Ctrl();
+        static bool Dest();
+    };
+
+    struct DataTest {
         static bool Init();
         static bool Ctrl();
         static bool Dest();
@@ -142,6 +144,14 @@ struct SubGameState {
     };
 
     struct Demo {
+        struct Data {
+            bool load;
+            int32_t pv_state;
+            int32_t index;
+            int32_t difficulty_select;
+            int32_t state;
+        };
+
         static bool Init();
         static bool Ctrl();
         static bool Dest();
@@ -444,6 +454,30 @@ GameStateData game_state_data_array[] = {
         SUB_GAME_STATE_MAX,
     },
     {
+        GAME_STATE_TEST_MODE,
+        GameState::TestMode::Init,
+        GameState::TestMode::Ctrl,
+        GameState::TestMode::Dest,
+        {
+            SUB_GAME_STATE_TEST_MODE_MAIN,
+            SUB_GAME_STATE_MAX,
+        },
+        GAME_STATE_ADVERTISE,
+        SUB_GAME_STATE_MAX,
+    },
+    {
+        GAME_STATE_APP_ERROR,
+        GameState::AppError::Init,
+        GameState::AppError::Ctrl,
+        GameState::AppError::Dest,
+        {
+            SUB_GAME_STATE_APP_ERROR,
+            SUB_GAME_STATE_MAX,
+        },
+        GAME_STATE_ADVERTISE,
+        SUB_GAME_STATE_MAX,
+    },
+    {
         GAME_STATE_DATA_TEST,
         GameState::DataTest::Init,
         GameState::DataTest::Ctrl,
@@ -469,30 +503,6 @@ GameStateData game_state_data_array[] = {
             SUB_GAME_STATE_DATA_TEST_GLITTER,
             SUB_GAME_STATE_DATA_TEST_GRAPHICS,
             SUB_GAME_STATE_DATA_TEST_COLLECTION_CARD,
-            SUB_GAME_STATE_MAX,
-        },
-        GAME_STATE_ADVERTISE,
-        SUB_GAME_STATE_MAX,
-    },
-    {
-        GAME_STATE_TEST_MODE,
-        GameState::TestMode::Init,
-        GameState::TestMode::Ctrl,
-        GameState::TestMode::Dest,
-        {
-            SUB_GAME_STATE_TEST_MODE_MAIN,
-            SUB_GAME_STATE_MAX,
-        },
-        GAME_STATE_ADVERTISE,
-        SUB_GAME_STATE_MAX,
-    },
-    {
-        GAME_STATE_APP_ERROR,
-        GameState::AppError::Init,
-        GameState::AppError::Ctrl,
-        GameState::AppError::Dest,
-        {
-            SUB_GAME_STATE_APP_ERROR,
             SUB_GAME_STATE_MAX,
         },
         GAME_STATE_ADVERTISE,
@@ -898,7 +908,7 @@ GameState game_state;
 
 bool data_edit_reset = false;
 bool data_test_reset = false;
-bool network_error;
+int32_t startup_error_code;
 bool test_mode;
 
 #if PV_DEBUG
@@ -911,6 +921,11 @@ bool pv_x_bake;
 GameStateEnum data_edit_game_state_prev;
 GameStateEnum data_test_game_state_prev;
 
+SubGameState::Demo::Data sub_game_state_demo_data;
+
+std::vector<std::pair<int32_t, pv_difficulty[2]>> stru_1411A12E0;
+std::vector<uint32_t> stru_1411A12F8;
+
 static bool game_state_call_sub(GameState* game_state);
 static GameState* game_state_get();
 static void game_state_set_state(GameStateEnum state, SubGameStateEnum sub_state);
@@ -922,10 +937,14 @@ static bool adv_load();
 static void adv_read();
 static void adv_unload();
 
+static bool check_photo_mode_demo_movie_exists();
+
 static void game_state_set_inner_state(int32_t state);
 
+static void sub_game_state_demo_data_difficulty_select_increment();
+
 bool GameState::Startup::Init() {
-    network_error = false;
+    startup_error_code = false;
     return true;
 }
 
@@ -934,12 +953,16 @@ bool GameState::Startup::Ctrl() {
 }
 
 bool GameState::Startup::Dest() {
+    /*if (game_state_get()->game_state_next != GAME_STATE_APP_ERROR && !test_mode_get())
+        sub_14066C670();*/
+
     if (test_mode_get())
         game_state_set_game_state_next(GAME_STATE_TEST_MODE);
     else {
-        GameStateEnum state = GAME_STATE_ADVERTISE;
-        if (game_state_get()->game_state_next == GAME_STATE_TEST_MODE)
-            state = GAME_STATE_TEST_MODE;
+        //sub_14066D190();
+
+        GameStateEnum state = game_state_get()->game_state_next == GAME_STATE_TEST_MODE
+            ? GAME_STATE_TEST_MODE : GAME_STATE_ADVERTISE;
         game_state_set_game_state_next(state);
     }
     return true;
@@ -962,7 +985,7 @@ bool GameState::Advertise::Init() {
 
         if (game_state_get()->game_state != game_state_get()->game_state_prev) {
             //sub_1403F4670();
-            //sub_1403F3580();
+            sub_game_state_demo_data_difficulty_select_increment();
         }
 
         /*TaskLampCtrl* task_lamp_ctrl = task_lamp_ctrl_get();
@@ -979,7 +1002,7 @@ bool GameState::Advertise::Init() {
             game_state_set_inner_state(2);
         break;
     case 2:
-        //app::TaskWork::add_task(task_information, "INFORMATION");
+        //app::TaskWork::add_task(task_information_ptr, "INFORMATION");
 
         task_wait_screen_add_task();
         //sub_1401F4440();
@@ -997,7 +1020,7 @@ bool GameState::Advertise::Init() {
         //adv_touch_get()->add(sub_1402103A0());
         //adv_festa_get()->add();
         //adv_noblesse_get()->add();
-        //task_information.field_77 = 0;
+        //task_information_ptr->field_77 = false;
         //sub_1403F35A0();
         return true;
     }
@@ -1005,9 +1028,9 @@ bool GameState::Advertise::Init() {
 }
 
 bool GameState::Advertise::Ctrl() {
-    //task_information.sub_1403BB780(2);
+    /*task_information_ptr->sub_1403BB780(2);
 
-    /*if (sub_14066CC00()) {
+    if (sub_14066CC00()) {
         sub_14066FA90();
         game_state_set_error_code(91);
     }*/
@@ -1015,38 +1038,37 @@ bool GameState::Advertise::Ctrl() {
     /*if (sub_1403BADE0())
         sub_1403BB7B0();*/
 
-    //LOBYTE(task_aime_get()[3].next_op) = game_state_is_advertise_not_sub_demo();
+    //*(uint8_t*)((size_t)task_aime_get() + 0x15C) = game_state_is_advertise_not_sub_demo();
 
-    /*if (!sup_err_task_supplies_error_check_task_ready()
-        && task_information.field_77 && wrap_collection_get()->printer.get_value() && sub_140662AD0() != 3)
-        task_information.field_77 = 0;*/
+    /*if (!sup_err_task_supplies_error_check_task_ready() && task_information_ptr->field_77
+        && wrap_collection_get()->printer.get_value() && sub_140662AD0() != 3)
+        task_information_ptr->field_77 = false;*/
 
+    const InputState* input_state = input_state_get(0);
     bool v2 = false;//sub_1403F49C0();
-    if (input_state_get(0)->CheckTapped(2) && v2) {
+    if (input_state->CheckTapped(2) && v2) {
         game_state_set_game_state_next(GAME_STATE_GAME);
-        sound_work_play_se(0, "se_sy_01");
+        sound_work_play_se(0, "se_sy_01", 1.0);
     }
 
-    //adv_touch_get()->sub_14014ED60(true);
-    
-    /*if (!v2)
-        adv_touch_get()->sub_14014ED60(false);*/
+    /*adv_touch_get()->sub_14014ED60(true);
+    if (!v2)
+        adv_touch_get()->sub_14014ED60(false);
 
-    //adv_touch_get()->sub_14014EC20(v2);
+    adv_touch_get()->sub_14014EC20(v2);
+    if (game_state_get()->sub_game_state == SUB_GAME_STATE_TITLE)
+        adv_touch_get()->sub_14014EC20(false);
 
-    /*if (game_state_get()->sub_game_state == SUB_GAME_STATE_TITLE)
-        //adv_touch_get()->sub_14014EC20(false);*/
+    if (game_state_get()->sub_game_state == SUB_GAME_STATE_CM && !*(uint8_t*)((size_t)adv_cm_get() + 0x108))
+        adv_touch_get()->sub_14014EC20(false);
 
-    /*if (game_state_get()->sub_game_state == SUB_GAME_STATE_CM && !adv_cm_get()[2].name[10])
-        adv_touch_get()->sub_14014EC20(false);*/
+    if (game_state_get()->sub_game_state == SUB_GAME_STATE_PHOTO_MODE_DEMO && !check_photo_mode_demo_movie_exists())
+        adv_touch_get()->sub_14014EC20(false);
 
-    /*if (game_state_get()->sub_game_state == SUB_GAME_STATE_PHOTO_MODE_DEMO && !sub_1403F4920())
-        adv_touch_get()->sub_14014EC20(false);*/
+    if (input_state->CheckDown(11) || input_state->CheckDown(12))
+        adv_touch_get()->sub_14014ED60(false);
 
-    /*if (input_state_get(0)->CheckDown(11) || input_state_get(0)->CheckDown(12))
-        adv_touch_get()->sub_14014ED60(false);*/
-
-    /*if (adv_touch_get()->field_70) {
+    if (adv_touch_get()->field_70) {
         game_state_set_game_state_next(GAME_STATE_GAME);
         sound_work_play_se(0, "se_sy_01");
         adv_touch_get()->sub_14014EC00();
@@ -1064,11 +1086,13 @@ bool GameState::Advertise::Dest() {
     //adv_noblesse_get()->del();
     adv_unload();
     sound_work_set_speakers_volume(get_max_speakers_volume());
-    //LOBYTE(task_aime_get()[3].next_op) = 0;
+    //*(uint8_t*)((size_t)task_aime_get() + 0x15C) = 0;
     return true;
 }
 
 bool GameState::Game::Init() {
+    //task_information_ptr->sub_1403BB780(4);
+    //sub_14066C660();
     task_rob_manager_add_task();
     return true;
 }
@@ -1081,6 +1105,73 @@ bool GameState::Game::Dest() {
     if (!task_pv_game_del_task() || !task_rob_manager_del_task())
         return false;
 
+    //sub_1403935A0();
+    //task_sel_ticket_del_task();
+    //sel_vocal_change_get()->del();
+    return true;
+}
+
+bool GameState::TestMode::Init() {
+    test_mode_set(true);
+    sound_work_reset_all_se();
+
+    if (!test_mode_get()) {
+        //sub_1401F4440();
+        //sub_1401E87E0();
+    }
+
+    test_mode_set(1);
+
+    //task_information_ptr->sub_1403BB780(0);
+
+    /*TaskLampCtrl* task_lamp_ctrl = task_lamp_ctrl_get();
+    task_lamp_ctrl->field_74 = 0;
+    task_lamp_ctrl->field_78 = color_white;
+    task_lamp_ctrl->field_7C = 0;*/
+
+    //task_slider_control_get()->sub_140618980(0);
+
+    task_wait_screen_set_load_loop_none();
+    task_mask_screen_fade_in(0.0f, 0);
+
+    sound_work_reset_all_se();
+    for (int32_t i = 0; i < 3; i++)
+        sound_work_release_stream(i++);
+    return true;
+}
+
+bool GameState::TestMode::Ctrl() {
+    return false;
+}
+
+bool GameState::TestMode::Dest() {
+    //sub_1401F4420();
+    test_mode_set(false);
+    return true;
+}
+
+bool GameState::AppError::Init() {
+    //task_information_ptr->del();
+
+    task_wait_screen_set_load_loop_none();
+    for (int32_t i = 0; i < 3; i++)
+        sound_work_release_stream(i++);
+    sound_work_reset_all_se();
+
+    /*TaskLampCtrl* task_lamp_ctrl = task_lamp_ctrl_get();
+    task_lamp_ctrl->field_74 = 0;
+    task_lamp_ctrl->field_78 = color_white;*/
+
+    //task_slider_control_get()->sub_140618980(0);
+    //task_photo_service_del();
+    return true;
+}
+
+bool GameState::AppError::Ctrl() {
+    return false;
+}
+
+bool GameState::AppError::Dest() {
     return true;
 }
 
@@ -1088,10 +1179,11 @@ bool GameState::DataTest::Init() {
     rctx_ptr->render_manager->set_multisample(false);
     rctx_ptr->render_manager->set_clear(true);
     data_test_game_state_prev = game_state_get()->game_state_prev;
-    //task_information.sub_1403BB780(0);
+    //task_information_ptr->sub_1403BB780(0);
     task_wait_screen_set_load_loop_none();
     task_rob_manager_add_task();
     //touch_util::touch_reaction_set_enable(false);
+    //sub_1400311E0()->field_C8(2);
     return true;
 }
 
@@ -1112,38 +1204,6 @@ bool GameState::DataTest::Dest() {
     rctx_ptr->render_manager->set_multisample(true);
     rctx_ptr->render_manager->set_clear(false);
     //touch_util::touch_reaction_set_enable(true);
-    return true;
-}
-
-bool GameState::TestMode::Init() {
-    test_mode_set(true);
-    sound_work_reset_all_se();
-    for (int32_t i = 0; i < 3; i++)
-        sound_work_release_stream(i++);
-    return true;
-}
-
-bool GameState::TestMode::Ctrl() {
-    return false;
-}
-
-bool GameState::TestMode::Dest() {
-    test_mode_set(false);
-    return true;
-}
-
-bool GameState::AppError::Init() {
-    for (int32_t i = 0; i < 3; i++)
-        sound_work_release_stream(i++);
-    sound_work_reset_all_se();
-    return true;
-}
-
-bool GameState::AppError::Ctrl() {
-    return false;
-}
-
-bool GameState::AppError::Dest() {
     return true;
 }
 
@@ -1188,11 +1248,43 @@ bool SubGameState::DataInitialize::Dest() {
 }
 
 bool SubGameState::SystemStartup::Init() {
-    if (task_system_startup_add_task()) {
-        task_pv_db_add_task();
-        return true;
+    task_system_startup_add_task();
+    task_pv_db_add_task();
+
+    /*if (!sub_14066E820())
+        game_state_set_error_code(949);*/
+
+    resolution_struct* res_wind = res_window_get();
+
+    //sub_14066D190();
+
+    if (!test_mode_get()) {
+        /*if (res_wind->resolution_mode != RESOLUTION_MODE_HD)
+            game_state_set_error_code(910);*/
+
+        /*if (sub_14066C9A0()) {
+            sub_14066FA90();
+            game_state_set_error_code(90);
+        }*/
     }
-    return false;
+
+    /*if (sub_1401E8A40())
+        sub_1406A1DE0(task_touch_ptr[0], 0);*/
+
+    /*if (sub_1401E89A0())
+        task_aime_get()->sub_14017A890(9);*/
+
+    //task_lamp_ctrl_get()->sub_1403C8B40();
+
+    /*if (sub_1401E8A50())
+        task_slider_control_get()->sub_140618A60();*/
+
+    /*sub_1403D4760();*/
+
+    /*const Wrap_collection* wrap_collection = wrap_collection_get();
+    if (wrap_collection && wrap_collection->printer.get_value())
+        task_printer_get()->sub_1404C0F90();*/
+    return true;
 }
 
 bool SubGameState::SystemStartup::Ctrl() {
@@ -1200,139 +1292,383 @@ bool SubGameState::SystemStartup::Ctrl() {
 }
 
 bool SubGameState::SystemStartup::Dest() {
-    if (task_system_startup_del_task()) {
-        game_state_set_sub_game_state_next(SUB_GAME_STATE_WARNING);
-        return true;
+    task_system_startup_del_task();
+    //app::TaskWork::add_task(task_closing_ptr, "CLOSING");
+    //app::TaskWork::add_task(task_touch_area_ptr, "TOUCH AREA", 0);
+    //sound_volume_get();
+    //sub_140623810();
+    //sub_1406A1F30();
+
+    task_mask_screen_add_task();
+    game_state_set_sub_game_state_next(SUB_GAME_STATE_WARNING);
+
+    if (!test_mode_get()) {
+        //sub_14066D190();
+
+        /*uint8_t v2[4];
+        sub_1400311E0()->field_90(v2);
+        if (!v2[1] && !v2[3]) {
+            startup_error_code = 8005;
+            game_state_set_sub_game_state_next(SUB_GAME_STATE_SYSTEM_STARTUP_ERROR);
+            sub_140022740();
+        }*/
     }
-    return false;
+    return true;
 }
 
 bool SubGameState::SystemStartupError::Init() {
+    //task_mode_app_error_add_task(startup_error_code);
     return true;
 }
 
 bool SubGameState::SystemStartupError::Ctrl() {
-    return false;
+    GameState* game_state = game_state_get();
+    if (game_state->game_state || game_state->sub_game_state != SUB_GAME_STATE_SYSTEM_STARTUP_ERROR)
+        return false;
+
+    const InputState* input_state = input_state_get(0);
+    return input_state->CheckDown(2) && input_state->CheckTapped(0);
 }
 
 bool SubGameState::SystemStartupError::Dest() {
+    //task_mode_app_error_del_task();
+    game_state_set_sub_game_state_next(SUB_GAME_STATE_WARNING);
     return true;
 }
 
 bool SubGameState::Warning::Init() {
+    /*if (sub_14066F660() && !test_mode_get() && !sub_14066D030())
+        app::TaskWork::add_task(&task_warning, "WARNING");*/
     return true;
 }
 
 bool SubGameState::Warning::Ctrl() {
     return true;
-    //return false;
+    //return !app::TaskWork::check_task_ready(&task_warning);
 }
 
 bool SubGameState::Warning::Dest() {
+    //task_warning.del();
     return true;
 }
 
 bool SubGameState::Logo::Init() {
+    //task_information_ptr->sub_1403BB780(1);
+    //task_adv_logo.add(0);
+    //sub_1403F35A0();
     return true;
 }
 
 bool SubGameState::Logo::Ctrl() {
     return true;
-    //return false;
+    //*task_information_ptr->sub_1403BB780(1);
+    //return !app::TaskWork::check_task_ready(&task_adv_logo);
 }
 
 bool SubGameState::Logo::Dest() {
+    //task_information_ptr->sub_1403BB780(1);
+    //sub_14066E8D0();
+    //app::Task::del(&task_adv_logo);
     return true;
 }
 
 bool SubGameState::Rating::Init() {
+    //sub_1403F35A0();
     return true;
 }
 
 bool SubGameState::Rating::Ctrl() {
     return true;
-    //return false;
+    //return !app::TaskWork::check_task_ready(&task_adv_rating);
 }
 
 bool SubGameState::Rating::Dest() {
+    //app::Task::del(&task_adv_rating);
     return true;
 }
 
 bool SubGameState::Demo::Init() {
+    rctx_ptr->render_manager->set_multisample(false);
+
+    if (check_photo_mode_demo_movie_exists())
+        sub_game_state_demo_data.state = 1;
+
+    switch (sub_game_state_demo_data.state) {
+    case 0: {
+        resolution_struct* res_wind = res_window_get();
+        resolution_struct* res_wind_int = res_window_internal_get();
+        res_window_get();
+
+        rectangle rect;
+        rect.pos = { 0.0f, (float_t)(res_wind->height - res_wind_int->height) * 0.5f };
+        rect.size = { (float_t)res_wind_int->width, (float_t)res_wind_int->height };
+
+        TaskMovie::SprParams spr_params;
+        spr_params.disp.rect = rect;
+        spr_params.disp.resolution_mode = res_wind->resolution_mode;
+        spr_params.disp.scale = -1.0f;
+        spr_params.disp.field_18 = 0;
+        spr_params.disp.index = -1;
+        spr_params.prio = spr::SPR_PRIO_07;
+        task_movie_get(0)->Reset(spr_params);
+        //task_movie_get(0)->Load("rom/movie/diva_adv.wmv");
+    } break;
+    case 1:
+        task_wait_screen_set_load_loop_demo_load();
+        sub_game_state_demo_data.load = false;
+        task_rob_manager_add_task();
+        sub_game_state_demo_data.pv_state = 0;
+        break;
+    }
+
+    //sub_1403F35A0();
     return true;
 }
 
 bool SubGameState::Demo::Ctrl() {
-    return true;
-    //return false;
+    bool ret = false;
+    bool v1 = false;
+    /*if (sup_err_task_supplies_error_check_task_ready()) {
+        if (!task_pv_game_check_task_ready())
+            return true;
+
+        v1 = true;
+    }*/
+
+    switch (sub_game_state_demo_data.state) {
+    case 0:
+        ret = !task_movie_get(0)->CheckState();
+        break;
+    case 1: {
+        if (sub_game_state_demo_data.load) {
+            if (!task_pv_game_check_task_ready())
+                ret = true;
+        }
+        else if (!task_wait_screen_get_started()) {
+            int32_t index = sub_game_state_demo_data.index;
+            if (stru_1411A12F8.size()) {
+                size_t size = stru_1411A12E0.size();
+                if (size) {
+                    uint32_t pv_index = stru_1411A12F8.data()[sub_game_state_demo_data.index];
+                    if (pv_index < size) {
+                        const std::pair<int32_t, pv_difficulty[2]>* elem = &stru_1411A12E0.data()[pv_index];
+                        if (elem) {
+                            pv_difficulty diff = elem->second[sub_game_state_demo_data.difficulty_select];
+                            if (diff != PV_DIFFICULTY_MAX) {
+                                if (!task_pv_game_init_demo_pv(elem->first, diff, true))
+                                    task_wait_screen_set_load_loop_none();
+                                goto Next;
+                            }
+                        }
+                    }
+                }
+            }
+
+            v1 = true;
+
+        Next:
+            sub_game_state_demo_data.index = ++index;
+
+            if (index >= stru_1411A12E0.size()) {
+                sub_game_state_demo_data.index = 0;
+                sub_game_state_demo_data_difficulty_select_increment();
+            }
+            sub_game_state_demo_data.load = true;
+        }
+    } break;
+    default:
+        ret = 1;
+        break;
+    }
+
+    const InputState* input_state = input_state_get(0);
+    if (input_state->CheckTapped(10))
+        v1 = true;
+    if (input_state->CheckTapped(9))
+        v1 = true;
+    if (input_state->CheckTapped(7))
+        v1 = true;
+    if (input_state->CheckTapped(8))
+        v1 = true;
+
+    if (v1 && task_wait_screen_check_index_none())
+        ret = true;
+    return ret;
 }
 
 bool SubGameState::Demo::Dest() {
+    //sub_1400311E0()->field_C8(1);
+
+    switch (sub_game_state_demo_data.state) {
+    case 0:
+        task_movie_get(0)->Unload();
+        task_movie_get(0)->del();
+        sub_game_state_demo_data.state = 1;
+    case 1:
+        switch (sub_game_state_demo_data.pv_state) {
+        case 0:
+        default:
+            if (pv_game_get())
+                pv_game_get()->unload();
+            sub_game_state_demo_data.pv_state = 1;
+            return false;
+        case 1:
+            if (task_pv_game_del_task() && task_rob_manager_del_task())
+                sub_game_state_demo_data.pv_state = 2;
+            return false;
+        case 2:
+            task_wait_screen_set_load_loop_none();
+            task_mask_screen_fade_in(0.0f, 0);
+            sub_game_state_demo_data.state = 0;
+            break;
+        }
+        break;
+    }
+
+    rctx_ptr->render_manager->set_multisample(true);
     return true;
 }
 
 bool SubGameState::Title::Init() {
+    //sub_140141F80(&task_adv_title, 0, false);
+    //sub_1403F35A0();
     return true;
 }
 
 bool SubGameState::Title::Ctrl() {
     return true;
-    //return false;
+    //return !app::TaskWork::check_task_ready(&task_adv_title);
 }
 
 bool SubGameState::Title::Dest() {
+    //sub_14066E8D0();
+    //app::Task::del(&task_adv_title);
     return true;
 }
 
 bool SubGameState::Ranking::Init() {
+    //adv_rank_main_get();
+    //sub_140143280();
+    //sub_1403F35A0();
     return true;
 }
 
 bool SubGameState::Ranking::Ctrl() {
     return true;
-    //return false;
+    //return !app::TaskWork::check_task_ready(adv_rank_main_get());
 }
 
 bool SubGameState::Ranking::Dest() {
+    //sub_14066E8D0();
+    //adv_rank_main_get()->del();
     return true;
 }
 
 bool SubGameState::ScoreRanking::Init() {
+    //adv_score_rank_main_get();
+    //sub_140149010();
+    //sub_1403F35A0();
     return true;
 }
 
 bool SubGameState::ScoreRanking::Ctrl() {
     return true;
-    //return false;
+    //return !app::TaskWork::check_task_ready(adv_score_rank_main_get());
 }
 
 bool SubGameState::ScoreRanking::Dest() {
+    //sub_14066E8D0();
+    //adv_score_rank_main_get()->del();
     return true;
 }
 
 bool SubGameState::CM::Init() {
+    //adv_cm_get();
+    //sub_14013F750();
+    //sub_1403F35A0();
     return true;
 }
 
 bool SubGameState::CM::Ctrl() {
     return true;
-    //return false;
+    /*bool v0 = false;
+    bool v1 = false;//adv_cm_get()->field_68 == 3;
+    const InputState* input_state = input_state_get(0);
+    if (input_state->CheckTapped(10))
+        v0 = true;
+    if (input_state->CheckTapped(9))
+        v0 = true;
+    if (input_state->CheckTapped(7))
+        v0 = true;
+    if (input_state->CheckTapped(8))
+        v0 = true;
+    return v0 ? v0 : v1;*/
 }
 
 bool SubGameState::CM::Dest() {
+    //sub_14066E8D0();
+    //adv_cm_get()->del();
     return true;
 }
 
 bool SubGameState::PhotoModeDemo::Init() {
+    if (check_photo_mode_demo_movie_exists()) {
+        resolution_struct* res_wind = res_window_get();
+        resolution_struct* res_wind_int = res_window_internal_get();
+
+        rectangle rect;
+        rect.pos = { 0.0f, (float_t)(res_wind->height - res_wind_int->height) * 0.5f };
+        rect.size = { (float_t)res_wind_int->width, (float_t)res_wind_int->height };
+
+        TaskMovie::SprParams spr_params;
+        spr_params.disp.rect = rect;
+        spr_params.disp.resolution_mode = res_wind->resolution_mode;
+        spr_params.disp.scale = -1.0f;
+        spr_params.disp.field_18 = 0;
+        spr_params.disp.index = -1;
+        spr_params.prio = spr::SPR_PRIO_07;
+        task_movie_get(0)->Reset(spr_params);
+        //task_movie_get(0)->Load("rom/movie/diva_adv02.wmv");
+
+        //adv_festa_get()->field_6C = true;
+        //adv_noblesse_get()->sub_140142530(v6, true);
+    }
+    else {
+        //adv_festa_get()->field_6C = false;
+        //adv_noblesse_get()->sub_140142530(v6, false);
+    }
+
+    //sub_1403F35A0();
     return true;
 }
 
 bool SubGameState::PhotoModeDemo::Ctrl() {
     return true;
-    //return false;
+    /*if (!check_photo_mode_demo_movie_exists())
+        return true;
+
+    bool v2 = !task_movie_get(0)->CheckState();
+
+    bool v4 = false;
+    const InputState* input_state = input_state_get(0);
+    if (input_state->CheckTapped(10))
+        v4 = true;
+    if (input_state->CheckTapped(9))
+        v4 = true;
+    if (input_state->CheckTapped(7))
+        v4 = true;
+    if (input_state->CheckTapped(8))
+        v4 = true;
+    if (v4 && task_wait_screen_check_index_none())
+        v2 = true;
+    return v2;*/
 }
 
 bool SubGameState::PhotoModeDemo::Dest() {
+    if (check_photo_mode_demo_movie_exists()) {
+        task_movie_get(0)->Unload();
+        task_movie_get(0)->del();
+    }
     return true;
 }
 
@@ -1361,6 +1697,15 @@ bool SubGameState::Selector::Init() {
     x_pv_game_selector_init();
     app::TaskWork::add_task(x_pv_game_selector_get(), "X PVGAME SELECTOR", 0);
     return true;
+
+    /*task_information_ptr->sub_1403BB780(3);
+    sub_1402B7880()->sub_1402BAE80();
+    module_data_handler_data_add_all_modules();
+    //sub_14022CE00()->sub_14022DC10();
+    //sub_1404FF3D0();
+    //sel_main_get()->add_task(false);
+    //task_slider_control_get()->sub_140618980(1);
+    return true;*/
 }
 
 bool SubGameState::Selector::Ctrl() {
@@ -1471,6 +1816,19 @@ bool SubGameState::Selector::Ctrl() {
         return true;
     }
     return false;
+
+    /*if (app::TaskWork::check_task_ready(sel_main_get())) {
+        if (sel_main_get()->field_7A && !task_pv_game_check_task_ready())
+            task_pv_game_init_pv();
+        return false;
+    }
+    else {
+        if (sel_main_get()->field_79)
+            game_state_set_game_state_next(GAME_STATE_ADVERTISE);
+        else
+            game_state_set_sub_game_state_next(SUB_GAME_STATE_GAME_MAIN);
+        return true;
+    }*/
 }
 
 bool SubGameState::Selector::Dest() {
@@ -1514,12 +1872,18 @@ bool SubGameState::Selector::Dest() {
 
     x_pv_game_selector_free();
     return true;
+
+    /*if (app::TaskWork::check_task_ready(sel_main_get())) {
+        sel_main_get()->del();
+        return false;
+    }
+    return true;*/
 }
 
 bool SubGameState::GameMain::Init() {
     sound_work_release_stream(0);
     game_state_set_inner_state(0);
-    //task_information.sub_1403BB780(4);
+    //task_information_ptr->sub_1403BB780(4);
     rctx_ptr->render_manager->set_multisample(false);
     return true;
 }
@@ -1535,14 +1899,14 @@ bool SubGameState::GameMain::Ctrl() {
     case 1:
         if (task_wait_screen_check_index_none()) {
             bool watch = sub_14038BB30()->field_0.watch;
-            //sound_volume_get()->show_enable(v6, true, watch);
+            //sound_volume_get()->show_enable(true, watch);
 
             /*if (watch)
                 task_photo_service_add();*/
             /*else {
                 if (!app::TaskWork::check_task_ready(act_toggle_get()))
-                    act_toggle_get()->sub_14013CE40((__int64)v8);
-                *(int*)&act_toggle_get()[1].name[10] = 5;
+                    act_toggle_get()->sub_14013CE40();
+                *(int32_t*)((size_t)act_toggle_get() + 0xA0) = 5;
             }*/
 
             //sound_volume_get()->field_6C = spr::SPR_PRIO_04;
@@ -1612,72 +1976,178 @@ bool SubGameState::GameMain::Dest() {
     }
 #endif
 
+    task_mask_screen_fade_in(0.0f, 0);
+
+    //sound_volume_get()->field_6C = spr::SPR_PRIO_09;
+    //sound_volume_get()->field_70 = spr::SPR_PRIO_10;
+    //*(int32_t*)((size_t)act_toggle_get() + 0xA0) = 10;
+    //sound_volume_get()->show_enable(false, false);
+    //act_toggle_get()->del();
+
+    /*TaskLampCtrl* task_lamp_ctrl = task_lamp_ctrl_get();
+    task_lamp_ctrl->field_74 = 1;
+    task_lamp_ctrl->field_78 = color_white;*/
+
+    //task_slider_control_get()->sub_140618980(1);
+
     rctx_ptr->render_manager->set_multisample(true);
     return true;
 }
 
 bool SubGameState::GameSel::Init() {
+    //task_information_ptr->sub_1403BB780(3);
+    //sel_main_get()->add_task(true);
     return true;
 }
 
 bool SubGameState::GameSel::Ctrl() {
     return true;
-    //return false;
+    /*if (app::TaskWork::check_task_ready(sel_main_get())) {
+        if (sel_main_get()->field_7A && !task_pv_game_check_task_ready())
+            task_pv_game_init_pv();
+        return false;
+    }
+    else {
+        game_state_set_sub_game_state_next(SUB_GAME_STATE_GAME_MAIN);
+        return true;
+    }*/
 }
 
 bool SubGameState::GameSel::Dest() {
+    /*if (app::TaskWork::check_task_ready(sel_main_get()))
+        sel_main_get()->del();*/
     return true;
 }
 
 bool SubGameState::StageResult::Init() {
+    //task_information_ptr->sub_1403BB780(3);
+    //stage_result_main_get();
+    //sub_140656320();
     return true;
 }
 
 bool SubGameState::StageResult::Ctrl() {
     return true;
-    //return false;
+    /*if (app::TaskWork::check_task_ready(stage_result_main_get()))
+        return false;
+
+    if (sub_14038BB30()->field_0.no_fail) {
+        game_state_set_sub_game_state_next(SUB_GAME_STATE_GAME_OVER);
+        return true;
+    }
+
+    int32_tv2 = sub_14038BB30()->field_0.stage_index;
+    sub_14038BB30();
+    int32_t v3 = 2;//sub_14038AEE0();
+    //if (player_data_array_get(0)->contest.enable)
+    //    sub_14038BB30()->sub_14038D080(false);
+
+    if (v2 >= v3 - 1)
+        game_state_set_sub_game_state_next(SUB_GAME_STATE_GAME_OVER);
+    else {
+        struc_716* v7 = sub_14038BB30()->get_stage();
+        if (v7->field_0 == -1 && !v7->field_128.next_stage) {
+            game_state_set_sub_game_state_next(SUB_GAME_STATE_GAME_OVER);
+        }
+        else {
+            sub_14038BB30()->cycle_state_index();
+            game_state_set_sub_game_state_next(SUB_GAME_STATE_GAME_SEL);
+        }
+    }
+    return true;*/
 }
 
 bool SubGameState::StageResult::Dest() {
+    //stage_result_main_get()->del();
     return true;
 }
 
 bool SubGameState::ScreenShotSel::Init() {
+    //task_information_ptr->sub_1403BB780(3);
+    //sel_screen_shot_get();
+    //sub_1405D7C60();
     return true;
 }
 
 bool SubGameState::ScreenShotSel::Ctrl() {
     return true;
-    //return false;
+    /*if (app::TaskWork::check_task_ready(sel_screen_shot_get()))
+        return false;
+
+    game_state_set_sub_game_state_next(sub_1403F6B00()
+        ? SUB_GAME_STATE_SCREEN_SHOT_RESULT : SUB_GAME_STATE_GAME_OVER);
+    return true;*/
 }
 
 bool SubGameState::ScreenShotSel::Dest() {
+    //sel_screen_shot_get()->del();
     return true;
 }
 
 bool SubGameState::ScreenShotResult::Init() {
+    //task_information_ptr->sub_1403BB780(3);
+    //screen_shot_result_main_get();
+    //sub_140559010();
     return true;
 }
 
 bool SubGameState::ScreenShotResult::Ctrl() {
     return true;
-    //return false;
+    /*if (app::TaskWork::check_task_ready(screen_shot_result_main_get()))
+        return false;
+
+    game_state_set_sub_game_state_next(SUB_GAME_STATE_GAME_OVER);
+    return true;*/
 }
 
 bool SubGameState::ScreenShotResult::Dest() {
+    //screen_shot_result_main_get()->del();
     return true;
 }
 
 bool SubGameState::GameOver::Init() {
+    //task_information_ptr->sub_1403BB780(5);
+
+    /*bool v0 = true;
+    int32_t v1 = sub_14038BB30()->field_0.stage_index;
+    sub_14038BB30();
+
+    int32_t v2 = sub_14038AEE0() - 1;
+    if (!sub_1402103A0())
+        v0 = false;
+    if (sub_14038BB30()->field_0.no_fail)
+        v0 = false;
+    if (!sub_1403933C0())
+        v0 = false;
+
+    if (v1 == v2) {
+        if (sub_14038BB30()->get_stage()->field_0 != -1)
+            v0 = false;
+    }
+    else if (v1 > v2)
+        v0 = false;
+    game_over_main_add_task(game_over_main_get(), v0);*/
     return true;
 }
 
 bool SubGameState::GameOver::Ctrl() {
     return true;
-    //return false;
+    /*if (app::TaskWork::check_task_ready(game_over_main_get())) {
+        struc_705* v2 = sub_14022EF20(0);
+        if (v2 && sub_14022ED30(v2))
+            *(uint8_t*)((size_t)game_over_main_get() + 0x8D) = 1;
+    }
+    else {
+        if (*(uint8_t*)((size_t)game_over_main_get() + 0x8D))
+            game_state_set_sub_game_state_next(SUB_GAME_STATE_GAME_SEL);
+        else
+            game_state_set_game_state_next(GAME_STATE_ADVERTISE);
+    }
+    return false;*/
 }
 
 bool SubGameState::GameOver::Dest() {
+    //game_over_main_get()->del();
     return true;
 }
 
@@ -2321,6 +2791,19 @@ static void adv_unload() {
     sound_work_unload_farc("rom/sound/se_adv.farc");
 }
 
+static bool check_photo_mode_demo_movie_exists() {
+    if (wrap_collection_get()->printer.get_value())
+        return data_list[DATA_AFT].check_file_exists("rom/movie/diva_adv02.wmv");
+    return false;
+}
+
 static void game_state_set_inner_state(int32_t state) {
     game_state_get()->inner_state = state;
+}
+
+static void sub_game_state_demo_data_difficulty_select_increment() {
+    int32_t difficulty_select = sub_game_state_demo_data.difficulty_select + 1;
+    if (difficulty_select < 0 || difficulty_select >= 1)
+        difficulty_select = 0;
+    sub_game_state_demo_data.difficulty_select = difficulty_select;
 }

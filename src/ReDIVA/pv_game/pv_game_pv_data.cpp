@@ -9,6 +9,7 @@
 #include "../../CRE/pv_expression.hpp"
 #include "../../CRE/pv_param.hpp"
 #include "../information/dw_console.hpp"
+#include "../mask_screen.hpp"
 #include "../task_movie.hpp"
 #include "pv_game.hpp"
 #include "pv_game_camera.hpp"
@@ -1854,8 +1855,8 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         float_t duration = (float_t)data[0] * 0.001f;
         int32_t v437 = data[1];
 
-        /*if (a6)
-            task_mask_screen_fade_out(duration, v437 != 1);*/
+        if (a6)
+            task_mask_screen_fade_out(duration, v437 != 1);
         pv_game->data.pv_end_fadeout = true;
     } break;
     case DSC_FT_TARGET_FLAG: {
