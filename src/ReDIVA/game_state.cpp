@@ -971,8 +971,8 @@ bool GameState::Startup::Dest() {
 bool GameState::Advertise::Init() {
     switch (game_state_get()->inner_state) {
     case 0:
-        //sub_1400311E0()->field_168(0);
-        //sub_1400311E0()->field_C8(1);
+        //net_alw_detail::context_ptr_get()->field_168(0);
+        //net_alw_detail::context_ptr_get()->field_C8(1);
         //sub_14066C680();
         //task_slider_control_get()->sub_140618840();
         //task_slider_control_get()->sub_140618860();
@@ -1183,7 +1183,7 @@ bool GameState::DataTest::Init() {
     task_wait_screen_set_load_loop_none();
     task_rob_manager_add_task();
     //touch_util::touch_reaction_set_enable(false);
-    //sub_1400311E0()->field_C8(2);
+    //net_alw_detail::context_ptr_get()->field_C8(2);
     return true;
 }
 
@@ -1306,7 +1306,7 @@ bool SubGameState::SystemStartup::Dest() {
         //sub_14066D190();
 
         /*uint8_t v2[4];
-        sub_1400311E0()->field_90(v2);
+        net_alw_detail::context_ptr_get()->field_90(v2);
         if (!v2[1] && !v2[3]) {
             startup_error_code = 8005;
             game_state_set_sub_game_state_next(SUB_GAME_STATE_SYSTEM_STARTUP_ERROR);
@@ -1497,7 +1497,7 @@ bool SubGameState::Demo::Ctrl() {
 }
 
 bool SubGameState::Demo::Dest() {
-    //sub_1400311E0()->field_C8(1);
+    //net_alw_detail::context_ptr_get()->field_C8(1);
 
     switch (sub_game_state_demo_data.state) {
     case 0:

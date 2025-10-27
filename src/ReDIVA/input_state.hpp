@@ -53,7 +53,7 @@ struct InputState {
     ButtonState DoubleTapped;
     ButtonState Hold;
     ButtonState IntervalTapped;
-    ButtonState field_70;
+    ButtonState Toggle;
     int32_t field_80[18];
     std::bitset<22> field_C8;
     bool updated;
@@ -68,11 +68,13 @@ struct InputState {
     ~InputState();
 
     bool CheckDown(int32_t index) const;
+    bool CheckDownPrev(int32_t index) const;
     bool CheckDoubleTapped(int32_t index) const;
     bool CheckHold(int32_t index) const;
     bool CheckIntervalTapped(int32_t index) const;
     bool CheckReleased(int32_t index) const;
     bool CheckTapped(int32_t index) const;
+    bool CheckToggle(int32_t index) const;
     bool GetKey() const;
     void Update(int32_t index, int32_t delta_frame);
 

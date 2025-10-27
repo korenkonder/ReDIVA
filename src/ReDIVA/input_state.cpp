@@ -26,8 +26,10 @@ Bit / Name
 
   2   JVS_START
 
-  5   VK_LEFT
-  6   VK_RIGHT
+  3   JVS_UP    (guessed, unsure)
+  4   JVS_DOWN  (guessed, unsure)
+  5   JVS_LEFT  (guessed, unsure)
+  6   JVS_RIGHT (guessed, unsure)
 
   7   JVS_TRIANGLE
   8   JVS_SQUARE
@@ -53,9 +55,9 @@ Bit / Name
  84   VK_PAUSE (guessed, unsure)
 
  91   VK_UP
- 92   VK_LEFT  (guessed, unsure)
+ 92   VK_LEFT
  93   VK_DOWN
- 94   VK_RIGHT (guessed, unsure)
+ 94   VK_RIGHT
 
  96   VK_LBUTTON
  97   VK_MBUTTON
@@ -208,6 +210,12 @@ bool InputState::CheckDown(int32_t index) const {
     return false;
 }
 
+bool InputState::CheckDownPrev(int32_t index) const {
+    if (index >= 0 && index < INPUT_BUTTON_COUNT)
+        return !!DownPrev[index];
+    return false;
+}
+
 bool InputState::CheckDoubleTapped(int32_t index) const {
     if (index >= 0 && index < INPUT_BUTTON_COUNT)
         return !!DoubleTapped[index];
@@ -235,6 +243,12 @@ bool InputState::CheckReleased(int32_t index) const {
 bool InputState::CheckTapped(int32_t index) const {
     if (index >= 0 && index < INPUT_BUTTON_COUNT)
         return !!Tapped[index];
+    return false;
+}
+
+bool InputState::CheckToggle(int32_t index) const {
+    if (index >= 0 && index < INPUT_BUTTON_COUNT)
+        return !!Toggle[index];
     return false;
 }
 
@@ -344,7 +358,7 @@ void InputState::Update(int32_t index, int32_t delta_frame) {
             Down[110] = true;
     }
 
-    field_70 ^= Down;
+    Toggle ^= Down;
 
     ButtonState Down = this->Down;
     ButtonState Up = ~this->Down;
@@ -472,8 +486,10 @@ static bool sub_140190A30(struc_794* a1, int32_t index) {
 
         {  2, GLFW_KEY_ENTER, /*JVS_START,*/ },
 
-        {  5, GLFW_KEY_LEFT, },
-        {  6, GLFW_KEY_RIGHT, },
+        {  3, GLFW_KEY_UP,  /*JVS_UP,*/ },
+        {  4, GLFW_KEY_DOWN, /*JVS_DOWN,*/ },
+        {  5, GLFW_KEY_LEFT, /*JVS_LEFT,*/ },
+        {  6, GLFW_KEY_RIGHT, /*JVS_RIGHT,*/ },
 
         {  7, GLFW_KEY_W, GLFW_KEY_I, /*JVS_TRIANGLE,*/ },
         {  8, GLFW_KEY_A, GLFW_KEY_J, /*JVS_SQUARE,*/ },
