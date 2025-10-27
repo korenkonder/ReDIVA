@@ -4981,11 +4981,10 @@ LABEL_23:
 // 0x1405333E0
 static void mothead_apply_inner(mothead_func_data* func_data,
     int32_t func_id, const struc_377& a3, int32_t frame, const motion_database* mot_db) {
-    if (func_id < 0 || func_id >= MOTHEAD_DATA_MAX
-        || !mothead_func_array[func_id].func || (mothead_func_array[func_id].flags & 0x01))
+    if (func_id < 0 || func_id >= MOTHEAD_DATA_MAX || !mothead_func_array[func_id].func)
         return;
 
-    if (frame <= 0)
+    if (!(mothead_func_array[func_id].flags & 0x01) || frame <= 0)
         mothead_func_array[func_id].func(func_data, a3.current->data, a3.current, frame, mot_db);
     else {
         frame -= a3.current->frame;
