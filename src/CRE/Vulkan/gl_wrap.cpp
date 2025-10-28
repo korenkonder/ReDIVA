@@ -3783,7 +3783,7 @@ namespace Vulkan {
 
     static void gl_wrap_manager_bind_sampler(GLuint unit, GLuint sampler) {
         if (unit >= Vulkan::MAX_COMBINED_TEXTURE_IMAGE_UNITS) {
-            gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
+            gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
             return;
         }
 
