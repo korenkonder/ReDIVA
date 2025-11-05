@@ -1207,7 +1207,7 @@ int32_t wmain(int32_t argc, wchar_t** argv) {
             if (!wcscmp(argv[i], L"--vulkan"))
                 vulkan = true;
             else if (!wcscmp(argv[i], L"--config") && i + 1 < argc)
-                config_path = argv[i + 1];
+                config_path = argv[++i];
         }
 
     /*process_edit_dsc();
