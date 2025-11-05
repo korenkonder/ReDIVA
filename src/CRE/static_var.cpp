@@ -22,6 +22,8 @@ gpu_vendor sv_gpu_vendor = GPU_VENDOR_UNKNOWN;
 
 bool sv_shared_storage_uniform_buffer = true;
 
+bool sv_texture_skinning_buffer = false;
+
 const vec3 sv_rgb_to_luma = {
     0.2126f, 0.7152f, 0.0722f
 };

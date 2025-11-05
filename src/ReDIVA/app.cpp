@@ -466,6 +466,8 @@ int32_t app_main(const app_init_struct& ais) {
                 glfwTerminate();
                 return ret;
             }
+
+            sv_texture_skinning_buffer = false;
         }
 #ifdef USE_OPENGL
         else {

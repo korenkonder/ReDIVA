@@ -125,6 +125,8 @@ extern gpu_vendor sv_gpu_vendor;
 
 extern bool sv_shared_storage_uniform_buffer;
 
+extern bool sv_texture_skinning_buffer;
+
 extern const vec3 sv_rgb_to_luma;
 extern const mat3 sv_rgb_to_ypbpr;
 extern const mat3 sv_ypbpr_to_rgb;
