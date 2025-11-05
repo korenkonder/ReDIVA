@@ -426,8 +426,6 @@ int32_t app_main(const app_init_struct& ais) {
     if (ais.config_path)
         config_path = ais.config_path;
 
-    Sleep(5000);
-
     if (app_init(ais)) {
         window_handle = glfwGetWin32Window(window);
         glfwShowWindow(window);
