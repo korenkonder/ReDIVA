@@ -1626,14 +1626,14 @@ void RobCloth::InitData(size_t root_count, size_t nodes_count, obj_skin_block_cl
     }
 
     this->index_buffer[0] = index_buffer[mesh_name_index];
-    if (!vertex_buffer[0].load(mesh[0], true))
+    if (!vertex_buffer[0].load(mesh[0], GL::BUFFER_USAGE_STREAM))
         return;
 
     this->index_buffer[1] = {};
     if (cls_data->backface_mesh_name && backface_mesh_name_index != -1)
         this->index_buffer[1] = index_buffer[backface_mesh_name_index];
 
-    if (cls_data->backface_mesh_name && !vertex_buffer[1].load(mesh[1], true))
+    if (cls_data->backface_mesh_name && !vertex_buffer[1].load(mesh[1], GL::BUFFER_USAGE_STREAM))
         return;
 
     flags = (((flags ^ (0x04 * loop)) & 0x04) ^ flags) | 0x03;

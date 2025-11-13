@@ -18838,7 +18838,7 @@ void rob_chara_age_age_object::load(object_info obj_info, int32_t count) {
             vtx_data->texcoord = vertex_array[k].texcoord0;
         }
 
-    obj_vert_buf.load_data(vertex_data_size, vertex_data, 2, true);
+    obj_vert_buf.load_data(vertex_data_size, vertex_data, 2, GL::BUFFER_USAGE_STREAM);
 
     this->num_index = num_index + 1;
     int32_t num_idx_data = (int32_t)(count * (num_index + 1));

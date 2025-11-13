@@ -29,7 +29,7 @@ struct BufObjMgr {
 };
 
 static GLuint create_index_buffer(size_t size, const void* data);
-static GLuint create_vertex_buffer(size_t size, const void* data, bool dynamic = false);
+static GLuint create_vertex_buffer(size_t size, const void* data, GL::BufferUsage usage = GL::BUFFER_USAGE_STATIC);
 static void free_index_buffer(GLuint buffer);
 static void free_vertex_buffer(GLuint buffer);
 
@@ -171,7 +171,7 @@ GLsizeiptr obj_mesh_vertex_buffer::get_size() {
     return 0;
 }
 
-bool obj_mesh_vertex_buffer::load(obj_mesh& mesh, bool dynamic) {
+bool obj_mesh_vertex_buffer::load(obj_mesh& mesh, GL::BufferUsage usage) {
     if (!mesh.num_vertex || !mesh.vertex_array)
         return false;
 
@@ -194,12 +194,12 @@ bool obj_mesh_vertex_buffer::load(obj_mesh& mesh, bool dynamic) {
     mesh.size_vertex = size_vertex;
 
     bool ret = load_data((size_t)size_vertex * mesh.num_vertex,
-        vertex, mesh.attrib.m.double_buffer ? 2 : 1, dynamic);
+        vertex, mesh.attrib.m.double_buffer ? 2 : 1, usage);
     free_def(vertex);
     return ret;
 }
 
-bool obj_mesh_vertex_buffer::load_data(size_t size, const void* data, int32_t count, bool dynamic) {
+bool obj_mesh_vertex_buffer::load_data(size_t size, const void* data, int32_t count, GL::BufferUsage usage) {
     if (!size || count > 3)
         return false;
 
@@ -210,7 +210,7 @@ bool obj_mesh_vertex_buffer::load_data(size_t size, const void* data, int32_t co
 #endif
 
     for (int32_t i = 0; i < count; i++) {
-        buffers[i] = create_vertex_buffer(size, data, dynamic);
+        buffers[i] = create_vertex_buffer(size, data, usage);
         if (!buffers[i]) {
             unload();
             return false;
@@ -2433,16 +2433,17 @@ static GLuint create_index_buffer(size_t size, const void* data) {
     return buffer;
 }
 
-static GLuint create_vertex_buffer(size_t size, const void* data, bool dynamic) {
+static GLuint create_vertex_buffer(size_t size, const void* data, GL::BufferUsage usage) {
     GLuint buffer = 0;
     glGenBuffers(1, &buffer);
     gl_state.bind_array_buffer(buffer);
-    if (GLAD_GL_VERSION_4_4)
-        glBufferStorage(GL_ARRAY_BUFFER, (GLsizeiptr)size, data,
-            dynamic ? GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT : 0);
+    if (GLAD_GL_VERSION_4_4 && usage != GL::BUFFER_USAGE_STREAM) {
+        GLbitfield flags = usage == GL::BUFFER_USAGE_DYNAMIC
+            ? GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT : 0;
+        glBufferStorage(GL_ARRAY_BUFFER, (GLsizeiptr)size, data, flags);
+    }
     else
-        glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)size, data,
-            dynamic ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)size, data, BufferUsageToGLenum(usage));
     gl_state.bind_array_buffer(0);
 
     if (glGetError()) {

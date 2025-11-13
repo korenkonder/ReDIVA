@@ -13,6 +13,7 @@
 #include "../KKdLib/obj.hpp"
 #include "../KKdLib/txp.hpp"
 #include "../KKdLib/vec.hpp"
+#include "GL/buffer.hpp"
 #include "file_handler.hpp"
 #include "static_var.hpp"
 #include "texture.hpp"
@@ -46,8 +47,8 @@ struct obj_mesh_vertex_buffer {
     GLuint get_buffer();
     size_t get_offset();
     GLsizeiptr get_size();
-    bool load(obj_mesh& mesh, bool dynamic = false);
-    bool load_data(size_t size, const void* data, int32_t count, bool dynamic);
+    bool load(obj_mesh& mesh, GL::BufferUsage usage = GL::BUFFER_USAGE_STATIC);
+    bool load_data(size_t size, const void* data, int32_t count, GL::BufferUsage usage = GL::BUFFER_USAGE_STATIC);
     void unload();
 
     static void* fill_data(void* data, obj_mesh& mesh);
