@@ -37,6 +37,7 @@ static int32_t remove_degenerate_triangle_indices(
     uint32_t* dst_index_array, const int32_t num_index, uint32_t* src_index_array);
 
 static void ObjsetInfo_calc_axis_aligned_bounding_box(ObjsetInfo* info);
+static void ObjsetInfo_get_obj_shader_index_texture_index(ObjsetInfo* info, obj* obj);
 static void ObjsetInfo_get_shader_index_texture_index(ObjsetInfo* info);
 static bool ObjsetInfo_index_buffer_load(ObjsetInfo* info);
 static void ObjsetInfo_index_buffer_free(ObjsetInfo* info);
@@ -2598,40 +2599,39 @@ static void ObjsetInfo_calc_axis_aligned_bounding_box(ObjsetInfo* info) {
     }
 }
 
-static void ObjsetInfo_get_shader_index_texture_index(ObjsetInfo* info) {
-    obj_set* set = info->obj_set;
-    for (int32_t i = 0; i < set->obj_num; i++) {
-        obj* obj = set->obj_data[i];
-        int32_t num_material = obj->num_material;
-        for (int32_t j = 0; j < num_material; j++) {
-            obj_material_data& material_data = obj->material_array[j];
-            obj_material& material = material_data.material;
+static void ObjsetInfo_get_obj_shader_index_texture_index(ObjsetInfo* info, obj* obj) {
+    int32_t num_material = obj->num_material;
+    for (int32_t i = 0; i < num_material; i++) {
+        obj_material_data& material_data = obj->material_array[i];
+        obj_material& material = material_data.material;
 
-            if (*(int32_t*)&material.shader.name[4] != 0xDEADFF) {
-                material.shader.index = shaders_ft.get_index_by_name(material.shader.name);
-                *(int32_t*)&material.shader.name[4] = 0xDEADFF;
-            }
+        if (*(int32_t*)&material.shader.name[4] != 0xDEADFF) {
+            material.shader.index = shaders_ft.get_index_by_name(material.shader.name);
+            *(int32_t*)&material.shader.name[4] = 0xDEADFF;
+        }
 
-            for (obj_material_texture_data& k : material.texdata) {
-                if (k.tex_index == -1)
-                    continue;
+        for (obj_material_texture_data& j : material.texdata) {
+            if (j.tex_index == -1)
+                continue;
 
-                obj_material_texture_data& texture = k;
-                uint32_t tex_index = texture.tex_index;
-                texture.tex_index = -1;
-                texture.texture_index = 0;
+            obj_material_texture_data& texture = j;
+            uint32_t tex_index = texture.tex_index;
+            texture.tex_index = -1;
+            texture.texture_index = 0;
 
-                std::pair<uint32_t, uint32_t>* tex_id_data = info->tex_id_data.data();
-                size_t tex_id_num = info->tex_id_data.size();
-                for (size_t l = tex_id_num; l; l--, tex_id_data++)
-                    if (tex_id_data->first == tex_index) {
-                        texture.tex_index = tex_index;
-                        texture.texture_index = tex_id_data->second;
-                        break;
-                    }
+            auto elem = info->tex_id_data.find(tex_index);
+            if (elem != info->tex_id_data.end()) {
+                texture.tex_index = tex_index;
+                texture.texture_index = elem->second;
             }
         }
     }
+}
+
+static void ObjsetInfo_get_shader_index_texture_index(ObjsetInfo* info) {
+    obj_set* set = info->obj_set;
+    for (int32_t i = 0; i < set->obj_num; i++)
+        ObjsetInfo_get_obj_shader_index_texture_index(info, set->obj_data[i]);
 }
 
 static bool ObjsetInfo_index_buffer_load(ObjsetInfo* info) {
