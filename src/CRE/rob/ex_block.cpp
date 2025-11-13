@@ -1735,6 +1735,30 @@ void RobCloth::InitDataParent(obj_skin_block_cloth* cls_data,
     this->cls_data = cls_data;
     InitData(cls_data->num_root, cls_data->num_node, cls_data->root_array,
         cls_data->node_array, cls_data->mat_array, cls_data->loop, itm_eq_obj, bone_data);
+
+    obj* obj = objset_info_storage_get_obj(itm_eq_obj->obj_info);
+    if (!obj)
+        return;
+
+    for (int32_t i = 0; i < 2; i++) {
+        if (!mesh[i].num_vertex || !mesh[i].vertex_array || !index_buffer[i].buffer)
+            continue;
+
+        obj_mesh_vertex_buffer* obj_vert_buf = &vertex_buffer[i];
+        obj_mesh_index_buffer* obj_index_buf = &index_buffer[i];
+
+        obj_mesh* mesh = &this->mesh[i];
+        for (int32_t j = 0; j < mesh->num_submesh; j++) {
+            obj_material_data* material = &obj->material_array[mesh->submesh_array[j].material_index];
+            for (int32_t k = 0; k < (mesh->attrib.m.double_buffer ? 2 : 1); k++) {
+                extern render_context* rctx_ptr;
+                rctx_ptr->disp_manager->add_vertex_array(mesh, &mesh->submesh_array[j], material,
+                    obj_vert_buf->get_buffer(), obj_vert_buf->get_offset(), obj_index_buf->buffer, 0, 0);
+
+                obj_vert_buf->cycle_index();
+            }
+        }
+    }
 }
 
 const float_t* RobCloth::LoadOpdData(size_t node_index, const float_t* opd_data, size_t opd_count) {

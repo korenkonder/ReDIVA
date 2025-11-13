@@ -478,16 +478,11 @@ namespace mdl {
             GLuint morph_vertex_buffer;
             size_t morph_vertex_buffer_offset;
             GLuint index_buffer;
-            int32_t alive_time;
             GLuint vertex_array;
-            bool vertex_attrib_array[16];
             obj_vertex_format vertex_format;
             GLsizei size_vertex;
             uint32_t compression;
-            GLuint vertex_attrib_buffer_binding[16];
             int32_t texcoord_array[2];
-
-            void reset_vertex_attrib();
         };
 
         mdl::ObjFlags obj_flags;
@@ -525,7 +520,9 @@ namespace mdl {
         DispManager();
         ~DispManager();
 
-        void add_vertex_array(ObjSubMeshArgs* args);
+        void add_vertex_array(const obj_mesh* mesh, const obj_sub_mesh* sub_mesh, const obj_material_data* material,
+            GLuint vertex_buffer, size_t vertex_buffer_offset, GLuint index_buffer,
+            GLuint morph_vertex_buffer, size_t morph_vertex_buffer_offset);
         void* alloc_data(int32_t size);
         ObjData* alloc_obj_data(ObjKind kind);
         mat4* alloc_mat4_array(int32_t count);
@@ -533,9 +530,6 @@ namespace mdl {
         void calc_obj_radius(const cam_data& cam, ObjType type);
         void calc_obj_radius(const cam_data& cam, ObjTypeScreen type);
         void calc_obj_radius(const cam_data& cam, ObjTypeReflect type);
-        void check_index_buffer(GLuint buffer);
-        void check_vertex_arrays();
-        void check_vertex_buffer(GLuint buffer);
         void draw(render_data_context& rend_data_ctx, ObjType type, const cam_data& cam,
             int32_t depth_mask = 0, bool reflect_texture_mask = true, int32_t alpha = -1);
         void draw(render_data_context& rend_data_ctx, ObjTypeScreen type, const cam_data& cam,
@@ -559,7 +553,7 @@ namespace mdl {
         bool entry_obj_by_object_info(const mat4& mat, object_info obj_info, const mat4* bone_mat);
         bool entry_obj_by_object_info(const mat4& mat, object_info obj_info, const vec4* blend_color,
             const mat4* bone_mat, int32_t instances_count, const mat4* instances_mat,
-            void(*func)(const mdl::ObjSubMeshArgs*), const ObjSubMeshArgs* func_data, bool enable_bone_mat);
+            void(*func)(const ObjSubMeshArgs*), const ObjSubMeshArgs* func_data, bool enable_bone_mat);
         bool entry_obj_by_object_info_screen(const mat4& mat, object_info obj_info, const vec4* blend_color);
         bool entry_obj_by_object_info(const mat4& mat, object_info obj_info, float_t alpha, const mat4* bone_mat = 0);
         bool entry_obj_by_object_info(const mat4& mat, object_info obj_info,
@@ -577,11 +571,13 @@ namespace mdl {
         void entry_obj_etc(const mat4& mat, const EtcObj& etc);
         void entry_obj_etc_screen(const mat4& mat, const EtcObj& etc);
         void entry_obj_user(const mat4& mat, UserArgsFunc func, void* data, ObjType type);
-        GLuint get_vertex_array(const ObjSubMeshArgs* args);
+        GLuint get_vertex_array(const obj_mesh* mesh, const obj_sub_mesh* sub_mesh,
+            const obj_material_data* material, GLuint vertex_buffer, size_t vertex_buffer_offset,
+            GLuint index_buffer, GLuint morph_vertex_buffer, size_t morph_vertex_buffer_offset);
         bool get_chara_color();
         void get_material_list(int32_t& count, material_list_struct*& value);
         void get_morph(object_info& object, float_t& weight);
-        void get_obj_center(const mat4& mat, const mdl::ObjSubMeshArgs* args, vec3& center);
+        void get_obj_center(const mat4& mat, const ObjSubMeshArgs* args, vec3& center);
         int32_t get_obj_count(ObjType type);
         int32_t get_obj_count(ObjTypeScreen type);
         int32_t get_obj_count(ObjTypeReflect type);
@@ -601,6 +597,8 @@ namespace mdl {
         void obj_sort(render_data_context& rend_data_ctx,
             ObjTypeReflect type, int32_t compare_func, const cam_data& cam);
         void refresh();
+        void remove_index_buffer(GLuint buffer);
+        void remove_vertex_buffer(GLuint buffer);
         void set_chara_color(bool value = false);
         void set_culling_func(bool(*func)(const obj_bounding_sphere*, const mat4*) = 0);
         void set_obj_flags(ObjFlags flags = (ObjFlags)0);

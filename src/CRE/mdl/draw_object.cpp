@@ -127,7 +127,9 @@ namespace mdl {
     void draw_sub_mesh(render_data_context& rend_data_ctx, const ObjSubMeshArgs* args,
         const mat4* mat, void(*func)(render_data_context& rend_data_ctx,
             const ObjSubMeshArgs* args, const cam_data& cam, const mat4* mat), const cam_data& cam) {
-        GLuint vao = rctx_ptr->disp_manager->get_vertex_array(args);
+        GLuint vao = rctx_ptr->disp_manager->get_vertex_array(args->mesh,
+            args->sub_mesh, args->material, args->vertex_buffer, args->vertex_buffer_offset,
+            args->index_buffer, args->morph_vertex_buffer, args->morph_vertex_buffer_offset);
         if (!vao)
             return;
 

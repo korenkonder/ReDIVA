@@ -44,6 +44,7 @@ static void ObjsetInfo_index_buffer_free(ObjsetInfo* info);
 static bool ObjsetInfo_load_textures(ObjsetInfo* info, const void* data, bool big_endian);
 static bool ObjsetInfo_load_textures_modern(ObjsetInfo* info,
     const void* data, size_t size, const char* file, texture_database* tex_db);
+static void ObjsetInfo_vertex_array_load(ObjsetInfo* info);
 static bool ObjsetInfo_vertex_buffer_load(ObjsetInfo* info);
 static void ObjsetInfo_vertex_buffer_free(ObjsetInfo* info);
 static uint32_t obj_vertex_format_get_vertex_size(obj_vertex_format format);
@@ -2218,6 +2219,7 @@ bool objset_info_storage_load_obj_set_check_not_read(uint32_t set_id,
                 || !ObjsetInfo_index_buffer_load(info))
                 return false;
 
+            ObjsetInfo_vertex_array_load(info);
             ObjsetInfo_calc_axis_aligned_bounding_box(info);
             info->obj_loaded = true;
         }
@@ -2331,6 +2333,7 @@ bool objset_info_storage_load_obj_set_check_not_read(uint32_t set_id,
             || !ObjsetInfo_index_buffer_load(info))
             return false;
 
+        ObjsetInfo_vertex_array_load(info);
         ObjsetInfo_calc_axis_aligned_bounding_box(info);
         info->obj_loaded = true;
 
@@ -2462,7 +2465,7 @@ static void free_index_buffer(GLuint buffer) {
         return;
 
     extern render_context* rctx_ptr;
-    rctx_ptr->disp_manager->check_index_buffer(buffer);
+    rctx_ptr->disp_manager->remove_index_buffer(buffer);
 
     GLint size = 0;
     if (GLAD_GL_VERSION_4_5)
@@ -2484,7 +2487,7 @@ static void free_vertex_buffer(GLuint buffer) {
         return;
 
     extern render_context* rctx_ptr;
-    rctx_ptr->disp_manager->check_vertex_buffer(buffer);
+    rctx_ptr->disp_manager->remove_vertex_buffer(buffer);
 
     GLint size = 0;
     if (GLAD_GL_VERSION_4_5)
@@ -2712,6 +2715,64 @@ static bool ObjsetInfo_load_textures_modern(ObjsetInfo* info,
     }
     info->tex_id_data.sort();
     return false;
+}
+
+static void ObjsetInfo_vertex_array_load(ObjsetInfo* info) {
+    obj_set* set = info->obj_set;
+    obj_vertex_buffer* obj_vert_buf = info->objvb;
+    obj_index_buffer* obj_index_buf = info->objib;
+    for (int32_t i = 0; i < set->obj_num; i++) {
+        obj* obj = set->obj_data[i];
+
+#if SHARED_OBJECT_BUFFER
+        bool double_buffer = false;
+        for (int32_t i = 0; i < obj->num_mesh; i++) {
+            obj_mesh& mesh = obj->mesh_array[i];
+            if (!mesh.num_vertex || !mesh.vertex_array)
+                continue;
+
+            double_buffer |= !!mesh.attrib.m.double_buffer;
+        }
+#endif
+
+        for (int32_t j = 0; j < obj->num_mesh; j++) {
+            obj_mesh* mesh = &obj->mesh_array[j];
+            if (!mesh->num_vertex || !mesh->vertex_array)
+                continue;
+
+            for (int32_t k = 0; k < mesh->num_submesh; k++) {
+                obj_sub_mesh* sub_mesh = &mesh->submesh_array[k];
+                if (sub_mesh->attrib.m.cloth)
+                    continue;
+
+                obj_material_data* material = &obj->material_array[sub_mesh->material_index];
+
+#if SHARED_OBJECT_BUFFER
+                for (int32_t l = 0; l < (double_buffer ? 2 : 1); l++) {
+#else
+                for (int32_t l = 0; l < (mesh->attrib.m.double_buffer ? 2 : 1); l++) {
+#endif
+                    GLuint vertex_buffer = 0;
+                    size_t vertex_buffer_offset = 0;
+                    if (obj_vert_buf && obj_vert_buf[i].mesh_data) {
+                        vertex_buffer = obj_vert_buf[i].mesh_data[j].get_buffer();
+                        vertex_buffer_offset = obj_vert_buf[i].mesh_data[j].get_offset();
+                    }
+
+                    GLuint index_buffer = 0;
+                    if (obj_index_buf && obj_index_buf[i].mesh_data)
+                        index_buffer = obj_index_buf[i].mesh_data[j].buffer;
+
+                    extern render_context* rctx_ptr;
+                    rctx_ptr->disp_manager->add_vertex_array(mesh, sub_mesh, material,
+                        vertex_buffer, vertex_buffer_offset, index_buffer, 0, 0);
+
+                    if (obj_vert_buf && obj_vert_buf[i].mesh_data)
+                        obj_vert_buf[i].mesh_data[j].cycle_index();
+                }
+            }
+        }
+    }
 }
 
 static bool ObjsetInfo_vertex_buffer_load(ObjsetInfo* info) {

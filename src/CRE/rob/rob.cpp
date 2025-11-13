@@ -18907,6 +18907,15 @@ void rob_chara_age_age_object::load(object_info obj_info, int32_t count) {
     sub_mesh.index_offset = 0;
 
     axis_aligned_bounding_box = sm->axis_aligned_bounding_box;
+
+    if (mesh.num_vertex && mesh.vertex_array)
+        for (int32_t i = 0; i < 2; i++) {
+            extern render_context* rctx_ptr;
+            rctx_ptr->disp_manager->add_vertex_array(&mesh, &sub_mesh, material,
+                obj_vert_buf.get_buffer(), obj_vert_buf.get_offset(), obj_index_buf.buffer, 0, 0);
+
+            obj_vert_buf.cycle_index();
+        }
 }
 
 void rob_chara_age_age_object::reset() {
