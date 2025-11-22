@@ -2141,11 +2141,11 @@ namespace pv_db {
 
                     for (int32_t l = 0; l < PV_AET_MAX; l++) {
                         int32_t aet_frame;
-                        if (kv.read(aet_id_names[l], aet_frame))
+                        if (kv.read(aet_frame_names[l], aet_frame))
                             field.aet.frame[l].push_back(aet_frame);
 
                         int32_t count;
-                        if (kv.read(aet_id_list_names[l], "length", count)) {
+                        if (kv.read(aet_frame_list_names[l], "length", count)) {
                             field.aet.frame[l].reserve(count);
                             for (int32_t m = 0; m < count; m++) {
                                 if (!kv.open_scope_fmt(m))
