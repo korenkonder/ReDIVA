@@ -1972,7 +1972,7 @@ float_t pv_game::get_aet_frame_max_frame(int32_t aet_frame, int32_t aet_index, s
     if (dsc_time < 0 || curr_time < 0)
         return 0.0f;
 
-    if (!((aet_frame + 4) & -5)) {
+    if (!((aet_frame + 4) & ~4u)) {
         data.aet_time[aet_index].insert_or_assign(aet_name_id, dsc_time);
 
         if (!aet_frame) {
@@ -1982,7 +1982,7 @@ float_t pv_game::get_aet_frame_max_frame(int32_t aet_frame, int32_t aet_index, s
         }
         return 0.0f;
     }
-    else if (!((aet_frame + 5) & -5)) {
+    else if (!((aet_frame + 5) & ~4u)) {
         float_t frame = -1.0f;
         int64_t aet_time = get_aet_time(aet_index, aet_name_id);
         if (aet_time >= 0) {
@@ -1998,7 +1998,7 @@ float_t pv_game::get_aet_frame_max_frame(int32_t aet_frame, int32_t aet_index, s
         }
         return frame;
     }
-    else if (!((aet_frame + 6) & -5) && aet_frame == -2)
+    else if (!((aet_frame + 6) & ~4u) && aet_frame == -2)
         *max_frame = get_aet_frame_max_frame_change_field(aet_index, aet_name_id, dsc_time);
     return -1.0f;
 }
