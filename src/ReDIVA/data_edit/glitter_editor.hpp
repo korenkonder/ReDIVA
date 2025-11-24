@@ -105,6 +105,7 @@ public:
     int32_t start_frame;
     int32_t end_frame;
     Glitter::Random random;
+    Glitter::RandomX random_x;
     Glitter::Counter counter;
     Glitter::EffectGroup* effect_group;
     Glitter::Scene* scene;

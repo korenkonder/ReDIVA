@@ -9,10 +9,10 @@
 extern render_context* rctx_ptr;
 
 namespace Glitter {
-    EmitterInst::EmitterInst(Emitter* emit, Random* random) : emission_timer(), flags(), random() {
+    EmitterInst::EmitterInst(Emitter* emit, void* random) : emission_timer(), flags(), random() {
         emitter = emit;
 
-        random_ptr = random;
+        random_raw_ptr = random;
         data = emit->data;
         translation = emit->translation;
         rotation = emit->rotation;
@@ -58,7 +58,7 @@ namespace Glitter {
         }
 
         random = random_ptr->GetValue();
-        random_ptr->F2StepValue();
+        random_ptr->StepValue();
     }
 
     EmitterInstF2::~EmitterInstF2() {
@@ -351,14 +351,14 @@ namespace Glitter {
         vec3& position, vec3& direction, Random* random) {
         switch (data.type) {
         case EMITTER_BOX: {
-            position = random->F2GetVec3(GLT_VAL, data.box.size * scale * 0.5f);
+            position = random->GetVec3(GLT_VAL, data.box.size * scale * 0.5f);
         } break;
         case EMITTER_CYLINDER: {
             float_t radius = data.cylinder.radius * scale.x;
             if (!data.cylinder.on_edge)
-                radius = random->F2GetFloat(GLT_VAL, 0.0f, radius);
+                radius = random->GetFloat(GLT_VAL, 0.0f, radius);
 
-            float_t angle = random->F2GetFloat(GLT_VAL, data.cylinder.start_angle, data.cylinder.end_angle);
+            float_t angle = random->GetFloat(GLT_VAL, data.cylinder.start_angle, data.cylinder.end_angle);
 
             vec3 dir;
             dir.x = cosf(angle);
@@ -366,7 +366,7 @@ namespace Glitter {
             dir.z = sinf(angle);
 
             position.x = dir.x * radius;
-            position.y = random->F2GetFloat(GLT_VAL, data.cylinder.height * scale.y * 0.5f);
+            position.y = random->GetFloat(GLT_VAL, data.cylinder.height * scale.y * 0.5f);
             position.z = dir.z * radius;
 
             if (data.cylinder.direction == EMITTER_EMISSION_DIRECTION_OUTWARD)
@@ -379,10 +379,10 @@ namespace Glitter {
         case EMITTER_SPHERE: {
             float_t radius = data.sphere.radius * scale.x;
             if (!data.sphere.on_edge)
-                radius = random->F2GetFloat(GLT_VAL, 0.0f, radius);
+                radius = random->GetFloat(GLT_VAL, 0.0f, radius);
 
-            float_t longitude = random->F2GetFloat(GLT_VAL, data.sphere.longitude * 0.5f);
-            float_t latitude = (float_t)M_PI_2 - random->F2GetFloat(GLT_VAL, 0.0f, data.sphere.latitude);
+            float_t longitude = random->GetFloat(GLT_VAL, data.sphere.longitude * 0.5f);
+            float_t latitude = (float_t)M_PI_2 - random->GetFloat(GLT_VAL, 0.0f, data.sphere.latitude);
 
             vec3 dir;
             dir.x = sinf(longitude) * cosf(latitude);
@@ -444,20 +444,20 @@ namespace Glitter {
             this->emission = EMITTER_EMISSION_ON_TIMER;
 
         if (eff_inst->data.flags & EFFECT_USE_SEED)
-            random = random_ptr->GetValue() + 1;
+            random = random_x_ptr->GetValue() + 1;
         else if (data.flags & EMITTER_USE_SEED)
             random = data.seed;
         else
-            random = random_ptr->GetValue();
+            random = random_x_ptr->GetValue();
         step = 1;
-        random_ptr->XStepValue();
+        random_x_ptr->StepValue();
 
         particles.reserve(emit->particles.size());
         for (Particle*& i : emit->particles) {
             if (!i)
                 continue;
 
-            ParticleInstX* particle = new ParticleInstX(i, eff_inst, this, random_ptr, emission);
+            ParticleInstX* particle = new ParticleInstX(i, eff_inst, this, random_x_ptr, emission);
             if (particle)
                 particles.push_back(particle);
         }
@@ -844,7 +844,7 @@ namespace Glitter {
         for (int32_t i = 0; i < length; i++) {
             Curve* curve = anim->curves.data()[i];
             float_t value;
-            if (!curve->XGetValue(frame, &value, random + i, random_ptr))
+            if (!curve->XGetValue(frame, &value, random + i, random_x_ptr))
                 continue;
 
             switch (curve->type) {
@@ -901,17 +901,17 @@ namespace Glitter {
     }
 
     void EmitterInstX::InitMesh(int32_t index, const vec3& scale,
-        vec3& position, vec3& direction, Random* random) {
+        vec3& position, vec3& direction, RandomX* random) {
         switch (emitter->data.type) {
         case EMITTER_BOX: {
-            position = random->XGetVec3(data.box.size * scale * 0.5f);
+            position = random->GetVec3(data.box.size * scale * 0.5f);
         } break;
         case EMITTER_CYLINDER: {
             float_t radius = data.cylinder.radius * scale.x;
             if (!data.cylinder.on_edge)
-                radius = random->XGetFloat(0.0f, radius);
+                radius = random->GetFloat(0.0f, radius);
 
-            float_t angle = random->XGetFloat(data.cylinder.start_angle, data.cylinder.end_angle);
+            float_t angle = random->GetFloat(data.cylinder.start_angle, data.cylinder.end_angle);
 
             vec3 dir;
             dir.x = cosf(angle);
@@ -919,7 +919,7 @@ namespace Glitter {
             dir.z = sinf(angle);
 
             position.x = dir.x * radius;
-            position.y = random->XGetFloat(data.cylinder.height * scale.y * 0.5f);
+            position.y = random->GetFloat(data.cylinder.height * scale.y * 0.5f);
             position.z = dir.z * radius;
 
             if (data.cylinder.direction == EMITTER_EMISSION_DIRECTION_OUTWARD)
@@ -932,10 +932,10 @@ namespace Glitter {
         case EMITTER_SPHERE: {
             float_t radius = data.sphere.radius * scale.x;
             if (!data.sphere.on_edge)
-                radius = random->XGetFloat(0.0f, radius);
+                radius = random->GetFloat(0.0f, radius);
 
-            float_t longitude = random->XGetFloat(data.sphere.longitude * 0.5f);
-            float_t latitude = (float_t)M_PI_2 - random->XGetFloat(0.0f, data.sphere.latitude);
+            float_t longitude = random->GetFloat(data.sphere.longitude * 0.5f);
+            float_t latitude = (float_t)M_PI_2 - random->GetFloat(0.0f, data.sphere.latitude);
 
             vec3 dir;
             dir.x = sinf(longitude) * cosf(latitude);
@@ -975,7 +975,7 @@ namespace Glitter {
     void EmitterInstX::RandomStepValue() {
         counter += 11;
         counter %= 30000;
-        random_ptr->SetValue(random + counter);
+        random_x_ptr->SetValue(random + counter);
     }
 
     void EmitterInstX::RenderGroupCtrl(float_t delta_frame) {

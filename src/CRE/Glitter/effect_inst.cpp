@@ -681,7 +681,7 @@ namespace Glitter {
         : EffectInst(GPM_VAL, Glitter::X, eff, id, appear_now, init) {
         mat_rot = mat4_identity;
         mat_rot_eff_rot = mat4_identity;
-        random_shared.XReset();
+        random_shared.Reset();
         flags = EFFECT_INST_JUST_INIT;
         ext_anim = 0;
         render_scene = {};

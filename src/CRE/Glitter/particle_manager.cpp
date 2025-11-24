@@ -12,6 +12,7 @@ extern render_context* rctx_ptr;
 namespace Glitter {
     GltParticleManager* glt_particle_manager;
     Random random;
+    RandomX random_x;
     Counter counter;
 
     GltParticleManager::GltParticleManager() :
@@ -801,7 +802,7 @@ namespace Glitter {
 
     void GltParticleManager::SetFrame(EffectGroup* effect_group,
         Scene*& scene, float_t curr_frame, float_t next_frame,
-        const Counter& counter, const Random& random, bool reset) {
+        const Counter& counter, const void* random, bool reset) {
         if (next_frame < curr_frame || reset) {
             for (auto i = scenes.begin(); i != scenes.end();) {
                 if (!*i || *i != scene) {
@@ -837,7 +838,10 @@ namespace Glitter {
             }
 
             Glitter::counter = counter;
-            Glitter::random = random;
+            if (effect_group->type != Glitter::X)
+                Glitter::random = *(const Glitter::Random*)random;
+            else
+                Glitter::random_x = *(const Glitter::RandomX*)random;
 
             curr_frame = -1.0f;
         }

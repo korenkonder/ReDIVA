@@ -432,6 +432,7 @@ namespace Glitter {
     class ParticleInstF2;
     class ParticleInstX;
     struct Random;
+    struct RandomX;
     struct RenderElement;
     class RenderGroup;
     class RenderGroupF2;
@@ -569,15 +570,15 @@ namespace Glitter {
         void FitKeysIntoCurve(GLT);
         void Recalculate(GLT);
         bool XGetValue(float_t frame,
-            float_t* value, int32_t random_value, Random* random);
+            float_t* value, int32_t random_value, RandomX* random);
         float_t XInterpolate(float_t frame, const Curve::Key& curr,
-            const Curve::Key& next, KeyType key_type, Random* random);
+            const Curve::Key& next, KeyType key_type, RandomX* random);
         float_t XInterpolateHermite(const Curve::Key& curr,
-            const Curve::Key& next, float_t frame, Random* random);
+            const Curve::Key& next, float_t frame, RandomX* random);
         float_t XInterpolateLinear(const Curve::Key& curr,
-            const Curve::Key& next, float_t frame, Random* random);
-        float_t XRandomize(float_t value, Random* random);
-        float_t XRandomizeKey(const Curve::Key& key, Random* random);
+            const Curve::Key& next, float_t frame, RandomX* random);
+        float_t XRandomize(float_t value, RandomX* random);
+        float_t XRandomizeKey(const Curve::Key& key, RandomX* random);
 
         Curve& operator=(const Curve& curv);
 
@@ -739,29 +740,39 @@ namespace Glitter {
 
     struct Random {
         uint32_t value;
-        uint8_t step;
 
         Random();
 
-        float_t F2GetFloat(GLT, float_t value);
-        float_t F2GetFloat(GLT, float_t min, float_t max);
-        int32_t F2GetInt(GLT, int32_t value);
-        int32_t F2GetInt(GLT, int32_t min, int32_t max);
-        vec3 F2GetVec3(GLT, const vec3& value);
-        void F2StepValue();
+        float_t GetFloat(GLT, float_t value);
+        float_t GetFloat(GLT, float_t min, float_t max);
+        int32_t GetInt(GLT, int32_t value);
         int32_t GetValue();
+        int32_t GetInt(GLT, int32_t min, int32_t max);
+        vec3 GetVec3(GLT, const vec3& value);
+        void StepValue();
         void SetValue(int32_t value);
-        float_t XGetFloat(float_t value);
-        float_t XGetFloat(float_t min, float_t max);
-        int32_t XGetInt(int32_t value);
-        int32_t XGetInt(int32_t min, int32_t max);
-        vec3 XGetVec3(const vec3& value);
-        void XReset();
-        void XSetStep(uint8_t step);
-        void XStepValue();
 
-        static int32_t F2GetMax(GLT);
-        static int32_t XGetMax();
+        static int32_t GetMax(GLT);
+    };
+
+    struct RandomX {
+        uint32_t value;
+        uint8_t step;
+
+        RandomX();
+
+        float_t GetFloat(float_t value);
+        float_t GetFloat(float_t min, float_t max);
+        int32_t GetInt(int32_t value);
+        int32_t GetInt(int32_t min, int32_t max);
+        int32_t GetValue();
+        vec3 GetVec3(const vec3& value);
+        void Reset();
+        void SetStep(uint8_t step);
+        void SetValue(int32_t value);
+        void StepValue();
+
+        static int32_t GetMax();
     };
 
     struct Counter {
@@ -798,7 +809,10 @@ namespace Glitter {
         RenderElement* elements;
         Buffer* buffer;
         size_t max_count;
-        Random* random_ptr;
+        union {
+            Random* random_ptr;
+            RandomX* random_x_ptr;
+        };
         DispType disp_type;
         FogType fog_type;
         GLuint vao;
@@ -1025,7 +1039,7 @@ namespace Glitter {
         std::vector<EmitterInstX*> emitters;
         mat4 mat_rot;
         mat4 mat_rot_eff_rot;
-        Random random_shared;
+        RandomX random_shared;
         ExtAnim* ext_anim;
         RenderSceneX render_scene;
 
@@ -1148,14 +1162,18 @@ namespace Glitter {
         Emitter::Data data;
         float_t emission_interval;
         float_t particles_per_emission;
-        Random* random_ptr;
+        union {
+            Random* random_ptr;
+            RandomX* random_x_ptr;
+            void* random_raw_ptr;
+        };
         bool loop;
         EmitterEmission emission;
         float_t frame;
         EmitterInstFlag flags;
         uint32_t random;
 
-        EmitterInst(Emitter* emit, Random* random);
+        EmitterInst(Emitter* emit, void* random);
         virtual ~EmitterInst();
     };
 
@@ -1203,7 +1221,7 @@ namespace Glitter {
         void GetValue();
         bool HasEnded(bool a2);
         void InitMesh(int32_t index, const vec3& scale,
-            vec3& position, vec3& direction, Random* random);
+            vec3& position, vec3& direction, RandomX* random);
         uint8_t RandomGetStep();
         void RandomStepValue();
         void RenderGroupCtrl(float_t delta_frame);
@@ -1447,7 +1465,7 @@ namespace Glitter {
             Particle::Data data;
             ParticleInstFlag flags;
             RenderGroupX* render_group;
-            Random* random_ptr;
+            RandomX* random_ptr;
             EffectInstX* effect;
             EmitterInstX* emitter;
             ParticleInstX* parent;
@@ -1459,27 +1477,27 @@ namespace Glitter {
         } data;
 
         ParticleInstX(Particle* ptcl, EffectInstX* eff_inst,
-            EmitterInstX* emit_inst, Random* random, float_t emission);
+            EmitterInstX* emit_inst, RandomX* random, float_t emission);
         ParticleInstX(ParticleInstX* parent, float_t emission);
         virtual ~ParticleInstX() override;
 
         void AccelerateParticle(RenderElement* rend_elem,
-            float_t delta_frame, Random* random);
+            float_t delta_frame, RandomX* random);
         bool CheckUseCamera();
         void Copy(ParticleInstX* dst, float_t emission);
         void Emit(int32_t dup_count, int32_t count, float_t emission, float_t frame);
         void EmitParticle(RenderElement* rend_elem, EmitterInstX* emit_inst,
-            Particle::Data* ptcl_data, int32_t index, uint8_t step, Random* random);
+            Particle::Data* ptcl_data, int32_t index, uint8_t step, RandomX* random);
         void GetColor(RenderElement* rend_elem, float_t color_scale);
         bool GetExtAnimScale(vec3* ext_anim_scale, float_t* ext_scale);
         void GetExtColor(float_t& r, float_t& g, float_t& b, float_t& a);
         bool GetUseCamera();
-        bool GetValue(RenderElement* rend_elem, float_t frame, Random* random, float_t* color_scale);
+        bool GetValue(RenderElement* rend_elem, float_t frame, RandomX* random, float_t* color_scale);
         void Free(bool free);
         bool HasEnded(bool a2);
         void RenderGroupCtrl(float_t delta_frame);
         void Reset();
-        void StepUVParticle(RenderElement* rend_elem, float_t delta_frame, Random* random);
+        void StepUVParticle(RenderElement* rend_elem, float_t delta_frame, RandomX* random);
     };
 
     class RenderGroupF2 : public RenderGroup {
@@ -1580,11 +1598,11 @@ namespace Glitter {
         RenderElement();
 
         void InitLocusHistory(GLT, ParticleInstF2* ptcl_inst, Random* random);
-        void InitLocusHistory(ParticleInstX* ptcl_inst, Random* random);
+        void InitLocusHistory(ParticleInstX* ptcl_inst, RandomX* random);
         void InitMesh(GLT, EmitterInstF2* emit_inst,
             Particle::Data* ptcl_data, int32_t index, Random* random);
         void InitMesh(EmitterInstX* emit_inst,
-            Particle::Data* ptcl_data, int32_t index, Random* random);
+            Particle::Data* ptcl_data, int32_t index, RandomX* random);
     };
 
     struct SceneEffect {
@@ -1715,7 +1733,7 @@ namespace Glitter {
         bool SceneHasNotEnded(SceneCounter load_counter);
         void SetFrame(EffectGroup* effect_group,
             Scene*& scene, float_t curr_frame, float_t next_frame,
-            const Counter& counter, const Random& random, bool reset);
+            const Counter& counter, const void* random, bool reset);
         void SetInitDeltaFrame(float_t value);
         void SetSceneEffectExtAnimMat(SceneCounter scene_counter, mat4* mat);
         void SetSceneEffectExtColor(SceneCounter scene_counter,
@@ -1730,6 +1748,7 @@ namespace Glitter {
 
     extern GltParticleManager* glt_particle_manager;
     extern Random random;
+    extern RandomX random_x;
     extern Counter counter;
 
 #if !SHARED_GLITTER_BUFFER

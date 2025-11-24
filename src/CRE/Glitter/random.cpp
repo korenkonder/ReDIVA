@@ -1236,10 +1236,9 @@ namespace Glitter {
 
     Random::Random() {
         value = 0;
-        step = 1;
     }
 
-    float_t Random::F2GetFloat(GLT, float_t value) {
+    float_t Random::GetFloat(GLT, float_t value) {
         float_t val;
         switch (GLT_VAL) {
         default:
@@ -1253,7 +1252,7 @@ namespace Glitter {
         return val * (value + value) - value;
     }
 
-    float_t Random::F2GetFloat(GLT, float_t min, float_t max) {
+    float_t Random::GetFloat(GLT, float_t min, float_t max) {
         float_t val;
         switch (GLT_VAL) {
         default:
@@ -1267,7 +1266,7 @@ namespace Glitter {
         return val * (max - min) + min;
     }
 
-    int32_t Random::F2GetInt(GLT, int32_t value) {
+    int32_t Random::GetInt(GLT, int32_t value) {
         int32_t val;
         switch (GLT_VAL) {
         default:
@@ -1281,7 +1280,7 @@ namespace Glitter {
         return val % value;
     }
 
-    int32_t Random::F2GetInt(GLT, int32_t min, int32_t max) {
+    int32_t Random::GetInt(GLT, int32_t min, int32_t max) {
         if (max == min)
             return min;
 
@@ -1298,7 +1297,11 @@ namespace Glitter {
         return val % (max - min) + min;
     }
 
-    vec3 Random::F2GetVec3(GLT, const vec3& value) {
+    int32_t Random::GetValue() {
+        return value;
+    }
+
+    vec3 Random::GetVec3(GLT, const vec3& value) {
         vec3 val;
         switch (GLT_VAL) {
         default:
@@ -1316,36 +1319,47 @@ namespace Glitter {
         return val * (value + value) - value;
     }
 
-    void Random::F2StepValue() {
+    void Random::StepValue() {
         value++;
-    }
-
-    int32_t Random::GetValue() {
-        return value;
     }
 
     void Random::SetValue(int32_t value) {
         this->value = value;
     }
 
-    float_t Random::XGetFloat(float_t value) {
+    int32_t Random::GetMax(GLT) {
+        switch (GLT_VAL) {
+        default:
+        case Glitter::FT:
+            return 0x1000;
+        case Glitter::F2:
+            return 0x100;
+        }
+    }
+
+    RandomX::RandomX() {
+        value = 0;
+        step = 1;
+    }
+
+    float_t RandomX::GetFloat(float_t value) {
         float_t val = *(float_t*)&x_float_table[this->value % 0x169];
         this->value += this->step;
         return val * (value + value) - value;
     }
 
-    float_t Random::XGetFloat(float_t min, float_t max) {
+    float_t RandomX::GetFloat(float_t min, float_t max) {
         float_t val = *(float_t*)&x_float_table[value % 0x169];
         value += step;
         return val * (max - min) + min;
     }
 
-    int32_t Random::XGetInt(int32_t value) {
+    int32_t RandomX::GetInt(int32_t value) {
         int32_t val = x_int_table[this->value % 0x169];
         return val % value;
     }
 
-    int32_t Random::XGetInt(int32_t min, int32_t max) {
+    int32_t RandomX::GetInt(int32_t min, int32_t max) {
         if (max == min)
             return min;
 
@@ -1354,7 +1368,11 @@ namespace Glitter {
         return val % (max - min) + min;
     }
 
-    vec3 Random::XGetVec3(const vec3& value) {
+    int32_t RandomX::GetValue() {
+        return value;
+    }
+
+    vec3 RandomX::GetVec3(const vec3& value) {
         vec3 val;
         val.x = *(float_t*)&x_float_table[this->value % 0x169];
         this->value += step;
@@ -1365,30 +1383,23 @@ namespace Glitter {
         return val * (value + value) - value;
     }
 
-    void Random::XReset() {
+    void RandomX::Reset() {
         value = 0;
         step = 1;
     }
 
-    void Random::XSetStep(uint8_t step) {
+    void RandomX::SetStep(uint8_t step) {
         this->step = step;
     }
 
-    void Random::XStepValue() {
+    void RandomX::SetValue(int32_t value) {
+        this->value = value;
+    }
+
+    void RandomX::StepValue() {
         value += step;
     }
-
-    int32_t Random::F2GetMax(GLT) {
-        switch (GLT_VAL) {
-        default:
-        case Glitter::FT:
-            return 0x1000;
-        case Glitter::F2:
-            return 0x100;
-        }
-    }
-
-    int32_t Random::XGetMax() {
+    int32_t RandomX::GetMax() {
         return 0x169;
     }
 }

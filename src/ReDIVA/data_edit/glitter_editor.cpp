@@ -331,8 +331,8 @@ load_data_popup(), load_error_popup(), save(), save_popup(), save_compress(), sa
 close(), close_editor(), input_play(), input_reload(), input_pause(), input_pause_temp(), input_reset(),
 input_reset_next_frame(), effect_group_add(), show_grid(), draw_flags(), resource_flags(), effect_flags(),
 emitter_flags(), particle_flags(), load_glt_type(), save_glt_type(), load_data_type(), frame_counter(),
-old_frame_counter(), start_frame(), end_frame(), counter(), effect_group(), scene(), hash(),
-selected_type(), selected_resource(), selected_effect(), selected_emitter(), selected_particle(),
+old_frame_counter(), start_frame(), end_frame(), random(), random_x(), counter(), effect_group(), scene(),
+hash(), selected_type(), selected_resource(), selected_effect(), selected_emitter(), selected_particle(),
 selected_edit_resource(), selected_edit_effect(), selected_edit_emitter(), selected_edit_particle() {
 
 }
@@ -345,7 +345,10 @@ bool GlitterEditor::init() {
     LARGE_INTEGER time;
     QueryPerformanceCounter(&time);
     Glitter::random.value = (uint32_t)(time.LowPart * hash_fnv1a64m_empty);
-    Glitter::random.step = 1;
+
+    QueryPerformanceCounter(&time);
+    Glitter::random_x.value = (uint32_t)(time.LowPart * hash_fnv1a64m_empty);
+    Glitter::random_x.step = 1;
 
     QueryPerformanceCounter(&time);
     Glitter::counter.value = (uint32_t)(time.LowPart * hash_murmurhash_empty);
@@ -1021,8 +1024,9 @@ bool GlitterEditor::ctrl() {
 
     if (input_reload) {
         effect_group->emission = Glitter::glt_particle_manager->emission;
-        Glitter::glt_particle_manager->SetFrame(effect_group, scene,
-            old_frame_counter, frame_counter, counter, random, true);
+        Glitter::glt_particle_manager->SetFrame(effect_group,
+            scene, old_frame_counter, frame_counter, counter,
+            eg->type != Glitter::X ? (void*)&random : (void*)&random_x, true);
         Glitter::glt_particle_manager->selected_effect_group = effect_group;
         if (scene)
             scene_counter = scene->counter;
@@ -1038,8 +1042,9 @@ bool GlitterEditor::ctrl() {
         if (frame_counter < (float_t)start_frame)
             frame_counter = (float_t)start_frame;
 
-        Glitter::glt_particle_manager->SetFrame(effect_group, scene,
-            old_frame_counter, frame_counter, counter, random, false);
+        Glitter::glt_particle_manager->SetFrame(effect_group,
+            scene, old_frame_counter, frame_counter, counter,
+            eg->type != Glitter::X ? (void*)&random : (void*)&random_x, false);
         Glitter::glt_particle_manager->selected_effect_group = effect_group;
         if (scene)
             scene_counter = scene->counter;
@@ -1051,8 +1056,9 @@ bool GlitterEditor::ctrl() {
     else if (input_reset) {
         Glitter::counter = counter;
         frame_counter = (float_t)start_frame;
-        Glitter::glt_particle_manager->SetFrame(effect_group, scene,
-            old_frame_counter, frame_counter, counter, random, true);
+        Glitter::glt_particle_manager->SetFrame(effect_group,
+            scene, old_frame_counter, frame_counter, counter,
+            eg->type != Glitter::X ? (void*)&random : (void*)&random_x, true);
         Glitter::glt_particle_manager->selected_effect_group = effect_group;
         if (scene)
             scene_counter = scene->counter;
@@ -1651,8 +1657,9 @@ static void glitter_editor_load_file(GlitterEditor* glt_edt, const char* path, c
     glt_edt->load_wait = false;
     glt_edt->load_error_popup = false;
     glt_edt->input_reset_next_frame = true;
-    Glitter::glt_particle_manager->SetFrame(eg, glt_edt->scene, glt_edt->old_frame_counter,
-        glt_edt->frame_counter, glt_edt->counter, glt_edt->random, true);
+    Glitter::glt_particle_manager->SetFrame(eg, glt_edt->scene,
+        glt_edt->old_frame_counter, glt_edt->frame_counter, glt_edt->counter,
+        eg->type != Glitter::X ? (void*)&glt_edt->random : (void*)&glt_edt->random_x, true);
     if (glt_edt->scene)
         glt_edt->scene_counter = glt_edt->scene->counter;
     glitter_editor_enable = false;

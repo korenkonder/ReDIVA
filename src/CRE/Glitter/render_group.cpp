@@ -377,7 +377,7 @@ namespace Glitter {
             return;
         }
 
-        random_ptr = ptcl_inst->data.random_ptr;
+        random_x_ptr = ptcl_inst->data.random_ptr;
         particle = ptcl_inst;
 
         elements = new RenderElement[count];
@@ -499,7 +499,7 @@ namespace Glitter {
     }
 
     void RenderGroupX::CtrlParticle(RenderElement* rend_elem, float_t delta_frame) {
-        random_ptr->XSetStep(rend_elem->step);
+        random_x_ptr->SetStep(rend_elem->step);
         if (!particle || (particle->data.data.flags & PARTICLE_LOOP
             && particle->HasEnded(false)) || rend_elem->frame >= rend_elem->life_time) {
             rend_elem->alive = false;
@@ -511,7 +511,7 @@ namespace Glitter {
             return;
         }
 
-        particle->AccelerateParticle(rend_elem, delta_frame, random_ptr);
+        particle->AccelerateParticle(rend_elem, delta_frame, random_x_ptr);
 
         if (particle->data.data.draw_type == DIRECTION_PARTICLE_ROTATION
             || particle->data.data.type == PARTICLE_MESH)
@@ -535,14 +535,14 @@ namespace Glitter {
                 rend_elem->uv_scroll_2nd.y = fmodf(rend_elem->uv_scroll_2nd.y + uv_scroll_2nd.y, 1.0f);
         }
 
-        particle->StepUVParticle(rend_elem, delta_frame, random_ptr);
+        particle->StepUVParticle(rend_elem, delta_frame, random_x_ptr);
         rend_elem->disp = true;
         rend_elem->color = -1.0f;
 
         bool disp = true;
         float_t color_scale = -1.0f;
         if (particle->data.data.sub_flags & PARTICLE_SUB_USE_CURVE)
-            disp = particle->GetValue(rend_elem, rend_elem->frame, random_ptr, &color_scale);
+            disp = particle->GetValue(rend_elem, rend_elem->frame, random_x_ptr, &color_scale);
 
         if (particle->data.data.draw_type == DIRECTION_PARTICLE_ROTATION
             || fabsf(rend_elem->rotation.z) <= 0.000001f) {
@@ -602,7 +602,7 @@ namespace Glitter {
         uint8_t step;
 
         step = emit_inst->RandomGetStep();
-        random_ptr->XSetStep(1);
+        random_x_ptr->SetStep(1);
         for (element = 0, i = 0; i < dup_count; i++)
             for (index = 0; index < count; index++, element++) {
                 element = AddElement(element);
@@ -611,7 +611,7 @@ namespace Glitter {
 
                 emit_inst->RandomStepValue();
                 element->frame = frame;
-                particle->EmitParticle(element, emit_inst, ptcl_data, index, step, random_ptr);
+                particle->EmitParticle(element, emit_inst, ptcl_data, index, step, random_x_ptr);
             }
     }
 

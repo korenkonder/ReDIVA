@@ -81,7 +81,7 @@ namespace Glitter {
         int32_t random_val = random->GetValue();
         random->SetValue(random_value);
         bool negate = flags & CURVE_NEGATE
-            && random->F2GetInt(GLT_VAL, 0, 0xFFFF) > 0x7FFF;
+            && random->GetInt(GLT_VAL, 0, 0xFFFF) > 0x7FFF;
         if (flags & CURVE_STEP)
             random->SetValue(random_val + 1);
 
@@ -188,7 +188,7 @@ namespace Glitter {
         if (!(flags & CURVE_RANDOM_RANGE))
             return value;
 
-        float_t rand = random->F2GetFloat(GLT_VAL, flags & CURVE_RANDOM_RANGE_NEGATE
+        float_t rand = random->GetFloat(GLT_VAL, flags & CURVE_RANDOM_RANGE_NEGATE
             ? -random_range : 0.0f, random_range);
 
         if (flags & CURVE_RANDOM_RANGE_MULT) {
@@ -203,7 +203,7 @@ namespace Glitter {
         if (!(flags & CURVE_KEY_RANDOM_RANGE))
             return key.value;
 
-        return key.value + random->F2GetFloat(GLT_VAL, flags & CURVE_RANDOM_RANGE_NEGATE
+        return key.value + random->GetFloat(GLT_VAL, flags & CURVE_RANDOM_RANGE_NEGATE
             ? -key.random_range : 0.0f, key.random_range);
     }
 
@@ -619,14 +619,14 @@ namespace Glitter {
     }
 
     bool Curve::XGetValue(float_t frame,
-        float_t* value, int32_t random_value, Random* random) {
+        float_t* value, int32_t random_value, RandomX* random) {
         const size_t keys_count = keys.size();
         if (!keys_count)
             return false;
 
         int32_t random_val = random->GetValue();
         random->SetValue(random_value);
-        bool negate = flags & CURVE_NEGATE && random->XGetInt(0, 0xFFFF) > 0x7FFF;
+        bool negate = flags & CURVE_NEGATE && random->GetInt(0, 0xFFFF) > 0x7FFF;
         if (flags & CURVE_STEP)
             random->SetValue(random_val + 1);
 
@@ -702,7 +702,7 @@ namespace Glitter {
     }
 
     float_t Curve::XInterpolate(float_t frame, const Curve::Key& curr,
-        const Curve::Key& next, KeyType key_type, Random* random) {
+        const Curve::Key& next, KeyType key_type, RandomX* random) {
         if (key_type == KEY_CONSTANT)
             return XRandomizeKey(curr, random);
         else if (key_type == KEY_HERMITE)
@@ -712,7 +712,7 @@ namespace Glitter {
     }
 
     float_t Curve::XInterpolateHermite(const Curve::Key& curr,
-        const Curve::Key& next, float_t frame, Random* random) {
+        const Curve::Key& next, float_t frame, RandomX* random) {
         float_t next_val = XRandomizeKey(next, random);
         float_t curr_val = XRandomizeKey(curr, random);
         return InterpolateHermite(XRandomizeKey(curr, random),
@@ -721,7 +721,7 @@ namespace Glitter {
     }
 
     float_t Curve::XInterpolateLinear(const Curve::Key& curr,
-        const Curve::Key& next, float_t frame, Random* random) {
+        const Curve::Key& next, float_t frame, RandomX* random) {
         float_t df = (float_t)(next.frame - curr.frame);
         float_t t = (frame - (float_t)curr.frame) / (float_t)(next.frame - curr.frame);
         float_t curr_val = XRandomizeKey(curr, random);
@@ -729,11 +729,11 @@ namespace Glitter {
         return curr_val * (1.0f - t) + next_val * t;
     }
 
-    float_t Curve::XRandomize(float_t value, Random* random) {
+    float_t Curve::XRandomize(float_t value, RandomX* random) {
         if (!(flags & CURVE_RANDOM_RANGE))
             return value;
 
-        float_t rand = random->XGetFloat(flags & CURVE_RANDOM_RANGE_NEGATE
+        float_t rand = random->GetFloat(flags & CURVE_RANDOM_RANGE_NEGATE
             ? -random_range : 0.0f, random_range);
 
         if (flags & CURVE_RANDOM_RANGE_MULT) {
@@ -743,13 +743,13 @@ namespace Glitter {
         return value + rand;
     }
 
-    float_t Curve::XRandomizeKey(const Curve::Key& key, Random* random) {
+    float_t Curve::XRandomizeKey(const Curve::Key& key, RandomX* random) {
         if (!(flags & CURVE_KEY_RANDOM_RANGE))
             return key.value;
         else if (flags & CURVE_BAKED)
-            return random->XGetFloat(key.min_value, key.max_value);
+            return random->GetFloat(key.min_value, key.max_value);
 
-        return key.value + random->XGetFloat(flags & CURVE_RANDOM_RANGE_NEGATE
+        return key.value + random->GetFloat(flags & CURVE_RANDOM_RANGE_NEGATE
             ? -key.random_range : 0.0f, key.random_range);
     }
 
