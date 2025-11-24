@@ -1159,6 +1159,16 @@ sprite_width(), sprite_height(), screen_x_offset(), screen_y_offset(), screen_wi
     tone_map_ubo.Create(gl_state, sizeof(tone_map_shader_data));
     transparency_batch_ubo.Create(gl_state, sizeof(transparency_batch_shader_data));
 
+    if (!Vulkan::use) {
+        const float_t dummy_data[] = {
+            0.0f, 0.0f, 0.0f, 0.0f,
+            0.0f, 0.0f, 0.0f, 1.0f,
+            1.0f, 1.0f, 1.0f, 1.0f,
+        };
+
+        dummy_vbo.Create(gl_state, sizeof(dummy_data), dummy_data);
+    }
+
     for (render_data& i : data) {
         i = {};
         i.init();
@@ -1293,6 +1303,9 @@ render_context::~render_context() {
 
     for (render_data& i : data)
         i.free();
+
+    if (!Vulkan::use)
+        dummy_vbo.Destroy();
 
     transparency_batch_ubo.Destroy();
     tone_map_ubo.Destroy();
