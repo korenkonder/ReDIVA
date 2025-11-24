@@ -80,8 +80,6 @@ public:
         IoButton(FogDw* fog_dw, dw::Widget* parent);
         virtual ~IoButton();
 
-        virtual void Callback(dw::SelectionListener::CallbackData* data) override;
-
         static void LoadCallback(dw::Widget* data);
         static void SaveCallback(dw::Widget* data);
     };
@@ -139,7 +137,7 @@ FogDw::GroupListBox::GroupListBox(FogDw* fog_dw, dw::Widget* parent) {
     dw::Composite* comp = dynamic_cast<dw::Composite*>(parent);
     if (comp) {
         dw::Label* label = new dw::Label(comp);
-        label->SetText("ID");
+        label->SetText("GROUP");
 
         group = new dw::ListBox(comp, dw::MULTISELECT);
 
@@ -162,10 +160,11 @@ FogDw::GroupListBox::~GroupListBox() {
 }
 
 void FogDw::GroupListBox::Callback(dw::SelectionListener::CallbackData* data) {
-    dw::Slider* slider = dynamic_cast<dw::Slider*>(data->widget);
-    if (slider) {
+    dw::ListBox* list_box = dynamic_cast<dw::ListBox*>(data->widget);
+    if (list_box) {
         fog* fog = fog_dw_get_fog();
-        fog->set_density(slider->GetValue());
+        fog_dw_id = (fog_id)list_box->list->selected_item;
+        fog_dw->ResetData();
     }
 }
 
@@ -184,9 +183,9 @@ FogDw::TypeListBox::TypeListBox(FogDw* fog_dw, dw::Widget* parent) {
 
         const char* fog_type_labels[] = {
             "OFF",
-            "PARALLEL",
-            "POINT",
-            "SPOT",
+            "LINEAR",
+            "EXP",
+            "EXP2",
         };
 
         for (const char*& i : fog_type_labels)
@@ -257,9 +256,8 @@ FogDw::LinearSlider::LinearSlider(FogDw* fog_dw, dw::Widget* parent) {
             | dw::HORIZONTAL), 0.0f, 0.0f, 176.0f, 20.0f);
         start->SetText("START");
         start->format = "%6.2f";
-        start->SetParams(fog->get_end(), -100.0f, 1000.0f, 200.0f, 0.1f, 1.0f);
+        start->SetParams(fog->get_start(), -100.0f, 1000.0f, 200.0f, 0.1f, 1.0f);
         start->callback_data.i64 = 0;
-        start->AddSelectionListener(this);
         start->AddSelectionListener(this);
 
         end = dw::Slider::Create(comp, (dw::Flags)(dw::FLAG_800
@@ -311,8 +309,8 @@ FogDw::ColorSlider::ColorSlider(FogDw* fog_dw, dw::Widget* parent) {
         r = dw::Slider::Create(comp);
         r->SetText("R");
         r->format = "%3.2f";
-        r->SetParams(value.y, 0.0f, 8.0f, 0.8f, 0.01f, 0.1f);
-        r->callback_data.i64 = 1;
+        r->SetParams(value.x, 0.0f, 8.0f, 0.8f, 0.01f, 0.1f);
+        r->callback_data.i64 = 0;
         r->AddSelectionListener(this);
 
         g = dw::Slider::Create(comp);
@@ -339,7 +337,21 @@ void FogDw::ColorSlider::Callback(dw::SelectionListener::CallbackData* data) {
     dw::Slider* slider = dynamic_cast<dw::Slider*>(data->widget);
     if (slider) {
         fog* fog = fog_dw_get_fog();
-        fog->set_density(slider->GetValue());
+
+        vec4 value;
+        fog->get_color(value);
+        switch (slider->callback_data.i32) {
+        case 0:
+            value.x = slider->GetValue();
+            break;
+        case 1:
+            value.y = slider->GetValue();
+            break;
+        case 2:
+            value.z = slider->GetValue();
+            break;
+        }
+        fog->set_color(value);
     }
 }
 
@@ -368,14 +380,6 @@ FogDw::IoButton::IoButton(FogDw* fog_dw, dw::Widget* parent) {
 
 FogDw::IoButton::~IoButton() {
 
-}
-
-void FogDw::IoButton::Callback(dw::SelectionListener::CallbackData* data) {
-    dw::Slider* slider = dynamic_cast<dw::Slider*>(data->widget);
-    if (slider) {
-        fog* fog = fog_dw_get_fog();
-        fog->set_density(slider->GetValue());
-    }
 }
 
 void FogDw::IoButton::LoadCallback(dw::Widget* data) {
