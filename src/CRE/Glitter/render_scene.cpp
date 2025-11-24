@@ -138,20 +138,20 @@ namespace Glitter {
         }
     }
 
-    F2RenderScene::F2RenderScene() {
+    RenderSceneF2::RenderSceneF2() {
         groups.reserve(0x40);
     }
 
-    F2RenderScene::~F2RenderScene() {
-        for (F2RenderGroup*& i : groups)
+    RenderSceneF2::~RenderSceneF2() {
+        for (RenderGroupF2*& i : groups)
             delete i;
     }
 
-    void F2RenderScene::Append(F2RenderGroup* rend_group) {
+    void RenderSceneF2::Append(RenderGroupF2* rend_group) {
         groups.push_back(rend_group);
     }
 
-    void F2RenderScene::CalcDisp(GPM) {
+    void RenderSceneF2::CalcDisp(GPM) {
         disp_quad = 0;
         disp_line = 0;
         disp_locus = 0;
@@ -159,11 +159,11 @@ namespace Glitter {
         Effect* eff = GPM_VAL->selected_effect;
         Emitter* emit = GPM_VAL->selected_emitter;
         Particle* ptcl = GPM_VAL->selected_particle;
-        for (F2RenderGroup*& i : groups) {
+        for (RenderGroupF2*& i : groups) {
             if (!i)
                 continue;
 
-            F2RenderGroup* rend_group = i;
+            RenderGroupF2* rend_group = i;
             if (rend_group->CannotDisp() && !GPM_VAL->draw_all)
                 continue;
 
@@ -186,7 +186,7 @@ namespace Glitter {
         }
     }
 
-    void F2RenderScene::CalcDisp(GPM, F2RenderGroup* rend_group) {
+    void RenderSceneF2::CalcDisp(GPM, RenderGroupF2* rend_group) {
         switch (rend_group->type) {
         case PARTICLE_QUAD:
             rend_group->disp = 0;
@@ -220,7 +220,7 @@ namespace Glitter {
         }
     }
 
-    void F2RenderScene::CalcDispLine(F2RenderGroup* rend_group) {
+    void RenderSceneF2::CalcDispLine(RenderGroupF2* rend_group) {
 #if SHARED_GLITTER_BUFFER
         if (!rend_group->elements || rend_group->ctrl < 1)
             return;
@@ -311,7 +311,7 @@ namespace Glitter {
 #endif
     }
 
-    void F2RenderScene::CalcDispLocus(GPM, F2RenderGroup* rend_group) {
+    void RenderSceneF2::CalcDispLocus(GPM, RenderGroupF2* rend_group) {
 #if SHARED_GLITTER_BUFFER
         if (!rend_group->elements || rend_group->ctrl < 1)
             return;
@@ -462,7 +462,7 @@ namespace Glitter {
 #endif
     }
 
-    void F2RenderScene::CalcDispQuad(GPM, F2RenderGroup* rend_group) {
+    void RenderSceneF2::CalcDispQuad(GPM, RenderGroupF2* rend_group) {
 #if SHARED_GLITTER_BUFFER
         if (!rend_group->elements || rend_group->ctrl < 1)
             return;
@@ -541,8 +541,8 @@ namespace Glitter {
         }
     }
 
-    void F2RenderScene::CalcDispQuadDirectionRotation(
-        F2RenderGroup* rend_group, mat4* model_mat, mat4* dir_mat) {
+    void RenderSceneF2::CalcDispQuadDirectionRotation(
+        RenderGroupF2* rend_group, mat4* model_mat, mat4* dir_mat) {
         mat4 inv_model_mat;
         mat4_invert(model_mat, &inv_model_mat);
         mat4_clear_trans(&inv_model_mat, &inv_model_mat);
@@ -554,14 +554,14 @@ namespace Glitter {
         mat4_transform_vector(&inv_model_mat, &y_vec_base, &y_vec_base);
 
         vec3 up_vec;
-        mat4(*rotate_func)(F2RenderGroup*, RenderElement*, vec3*);
+        mat4(*rotate_func)(RenderGroupF2*, RenderElement*, vec3*);
         if (rend_group->draw_type == DIRECTION_EMIT_POSITION) {
             up_vec = { 0.0f, 0.0f, 1.0f };
-            rotate_func = F2RenderGroup::RotateToEmitPosition;
+            rotate_func = RenderGroupF2::RotateToEmitPosition;
         }
         else {
             up_vec = { 0.0f, 1.0f, 0.0f };
-            rotate_func = F2RenderGroup::RotateToPrevPosition;
+            rotate_func = RenderGroupF2::RotateToPrevPosition;
         }
 
         vec3 scale;
@@ -656,8 +656,8 @@ namespace Glitter {
 #endif
     }
 
-    void F2RenderScene::CalcDispQuadNormal(GPM,
-        F2RenderGroup* rend_group, mat4* model_mat, mat4* dir_mat) {
+    void RenderSceneF2::CalcDispQuadNormal(GPM,
+        RenderGroupF2* rend_group, mat4* model_mat, mat4* dir_mat) {
         mat4 inv_model_mat;
         mat4_invert(model_mat, &inv_model_mat);
         mat4_clear_trans(&inv_model_mat, &inv_model_mat);
@@ -879,13 +879,13 @@ namespace Glitter {
 #endif
     }
 
-    void F2RenderScene::Ctrl(GLT, float_t delta_frame) {
+    void RenderSceneF2::Ctrl(GLT, float_t delta_frame) {
         ctrl_quad = 0;
         ctrl_line = 0;
         ctrl_locus = 0;
         ctrl_mesh = 0;
 
-        for (F2RenderGroup*& i : groups) {
+        for (RenderGroupF2*& i : groups) {
             if (!i)
                 continue;
 
@@ -905,15 +905,15 @@ namespace Glitter {
         }
     }
 
-    void F2RenderScene::Disp(GPM, render_data_context& rend_data_ctx, DispType disp_type, const cam_data& cam) {
+    void RenderSceneF2::Disp(GPM, render_data_context& rend_data_ctx, DispType disp_type, const cam_data& cam) {
         Effect* eff = GPM_VAL->selected_effect;
         Emitter* emit = GPM_VAL->selected_emitter;
         Particle* ptcl = GPM_VAL->selected_particle;
-        for (F2RenderGroup*& i : groups) {
+        for (RenderGroupF2*& i : groups) {
             if (!i)
                 continue;
 
-            F2RenderGroup* rend_group = i;
+            RenderGroupF2* rend_group = i;
             if ((rend_group)->disp_type != disp_type
                 || (rend_group->CannotDisp() && !GPM_VAL->draw_all))
                 continue;
@@ -937,7 +937,7 @@ namespace Glitter {
         }
     }
 
-    void F2RenderScene::Disp(GPM, render_data_context& rend_data_ctx, F2RenderGroup* rend_group, const cam_data& cam) {
+    void RenderSceneF2::Disp(GPM, render_data_context& rend_data_ctx, RenderGroupF2* rend_group, const cam_data& cam) {
         switch (rend_group->type) {
         case PARTICLE_QUAD:
         case PARTICLE_LINE:
@@ -1135,20 +1135,20 @@ namespace Glitter {
         }
     }
 
-    XRenderScene::XRenderScene() {
+    RenderSceneX::RenderSceneX() {
 
     }
 
-    XRenderScene::~XRenderScene() {
-        for (XRenderGroup*& i : groups)
+    RenderSceneX::~RenderSceneX() {
+        for (RenderGroupX*& i : groups)
             delete i;
     }
 
-    void XRenderScene::Append(XRenderGroup* rend_group) {
+    void RenderSceneX::Append(RenderGroupX* rend_group) {
         groups.push_back(rend_group);
     }
 
-    void XRenderScene::CalcDisp(GPM) {
+    void RenderSceneX::CalcDisp(GPM) {
         disp_quad = 0;
         disp_line = 0;
         disp_locus = 0;
@@ -1156,11 +1156,11 @@ namespace Glitter {
         Effect* eff = GPM_VAL->selected_effect;
         Emitter* emit = GPM_VAL->selected_emitter;
         Particle* ptcl = GPM_VAL->selected_particle;
-        for (XRenderGroup*& i : groups) {
+        for (RenderGroupX*& i : groups) {
             if (!i)
                 continue;
 
-            XRenderGroup* rend_group = i;
+            RenderGroupX* rend_group = i;
             if (rend_group->CannotDisp() && !GPM_VAL->draw_all)
                 continue;
 
@@ -1183,7 +1183,7 @@ namespace Glitter {
         }
     }
 
-    void XRenderScene::CalcDisp(GPM, XRenderGroup* rend_group) {
+    void RenderSceneX::CalcDisp(GPM, RenderGroupX* rend_group) {
         switch (rend_group->type) {
         case PARTICLE_QUAD:
             rend_group->disp = 0;
@@ -1217,7 +1217,7 @@ namespace Glitter {
         }
     }
 
-    void XRenderScene::CalcDispLine(XRenderGroup* rend_group) {
+    void RenderSceneX::CalcDispLine(RenderGroupX* rend_group) {
 #if SHARED_GLITTER_BUFFER
         if (!rend_group->elements || rend_group->ctrl < 1)
             return;
@@ -1307,7 +1307,7 @@ namespace Glitter {
 #endif
     }
 
-    void XRenderScene::CalcDispLocus(GPM, XRenderGroup* rend_group) {
+    void RenderSceneX::CalcDispLocus(GPM, RenderGroupX* rend_group) {
 #if SHARED_GLITTER_BUFFER
         if (!rend_group->elements || rend_group->ctrl < 1)
             return;
@@ -1456,7 +1456,7 @@ namespace Glitter {
 #endif
     }
 
-    void XRenderScene::CalcDispQuad(GPM, XRenderGroup* rend_group) {
+    void RenderSceneX::CalcDispQuad(GPM, RenderGroupX* rend_group) {
 #if SHARED_GLITTER_BUFFER
         if (!rend_group->elements || rend_group->ctrl < 1)
             return;
@@ -1530,16 +1530,16 @@ namespace Glitter {
         }
     }
 
-    void XRenderScene::CalcDispQuadDirectionRotation(XRenderGroup* rend_group, mat4* model_mat) {
+    void RenderSceneX::CalcDispQuadDirectionRotation(RenderGroupX* rend_group, mat4* model_mat) {
         vec3 up_vec;
-        mat4(*rotate_func)(XRenderGroup*, RenderElement*, vec3*);
+        mat4(*rotate_func)(RenderGroupX*, RenderElement*, vec3*);
         if (rend_group->draw_type == DIRECTION_EMIT_POSITION) {
             up_vec = { 0.0f, 0.0f, 1.0f };
-            rotate_func = XRenderGroup::RotateToEmitPosition;
+            rotate_func = RenderGroupX::RotateToEmitPosition;
         }
         else {
             up_vec = { 0.0f, 1.0f, 0.0f };
-            rotate_func = XRenderGroup::RotateToPrevPosition;
+            rotate_func = RenderGroupX::RotateToPrevPosition;
         }
 
         bool use_scale = false;
@@ -1643,7 +1643,7 @@ namespace Glitter {
 #endif
     }
 
-    void XRenderScene::CalcDispQuadNormal(XRenderGroup* rend_group, mat4* model_mat, mat4* dir_mat) {
+    void RenderSceneX::CalcDispQuadNormal(RenderGroupX* rend_group, mat4* model_mat, mat4* dir_mat) {
         mat4 inv_model_mat;
         mat4_invert(model_mat, &inv_model_mat);
         mat4_clear_trans(&inv_model_mat, &inv_model_mat);
@@ -1857,26 +1857,26 @@ namespace Glitter {
 #endif
     }
 
-    bool XRenderScene::CanDisp(DispType disp_type, bool a3) {
-        for (XRenderGroup*& i : groups)
+    bool RenderSceneX::CanDisp(DispType disp_type, bool a3) {
+        for (RenderGroupX*& i : groups)
             if (!i->CannotDisp() && i->disp_type == disp_type && (!a3 || !i->HasEnded()))
                 return true;
         return false;
     }
 
-    void XRenderScene::CheckUseCamera() {
-        for (XRenderGroup*& i : groups)
+    void RenderSceneX::CheckUseCamera() {
+        for (RenderGroupX*& i : groups)
             if (i)
                 i->CheckUseCamera();
     }
 
-    void XRenderScene::Ctrl(float_t delta_frame, bool copy_mats) {
+    void RenderSceneX::Ctrl(float_t delta_frame, bool copy_mats) {
         ctrl_quad = 0;
         ctrl_line = 0;
         ctrl_locus = 0;
         ctrl_mesh = 0;
 
-        for (XRenderGroup*& i : groups) {
+        for (RenderGroupX*& i : groups) {
             if (!i)
                 continue;
 
@@ -1899,15 +1899,15 @@ namespace Glitter {
         }
     }
 
-    void XRenderScene::Disp(GPM, render_data_context& rend_data_ctx, DispType disp_type, const cam_data& cam) {
+    void RenderSceneX::Disp(GPM, render_data_context& rend_data_ctx, DispType disp_type, const cam_data& cam) {
         Effect* eff = GPM_VAL->selected_effect;
         Emitter* emit = GPM_VAL->selected_emitter;
         Particle* ptcl = GPM_VAL->selected_particle;
-        for (XRenderGroup*& i : groups) {
+        for (RenderGroupX*& i : groups) {
             if (!i)
                 continue;
 
-            XRenderGroup* rend_group = i;
+            RenderGroupX* rend_group = i;
             if ((rend_group)->disp_type != disp_type || rend_group->CannotDisp() && !GPM_VAL->draw_all)
                 continue;
 
@@ -1930,7 +1930,7 @@ namespace Glitter {
         }
     }
 
-    void XRenderScene::Disp(GPM, render_data_context& rend_data_ctx, XRenderGroup* rend_group, const cam_data& cam) {
+    void RenderSceneX::Disp(GPM, render_data_context& rend_data_ctx, RenderGroupX* rend_group, const cam_data& cam) {
         switch (rend_group->type) {
         case PARTICLE_QUAD:
         case PARTICLE_LINE:
@@ -2107,17 +2107,17 @@ namespace Glitter {
         }
     }
 
-    void XRenderScene::DispMesh(GPM) {
+    void RenderSceneX::DispMesh(GPM) {
         disp_mesh = 0;
 
         Effect* eff = GPM_VAL->selected_effect;
         Emitter* emit = GPM_VAL->selected_emitter;
         Particle* ptcl = GPM_VAL->selected_particle;
-        for (XRenderGroup*& i : groups) {
+        for (RenderGroupX*& i : groups) {
             if (!i)
                 continue;
 
-            XRenderGroup* rend_group = i;
+            RenderGroupX* rend_group = i;
             if (rend_group->CannotDisp() && !GPM_VAL->draw_all)
                 continue;
 
@@ -2146,7 +2146,7 @@ namespace Glitter {
         }
     }
 
-    void XRenderScene::DispMesh(GPM, XRenderGroup* rend_group) {
+    void RenderSceneX::DispMesh(GPM, RenderGroupX* rend_group) {
         if (!rend_group->elements || rend_group->object_name_hash == hash_murmurhash_empty
             || rend_group->object_name_hash == (uint32_t)-1 || rend_group->ctrl < 1)
             return;
@@ -2188,7 +2188,7 @@ namespace Glitter {
         vec3 up_vec = { 0.0f, 0.0f, 1.0f };
         bool billboard = false;
         bool emitter_rotation = false;
-        mat4(*rotate_func)(XRenderGroup*, RenderElement*, vec3*, vec3*) = 0;
+        mat4(*rotate_func)(RenderGroupX*, RenderElement*, vec3*, vec3*) = 0;
         switch (rend_group->draw_type) {
         case DIRECTION_BILLBOARD:
             mat4_clear_trans(&model_mat, &dir_mat);
@@ -2201,10 +2201,10 @@ namespace Glitter {
             break;
         case DIRECTION_PREV_POSITION:
         case DIRECTION_PREV_POSITION_DUP:
-            rotate_func = XRenderGroup::RotateMeshToPrevPosition;
+            rotate_func = RenderGroupX::RotateMeshToPrevPosition;
             break;
         case DIRECTION_EMIT_POSITION:
-            rotate_func = XRenderGroup::RotateMeshToEmitPosition;
+            rotate_func = RenderGroupX::RotateMeshToEmitPosition;
             break;
         case DIRECTION_Y_AXIS:
             mat4_rotate_y((float_t)M_PI_2, &dir_mat);

@@ -49,7 +49,7 @@ namespace Glitter {
         return rend_elem;
     }
 
-    F2RenderGroup::F2RenderGroup(F2ParticleInst* ptcl_inst) : particle() {
+    RenderGroupF2::RenderGroupF2(ParticleInstF2* ptcl_inst) : particle() {
         switch (ptcl_inst->data.data.type) {
         case PARTICLE_QUAD:
         case PARTICLE_LINE:
@@ -103,11 +103,11 @@ namespace Glitter {
             draw_list.reserve(count);
     }
 
-    F2RenderGroup::~F2RenderGroup() {
+    RenderGroupF2::~RenderGroupF2() {
         DeleteBuffers(false);
     }
 
-    bool F2RenderGroup::CannotDisp() {
+    bool RenderGroupF2::CannotDisp() {
         if (!particle)
             return true;
         else if (particle->data.effect)
@@ -118,7 +118,7 @@ namespace Glitter {
             return true;
     }
 
-    void F2RenderGroup::Copy(F2RenderGroup* dst) {
+    void RenderGroupF2::Copy(RenderGroupF2* dst) {
         dst->flags = flags;
         dst->type = type;
         dst->draw_type = draw_type;
@@ -144,7 +144,7 @@ namespace Glitter {
         }
     }
 
-    void F2RenderGroup::Ctrl(GLT, float_t delta_frame, bool copy_mats) {
+    void RenderGroupF2::Ctrl(GLT, float_t delta_frame, bool copy_mats) {
         if (!particle)
             return;
 
@@ -164,7 +164,7 @@ namespace Glitter {
         name.assign(ptcl_data->name);
 
         if (copy_mats && particle->data.emitter) {
-            F2EmitterInst* emitter = particle->data.emitter;
+            EmitterInstF2* emitter = particle->data.emitter;
             mat = emitter->mat;
             mat_rot = emitter->mat_rot;
         }
@@ -179,7 +179,7 @@ namespace Glitter {
         frame += delta_frame;
     }
 
-    void F2RenderGroup::CtrlParticle(GLT, Glitter::RenderElement* rend_elem, float_t delta_frame) {
+    void RenderGroupF2::CtrlParticle(GLT, Glitter::RenderElement* rend_elem, float_t delta_frame) {
         if (!particle || (particle->data.data.flags & PARTICLE_LOOP
             && particle->HasEnded(false)) || rend_elem->frame >= rend_elem->life_time) {
             rend_elem->alive = false;
@@ -230,7 +230,7 @@ namespace Glitter {
             rend_elem->frame -= rend_elem->life_time;
     }
 
-    void F2RenderGroup::DeleteBuffers(bool free) {
+    void RenderGroupF2::DeleteBuffers(bool free) {
         Particle* ptcl = 0;
         if (particle) {
             ptcl = particle->data.particle;
@@ -259,8 +259,8 @@ namespace Glitter {
         }
     }
 
-    void F2RenderGroup::Emit(GPM, GLT, Particle::Data* ptcl_data,
-        F2EmitterInst* emit_inst, int32_t dup_count, int32_t count) {
+    void RenderGroupF2::Emit(GPM, GLT, Particle::Data* ptcl_data,
+        EmitterInstF2* emit_inst, int32_t dup_count, int32_t count) {
         RenderElement* element = 0;
         for (int32_t i = 0; i < dup_count; i++)
             for (int32_t index = 0; index < count; index++, element++) {
@@ -273,7 +273,7 @@ namespace Glitter {
             }
     }
 
-    void F2RenderGroup::Free() {
+    void RenderGroupF2::Free() {
         if (count <= 0) {
             ctrl = 0;
             return;
@@ -290,17 +290,17 @@ namespace Glitter {
         ctrl = 0;
     }
 
-    void F2RenderGroup::FreeData() {
+    void RenderGroupF2::FreeData() {
         DeleteBuffers(true);
     }
 
-    bool F2RenderGroup::GetExtAnimScale(vec3* ext_anim_scale, float_t* ext_scale) {
+    bool RenderGroupF2::GetExtAnimScale(vec3* ext_anim_scale, float_t* ext_scale) {
         if (particle)
             particle->GetExtAnimScale(ext_anim_scale, ext_scale);
         return false;
     }
 
-    mat4 F2RenderGroup::RotateToEmitPosition(F2RenderGroup* rend_group,
+    mat4 RenderGroupF2::RotateToEmitPosition(RenderGroupF2* rend_group,
         RenderElement* rend_elem, vec3* vec) {
         vec3 vec2;
         if (rend_group->flags & PARTICLE_EMITTER_LOCAL)
@@ -326,7 +326,7 @@ namespace Glitter {
         return mat;
     }
 
-    mat4 F2RenderGroup::RotateToPrevPosition(F2RenderGroup* rend_group,
+    mat4 RenderGroupF2::RotateToPrevPosition(RenderGroupF2* rend_group,
         RenderElement* rend_elem, vec3* vec) {
         vec3 vec2 = rend_elem->translation - rend_elem->translation_prev;
 
@@ -348,7 +348,7 @@ namespace Glitter {
         return mat;
     }
 
-    XRenderGroup::XRenderGroup(XParticleInst* ptcl_inst) : particle(), use_culling(), use_camera() {
+    RenderGroupX::RenderGroupX(ParticleInstX* ptcl_inst) : particle(), use_culling(), use_camera() {
         object_name_hash = hash_murmurhash_empty;
 
         switch (ptcl_inst->data.data.type) {
@@ -415,11 +415,11 @@ namespace Glitter {
             draw_list.reserve(count);
     }
 
-    XRenderGroup::~XRenderGroup() {
+    RenderGroupX::~RenderGroupX() {
         DeleteBuffers(false);
     }
 
-    bool XRenderGroup::CannotDisp() {
+    bool RenderGroupX::CannotDisp() {
         if (!particle)
             return true;
         else if (particle->data.effect)
@@ -430,14 +430,14 @@ namespace Glitter {
             return true;
     }
 
-    void XRenderGroup::CheckUseCamera() {
+    void RenderGroupX::CheckUseCamera() {
         if (particle)
             use_camera = particle->GetUseCamera();
         else
             use_camera = false;
     }
 
-    void XRenderGroup::Copy(XRenderGroup* dst) {
+    void RenderGroupX::Copy(RenderGroupX* dst) {
         dst->flags = flags;
         dst->type = type;
         dst->draw_type = draw_type;
@@ -463,7 +463,7 @@ namespace Glitter {
         }
     }
 
-    void XRenderGroup::Ctrl(float_t delta_frame, bool copy_mats) {
+    void RenderGroupX::Ctrl(float_t delta_frame, bool copy_mats) {
         if (!particle)
             return;
 
@@ -483,7 +483,7 @@ namespace Glitter {
         flags = ptcl_data->flags;
 
         if (copy_mats && particle->data.emitter) {
-            XEmitterInst* emitter = particle->data.emitter;
+            EmitterInstX* emitter = particle->data.emitter;
             mat = emitter->mat;
             mat_rot = emitter->mat_rot;
         }
@@ -498,7 +498,7 @@ namespace Glitter {
         frame += delta_frame;
     }
 
-    void XRenderGroup::CtrlParticle(RenderElement* rend_elem, float_t delta_frame) {
+    void RenderGroupX::CtrlParticle(RenderElement* rend_elem, float_t delta_frame) {
         random_ptr->XSetStep(rend_elem->step);
         if (!particle || (particle->data.data.flags & PARTICLE_LOOP
             && particle->HasEnded(false)) || rend_elem->frame >= rend_elem->life_time) {
@@ -565,7 +565,7 @@ namespace Glitter {
             rend_elem->frame -= rend_elem->life_time;
     }
 
-    void XRenderGroup::DeleteBuffers(bool free) {
+    void RenderGroupX::DeleteBuffers(bool free) {
         Particle* ptcl = 0;
         if (particle) {
             ptcl = particle->data.particle;
@@ -594,8 +594,8 @@ namespace Glitter {
         }
     }
 
-    void XRenderGroup::Emit(Particle::Data* ptcl_data,
-        XEmitterInst* emit_inst, int32_t dup_count, int32_t count, float_t frame) {
+    void RenderGroupX::Emit(Particle::Data* ptcl_data,
+        EmitterInstX* emit_inst, int32_t dup_count, int32_t count, float_t frame) {
         RenderElement* element;
         int64_t i;
         int32_t index;
@@ -615,7 +615,7 @@ namespace Glitter {
             }
     }
 
-    void XRenderGroup::Free() {
+    void RenderGroupX::Free() {
         if (count <= 0) {
             ctrl = 0;
             return;
@@ -632,11 +632,11 @@ namespace Glitter {
         ctrl = 0;
     }
 
-    void XRenderGroup::FreeData() {
+    void RenderGroupX::FreeData() {
         DeleteBuffers(true);
     }
 
-    bool XRenderGroup::GetEmitterScale(vec3& emitter_scale) {
+    bool RenderGroupX::GetEmitterScale(vec3& emitter_scale) {
         if (particle) {
             Glitter::EmitterInst* emit_inst = particle->data.emitter;
             if (emit_inst) {
@@ -649,19 +649,19 @@ namespace Glitter {
         return false;
     }
 
-    bool XRenderGroup::GetExtAnimScale(vec3* ext_anim_scale, float_t* ext_scale) {
+    bool RenderGroupX::GetExtAnimScale(vec3* ext_anim_scale, float_t* ext_scale) {
         if (particle)
             particle->GetExtAnimScale(ext_anim_scale, ext_scale);
         return false;
     }
 
-    bool XRenderGroup::HasEnded() {
+    bool RenderGroupX::HasEnded() {
         if (particle)
             return particle->HasEnded(true);
         return true;
     }
 
-    mat4 XRenderGroup::RotateMeshToEmitPosition(XRenderGroup* rend_group,
+    mat4 RenderGroupX::RotateMeshToEmitPosition(RenderGroupX* rend_group,
         RenderElement* rend_elem, vec3* vec, vec3* trans) {
         vec3 vec2;
         mat4_get_translation(&rend_group->mat, &vec2);
@@ -683,7 +683,7 @@ namespace Glitter {
         return mat;
     }
 
-    mat4 XRenderGroup::RotateMeshToPrevPosition(XRenderGroup* rend_group,
+    mat4 RenderGroupX::RotateMeshToPrevPosition(RenderGroupX* rend_group,
         RenderElement* rend_elem, vec3* vec, vec3* trans) {
         vec3 vec2 = rend_elem->translation - rend_elem->translation_prev;
 
@@ -703,7 +703,7 @@ namespace Glitter {
         return mat;
     }
 
-    mat4 XRenderGroup::RotateToEmitPosition(XRenderGroup* rend_group,
+    mat4 RenderGroupX::RotateToEmitPosition(RenderGroupX* rend_group,
         RenderElement* rend_elem, vec3* vec) {
         vec3 vec2;
         mat4_get_translation(&rend_elem->mat, &vec2);
@@ -725,7 +725,7 @@ namespace Glitter {
         return mat;
     }
 
-    mat4 XRenderGroup::RotateToPrevPosition(XRenderGroup* rend_group,
+    mat4 RenderGroupX::RotateToPrevPosition(RenderGroupX* rend_group,
         RenderElement* rend_elem, vec3* vec) {
         vec3 vec2 = rend_elem->translation - rend_elem->translation_prev;
 

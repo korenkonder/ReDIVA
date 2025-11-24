@@ -35,8 +35,8 @@ namespace Glitter {
 
     }
 
-    F2EmitterInst::F2EmitterInst(Emitter* emit,
-        F2EffectInst* eff_inst, float_t emission) : EmitterInst(emit, eff_inst->random_ptr) {
+    EmitterInstF2::EmitterInstF2(Emitter* emit,
+        EffectInstF2* eff_inst, float_t emission) : EmitterInst(emit, eff_inst->random_ptr) {
         switch (emit->data.type) {
         case EMITTER_BOX:
         case EMITTER_CYLINDER:
@@ -52,7 +52,7 @@ namespace Glitter {
             if (!i)
                 continue;
 
-            F2ParticleInst* particle = new F2ParticleInst(i, eff_inst, this, random_ptr, emission);
+            ParticleInstF2* particle = new ParticleInstF2(i, eff_inst, this, random_ptr, emission);
             if (particle)
                 particles.push_back(particle);
         }
@@ -61,12 +61,12 @@ namespace Glitter {
         random_ptr->F2StepValue();
     }
 
-    F2EmitterInst::~F2EmitterInst() {
-        for (F2ParticleInst*& i : particles)
+    EmitterInstF2::~EmitterInstF2() {
+        for (ParticleInstF2*& i : particles)
             delete i;
     }
 
-    void F2EmitterInst::Copy(F2EmitterInst* dst, float_t emission) {
+    void EmitterInstF2::Copy(EmitterInstF2* dst, float_t emission) {
         dst->translation = translation;
         dst->rotation = rotation;
         dst->scale = scale;
@@ -89,7 +89,7 @@ namespace Glitter {
         }
     }
 
-    void F2EmitterInst::Ctrl(GPM, GLT, F2EffectInst* eff_inst, float_t delta_frame) {
+    void EmitterInstF2::Ctrl(GPM, GLT, EffectInstF2* eff_inst, float_t delta_frame) {
         if (frame < 0.0f)
             return;
 
@@ -114,7 +114,7 @@ namespace Glitter {
         CtrlMat(GPM_VAL, GLT_VAL, eff_inst);
     }
 
-    void F2EmitterInst::CtrlInit(GPM, GLT, F2EffectInst* eff_inst, float_t delta_frame) {
+    void EmitterInstF2::CtrlInit(GPM, GLT, EffectInstF2* eff_inst, float_t delta_frame) {
         if (frame < 0.0f)
             return;
 
@@ -139,7 +139,7 @@ namespace Glitter {
         CtrlMat(GPM_VAL, GLT_VAL, eff_inst);
     }
 
-    void F2EmitterInst::CtrlMat(GPM, GLT, F2EffectInst* eff_inst) {
+    void EmitterInstF2::CtrlMat(GPM, GLT, EffectInstF2* eff_inst) {
         vec3 trans = translation;
         vec3 rot = rotation;
         vec3 scale = this->scale * scale_all;
@@ -180,7 +180,7 @@ namespace Glitter {
         this->mat = mat;
     }
 
-    void F2EmitterInst::Emit(GPM, GLT, float_t delta_frame, float_t emission) {
+    void EmitterInstF2::Emit(GPM, GLT, float_t delta_frame, float_t emission) {
         if (frame < 0.0f) {
             frame += delta_frame;
             return;
@@ -214,7 +214,7 @@ namespace Glitter {
         frame += delta_frame;
     }
 
-    void F2EmitterInst::EmitInit(GPM, GLT, F2EffectInst* eff_inst, float_t delta_frame, float_t emission) {
+    void EmitterInstF2::EmitInit(GPM, GLT, EffectInstF2* eff_inst, float_t delta_frame, float_t emission) {
         if (frame < 0.0f) {
             frame += delta_frame;
             return;
@@ -249,21 +249,21 @@ namespace Glitter {
         frame += delta_frame;
     }
 
-    void F2EmitterInst::EmitParticle(GPM, GLT, float_t emission) {
+    void EmitterInstF2::EmitParticle(GPM, GLT, float_t emission) {
         int32_t count;
         if (data.type == EMITTER_POLYGON)
             count = data.polygon.count;
         else
             count = 1;
 
-        for (F2ParticleInst*& i : particles)
+        for (ParticleInstF2*& i : particles)
             i->Emit(GPM_VAL, GLT_VAL, (int32_t)prj::roundf(particles_per_emission), count, emission);
     }
 
-    void F2EmitterInst::Free(GPM, GLT, float_t emission, bool free) {
+    void EmitterInstF2::Free(GPM, GLT, float_t emission, bool free) {
         if (flags & EMITTER_INST_ENDED) {
             if (free)
-                for (F2ParticleInst*& i : particles)
+                for (ParticleInstF2*& i : particles)
                     i->Free(true);
             return;
         }
@@ -278,14 +278,14 @@ namespace Glitter {
 
         enum_or(flags, EMITTER_INST_ENDED);
         if (data.flags & EMITTER_KILL_ON_END || free)
-            for (F2ParticleInst*& i : particles)
+            for (ParticleInstF2*& i : particles)
                 i->Free(true);
         else
-            for (F2ParticleInst*& i : particles)
+            for (ParticleInstF2*& i : particles)
                 i->Free(false);
     }
 
-    void F2EmitterInst::GetValue(GLT) {
+    void EmitterInstF2::GetValue(GLT) {
         Animation* anim = &emitter->animation;
         size_t length = anim->curves.size();
         for (int32_t i = 0; i < length; i++) {
@@ -335,19 +335,19 @@ namespace Glitter {
         }
     }
 
-    bool F2EmitterInst::HasEnded(bool a2) {
+    bool EmitterInstF2::HasEnded(bool a2) {
         if (!(flags & EMITTER_INST_ENDED))
             return false;
         else if (!a2)
             return true;
 
-        for (F2ParticleInst*& i : particles)
+        for (ParticleInstF2*& i : particles)
             if (!i->HasEnded(a2))
                 return false;
         return true;
     }
 
-    void F2EmitterInst::InitMesh(GLT, int32_t index, const vec3& scale,
+    void EmitterInstF2::InitMesh(GLT, int32_t index, const vec3& scale,
         vec3& position, vec3& direction, Random* random) {
         switch (data.type) {
         case EMITTER_BOX: {
@@ -406,12 +406,12 @@ namespace Glitter {
         }
     }
 
-    void F2EmitterInst::RenderGroupCtrl(GLT, float_t delta_frame) {
-        for (F2ParticleInst*& i : particles)
+    void EmitterInstF2::RenderGroupCtrl(GLT, float_t delta_frame) {
+        for (ParticleInstF2*& i : particles)
             i->RenderGroupCtrl(GLT_VAL, delta_frame);
     }
 
-    void F2EmitterInst::Reset() {
+    void EmitterInstF2::Reset() {
         loop = data.flags & EMITTER_LOOP ? true : false;
         frame = -(float_t)data.start_time;
         flags = EMITTER_INST_NONE;
@@ -422,12 +422,12 @@ namespace Glitter {
         else
             emission = EMITTER_EMISSION_ON_END;
 
-        for (F2ParticleInst*& i : particles)
+        for (ParticleInstF2*& i : particles)
             i->Reset();
     }
 
-    XEmitterInst::XEmitterInst(Emitter* emit,
-        XEffectInst* eff_inst, float_t emission) : EmitterInst(emit, &eff_inst->random_shared) {
+    EmitterInstX::EmitterInstX(Emitter* emit,
+        EffectInstX* eff_inst, float_t emission) : EmitterInst(emit, &eff_inst->random_shared) {
         counter = 0;
         step = 0;
         switch (emit->data.type) {
@@ -457,18 +457,18 @@ namespace Glitter {
             if (!i)
                 continue;
 
-            XParticleInst* particle = new XParticleInst(i, eff_inst, this, random_ptr, emission);
+            ParticleInstX* particle = new ParticleInstX(i, eff_inst, this, random_ptr, emission);
             if (particle)
                 particles.push_back(particle);
         }
     }
 
-    XEmitterInst::~XEmitterInst() {
-        for (XParticleInst*& i : particles)
+    EmitterInstX::~EmitterInstX() {
+        for (ParticleInstX*& i : particles)
             delete i;
     }
 
-    bool XEmitterInst::CheckUseCamera() {
+    bool EmitterInstX::CheckUseCamera() {
         if (!particles.size())
             return false;
 
@@ -478,13 +478,13 @@ namespace Glitter {
             return true;
         }
 
-        for (XParticleInst*& i : particles)
+        for (ParticleInstX*& i : particles)
             if (i->CheckUseCamera())
                 return true;
         return false;
     }
 
-    void XEmitterInst::Copy(XEmitterInst* dst, float_t emission) {
+    void EmitterInstX::Copy(EmitterInstX* dst, float_t emission) {
         dst->translation = translation;
         dst->rotation = rotation;
         dst->scale = scale;
@@ -507,7 +507,7 @@ namespace Glitter {
         }
     }
 
-    void XEmitterInst::Ctrl(GPM, XEffectInst* eff_inst, float_t delta_frame) {
+    void EmitterInstX::Ctrl(GPM, EffectInstX* eff_inst, float_t delta_frame) {
         if (frame < 0.0f)
             return;
 
@@ -614,7 +614,7 @@ namespace Glitter {
             enum_or(flags, EMITTER_INST_HAS_DISTANCE);
     }
 
-    void XEmitterInst::CtrlInit(XEffectInst* eff_inst, float_t delta_frame) {
+    void EmitterInstX::CtrlInit(EffectInstX* eff_inst, float_t delta_frame) {
         if (frame < 0.0f)
             return;
 
@@ -662,7 +662,7 @@ namespace Glitter {
         enum_or(flags, EMITTER_INST_HAS_DISTANCE);
     }
 
-    void XEmitterInst::CtrlMat(GPM, XEffectInst* eff_inst) {
+    void EmitterInstX::CtrlMat(GPM, EffectInstX* eff_inst) {
         vec3 trans = translation;
         vec3 rot = rotation;
         vec3 scale = this->scale * scale_all;
@@ -711,7 +711,7 @@ namespace Glitter {
         this->mat_rot = mat_rot;
     }
 
-    void XEmitterInst::Emit(float_t delta_frame, float_t emission) {
+    void EmitterInstX::Emit(float_t delta_frame, float_t emission) {
         if (frame < 0.0f) {
             frame += delta_frame;
             return;
@@ -758,7 +758,7 @@ namespace Glitter {
         frame += delta_frame;
     }
 
-    void XEmitterInst::EmitInit(GPM, XEffectInst* eff_inst, float_t delta_frame, float_t emission) {
+    void EmitterInstX::EmitInit(GPM, EffectInstX* eff_inst, float_t delta_frame, float_t emission) {
         if (frame < 0.0f) {
             frame += delta_frame;
             return;
@@ -801,22 +801,22 @@ namespace Glitter {
         frame += delta_frame;
     }
 
-    void XEmitterInst::EmitParticle(float_t emission, float_t frame) {
+    void EmitterInstX::EmitParticle(float_t emission, float_t frame) {
         int32_t count;
         if (data.type == EMITTER_POLYGON)
             count = data.polygon.count;
         else
             count = 1;
 
-        for (XParticleInst*& i : particles)
+        for (ParticleInstX*& i : particles)
             if (i)
                 i->Emit((int32_t)prj::roundf(particles_per_emission), count, emission, frame);
     }
 
-    void XEmitterInst::Free(float_t emission, bool free) {
+    void EmitterInstX::Free(float_t emission, bool free) {
         if (flags & EMITTER_INST_ENDED) {
             if (free)
-                for (XParticleInst*& i : particles)
+                for (ParticleInstX*& i : particles)
                     i->Free(true);
             return;
         }
@@ -831,14 +831,14 @@ namespace Glitter {
 
         enum_or(flags, EMITTER_INST_ENDED);
         if (data.flags & EMITTER_KILL_ON_END || free)
-            for (XParticleInst*& i : particles)
+            for (ParticleInstX*& i : particles)
                 i->Free(true);
         else
-            for (XParticleInst*& i : particles)
+            for (ParticleInstX*& i : particles)
                 i->Free(false);
     }
 
-    void XEmitterInst::GetValue() {
+    void EmitterInstX::GetValue() {
         Animation* anim = &emitter->animation;
         size_t length = anim->curves.size();
         for (int32_t i = 0; i < length; i++) {
@@ -888,19 +888,19 @@ namespace Glitter {
         }
     }
 
-    bool XEmitterInst::HasEnded(bool a2) {
+    bool EmitterInstX::HasEnded(bool a2) {
         if (!(flags & EMITTER_INST_ENDED))
             return false;
         else if (!a2)
             return true;
 
-        for (XParticleInst*& i : particles)
+        for (ParticleInstX*& i : particles)
             if (!i->HasEnded(a2))
                 return false;
         return true;
     }
 
-    void XEmitterInst::InitMesh(int32_t index, const vec3& scale,
+    void EmitterInstX::InitMesh(int32_t index, const vec3& scale,
         vec3& position, vec3& direction, Random* random) {
         switch (emitter->data.type) {
         case EMITTER_BOX: {
@@ -967,23 +967,23 @@ namespace Glitter {
         }
     }
 
-    uint8_t XEmitterInst::RandomGetStep() {
+    uint8_t EmitterInstX::RandomGetStep() {
         step = (step + 2) % 60;
         return step;
     }
 
-    void XEmitterInst::RandomStepValue() {
+    void EmitterInstX::RandomStepValue() {
         counter += 11;
         counter %= 30000;
         random_ptr->SetValue(random + counter);
     }
 
-    void XEmitterInst::RenderGroupCtrl(float_t delta_frame) {
-        for (XParticleInst*& i : particles)
+    void EmitterInstX::RenderGroupCtrl(float_t delta_frame) {
+        for (ParticleInstX*& i : particles)
             i->RenderGroupCtrl(delta_frame);
     }
 
-    void XEmitterInst::Reset() {
+    void EmitterInstX::Reset() {
         loop = data.flags & EMITTER_LOOP ? true : false;
         frame = -(float_t)data.start_time;
         flags = EMITTER_INST_NONE;
@@ -994,7 +994,7 @@ namespace Glitter {
         else
             emission = EMITTER_EMISSION_ON_END;
 
-        for (XParticleInst*& i : particles)
+        for (ParticleInstX*& i : particles)
             i->Reset();
     }
 }

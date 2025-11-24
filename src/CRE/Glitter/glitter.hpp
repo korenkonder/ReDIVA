@@ -422,23 +422,23 @@ namespace Glitter {
     class Effect;
     class Emitter;
     class EmitterInst;
-    class F2EmitterInst;
-    class XEmitterInst;
+    class EmitterInstF2;
+    class EmitterInstX;
     class ItemBase;
     struct Mesh;
     class Node;
     class Particle;
     class ParticleInst;
-    class F2ParticleInst;
-    class XParticleInst;
+    class ParticleInstF2;
+    class ParticleInstX;
     struct Random;
     struct RenderElement;
     class RenderGroup;
-    class F2RenderGroup;
-    class XRenderGroup;
+    class RenderGroupF2;
+    class RenderGroupX;
     class RenderScene;
-    class F2RenderScene;
-    class XRenderScene;
+    class RenderSceneF2;
+    class RenderSceneX;
 
     class Scene;
     class GltParticleManager;
@@ -841,50 +841,50 @@ namespace Glitter {
             float_t w, float_t h, float_t& v00, float_t& v01, float_t& v10, float_t& v11);
     };
 
-    class F2RenderScene : public RenderScene {
+    class RenderSceneF2 : public RenderScene {
     public:
-        std::vector<F2RenderGroup*> groups;
+        std::vector<RenderGroupF2*> groups;
 
-        F2RenderScene();
-        ~F2RenderScene();
+        RenderSceneF2();
+        ~RenderSceneF2();
 
-        void Append(F2RenderGroup* rend_group);
+        void Append(RenderGroupF2* rend_group);
         void CalcDisp(GPM);
-        void CalcDisp(GPM, F2RenderGroup* rend_group);
-        void CalcDispLine(F2RenderGroup* rend_group);
-        void CalcDispLocus(GPM, F2RenderGroup* rend_group);
-        void CalcDispQuad(GPM, F2RenderGroup* rend_group);
+        void CalcDisp(GPM, RenderGroupF2* rend_group);
+        void CalcDispLine(RenderGroupF2* rend_group);
+        void CalcDispLocus(GPM, RenderGroupF2* rend_group);
+        void CalcDispQuad(GPM, RenderGroupF2* rend_group);
         void CalcDispQuadDirectionRotation(
-            F2RenderGroup* rend_group, mat4* model_mat, mat4* dir_mat);
+            RenderGroupF2* rend_group, mat4* model_mat, mat4* dir_mat);
         void CalcDispQuadNormal(GPM,
-            F2RenderGroup* rend_group, mat4* model_mat, mat4* dir_mat);
+            RenderGroupF2* rend_group, mat4* model_mat, mat4* dir_mat);
         void Ctrl(GLT, float_t delta_frame);
         void Disp(GPM, render_data_context& rend_data_ctx, DispType disp_type, const cam_data& cam);
-        void Disp(GPM, render_data_context& rend_data_ctx, F2RenderGroup* rend_group, const cam_data& cam);
+        void Disp(GPM, render_data_context& rend_data_ctx, RenderGroupF2* rend_group, const cam_data& cam);
     };
 
-    class XRenderScene : public RenderScene {
+    class RenderSceneX : public RenderScene {
     public:
-        std::vector<XRenderGroup*> groups;
+        std::vector<RenderGroupX*> groups;
 
-        XRenderScene();
-        ~XRenderScene();
+        RenderSceneX();
+        ~RenderSceneX();
 
-        void Append(XRenderGroup* rend_group);
+        void Append(RenderGroupX* rend_group);
         void CalcDisp(GPM);
-        void CalcDisp(GPM, XRenderGroup* rend_group);
-        void CalcDispLine(XRenderGroup* rend_group);
-        void CalcDispLocus(GPM, XRenderGroup* rend_group);
-        void CalcDispQuad(GPM, XRenderGroup* rend_group);
-        void CalcDispQuadDirectionRotation(XRenderGroup* rend_group, mat4* model_mat);
-        void CalcDispQuadNormal(XRenderGroup* rend_group, mat4* model_mat, mat4* dir_mat);
+        void CalcDisp(GPM, RenderGroupX* rend_group);
+        void CalcDispLine(RenderGroupX* rend_group);
+        void CalcDispLocus(GPM, RenderGroupX* rend_group);
+        void CalcDispQuad(GPM, RenderGroupX* rend_group);
+        void CalcDispQuadDirectionRotation(RenderGroupX* rend_group, mat4* model_mat);
+        void CalcDispQuadNormal(RenderGroupX* rend_group, mat4* model_mat, mat4* dir_mat);
         bool CanDisp(DispType disp_type, bool a3);
         void CheckUseCamera();
         void Ctrl(float_t delta_frame, bool copy_mats);
         void Disp(GPM, render_data_context& rend_data_ctx, DispType disp_type, const cam_data& cam);
-        void Disp(GPM, render_data_context& rend_data_ctx, XRenderGroup* rend_group, const cam_data& cam);
+        void Disp(GPM, render_data_context& rend_data_ctx, RenderGroupX* rend_group, const cam_data& cam);
         void DispMesh(GPM);
-        void DispMesh(GPM, XRenderGroup* rend_group);
+        void DispMesh(GPM, RenderGroupX* rend_group);
     };
 
     class EffectInst {
@@ -932,7 +932,7 @@ namespace Glitter {
         static int32_t GetExtAnimBoneIndex(GPM, EffectExtAnimCharaNode node);
     };
 
-    class F2EffectInst : public EffectInst {
+    class EffectInstF2 : public EffectInst {
     public:
         struct ExtAnim {
             union {
@@ -958,13 +958,13 @@ namespace Glitter {
             void Reset();
         };
 
-        std::vector<F2EmitterInst*> emitters;
+        std::vector<EmitterInstF2*> emitters;
         Random* random_ptr;
         ExtAnim* ext_anim;
-        F2RenderScene render_scene;
+        RenderSceneF2 render_scene;
 
-        F2EffectInst(GPM, GLT, Effect* eff, size_t id, Scene* sc, bool appear_now, bool init);
-        virtual ~F2EffectInst() override;
+        EffectInstF2(GPM, GLT, Effect* eff, size_t id, Scene* sc, bool appear_now, bool init);
+        virtual ~EffectInstF2() override;
 
         virtual void CalcDisp(GPM) override;
         virtual void Copy(EffectInst* dst, float_t emission) override;
@@ -994,7 +994,7 @@ namespace Glitter {
         bool ResetInit(GPM, GLT, Scene* sc, float_t* init_delta_frame = 0);
     };
 
-    class XEffectInst : public EffectInst {
+    class EffectInstX : public EffectInst {
     public:
         struct ExtAnim {
             union {
@@ -1022,15 +1022,15 @@ namespace Glitter {
             void Reset();
         };
 
-        std::vector<XEmitterInst*> emitters;
+        std::vector<EmitterInstX*> emitters;
         mat4 mat_rot;
         mat4 mat_rot_eff_rot;
         Random random_shared;
         ExtAnim* ext_anim;
-        XRenderScene render_scene;
+        RenderSceneX render_scene;
 
-        XEffectInst(GPM, Effect* eff, size_t id, Scene* sc, bool appear_now, bool init, uint8_t load_flags = 0);
-        virtual ~XEffectInst() override;
+        EffectInstX(GPM, Effect* eff, size_t id, Scene* sc, bool appear_now, bool init, uint8_t load_flags = 0);
+        virtual ~EffectInstX() override;
 
         virtual void CalcDisp(GPM) override;
         virtual void Copy(EffectInst* dst, float_t emission) override;
@@ -1159,18 +1159,18 @@ namespace Glitter {
         virtual ~EmitterInst();
     };
 
-    class F2EmitterInst : public EmitterInst {
+    class EmitterInstF2 : public EmitterInst {
     public:
-        std::vector<F2ParticleInst*> particles;
+        std::vector<ParticleInstF2*> particles;
 
-        F2EmitterInst(Emitter* emit, F2EffectInst* eff_inst, float_t emission);
-        virtual ~F2EmitterInst() override;
+        EmitterInstF2(Emitter* emit, EffectInstF2* eff_inst, float_t emission);
+        virtual ~EmitterInstF2() override;
 
-        void Copy(F2EmitterInst* dst, float_t emission);
-        void Ctrl(GPM, GLT, F2EffectInst* eff_inst, float_t delta_frame);
-        void CtrlInit(GPM, GLT, F2EffectInst* eff_inst, float_t delta_frame);
-        void CtrlMat(GPM, GLT, F2EffectInst* eff_inst);
-        void EmitInit(GPM, GLT, F2EffectInst* eff_inst, float_t delta_frame, float_t emission);
+        void Copy(EmitterInstF2* dst, float_t emission);
+        void Ctrl(GPM, GLT, EffectInstF2* eff_inst, float_t delta_frame);
+        void CtrlInit(GPM, GLT, EffectInstF2* eff_inst, float_t delta_frame);
+        void CtrlMat(GPM, GLT, EffectInstF2* eff_inst);
+        void EmitInit(GPM, GLT, EffectInstF2* eff_inst, float_t delta_frame, float_t emission);
         void Emit(GPM, GLT, float_t delta_frame, float_t emission);
         void EmitParticle(GPM, GLT, float_t emission);
         void Free(GPM, GLT, float_t emission, bool free);
@@ -1182,22 +1182,22 @@ namespace Glitter {
         void Reset();
     };
 
-    class XEmitterInst : public EmitterInst {
+    class EmitterInstX : public EmitterInst {
     public:
-        std::vector<XParticleInst*> particles;
+        std::vector<ParticleInstX*> particles;
         uint32_t counter;
         uint8_t step;
 
-        XEmitterInst(Emitter* emit, XEffectInst* eff_inst, float_t emission);
-        virtual ~XEmitterInst() override;
+        EmitterInstX(Emitter* emit, EffectInstX* eff_inst, float_t emission);
+        virtual ~EmitterInstX() override;
 
         bool CheckUseCamera();
-        void Copy(XEmitterInst* dst, float_t emission);
-        void Ctrl(GPM, XEffectInst* eff_inst, float_t delta_frame);
-        void CtrlInit(XEffectInst* eff_inst, float_t delta_frame);
-        void CtrlMat(GPM, XEffectInst* eff_inst);
+        void Copy(EmitterInstX* dst, float_t emission);
+        void Ctrl(GPM, EffectInstX* eff_inst, float_t delta_frame);
+        void CtrlInit(EffectInstX* eff_inst, float_t delta_frame);
+        void CtrlMat(GPM, EffectInstX* eff_inst);
         void Emit(float_t delta_frame, float_t emission);
-        void EmitInit(GPM, XEffectInst* eff_inst, float_t delta_frame, float_t emission);
+        void EmitInit(GPM, EffectInstX* eff_inst, float_t delta_frame, float_t emission);
         void EmitParticle(float_t emission, float_t frame);
         void Free(float_t emission, bool free);
         void GetValue();
@@ -1299,8 +1299,8 @@ namespace Glitter {
         LocusHistory(size_t size);
         virtual ~LocusHistory();
 
-        void Append(RenderElement* rend_elem, F2ParticleInst* ptcl_inst);
-        void Append(RenderElement* rend_elem, XParticleInst* ptcl_inst);
+        void Append(RenderElement* rend_elem, ParticleInstF2* ptcl_inst);
+        void Append(RenderElement* rend_elem, ParticleInstX* ptcl_inst);
     };
 
     class Particle : public ItemBase {
@@ -1402,33 +1402,33 @@ namespace Glitter {
         virtual ~ParticleInst();
     };
 
-    class F2ParticleInst : public ParticleInst {
+    class ParticleInstF2 : public ParticleInst {
     public:
         struct Data {
             Particle::Data data;
             ParticleInstFlag flags;
-            F2RenderGroup* render_group;
+            RenderGroupF2* render_group;
             Random* random_ptr;
-            F2EffectInst* effect;
-            F2EmitterInst* emitter;
-            F2ParticleInst* parent;
+            EffectInstF2* effect;
+            EmitterInstF2* emitter;
+            ParticleInstF2* parent;
             Particle* particle;
-            std::vector<F2ParticleInst*> children;
+            std::vector<ParticleInstF2*> children;
 
             Data();
             ~Data();
         } data;
 
-        F2ParticleInst(Particle* ptcl, F2EffectInst* eff_inst,
-            F2EmitterInst* emit_inst, Random* random, float_t emission);
-        F2ParticleInst(F2ParticleInst* ptcl_inst, float_t emission);
-        virtual ~F2ParticleInst() override;
+        ParticleInstF2(Particle* ptcl, EffectInstF2* eff_inst,
+            EmitterInstF2* emit_inst, Random* random, float_t emission);
+        ParticleInstF2(ParticleInstF2* ptcl_inst, float_t emission);
+        virtual ~ParticleInstF2() override;
 
         void AccelerateParticle(GLT, RenderElement* rend_elem,
             float_t time, float_t delta_frame, Random* random);
-        void Copy(F2ParticleInst* dst, float_t emission);
+        void Copy(ParticleInstF2* dst, float_t emission);
         void Emit(GPM, GLT, int32_t dup_count, int32_t count, float_t emission);
-        void EmitParticle(GPM, GLT, RenderElement* rend_elem, F2EmitterInst* emit_inst,
+        void EmitParticle(GPM, GLT, RenderElement* rend_elem, EmitterInstF2* emit_inst,
             Particle::Data* ptcl_data, int32_t index, Random* random);
         void GetColor(RenderElement* rend_elem);
         bool GetExtAnimScale(vec3* ext_anim_scale, float_t* ext_scale);
@@ -1441,34 +1441,34 @@ namespace Glitter {
         void StepUVParticle(GLT, RenderElement* rend_elem, float_t delta_frame, Random* random);
     };
 
-    class XParticleInst : public ParticleInst {
+    class ParticleInstX : public ParticleInst {
     public:
         struct Data {
             Particle::Data data;
             ParticleInstFlag flags;
-            XRenderGroup* render_group;
+            RenderGroupX* render_group;
             Random* random_ptr;
-            XEffectInst* effect;
-            XEmitterInst* emitter;
-            XParticleInst* parent;
+            EffectInstX* effect;
+            EmitterInstX* emitter;
+            ParticleInstX* parent;
             Particle* particle;
-            std::vector<XParticleInst*> children;
+            std::vector<ParticleInstX*> children;
 
             Data();
             ~Data();
         } data;
 
-        XParticleInst(Particle* ptcl, XEffectInst* eff_inst,
-            XEmitterInst* emit_inst, Random* random, float_t emission);
-        XParticleInst(XParticleInst* parent, float_t emission);
-        virtual ~XParticleInst() override;
+        ParticleInstX(Particle* ptcl, EffectInstX* eff_inst,
+            EmitterInstX* emit_inst, Random* random, float_t emission);
+        ParticleInstX(ParticleInstX* parent, float_t emission);
+        virtual ~ParticleInstX() override;
 
         void AccelerateParticle(RenderElement* rend_elem,
             float_t delta_frame, Random* random);
         bool CheckUseCamera();
-        void Copy(XParticleInst* dst, float_t emission);
+        void Copy(ParticleInstX* dst, float_t emission);
         void Emit(int32_t dup_count, int32_t count, float_t emission, float_t frame);
-        void EmitParticle(RenderElement* rend_elem, XEmitterInst* emit_inst,
+        void EmitParticle(RenderElement* rend_elem, EmitterInstX* emit_inst,
             Particle::Data* ptcl_data, int32_t index, uint8_t step, Random* random);
         void GetColor(RenderElement* rend_elem, float_t color_scale);
         bool GetExtAnimScale(vec3* ext_anim_scale, float_t* ext_scale);
@@ -1482,62 +1482,62 @@ namespace Glitter {
         void StepUVParticle(RenderElement* rend_elem, float_t delta_frame, Random* random);
     };
 
-    class F2RenderGroup : public RenderGroup {
+    class RenderGroupF2 : public RenderGroup {
     public:
-        F2ParticleInst* particle;
+        ParticleInstF2* particle;
         std::string name;
 
-        F2RenderGroup(F2ParticleInst* ptcl_inst);
-        virtual ~F2RenderGroup();
+        RenderGroupF2(ParticleInstF2* ptcl_inst);
+        virtual ~RenderGroupF2();
 
         bool CannotDisp();
-        void Copy(F2RenderGroup* dst);
+        void Copy(RenderGroupF2* dst);
         void Ctrl(GLT, float_t delta_frame, bool copy_mats);
         void CtrlParticle(GLT, RenderElement* rend_elem, float_t delta_frame);
         void DeleteBuffers(bool free);
         void Emit(GPM, GLT, Particle::Data* ptcl__data,
-            F2EmitterInst* emit_inst, int32_t dup_count, int32_t count);
+            EmitterInstF2* emit_inst, int32_t dup_count, int32_t count);
         void Free();
         void FreeData();
         bool GetExtAnimScale(vec3* ext_anim_scale, float_t* ext_scale);
 
-        static mat4 RotateToEmitPosition(F2RenderGroup* rend_group,
+        static mat4 RotateToEmitPosition(RenderGroupF2* rend_group,
             RenderElement* rend_elem, vec3* vec);
-        static mat4 RotateToPrevPosition(F2RenderGroup* rend_group,
+        static mat4 RotateToPrevPosition(RenderGroupF2* rend_group,
             RenderElement* rend_elem, vec3* vec);
     };
 
-    class XRenderGroup : public RenderGroup {
+    class RenderGroupX : public RenderGroup {
     public:
-        XParticleInst* particle;
+        ParticleInstX* particle;
         uint64_t object_name_hash;
         bool use_culling;
         bool use_camera;
 
-        XRenderGroup(XParticleInst* ptcl_inst);
-        virtual ~XRenderGroup();
+        RenderGroupX(ParticleInstX* ptcl_inst);
+        virtual ~RenderGroupX();
 
         bool CannotDisp();
         void CheckUseCamera();
-        void Copy(XRenderGroup* dst);
+        void Copy(RenderGroupX* dst);
         void Ctrl(float_t delta_frame, bool copy_mats);
         void CtrlParticle(RenderElement* rend_elem, float_t delta_frame);
         void DeleteBuffers(bool free);
         void Emit(Particle::Data* ptcl_data,
-            XEmitterInst* emit_inst, int32_t dup_count, int32_t count, float_t frame);
+            EmitterInstX* emit_inst, int32_t dup_count, int32_t count, float_t frame);
         void Free();
         void FreeData();
         bool GetEmitterScale(vec3& emitter_scale);
         bool GetExtAnimScale(vec3* ext_anim_scale, float_t* ext_scale);
         bool HasEnded();
 
-        static mat4 RotateMeshToEmitPosition(XRenderGroup* rend_group,
+        static mat4 RotateMeshToEmitPosition(RenderGroupX* rend_group,
             RenderElement* rend_elem, vec3* vec, vec3* trans);
-        static mat4 RotateMeshToPrevPosition(XRenderGroup* rend_group,
+        static mat4 RotateMeshToPrevPosition(RenderGroupX* rend_group,
             RenderElement* rend_elem, vec3* vec, vec3* trans);
-        static mat4 RotateToEmitPosition(XRenderGroup* rend_group,
+        static mat4 RotateToEmitPosition(RenderGroupX* rend_group,
             RenderElement* rend_elem, vec3* vec);
-        static mat4 RotateToPrevPosition(XRenderGroup* rend_group,
+        static mat4 RotateToPrevPosition(RenderGroupX* rend_group,
             RenderElement* rend_elem, vec3* vec);
     };
 
@@ -1579,11 +1579,11 @@ namespace Glitter {
 
         RenderElement();
 
-        void InitLocusHistory(GLT, F2ParticleInst* ptcl_inst, Random* random);
-        void InitLocusHistory(XParticleInst* ptcl_inst, Random* random);
-        void InitMesh(GLT, F2EmitterInst* emit_inst,
+        void InitLocusHistory(GLT, ParticleInstF2* ptcl_inst, Random* random);
+        void InitLocusHistory(ParticleInstX* ptcl_inst, Random* random);
+        void InitMesh(GLT, EmitterInstF2* emit_inst,
             Particle::Data* ptcl_data, int32_t index, Random* random);
-        void InitMesh(XEmitterInst* emit_inst,
+        void InitMesh(EmitterInstX* emit_inst,
             Particle::Data* ptcl_data, int32_t index, Random* random);
     };
 

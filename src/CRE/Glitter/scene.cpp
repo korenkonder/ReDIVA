@@ -62,7 +62,7 @@ namespace Glitter {
                 if (!i.ptr || !i.disp)
                     continue;
 
-                F2EffectInst* eff_inst = (F2EffectInst*)i.ptr;
+                EffectInstF2* eff_inst = (EffectInstF2*)i.ptr;
                 disp += eff_inst->render_scene.disp_quad;
                 disp += eff_inst->render_scene.disp_locus;
                 disp += eff_inst->render_scene.disp_line;
@@ -72,7 +72,7 @@ namespace Glitter {
                 if (!i.ptr || !i.disp)
                     continue;
 
-                XEffectInst* eff_inst = (XEffectInst*)i.ptr;
+                EffectInstX* eff_inst = (EffectInstX*)i.ptr;
                 disp += eff_inst->render_scene.disp_quad;
                 disp += eff_inst->render_scene.disp_locus;
                 disp += eff_inst->render_scene.disp_line;
@@ -86,7 +86,7 @@ namespace Glitter {
     bool Scene::CanDisp(DispType disp_type, bool a3) {
         for (SceneEffect& i : effects)
             if (i.ptr && i.disp) {
-                XEffectInst* eff_x = dynamic_cast<XEffectInst*>(i.ptr);
+                EffectInstX* eff_x = dynamic_cast<EffectInstX*>(i.ptr);
                 if (eff_x && eff_x->render_scene.CanDisp(disp_type, a3))
                     return true;
             }
@@ -101,22 +101,22 @@ namespace Glitter {
 
         for (SceneEffect& i : effects)
             if (i.ptr && i.disp)
-                ((XEffectInst*)i.ptr)->CheckUpdate();
+                ((EffectInstX*)i.ptr)->CheckUpdate();
     }
 
     void Scene::Ctrl(GPM, float_t delta_frame) {
         if (type != Glitter::X) {
             for (SceneEffect& i : effects)
                 if (i.ptr && i.disp)
-                    ((F2EffectInst*)i.ptr)->Ctrl(GPM_VAL, type, delta_frame);
+                    ((EffectInstF2*)i.ptr)->Ctrl(GPM_VAL, type, delta_frame);
 
             for (SceneEffect& i : effects)
                 if (i.ptr && i.disp)
-                    ((F2EffectInst*)i.ptr)->Emit(GPM_VAL, type, delta_frame, emission);
+                    ((EffectInstF2*)i.ptr)->Emit(GPM_VAL, type, delta_frame, emission);
 
             for (SceneEffect& i : effects)
                 if (i.ptr && i.disp)
-                    ((F2EffectInst*)i.ptr)->RenderSceneCtrl(type, delta_frame);
+                    ((EffectInstF2*)i.ptr)->RenderSceneCtrl(type, delta_frame);
             return;
         }
 
@@ -127,7 +127,7 @@ namespace Glitter {
             if (!i.ptr || !i.disp)
                 continue;
 
-            XEffectInst* eff = (XEffectInst*)i.ptr;
+            EffectInstX* eff = (EffectInstX*)i.ptr;
 
             bool step = false;
             bool just_init = !!(eff->flags & EFFECT_INST_JUST_INIT);
@@ -299,9 +299,9 @@ namespace Glitter {
 
         SceneEffect effect;
         if (type != Glitter::X)
-            effect.ptr = new F2EffectInst(GPM_VAL, type, eff, id, this, appear_now, init);
+            effect.ptr = new EffectInstF2(GPM_VAL, type, eff, id, this, appear_now, init);
         else
-            effect.ptr = new XEffectInst(GPM_VAL, eff, id, this, appear_now, init, load_flags);
+            effect.ptr = new EffectInstX(GPM_VAL, eff, id, this, appear_now, init, load_flags);
         effect.disp = true;
         effects.push_back(effect);
 

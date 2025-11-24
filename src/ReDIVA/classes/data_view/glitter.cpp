@@ -90,7 +90,7 @@ void data_view_glitter_imgui(class_data* data) {
                     if (!j.disp || !j.ptr)
                         continue;
 
-                    Glitter::F2EffectInst* eff_f2 = (Glitter::F2EffectInst*)j.ptr;
+                    Glitter::EffectInstF2* eff_f2 = (Glitter::EffectInstF2*)j.ptr;
                     tree_node_flags = tree_node_base_flags;
 
                     ImGui::PushStyleColor(ImGuiCol_Text,
@@ -106,7 +106,7 @@ void data_view_glitter_imgui(class_data* data) {
                     }
 
                     int32_t emit_index = 0;
-                    for (Glitter::F2EmitterInst*& k : eff_f2->emitters) {
+                    for (Glitter::EmitterInstF2*& k : eff_f2->emitters) {
                         if (!k)
                             continue;
 
@@ -118,7 +118,7 @@ void data_view_glitter_imgui(class_data* data) {
                         if (ImGui::TreeNodeEx("##Effect", tree_node_flags,
                             "Emitter %d; Frame: %g", emit_index, k->frame)) {
                             int32_t ptcl_index = 0;
-                            for (Glitter::F2ParticleInst*& l : k->particles) {
+                            for (Glitter::ParticleInstF2*& l : k->particles) {
                                 if (!l)
                                     continue;
 
@@ -147,7 +147,7 @@ void data_view_glitter_imgui(class_data* data) {
                     if (!j.disp || !j.ptr)
                         continue;
 
-                    Glitter::XEffectInst* eff_x = (Glitter::XEffectInst*)j.ptr;
+                    Glitter::EffectInstX* eff_x = (Glitter::EffectInstX*)j.ptr;
                     tree_node_flags = tree_node_base_flags;
 
                     ImGui::PushStyleColor(ImGuiCol_Text,
@@ -163,7 +163,7 @@ void data_view_glitter_imgui(class_data* data) {
                     }
 
                     int32_t emit_index = 0;
-                    for (Glitter::XEmitterInst*& k : eff_x->emitters) {
+                    for (Glitter::EmitterInstX*& k : eff_x->emitters) {
                         if (!k)
                             continue;
 
@@ -175,7 +175,7 @@ void data_view_glitter_imgui(class_data* data) {
                         if (ImGui::TreeNodeEx("##Effect", tree_node_flags,
                             "Emitter %d; Frame: %g", emit_index, k->frame)) {
                             int32_t ptcl_index = 0;
-                            for (Glitter::XParticleInst*& l : k->particles) {
+                            for (Glitter::ParticleInstX*& l : k->particles) {
                                 if (!l)
                                     continue;
 

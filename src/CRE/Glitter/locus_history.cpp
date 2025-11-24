@@ -18,7 +18,7 @@ namespace Glitter {
 
     }
 
-    void LocusHistory::Append(RenderElement* rend_elem, F2ParticleInst* ptcl_inst) {
+    void LocusHistory::Append(RenderElement* rend_elem, ParticleInstF2* ptcl_inst) {
         LocusHistory::Data* hist_data = data.data();
         size_t size = data.size();
         vec3 temp = rend_elem->translation;
@@ -54,7 +54,7 @@ namespace Glitter {
         }
     }
 
-    void LocusHistory::Append(RenderElement* rend_elem, XParticleInst* ptcl_inst) {
+    void LocusHistory::Append(RenderElement* rend_elem, ParticleInstX* ptcl_inst) {
         LocusHistory::Data* hist_data = data.data();
         size_t size = data.size();
         vec3 temp = rend_elem->translation;

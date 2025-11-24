@@ -102,15 +102,15 @@ namespace Glitter {
             bone_database_skeleton_type_to_string(BONE_DATABASE_SKELETON_COMMON), bone_names[node]);
     }
 
-    F2EffectInst::ExtAnim::ExtAnim() : object_index(), mesh_index(), a3da_id(), object_is_hrc(), mesh_name() {
+    EffectInstF2::ExtAnim::ExtAnim() : object_index(), mesh_index(), a3da_id(), object_is_hrc(), mesh_name() {
 
     }
 
-    F2EffectInst::ExtAnim::~ExtAnim() {
+    EffectInstF2::ExtAnim::~ExtAnim() {
 
     }
 
-    void F2EffectInst::ExtAnim::Reset() {
+    void EffectInstF2::ExtAnim::Reset() {
         object_index = -1;
         mesh_index = -1;
         a3da_id = -1;
@@ -120,7 +120,7 @@ namespace Glitter {
         translation = 0.0f;
     }
 
-    F2EffectInst::F2EffectInst(GPM, GLT, Effect* eff, size_t id,
+    EffectInstF2::EffectInstF2(GPM, GLT, Effect* eff, size_t id,
         Scene* sc, bool appear_now, bool init)
         : EffectInst(GPM_VAL, GLT_VAL, eff, id, appear_now, init) {
         random_ptr = &Glitter::random;
@@ -129,7 +129,7 @@ namespace Glitter {
         if (!init && !(eff->data.flags & EFFECT_SCREEN) && data.ext_anim) {
             InitExtAnim();
 
-            F2EffectInst::ExtAnim* inst_ext_anim = this->ext_anim;
+            EffectInstF2::ExtAnim* inst_ext_anim = this->ext_anim;
             if (inst_ext_anim) {
                 Effect::ExtAnim* ext_anim = data.ext_anim;
                 if (ext_anim->flags & EFFECT_EXT_ANIM_SET_ONCE)
@@ -166,7 +166,7 @@ namespace Glitter {
             if (!i)
                 continue;
 
-            F2EmitterInst* emitter = new F2EmitterInst(i, this, sc->emission);
+            EmitterInstF2* emitter = new EmitterInstF2(i, this, sc->emission);
             if (emitter)
                 emitters.push_back(emitter);
         }
@@ -175,18 +175,18 @@ namespace Glitter {
             ResetInit(GPM_VAL, GLT_VAL, sc);
     }
 
-    F2EffectInst::~F2EffectInst() {
-        for (F2EmitterInst*& i : emitters)
+    EffectInstF2::~EffectInstF2() {
+        for (EmitterInstF2*& i : emitters)
             delete i;
 
         delete ext_anim;
     }
 
-    void F2EffectInst::CalcDisp(GPM) {
+    void EffectInstF2::CalcDisp(GPM) {
         render_scene.CalcDisp(GPM_VAL);
     }
 
-    void F2EffectInst::Copy(EffectInst* dst, float_t emission) {
+    void EffectInstF2::Copy(EffectInst* dst, float_t emission) {
         dst->frame0 = frame0;
         dst->frame1 = frame1;
         dst->color = color;
@@ -196,7 +196,7 @@ namespace Glitter {
         dst->mat = mat;
         dst->random = random;
 
-        F2EffectInst* f2_dst = dynamic_cast<F2EffectInst*>(dst);
+        EffectInstF2* f2_dst = dynamic_cast<EffectInstF2*>(dst);
         if (f2_dst && emitters.size() == f2_dst->emitters.size()) {
             size_t count = emitters.size();
             for (size_t i = 0; i < count; i++)
@@ -204,42 +204,42 @@ namespace Glitter {
         }
     }
 
-    void F2EffectInst::Disp(GPM, render_data_context& rend_data_ctx, DispType disp_type, const cam_data& cam) {
+    void EffectInstF2::Disp(GPM, render_data_context& rend_data_ctx, DispType disp_type, const cam_data& cam) {
         render_scene.Disp(GPM_VAL, rend_data_ctx, disp_type, cam);
     }
 
-    void F2EffectInst::DispMesh(GPM) {
+    void EffectInstF2::DispMesh(GPM) {
 
     }
 
-    void F2EffectInst::Free(GPM, GLT, float_t emission, bool free) {
+    void EffectInstF2::Free(GPM, GLT, float_t emission, bool free) {
         enum_or(flags, EFFECT_INST_FREE);
-        for (F2EmitterInst*& i : emitters)
+        for (EmitterInstF2*& i : emitters)
             if (i)
                 i->Free(GPM_VAL, GLT_VAL, emission, free);
     }
 
-    size_t F2EffectInst::GetCtrlCount(ParticleType type) {
+    size_t EffectInstF2::GetCtrlCount(ParticleType type) {
         return render_scene.GetCtrlCount(type);
     }
 
-    size_t F2EffectInst::GetDispCount(ParticleType type) {
+    size_t EffectInstF2::GetDispCount(ParticleType type) {
         return render_scene.GetDispCount(type);
     }
 
-    bool F2EffectInst::HasEnded(bool a2) {
+    bool EffectInstF2::HasEnded(bool a2) {
         if (!(flags & EFFECT_INST_FREE))
             return false;
         else if (!a2)
             return true;
 
-        for (F2EmitterInst*& i : emitters)
+        for (EmitterInstF2*& i : emitters)
             if (i && !i->HasEnded(a2))
                 return false;
         return true;
     }
 
-    void F2EffectInst::Reset(GPM, GLT, Scene* sc) {
+    void EffectInstF2::Reset(GPM, GLT, Scene* sc) {
         frame0 = -(float_t)data.appear_time;
         frame1 = 0.0;
 
@@ -260,24 +260,24 @@ namespace Glitter {
             enum_or(flags, EFFECT_INST_EXT_ANIM_AUTH);
         }
 
-        for (F2EmitterInst*& i : emitters)
+        for (EmitterInstF2*& i : emitters)
             if (i)
                 i->Reset();
 
         ResetInit(GPM_VAL, GLT_VAL, sc);
     }
 
-    bool F2EffectInst::ResetCheckInit(GPM, GLT, Scene* sc, float_t* init_delta_frame) {
+    bool EffectInstF2::ResetCheckInit(GPM, GLT, Scene* sc, float_t* init_delta_frame) {
         if (init)
             return ResetInit(GPM_VAL, GLT_VAL, sc, init_delta_frame);
         return false;
     }
 
-    void F2EffectInst::SetExtAnimMat(const mat4* mat) {
+    void EffectInstF2::SetExtAnimMat(const mat4* mat) {
 
     }
 
-    void F2EffectInst::Ctrl(GPM, GLT, float_t delta_frame) {
+    void EffectInstF2::Ctrl(GPM, GLT, float_t delta_frame) {
         GetExtAnim();
         GetValue(GLT_VAL);
 
@@ -293,22 +293,22 @@ namespace Glitter {
         mat4_mul_rotate_zyx(&mat, &rot, &mat);
         mat4_scale_rot(&mat, &scale, &this->mat);
 
-        for (F2EmitterInst*& i : emitters)
+        for (EmitterInstF2*& i : emitters)
             if (i)
                 i->Ctrl(GPM_VAL, GLT_VAL, this, delta_frame);
     }
 
-    void F2EffectInst::CtrlInit(GPM, GLT, float_t delta_frame) {
+    void EffectInstF2::CtrlInit(GPM, GLT, float_t delta_frame) {
         if (frame0 < 0.0f)
             return;
 
         GetValue(GLT_VAL);
 
-        for (F2EmitterInst*& i : emitters)
+        for (EmitterInstF2*& i : emitters)
             i->CtrlInit(GPM_VAL, GLT_VAL, this, delta_frame);
     }
 
-    void F2EffectInst::CtrlMat(GPM, GLT) {
+    void EffectInstF2::CtrlMat(GPM, GLT) {
         if (!(flags & EFFECT_INST_RESET_INIT))
             return;
 
@@ -322,17 +322,17 @@ namespace Glitter {
         mat4_scale_rot(&mat, &scale, &mat);
         this->mat = mat;
 
-        for (F2EmitterInst*& i : emitters)
+        for (EmitterInstF2*& i : emitters)
             if (i)
                 i->CtrlMat(GPM_VAL, GLT_VAL, this);
 
         enum_and(flags, ~EFFECT_INST_RESET_INIT);
     }
 
-    void F2EffectInst::Emit(GPM, GLT, float_t delta_frame, float_t emission) {
+    void EffectInstF2::Emit(GPM, GLT, float_t delta_frame, float_t emission) {
         if (frame0 >= 0.0f) {
             if (frame0 < (float_t)data.life_time) {
-                for (F2EmitterInst*& i : emitters)
+                for (EmitterInstF2*& i : emitters)
                     if (i)
                         i->Emit(GPM_VAL, GLT_VAL, delta_frame, emission);
             }
@@ -345,10 +345,10 @@ namespace Glitter {
         frame0 += delta_frame;
     }
 
-    void F2EffectInst::EmitInit(GPM, GLT, float_t delta_frame, float_t emission) {
+    void EffectInstF2::EmitInit(GPM, GLT, float_t delta_frame, float_t emission) {
         if (frame0 >= 0.0f) {
             if (frame0 < (float_t)data.life_time) {
-                for (F2EmitterInst*& i : emitters)
+                for (EmitterInstF2*& i : emitters)
                     if (i)
                         i->EmitInit(GPM_VAL, GLT_VAL, this, delta_frame, emission);
             }
@@ -357,20 +357,20 @@ namespace Glitter {
             else
                 Free(GPM_VAL, GLT_VAL, emission, false);
 
-            for (F2EmitterInst*& i : emitters)
+            for (EmitterInstF2*& i : emitters)
                 i->RenderGroupCtrl(GLT_VAL, delta_frame);
         }
 
         frame0 += delta_frame;
     }
 
-    DispType F2EffectInst::GetDispType() {
+    DispType EffectInstF2::GetDispType() {
         if (data.flags & EFFECT_PRE_TRANSLUCENT)
             return DISP_PRE_TRANSLUCENT;
         return DISP_NORMAL;
     }
 
-    void F2EffectInst::GetExtAnim() {
+    void EffectInstF2::GetExtAnim() {
         if (!ext_anim || !data.ext_anim)
             return;
 
@@ -498,7 +498,7 @@ namespace Glitter {
         }
     }
 
-    bool F2EffectInst::GetExtAnimMat(mat4* mat) {
+    bool EffectInstF2::GetExtAnimMat(mat4* mat) {
         if (!(flags & EFFECT_INST_EXT_ANIM_TRANS) || !ext_anim)
             return false;
 
@@ -506,7 +506,7 @@ namespace Glitter {
         return true;
     }
 
-    void F2EffectInst::GetExtColor(float_t& r, float_t& g, float_t& b, float_t& a) {
+    void EffectInstF2::GetExtColor(float_t& r, float_t& g, float_t& b, float_t& a) {
         if (!(flags & EFFECT_INST_EXT_COLOR))
             return;
 
@@ -537,7 +537,7 @@ namespace Glitter {
             a = 0.0f;
     }
 
-    FogType F2EffectInst::GetFog() {
+    FogType EffectInstF2::GetFog() {
         if (data.flags & EFFECT_FOG)
             return Glitter::FOG_DEPTH;
         else if (data.flags & EFFECT_FOG_HEIGHT)
@@ -545,7 +545,7 @@ namespace Glitter {
         return Glitter::FOG_NONE;
     }
 
-    void F2EffectInst::GetValue(GLT) {
+    void EffectInstF2::GetValue(GLT) {
         Animation* anim = &effect->animation;
         size_t length = anim->curves.size();
         for (int32_t i = 0; i < length; i++) {
@@ -602,19 +602,19 @@ namespace Glitter {
         }
     }
 
-    void F2EffectInst::InitExtAnim() {
+    void EffectInstF2::InitExtAnim() {
         if (!ext_anim) {
-            ext_anim = new F2EffectInst::ExtAnim;
+            ext_anim = new EffectInstF2::ExtAnim;
             if (ext_anim)
                 ext_anim->Reset();
         }
     }
 
-    void F2EffectInst::RenderSceneCtrl(GLT, float_t delta_frame) {
+    void EffectInstF2::RenderSceneCtrl(GLT, float_t delta_frame) {
         render_scene.Ctrl(GLT_VAL, delta_frame);
     }
 
-    bool F2EffectInst::ResetInit(GPM, GLT, Glitter::Scene* sc, float_t* init_delta_frame) {
+    bool EffectInstF2::ResetInit(GPM, GLT, Glitter::Scene* sc, float_t* init_delta_frame) {
         if (data.start_time < 1)
             return false;
 
@@ -654,16 +654,16 @@ namespace Glitter {
         return ret;
     }
 
-    XEffectInst::ExtAnim::ExtAnim() : object_index(), mesh_index(), a3da_id(),
+    EffectInstX::ExtAnim::ExtAnim() : object_index(), mesh_index(), a3da_id(),
         object_is_hrc(), file_name_hash(), object_hash(), instance_id(), mesh_name() {
 
     }
 
-    XEffectInst::ExtAnim::~ExtAnim() {
+    EffectInstX::ExtAnim::~ExtAnim() {
 
     }
 
-    void XEffectInst::ExtAnim::Reset() {
+    void EffectInstX::ExtAnim::Reset() {
         object_index = -1;
         mesh_index = -1;
         a3da_id = -1;
@@ -676,7 +676,7 @@ namespace Glitter {
         translation = 0.0f;
     }
 
-    XEffectInst::XEffectInst(GPM, Effect* eff, size_t id,
+    EffectInstX::EffectInstX(GPM, Effect* eff, size_t id,
         Scene* sc, bool appear_now, bool init, uint8_t load_flags)
         : EffectInst(GPM_VAL, Glitter::X, eff, id, appear_now, init) {
         mat_rot = mat4_identity;
@@ -700,7 +700,7 @@ namespace Glitter {
         if (!init && !(eff->data.flags & EFFECT_SCREEN) && data.ext_anim_x) {
             InitExtAnim();
 
-            XEffectInst::ExtAnim* inst_ext_anim = this->ext_anim;
+            EffectInstX::ExtAnim* inst_ext_anim = this->ext_anim;
             if (inst_ext_anim) {
                 Effect::ExtAnimX* ext_anim = data.ext_anim_x;
                 if (ext_anim->flags & EFFECT_EXT_ANIM_SET_ONCE)
@@ -743,7 +743,7 @@ namespace Glitter {
             if (!i)
                 continue;
 
-            XEmitterInst* emitter = new XEmitterInst(i, this, sc->emission);
+            EmitterInstX* emitter = new EmitterInstX(i, this, sc->emission);
             if (emitter)
                 emitters.push_back(emitter);
         }
@@ -752,18 +752,18 @@ namespace Glitter {
             ResetInit(GPM_VAL, sc);
     }
 
-    XEffectInst::~XEffectInst() {
-        for (XEmitterInst*& i : emitters)
+    EffectInstX::~EffectInstX() {
+        for (EmitterInstX*& i : emitters)
             delete i;
 
         delete ext_anim;
     }
 
-    void XEffectInst::CalcDisp(GPM) {
+    void EffectInstX::CalcDisp(GPM) {
         render_scene.CalcDisp(GPM_VAL);
     }
 
-    void XEffectInst::Copy(EffectInst* dst, float_t emission) {
+    void EffectInstX::Copy(EffectInst* dst, float_t emission) {
         dst->frame0 = frame0;
         dst->frame1 = frame1;
         dst->color = color;
@@ -774,7 +774,7 @@ namespace Glitter {
         dst->mat = mat_rot;
         dst->random = random;
 
-        XEffectInst* x_dst = dynamic_cast<XEffectInst*>(dst);
+        EffectInstX* x_dst = dynamic_cast<EffectInstX*>(dst);
         if (x_dst && emitters.size() == x_dst->emitters.size()) {
             x_dst->mat_rot_eff_rot = mat_rot_eff_rot;
 
@@ -784,42 +784,42 @@ namespace Glitter {
         }
     }
 
-    void XEffectInst::Disp(GPM, render_data_context& rend_data_ctx, DispType disp_type, const cam_data& cam) {
+    void EffectInstX::Disp(GPM, render_data_context& rend_data_ctx, DispType disp_type, const cam_data& cam) {
         render_scene.Disp(GPM_VAL, rend_data_ctx, disp_type, cam);
     }
 
-    void XEffectInst::DispMesh(GPM) {
+    void EffectInstX::DispMesh(GPM) {
         render_scene.DispMesh(GPM_VAL);
     }
 
-    void XEffectInst::Free(GPM, GLT, float_t emission, bool free) {
+    void EffectInstX::Free(GPM, GLT, float_t emission, bool free) {
         enum_or(flags, EFFECT_INST_FREE);
-        for (XEmitterInst*& i : emitters)
+        for (EmitterInstX*& i : emitters)
             if (i)
                 i->Free(emission, free);
     }
 
-    size_t XEffectInst::GetCtrlCount(ParticleType type) {
+    size_t EffectInstX::GetCtrlCount(ParticleType type) {
         return render_scene.GetCtrlCount(type);
     }
 
-    size_t XEffectInst::GetDispCount(ParticleType type) {
+    size_t EffectInstX::GetDispCount(ParticleType type) {
         return render_scene.GetDispCount(type);
     }
 
-    bool XEffectInst::HasEnded(bool a2) {
+    bool EffectInstX::HasEnded(bool a2) {
         if (!(flags & EFFECT_INST_FREE))
             return false;
         else if (!a2)
             return true;
 
-        for (XEmitterInst*& i : emitters)
+        for (EmitterInstX*& i : emitters)
             if (i && !i->HasEnded(a2))
                 return false;
         return true;
     }
 
-    void XEffectInst::Reset(GPM, GLT, Scene* sc) {
+    void EffectInstX::Reset(GPM, GLT, Scene* sc) {
         frame0 = -(float_t)data.appear_time;
         frame1 = 0.0;
 
@@ -848,20 +848,20 @@ namespace Glitter {
             enum_or(flags, EFFECT_INST_EXT_ANIM_AUTH);
         }
 
-        for (XEmitterInst*& i : emitters)
+        for (EmitterInstX*& i : emitters)
             if (i)
                 i->Reset();
 
         ResetInit(GPM_VAL, sc);
     }
 
-    bool XEffectInst::ResetCheckInit(GPM, GLT, Scene* sc, float_t* init_delta_frame) {
+    bool EffectInstX::ResetCheckInit(GPM, GLT, Scene* sc, float_t* init_delta_frame) {
         if (init)
             return ResetInit(GPM_VAL, sc, init_delta_frame);
         return false;
     }
 
-    void XEffectInst::SetExtAnimMat(const mat4* mat) {
+    void EffectInstX::SetExtAnimMat(const mat4* mat) {
         InitExtAnim();
 
         if (!mat || !ext_anim)
@@ -879,12 +879,12 @@ namespace Glitter {
         enum_or(flags, EFFECT_INST_EXT_ANIM_MAT);
     }
 
-    void XEffectInst::CheckUpdate() {
+    void EffectInstX::CheckUpdate() {
         CheckUseCamera();
         render_scene.CheckUseCamera();
     }
 
-    void XEffectInst::CheckUseCamera() {
+    void EffectInstX::CheckUseCamera() {
         bool use_camera = false;
         if (ext_anim)
             if (!(flags & EFFECT_INST_EXT_ANIM) && !(flags & EFFECT_INST_EXT_ANIM_MAT)
@@ -893,7 +893,7 @@ namespace Glitter {
                 use_camera = true;
 
         if (!use_camera)
-            for (XEmitterInst*& i : emitters)
+            for (EmitterInstX*& i : emitters)
                 if (i->CheckUseCamera()) {
                     use_camera = true;
                     break;
@@ -905,7 +905,7 @@ namespace Glitter {
             enum_and(flags, ~EFFECT_INST_CAMERA);
     }
 
-    void XEffectInst::Ctrl(GPM, float_t delta_frame) {
+    void EffectInstX::Ctrl(GPM, float_t delta_frame) {
         GetExtAnim();
         if (flags & EFFECT_INST_EXT_ANIM_GET_THEN_UPDATE && !GPM_VAL->draw_all)
             return;
@@ -937,12 +937,12 @@ namespace Glitter {
         mat4_mul_rotate_zyx(&mat, &rot, &mat);
         mat4_scale_rot(&mat, &scale, &this->mat);
 
-        for (XEmitterInst*& i : emitters)
+        for (EmitterInstX*& i : emitters)
             if (i)
                 i->Ctrl(GPM_VAL, this, delta_frame);
     }
 
-    void XEffectInst::CtrlFlags(float_t delta_frame) {
+    void EffectInstX::CtrlFlags(float_t delta_frame) {
         if (flags & EFFECT_INST_NOT_ENDED)
             enum_and(flags, ~EFFECT_INST_NOT_ENDED);
 
@@ -970,13 +970,13 @@ namespace Glitter {
         }
     }
 
-    void XEffectInst::CtrlInit(GPM, float_t delta_frame) {
+    void EffectInstX::CtrlInit(GPM, float_t delta_frame) {
         if (frame0 < 0.0f)
             return;
 
         GetValue();
 
-        for (XEmitterInst*& i : emitters) {
+        for (EmitterInstX*& i : emitters) {
             if (i->data.timer != EMITTER_TIMER_BY_DISTANCE)
                 continue;
 
@@ -991,11 +991,11 @@ namespace Glitter {
             break;
         }
 
-        for (XEmitterInst*& i : emitters)
+        for (EmitterInstX*& i : emitters)
             i->CtrlInit(this, delta_frame);
     }
 
-    void XEffectInst::CtrlMat(GPM) {
+    void EffectInstX::CtrlMat(GPM) {
         if (!(flags & EFFECT_INST_RESET_INIT))
             return;
 
@@ -1009,14 +1009,14 @@ namespace Glitter {
         mat4_scale_rot(&mat, &scale, &mat);
         this->mat = mat;
 
-        for (XEmitterInst*& i : emitters)
+        for (EmitterInstX*& i : emitters)
             if (i)
                 i->CtrlMat(GPM_VAL, this);
 
         enum_and(flags, ~EFFECT_INST_RESET_INIT);
     }
 
-    void XEffectInst::Emit(GPM, float_t delta_frame, float_t emission) {
+    void EffectInstX::Emit(GPM, float_t delta_frame, float_t emission) {
         if (flags & EFFECT_INST_EXT_ANIM_GET_THEN_UPDATE)
             return;
         else if (flags & EFFECT_INST_NOT_ENDED) {
@@ -1028,14 +1028,14 @@ namespace Glitter {
         else if (frame0 < 0.0f)
             return;
 
-        for (XEmitterInst*& i : emitters)
+        for (EmitterInstX*& i : emitters)
             i->Emit(delta_frame, emission);
     }
 
-    void XEffectInst::EmitInit(GPM, float_t delta_frame, float_t emission) {
+    void EffectInstX::EmitInit(GPM, float_t delta_frame, float_t emission) {
         if (frame0 >= 0.0f) {
             if (frame0 < (float_t)data.life_time) {
-                for (XEmitterInst*& i : emitters)
+                for (EmitterInstX*& i : emitters)
                     if (i)
                         i->EmitInit(GPM_VAL, this, delta_frame, emission);
             }
@@ -1044,14 +1044,14 @@ namespace Glitter {
             else
                 Free(GPM_VAL, Glitter::X, emission, false);
 
-            for (XEmitterInst*& i : emitters)
+            for (EmitterInstX*& i : emitters)
                 i->RenderGroupCtrl(delta_frame);
         }
 
         frame0 += delta_frame;
     }
 
-    DispType XEffectInst::GetDispType() {
+    DispType EffectInstX::GetDispType() {
         if (data.flags & EFFECT_SCREEN)
             return DISP_SCREEN;
         else if (data.flags & EFFECT_PRE_TRANSLUCENT)
@@ -1061,7 +1061,7 @@ namespace Glitter {
         return DISP_NORMAL;
     }
 
-    void XEffectInst::GetExtAnim() {
+    void EffectInstX::GetExtAnim() {
         if (!ext_anim || !data.ext_anim_x)
             return;
 
@@ -1176,7 +1176,7 @@ namespace Glitter {
         }
     }
 
-    bool XEffectInst::GetExtAnimMat(mat4* mat) {
+    bool EffectInstX::GetExtAnimMat(mat4* mat) {
         if (!(flags & EFFECT_INST_EXT_ANIM_TRANS) || !ext_anim)
             return false;
 
@@ -1184,7 +1184,7 @@ namespace Glitter {
         return true;
     }
 
-    void XEffectInst::GetExtColor(float_t& r, float_t& g, float_t& b, float_t& a) {
+    void EffectInstX::GetExtColor(float_t& r, float_t& g, float_t& b, float_t& a) {
         if (!(flags & EFFECT_INST_EXT_COLOR))
             return;
 
@@ -1218,7 +1218,7 @@ namespace Glitter {
         if (a < 0.0f)
             a = 0.0f;
     }
-    FogType XEffectInst::GetFog() {
+    FogType EffectInstX::GetFog() {
         if (data.flags & EFFECT_FOG)
             return Glitter::FOG_DEPTH;
         else if (data.flags & EFFECT_FOG_HEIGHT)
@@ -1226,11 +1226,11 @@ namespace Glitter {
         return Glitter::FOG_NONE;
     }
 
-    bool XEffectInst::GetUseCamera() {
+    bool EffectInstX::GetUseCamera() {
         return !!(EFFECT_INST_CAMERA);
     }
 
-    void XEffectInst::GetValue() {
+    void EffectInstX::GetValue() {
         Animation* anim = &effect->animation;
         size_t length = anim->curves.size();
         for (int32_t i = 0; i < length; i++) {
@@ -1286,19 +1286,19 @@ namespace Glitter {
         }
     }
 
-    void XEffectInst::InitExtAnim() {
+    void EffectInstX::InitExtAnim() {
         if (!ext_anim) {
-            ext_anim = new XEffectInst::ExtAnim;
+            ext_anim = new EffectInstX::ExtAnim;
             if (ext_anim)
                 ext_anim->Reset();
         }
     }
 
-    void XEffectInst::RenderSceneCtrl(float_t delta_frame) {
+    void EffectInstX::RenderSceneCtrl(float_t delta_frame) {
         render_scene.Ctrl(delta_frame, true);
     }
 
-    bool XEffectInst::ResetInit(GPM, Scene* sc, float_t* init_delta_frame) {
+    bool EffectInstX::ResetInit(GPM, Scene* sc, float_t* init_delta_frame) {
         if (data.start_time < 1)
             return false;
 
@@ -1338,7 +1338,7 @@ namespace Glitter {
         return ret;
     }
 
-    void XEffectInst::SetExtAnim(const mat4* a2, const mat4* a3, const vec3* trans, bool set_flags) {
+    void EffectInstX::SetExtAnim(const mat4* a2, const mat4* a3, const vec3* trans, bool set_flags) {
         EffectInstFlag flags = this->flags;
         if (a2) {
             mat4 mat = *a2;

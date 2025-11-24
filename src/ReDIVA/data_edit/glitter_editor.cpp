@@ -1891,7 +1891,7 @@ static void glitter_editor_draw_emitter_type_effect_inst(
     if (!emit)
         return;
 
-    Glitter::F2EffectInst* f2_eff_inst = dynamic_cast<Glitter::F2EffectInst*>(eff_inst);
+    Glitter::EffectInstF2* f2_eff_inst = dynamic_cast<Glitter::EffectInstF2*>(eff_inst);
     if (f2_eff_inst && (f2_eff_inst->render_scene.GetCtrlCount(Glitter::PARTICLE_QUAD)
         || f2_eff_inst->render_scene.GetCtrlCount(Glitter::PARTICLE_LINE)
         || f2_eff_inst->render_scene.GetCtrlCount(Glitter::PARTICLE_LOCUS)))
@@ -1902,7 +1902,7 @@ static void glitter_editor_draw_emitter_type_effect_inst(
                 break;
             }
 
-    Glitter::XEffectInst* x_eff_inst = dynamic_cast<Glitter::XEffectInst*>(eff_inst);
+    Glitter::EffectInstX* x_eff_inst = dynamic_cast<Glitter::EffectInstX*>(eff_inst);
     if (x_eff_inst && (x_eff_inst->render_scene.GetCtrlCount(Glitter::PARTICLE_QUAD)
         || x_eff_inst->render_scene.GetCtrlCount(Glitter::PARTICLE_LINE)
         || x_eff_inst->render_scene.GetCtrlCount(Glitter::PARTICLE_LOCUS)

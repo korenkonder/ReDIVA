@@ -14,16 +14,16 @@ namespace Glitter {
 
     }
 
-    F2ParticleInst::Data::Data() : data(), flags(),
+    ParticleInstF2::Data::Data() : data(), flags(),
         render_group(), random_ptr(), effect(), emitter(), parent(), particle() {
     }
 
-    F2ParticleInst::Data::~Data() {
+    ParticleInstF2::Data::~Data() {
 
     }
 
-    F2ParticleInst::F2ParticleInst(Particle* ptcl, F2EffectInst* eff_inst,
-        F2EmitterInst* emit_inst, Random* random, float_t emission) {
+    ParticleInstF2::ParticleInstF2(Particle* ptcl, EffectInstF2* eff_inst,
+        EmitterInstF2* emit_inst, Random* random, float_t emission) {
         particle = ptcl;
         data.effect = eff_inst;
         data.emitter = emit_inst;
@@ -32,7 +32,7 @@ namespace Glitter {
         data.random_ptr = random;
 
         if (data.data.type != PARTICLE_LOCUS) {
-            F2RenderGroup* rend_group = new F2RenderGroup(this);
+            RenderGroupF2* rend_group = new RenderGroupF2(this);
             if (rend_group) {
                 rend_group->disp_type = eff_inst->GetDispType();
                 rend_group->fog_type = eff_inst->GetFog();
@@ -56,7 +56,7 @@ namespace Glitter {
             enum_or(data.flags, PARTICLE_INST_LOCUS);
     }
 
-    F2ParticleInst::F2ParticleInst(F2ParticleInst* parent, float_t emission) {
+    ParticleInstF2::ParticleInstF2(ParticleInstF2* parent, float_t emission) {
         particle = parent->particle;
         data.effect = parent->data.effect;
         data.emitter = parent->data.emitter;
@@ -67,9 +67,9 @@ namespace Glitter {
 
         data.particle = parent->data.particle;
 
-        F2RenderGroup* rend_group = new F2RenderGroup(this);
+        RenderGroupF2* rend_group = new RenderGroupF2(this);
         if (rend_group) {
-            F2EffectInst* effect = parent->data.effect;
+            EffectInstF2* effect = parent->data.effect;
             rend_group->disp_type = effect->GetDispType();
             rend_group->fog_type = effect->GetFog();
 
@@ -90,20 +90,20 @@ namespace Glitter {
             enum_or(data.flags, PARTICLE_INST_LOCUS);
     }
 
-    F2ParticleInst::~F2ParticleInst() {
+    ParticleInstF2::~ParticleInstF2() {
         if (data.render_group) {
             data.render_group->DeleteBuffers(true);
             data.render_group = 0;
         }
 
-        for (F2ParticleInst*& i : data.children)
+        for (ParticleInstF2*& i : data.children)
             if (i) {
                 delete i;
                 i = 0;
             }
     }
 
-    void F2ParticleInst::AccelerateParticle(GLT, RenderElement* rend_elem,
+    void ParticleInstF2::AccelerateParticle(GLT, RenderElement* rend_elem,
         float_t time, float_t delta_frame, Random* random) {
         rend_elem->translation_prev = rend_elem->translation;
         float_t delta_time = delta_frame * (float_t)(1.0 / 60.0);
@@ -132,33 +132,33 @@ namespace Glitter {
         }
     }
 
-    void F2ParticleInst::Copy(F2ParticleInst* dst, float_t emission) {
+    void ParticleInstF2::Copy(ParticleInstF2* dst, float_t emission) {
         dst->data.flags = data.flags;
         if (data.render_group && dst->data.render_group)
             data.render_group->Copy(dst->data.render_group);
 
-        for (F2ParticleInst*& i : dst->data.children)
+        for (ParticleInstF2*& i : dst->data.children)
             if (i) {
                 delete i;
                 i = 0;
             }
         dst->data.children.clear();
 
-        for (F2ParticleInst*& i : data.children)
+        for (ParticleInstF2*& i : data.children)
             if (i) {
-                F2ParticleInst* child = new F2ParticleInst(this, emission);
+                ParticleInstF2* child = new ParticleInstF2(this, emission);
                 dst->data.children.push_back(child);
                 i->Copy(child, emission);
             }
     }
 
-    void F2ParticleInst::Emit(GPM, GLT, int32_t dup_count, int32_t count, float_t emission) {
+    void ParticleInstF2::Emit(GPM, GLT, int32_t dup_count, int32_t count, float_t emission) {
         if (data.flags & PARTICLE_INST_ENDED)
             return;
 
-        F2ParticleInst* ptcl = this;
+        ParticleInstF2* ptcl = this;
         while (!ptcl->data.parent && ptcl->data.flags & PARTICLE_INST_LOCUS) {
-            F2ParticleInst* particle = new F2ParticleInst(ptcl, emission);
+            ParticleInstF2* particle = new ParticleInstF2(ptcl, emission);
             if (particle)
                 ptcl->data.children.push_back(particle);
             else
@@ -174,7 +174,7 @@ namespace Glitter {
                 &ptcl->data.data, ptcl->data.emitter, dup_count, count);
     }
 
-    void F2ParticleInst::EmitParticle(GPM, GLT, RenderElement* rend_elem, F2EmitterInst* emit_inst,
+    void ParticleInstF2::EmitParticle(GPM, GLT, RenderElement* rend_elem, EmitterInstF2* emit_inst,
         Particle::Data* ptcl_data, int32_t index, Random* random) {
         counter.Increment();
         random->SetValue(counter.GetValue());
@@ -278,16 +278,16 @@ namespace Glitter {
         random->F2StepValue();
     }
 
-    void F2ParticleInst::Free(bool free) {
+    void ParticleInstF2::Free(bool free) {
         enum_or(data.flags, PARTICLE_INST_ENDED);
         if (free && data.render_group)
             data.render_group->Free();
 
-        for (F2ParticleInst*& i : data.children)
+        for (ParticleInstF2*& i : data.children)
             i->Free(free);
     }
 
-    void F2ParticleInst::GetColor(Glitter::RenderElement* rend_elem) {
+    void ParticleInstF2::GetColor(Glitter::RenderElement* rend_elem) {
         float_t r = rend_elem->color.x;
         if (r < 0.0f)
             r = data.data.color.x;
@@ -315,7 +315,7 @@ namespace Glitter {
             rend_elem->disp = false;
     }
 
-    bool F2ParticleInst::GetExtAnimScale(vec3* ext_anim_scale, float_t* ext_scale) {
+    bool ParticleInstF2::GetExtAnimScale(vec3* ext_anim_scale, float_t* ext_scale) {
         if (data.effect)
             return data.effect->GetExtAnimScale(ext_anim_scale, ext_scale);
         else if (data.parent && data.parent->data.effect)
@@ -324,14 +324,14 @@ namespace Glitter {
             return false;
     }
 
-    void F2ParticleInst::GetExtColor(float_t& r, float_t& g, float_t& b, float_t& a) {
+    void ParticleInstF2::GetExtColor(float_t& r, float_t& g, float_t& b, float_t& a) {
         if (data.effect)
             data.effect->GetExtColor(r, g, b, a);
         else if (data.parent && data.parent->data.effect)
             data.parent->data.effect->GetExtColor(r, g, b, a);
     }
 
-    bool F2ParticleInst::GetValue(GLT, RenderElement* rend_elem, float_t frame, Random* random) {
+    bool ParticleInstF2::GetValue(GLT, RenderElement* rend_elem, float_t frame, Random* random) {
         float_t value = 0.0f;
         bool has_translation = false;
         vec3 translation = 0.0f;
@@ -412,7 +412,7 @@ namespace Glitter {
         return true;
     }
 
-    bool F2ParticleInst::HasEnded(bool a2) {
+    bool ParticleInstF2::HasEnded(bool a2) {
         if (!(data.flags & PARTICLE_INST_ENDED))
             return false;
         else if (!a2)
@@ -424,33 +424,33 @@ namespace Glitter {
             return true;
         }
 
-        for (F2ParticleInst*& i : data.children)
+        for (ParticleInstF2*& i : data.children)
             if (!i->HasEnded(a2))
                 return false;
         return true;
     }
 
-    void F2ParticleInst::RenderGroupCtrl(GLT, float_t delta_frame) {
+    void ParticleInstF2::RenderGroupCtrl(GLT, float_t delta_frame) {
         if (data.parent || !(data.flags & PARTICLE_INST_LOCUS)) {
             if (data.render_group)
                 data.render_group->Ctrl(GLT_VAL, delta_frame, true);
             return;
         }
 
-        for (F2ParticleInst*& i : data.children)
+        for (ParticleInstF2*& i : data.children)
             i->RenderGroupCtrl(GLT_VAL, delta_frame);
     }
 
-    void F2ParticleInst::Reset() {
+    void ParticleInstF2::Reset() {
         data.flags = (ParticleInstFlag)0;
         if (data.render_group)
             data.render_group->Free();
 
-        for (F2ParticleInst*& i : data.children)
+        for (ParticleInstF2*& i : data.children)
             i->Reset();
     }
 
-    void F2ParticleInst::StepUVParticle(GLT, RenderElement* rend_elem, float_t delta_frame, Random* random) {
+    void ParticleInstF2::StepUVParticle(GLT, RenderElement* rend_elem, float_t delta_frame, Random* random) {
         if (data.data.frame_step_uv <= 0.0f)
             return;
 
@@ -482,17 +482,17 @@ namespace Glitter {
         rend_elem->frame_step_uv -= delta_frame;
     }
 
-    XParticleInst::Data::Data() : data(), flags(),
+    ParticleInstX::Data::Data() : data(), flags(),
         render_group(), random_ptr(), effect(), emitter(), parent(), particle() {
 
     }
 
-    XParticleInst::Data::~Data() {
+    ParticleInstX::Data::~Data() {
 
     }
 
-    XParticleInst::XParticleInst(Particle* ptcl, XEffectInst* eff_inst,
-        XEmitterInst* emit_inst, Random* random, float_t emission) {
+    ParticleInstX::ParticleInstX(Particle* ptcl, EffectInstX* eff_inst,
+        EmitterInstX* emit_inst, Random* random, float_t emission) {
         particle = ptcl;
         data.effect = eff_inst;
         data.emitter = emit_inst;
@@ -501,7 +501,7 @@ namespace Glitter {
         data.random_ptr = random;
 
         if (data.data.type == PARTICLE_QUAD || data.data.type == PARTICLE_MESH) {
-            XRenderGroup* rend_group = new XRenderGroup(this);
+            RenderGroupX* rend_group = new RenderGroupX(this);
             if (rend_group) {
                 rend_group->disp_type = eff_inst->GetDispType();
                 rend_group->fog_type = eff_inst->GetFog();
@@ -526,7 +526,7 @@ namespace Glitter {
             enum_or(data.flags, PARTICLE_INST_LOCUS);
     }
 
-    XParticleInst::XParticleInst(XParticleInst* parent, float_t emission) {
+    ParticleInstX::ParticleInstX(ParticleInstX* parent, float_t emission) {
         particle = parent->particle;
         data.effect = parent->data.effect;
         data.emitter = parent->data.emitter;
@@ -537,9 +537,9 @@ namespace Glitter {
 
         data.particle = parent->data.particle;
 
-        XRenderGroup* rend_group = new XRenderGroup(this);
+        RenderGroupX* rend_group = new RenderGroupX(this);
         if (rend_group) {
-            XEffectInst* effect = parent->data.effect;
+            EffectInstX* effect = parent->data.effect;
             rend_group->disp_type = effect->GetDispType();
             rend_group->fog_type = effect->GetFog();
 
@@ -556,20 +556,20 @@ namespace Glitter {
             enum_or(data.flags, PARTICLE_INST_LOCUS);
     }
 
-    XParticleInst::~XParticleInst() {
+    ParticleInstX::~ParticleInstX() {
         if (data.render_group) {
             data.render_group->DeleteBuffers(true);
             data.render_group = 0;
         }
 
-        for (XParticleInst*& i : data.children)
+        for (ParticleInstX*& i : data.children)
             if (i) {
                 delete i;
                 i = 0;
             }
     }
 
-    void XParticleInst::AccelerateParticle(RenderElement* rend_elem,
+    void ParticleInstX::AccelerateParticle(RenderElement* rend_elem,
         float_t delta_frame, Random* random) {
         rend_elem->translation_prev = rend_elem->translation;
         float_t time = rend_elem->frame * (float_t)(1.0 / 60.0);
@@ -605,7 +605,7 @@ namespace Glitter {
         rend_elem->speed = max_def(speed, 0.0f);
     }
 
-    bool XParticleInst::CheckUseCamera() {
+    bool ParticleInstX::CheckUseCamera() {
         Particle* ptcl = data.particle;
         if (!ptcl)
             return false;
@@ -634,33 +634,33 @@ namespace Glitter {
         return false;
     }
 
-    void XParticleInst::Copy(XParticleInst* dst, float_t emission) {
+    void ParticleInstX::Copy(ParticleInstX* dst, float_t emission) {
         dst->data.flags = data.flags;
         if (data.render_group && dst->data.render_group)
             data.render_group->Copy(dst->data.render_group);
 
-        for (XParticleInst*& i : dst->data.children)
+        for (ParticleInstX*& i : dst->data.children)
             if (i) {
                 delete i;
                 i = 0;
             }
         dst->data.children.clear();
 
-        for (XParticleInst*& i : data.children)
+        for (ParticleInstX*& i : data.children)
             if (i) {
-                XParticleInst* child = new XParticleInst(this, emission);
+                ParticleInstX* child = new ParticleInstX(this, emission);
                 dst->data.children.push_back(child);
                 i->Copy(child, emission);
             }
     }
 
-    void XParticleInst::Emit(int32_t dup_count, int32_t count, float_t emission, float_t frame) {
+    void ParticleInstX::Emit(int32_t dup_count, int32_t count, float_t emission, float_t frame) {
         if (data.flags & PARTICLE_INST_ENDED)
             return;
 
-        XParticleInst* ptcl = this;
+        ParticleInstX* ptcl = this;
         while (!ptcl->data.parent && ptcl->data.flags & PARTICLE_INST_LOCUS) {
-            XParticleInst* particle = new XParticleInst(ptcl, emission);
+            ParticleInstX* particle = new ParticleInstX(ptcl, emission);
             if (particle)
                 ptcl->data.children.push_back(particle);
             else
@@ -675,7 +675,7 @@ namespace Glitter {
             ptcl->data.render_group->Emit(&ptcl->data.data, ptcl->data.emitter, dup_count, count, frame);
     }
 
-    void XParticleInst::EmitParticle(RenderElement* rend_elem, XEmitterInst* emit_inst,
+    void ParticleInstX::EmitParticle(RenderElement* rend_elem, EmitterInstX* emit_inst,
         Particle::Data* ptcl_data, int32_t index, uint8_t step, Random* random) {
         rend_elem->random = random->GetValue();
         rend_elem->frame = 0.0f;
@@ -800,7 +800,7 @@ namespace Glitter {
         random->XStepValue();
     }
 
-    void XParticleInst::GetColor(Glitter::RenderElement* rend_elem, float_t color_scale) {
+    void ParticleInstX::GetColor(Glitter::RenderElement* rend_elem, float_t color_scale) {
         float_t r = rend_elem->color.x;
         if (r < 0.0f)
             r = data.data.color.x;
@@ -840,7 +840,7 @@ namespace Glitter {
             rend_elem->disp = false;
     }
 
-    bool XParticleInst::GetExtAnimScale(vec3* ext_anim_scale, float_t* ext_scale) {
+    bool ParticleInstX::GetExtAnimScale(vec3* ext_anim_scale, float_t* ext_scale) {
         if (data.effect)
             return data.effect->GetExtAnimScale(ext_anim_scale, ext_scale);
         else if (data.parent && data.parent->data.effect)
@@ -849,14 +849,14 @@ namespace Glitter {
             return false;
     }
 
-    void XParticleInst::GetExtColor(float_t& r, float_t& g, float_t& b, float_t& a) {
+    void ParticleInstX::GetExtColor(float_t& r, float_t& g, float_t& b, float_t& a) {
         if (data.effect)
             data.effect->GetExtColor(r, g, b, a);
         else if (data.parent && data.parent->data.effect)
             data.parent->data.effect->GetExtColor(r, g, b, a);
     }
 
-    bool XParticleInst::GetUseCamera() {
+    bool ParticleInstX::GetUseCamera() {
         if (data.effect)
             return data.effect->GetUseCamera();
         else if (data.parent && data.parent->data.effect)
@@ -865,7 +865,7 @@ namespace Glitter {
             return false;
     }
 
-    bool XParticleInst::GetValue(RenderElement* rend_elem, float_t frame, Random* random, float_t* color_scale) {
+    bool ParticleInstX::GetValue(RenderElement* rend_elem, float_t frame, Random* random, float_t* color_scale) {
         float_t value = 0.0f;
         vec3 translation = 0.0f;
         bool has_translation = false;
@@ -970,16 +970,16 @@ namespace Glitter {
         return true;
     }
 
-    void XParticleInst::Free(bool free) {
+    void ParticleInstX::Free(bool free) {
         enum_or(data.flags, PARTICLE_INST_ENDED);
         if (free && data.render_group)
             data.render_group->Free();
 
-        for (XParticleInst*& i : data.children)
+        for (ParticleInstX*& i : data.children)
             i->Free(free);
     }
 
-    bool XParticleInst::HasEnded(bool a2) {
+    bool ParticleInstX::HasEnded(bool a2) {
         if (!(data.flags & PARTICLE_INST_ENDED))
             return false;
         else if (!a2)
@@ -991,33 +991,33 @@ namespace Glitter {
             return true;
         }
 
-        for (XParticleInst*& i : data.children)
+        for (ParticleInstX*& i : data.children)
             if (!i->HasEnded(a2))
                 return false;
         return true;
     }
 
-    void XParticleInst::RenderGroupCtrl(float_t delta_frame) {
+    void ParticleInstX::RenderGroupCtrl(float_t delta_frame) {
         if (data.parent || !(data.flags & PARTICLE_INST_LOCUS)) {
             if (data.render_group)
                 data.render_group->Ctrl(delta_frame, true);
             return;
         }
 
-        for (XParticleInst*& i : data.children)
+        for (ParticleInstX*& i : data.children)
             i->RenderGroupCtrl(delta_frame);
     }
 
-    void XParticleInst::Reset() {
+    void ParticleInstX::Reset() {
         data.flags = (ParticleInstFlag)0;
         if (data.render_group)
             data.render_group->Free();
 
-        for (XParticleInst*& i : data.children)
+        for (ParticleInstX*& i : data.children)
             i->Reset();
     }
 
-    void XParticleInst::StepUVParticle(RenderElement* rend_elem, float_t delta_frame, Random* random) {
+    void ParticleInstX::StepUVParticle(RenderElement* rend_elem, float_t delta_frame, Random* random) {
         if (data.data.frame_step_uv <= 0.0f)
             return;
 

@@ -12,7 +12,7 @@ namespace Glitter {
 
     }
 
-    void RenderElement::InitLocusHistory(GLT, F2ParticleInst* ptcl_inst, Random* random) {
+    void RenderElement::InitLocusHistory(GLT, ParticleInstF2* ptcl_inst, Random* random) {
         if (ptcl_inst->data.data.type == PARTICLE_LOCUS) {
             uint32_t locus_history_size = random->F2GetInt(GLT_VAL,
                 -ptcl_inst->data.data.locus_history_size_random,
@@ -24,7 +24,7 @@ namespace Glitter {
             locus_history = 0;
     }
 
-    void RenderElement::InitLocusHistory(XParticleInst* ptcl_inst, Random* random) {
+    void RenderElement::InitLocusHistory(ParticleInstX* ptcl_inst, Random* random) {
         if (ptcl_inst->data.data.type == PARTICLE_LOCUS) {
             uint32_t locus_history_size = random->XGetInt(
                 -ptcl_inst->data.data.locus_history_size_random,
@@ -36,7 +36,7 @@ namespace Glitter {
             locus_history = 0;
     }
 
-    void RenderElement::InitMesh(GLT, F2EmitterInst* emit_inst,
+    void RenderElement::InitMesh(GLT, EmitterInstF2* emit_inst,
         Particle::Data* ptcl_data, int32_t index, Random* random) {
         if (ptcl_data->flags & (PARTICLE_EMITTER_LOCAL | PARTICLE_ROTATE_BY_EMITTER))
             base_translation = 0.0f;
@@ -79,7 +79,7 @@ namespace Glitter {
             + random->F2GetVec3(GLT_VAL, ptcl_data->acceleration_random);
     }
 
-    void RenderElement::InitMesh(XEmitterInst* emit_inst,
+    void RenderElement::InitMesh(EmitterInstX* emit_inst,
         Particle::Data* ptcl_data, int32_t index, Random* random) {
         if (ptcl_data->flags & (PARTICLE_EMITTER_LOCAL | PARTICLE_ROTATE_BY_EMITTER))
             base_translation = 0.0f;
