@@ -549,7 +549,7 @@ static void farc_pack_files(farc* f, stream& s, farc_signature signature, farc_f
     std::vector<size_t> size_compressed_enc;
     if (f->ft) {
         time_t t;
-        srand((uint32_t)_time64(&t));
+        srand((uint32_t)time(&t));
     }
 
     if (encrypted)

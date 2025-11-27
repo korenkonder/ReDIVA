@@ -7372,7 +7372,7 @@ bool x_pv_game::ctrl() {
         x_pv_game_write_dsc(pv_data.pv_data.dsc, pv_data.pv_id, x_pack_mmp_out_dir);
 
         time_t t;
-        srand((uint32_t)_time64(&t));
+        srand((uint32_t)::time(&t));
 
         std::vector<auth_3d*> chara_effect_auth_3ds;
         std::vector<auth_3d*> song_effect_auth_3ds;
