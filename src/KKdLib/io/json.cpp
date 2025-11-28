@@ -289,10 +289,6 @@ static char* io_json_read_string_inner(stream& s, io_json_read_buffer* buf, int3
                 uint32_t uc = 0;
                 if ((*c = io_json_read_char(s, buf)) == EOF)
                     break;
-                uc |= io_json_read_string_hex(*c) << 24;
-
-                if ((*c = io_json_read_char(s, buf)) == EOF)
-                    break;
                 uc |= io_json_read_string_hex(*c) << 16;
 
                 if ((*c = io_json_read_char(s, buf)) == EOF)
@@ -301,11 +297,15 @@ static char* io_json_read_string_inner(stream& s, io_json_read_buffer* buf, int3
 
                 if ((*c = io_json_read_char(s, buf)) == EOF)
                     break;
+                uc |= io_json_read_string_hex(*c) << 4;
+
+                if ((*c = io_json_read_char(s, buf)) == EOF)
+                    break;
                 uc |= io_json_read_string_hex(*c);
 
                 if (uc <= 0x7F)
                     len++;
-                else if (*c <= 0x7FF)
+                else if (uc <= 0x7FF)
                     len += 2;
                 else
                     len += 3;
@@ -356,9 +356,9 @@ static char* io_json_read_string_inner(stream& s, io_json_read_buffer* buf, int3
                 break;
             case 'u': {
                 uint32_t uc = 0;
-                uc |= io_json_read_string_hex(io_json_read_char(s, buf)) << 24;
                 uc |= io_json_read_string_hex(io_json_read_char(s, buf)) << 16;
                 uc |= io_json_read_string_hex(io_json_read_char(s, buf)) << 8;
+                uc |= io_json_read_string_hex(io_json_read_char(s, buf)) << 4;
                 uc |= io_json_read_string_hex(io_json_read_char(s, buf));
                 if (uc <= 0x7F)
                     temp[i] = (char)uc;
@@ -380,8 +380,19 @@ static char* io_json_read_string_inner(stream& s, io_json_read_buffer* buf, int3
             temp[i++] = *c;
     }
 
-    if ((*c = io_json_read_char(s, buf)) == EOF)
+    if ((*c = io_json_read_char(s, buf)) == EOF) {
+        free_def(temp);
         return 0;
+    }
+
+    if (*c == '"') {
+        if ((*c = io_json_read_char(s, buf)) == EOF) {
+            free_def(temp);
+            return 0;
+        }
+
+        io_json_seek_one(s, buf);
+    }
 
     return temp;
 }
@@ -393,8 +404,10 @@ inline static void io_json_read_string(stream& s, io_json_read_buffer* buf, msgp
 }
 
 inline static void io_json_read_skip_whitespace(stream& s, io_json_read_buffer* buf, int32_t* c) {
-    while ((*c = io_json_read_char(s, buf)) != EOF) {
-        if (CHECK_WHITESPACE(*c))
+    int32_t ch;
+    while ((ch = io_json_read_char(s, buf)) != EOF) {
+        *c = ch;
+        if (CHECK_WHITESPACE(ch))
             continue;
         break;
     }
@@ -421,16 +434,18 @@ static void io_json_read_map(stream& s, io_json_read_buffer* buf, msgpack* msg, 
             }
             io_json_read_skip_whitespace(s, buf, c);
 
-            map->push_back(key, {});
+            map->push_back({ key, {} });
             io_json_read_inner(s, buf, &map->back().second, c);
             free_def(key);
 
+            bool valid_end = *c == '}';
             io_json_read_skip_whitespace(s, buf, c);
 
             if (*c == '}')
                 break;
             else if (*c != ',') {
-                *msg = {};
+                if (!valid_end)
+                    *msg = {};
                 return;
             }
         }
@@ -450,12 +465,14 @@ static void io_json_read_array(stream& s, io_json_read_buffer* buf, msgpack* msg
             array->push_back({});
             io_json_read_inner(s, buf, &array->back(), c);
 
+            bool valid_end = *c == ']';
             io_json_read_skip_whitespace(s, buf, c);
 
             if (*c == ']')
                 break;
             else if (*c != ',') {
-                *msg = {};
+                if (!valid_end)
+                    *msg = {};
                 return;
             }
         }
