@@ -716,7 +716,7 @@ inline static void io_json_write_string(stream& s, std::string& val) {
             s.write("\\u", 2);
 
             char t[5];
-            size_t len = sprintf_s(t, 5, "%04x", (wchar_t)*str);
+            size_t len = sprintf_s(t, 5, "%04x", *str);
             s.write(t, len);
         } break;
         case 0x08:
@@ -739,9 +739,6 @@ inline static void io_json_write_string(stream& s, std::string& val) {
             break;
         case 0x5C:
             s.write("\\\\", 2);
-            break;
-        case 0x2F:
-            s.write("\\/", 2);
             break;
         default:
             s.write_char(*str);
