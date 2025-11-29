@@ -1863,7 +1863,7 @@ namespace pv_db {
                     stage_param.collision_file.assign(collision_file);
 
                 std::string wind_file;
-                if (kv.read("collision_file", wind_file))
+                if (kv.read("wind_file", wind_file))
                     stage_param.wind_file.assign(wind_file);
 
                 pv->stage_param.push_back(stage_param);

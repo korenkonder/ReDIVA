@@ -868,7 +868,7 @@ int32_t OsageCollision::osage_cls(vec3& p, const float_t& cls_r, const OsageColl
 
 // 0x1404851C0
 int32_t OsageCollision::osage_cls_work_list(vec3& p, const float_t& cls_r, const OsageCollision& coli, float_t* fric) {
-    if (coli.work_list.size() && coli.work_list.back().type != SkinParam::CollisionTypeEnd)
+    if (coli.work_list.size() && coli.work_list.back().type == SkinParam::CollisionTypeEnd)
         return OsageCollision::osage_cls(p, cls_r, coli.work_list.data(), fric);
     return 0;
 }
