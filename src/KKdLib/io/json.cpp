@@ -385,14 +385,12 @@ static char* io_json_read_string_inner(stream& s, io_json_read_buffer* buf, int3
         return 0;
     }
 
-    if (*c == '"') {
-        if ((*c = io_json_read_char(s, buf)) == EOF) {
-            free_def(temp);
-            return 0;
-        }
-
-        io_json_seek_one(s, buf);
+    if (*c == '"' && (*c = io_json_read_char(s, buf)) == EOF) {
+        free_def(temp);
+        return 0;
     }
+
+    io_json_seek_one(s, buf);
 
     return temp;
 }
