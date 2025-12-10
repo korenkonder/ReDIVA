@@ -61,7 +61,7 @@ namespace rndr {
 
     }
 
-    Render::Render() : base_downsample(), ss_alpha_mask(), taa_tex(), aet_back_tex(), reduce_tex(),
+    Render::Render() : base_downsample(), ss_alpha_mask(), taa_tex(), composite_back_tex(), reduce_tex(),
         reduce_tex_draw(), exposure_tex(), exposure_history(), tonemap_lut_texture(), mlaa_area_texture(),
         texture_counter(), lens_shaft_query(), lens_flare_query(), lens_shaft_query_data(),
         lens_flare_query_data(), lens_flare_query_index(), lens_flare_texture(), lens_shaft_texture(),
@@ -71,7 +71,7 @@ namespace rndr {
         taa_texture(), reset_exposure(), screen_x_offset(), screen_y_offset(), screen_width(),
         screen_height(), saturate_lock(), exposure_history_counter(), exposure_query_index(),
         lens_shaft_scale(), lens_flare_power(), field_A10(), lens_flare_appear_power(),
-        render_textures_data(), movie_textures_data(), aet_back(), dof(), transparency_tex(),
+        render_textures_data(), movie_textures_data(), composite_back(), dof(), transparency_tex(),
         transparency(), saturate_index(), scene_fade_index(), tone_trans_index(), saturate_coeff(),
         scene_fade_alpha(), scene_fade_blend_func(), tone_map(), mag_filter(), fade(), update() {
         exposure = 2.0f;
@@ -118,8 +118,8 @@ namespace rndr {
     }
 
     Render::~Render() {
-        if (aet_back_tex)
-            texture_release(aet_back_tex);
+        if (composite_back_tex)
+            texture_release(composite_back_tex);
 
         if (dof) {
             delete dof;
@@ -297,10 +297,10 @@ namespace rndr {
             rend_data_ctx.state.bind_sampler(i, 0);
     }
 
-    void Render::bind_render_texture(p_gl_rend_state& p_gl_rend_st, bool aet_back) {
-        if (aet_back) {
-            aet_back_texture.Bind(p_gl_rend_st);
-            this->aet_back = 1;
+    void Render::bind_render_texture(p_gl_rend_state& p_gl_rend_st, bool composite_back) {
+        if (composite_back) {
+            composite_back_texture.Bind(p_gl_rend_st);
+            this->composite_back = 1;
         }
         else
             rend_texture[0].Bind(p_gl_rend_st);
@@ -692,11 +692,11 @@ namespace rndr {
             }
         }
 
-        aet_back_texture.Free();
+        composite_back_texture.Free();
 
-        if (aet_back_tex) {
-            texture_release(aet_back_tex);
-            aet_back_tex = 0;
+        if (composite_back_tex) {
+            texture_release(composite_back_tex);
+            composite_back_tex = 0;
             texture_counter--;
         }
 
@@ -925,9 +925,9 @@ namespace rndr {
             taa_buffer[i].SetColorDepthTextures(taa_tex[i]->glid, 0, rend_texture[0].GetDepthTex());
         }
 
-        aet_back_tex = texture_load_tex_2d(texture_id(0x25, texture_counter++),
+        composite_back_tex = texture_load_tex_2d(texture_id(0x25, texture_counter++),
             GL_RGBA8, render_post_width[0], render_post_height[0], 0, 0, 0);
-        aet_back_texture.SetColorDepthTextures(aet_back_tex->glid, 0, rend_texture[0].GetDepthTex());
+        composite_back_texture.SetColorDepthTextures(composite_back_tex->glid, 0, rend_texture[0].GetDepthTex());
 
         mlaa_buffer.Init(render_post_width[0], render_post_height[0], 0, GL_RGBA8, GL_DEPTH_COMPONENT24);
         temp_buffer.Init(render_post_width[0], render_post_height[0], 0, GL_RGBA8, GL_ZERO);
@@ -1053,7 +1053,7 @@ namespace rndr {
 
     void Render::post_proc() {
         lens_flare_texture = 0;
-        aet_back = 0;
+        composite_back = 0;
     }
 
     void Render::pre_proc(render_data_context& rend_data_ctx) {
@@ -1211,11 +1211,11 @@ namespace rndr {
             taa_buffer[i].SetColorDepthTextures(taa_tex[i]->glid, 0, rend_texture[0].GetDepthTex());
         }
 
-        texture_id aet_back_tex_id = aet_back_tex->id;
-        texture_release(aet_back_tex);
-        aet_back_tex = texture_load_tex_2d(aet_back_tex_id, GL_RGBA8,
+        texture_id composite_back_tex_id = composite_back_tex->id;
+        texture_release(composite_back_tex);
+        composite_back_tex = texture_load_tex_2d(composite_back_tex_id, GL_RGBA8,
             render_post_width[0], render_post_height[0], 0, 0, 0);
-        aet_back_texture.SetColorDepthTextures(aet_back_tex->glid, 0, rend_texture[0].GetDepthTex());
+        composite_back_texture.SetColorDepthTextures(composite_back_tex->glid, 0, rend_texture[0].GetDepthTex());
 
         mlaa_buffer.Init(render_post_width[0], render_post_height[0], 0, GL_RGBA8, GL_DEPTH_COMPONENT24);
         temp_buffer.Init(render_post_width[0], render_post_height[0], 0, GL_RGBA8, GL_ZERO);
@@ -1617,7 +1617,7 @@ namespace rndr {
 
         rend_data_ctx.shader_flags.arr[U_TONE_MAP] = (int32_t)tone_map;
         rend_data_ctx.shader_flags.arr[U_FLARE] = 0;
-        rend_data_ctx.shader_flags.arr[U_AET_BACK] = 0;
+        rend_data_ctx.shader_flags.arr[U_COMPOSITE_BACK] = 0;
         rend_data_ctx.shader_flags.arr[U_LIGHT_PROJ] = 0;
 
         int32_t scene_fade_blend_func = this->scene_fade_blend_func[scene_fade_index];
@@ -1709,10 +1709,10 @@ namespace rndr {
             shader_data.g_texcoord_transforms[7] = { 0.0f, 1.0f, 0.0f, 0.0f };
         }
 
-        if (aet_back) {
-            rend_data_ctx.state.active_bind_texture_2d(6, aet_back_tex->glid);
+        if (composite_back) {
+            rend_data_ctx.state.active_bind_texture_2d(6, composite_back_tex->glid);
             rend_data_ctx.state.bind_sampler(6, rctx->render_samplers[2]);
-            rend_data_ctx.shader_flags.arr[U_AET_BACK] = 1;
+            rend_data_ctx.shader_flags.arr[U_COMPOSITE_BACK] = 1;
         }
 
         if (light_proj_tex) {
@@ -1727,7 +1727,7 @@ namespace rndr {
             rend_data_ctx.state.bind_sampler(7, rctx->render_samplers[2]);
         }
 
-        if (aet_back && npr_param == 1) {
+        if (composite_back && npr_param == 1) {
             rend_data_ctx.state.active_bind_texture_2d(14, rend_texture[0].GetDepthTex());
             rend_data_ctx.state.bind_sampler(14, rctx->render_samplers[1]);
         }

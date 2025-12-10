@@ -1269,7 +1269,7 @@ static const shader_description tone_map_fpt_desc[] = {
     { SHADER_DESCRIPTION_SAMPLER, 2, 0, U_INVALID, },
     { SHADER_DESCRIPTION_SAMPLER, 4, 0, U_INVALID, },
     { SHADER_DESCRIPTION_SAMPLER, 5, 0, U_INVALID, },
-    { SHADER_DESCRIPTION_SAMPLER, 6, 0, U_AET_BACK, },
+    { SHADER_DESCRIPTION_SAMPLER, 6, 0, U_COMPOSITE_BACK, },
     { SHADER_DESCRIPTION_SAMPLER, 7, 0, U_INVALID, },
     SHADER_DESCRIPTION_COMMON_QUAD,
     { SHADER_DESCRIPTION_UNIFORM, 1, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
@@ -2420,7 +2420,7 @@ static const uniform_name CONSTANT_uniform[] = {
 
 static const uniform_name TONEMAP_uniform[] = {
     U_TONE_MAP,
-    U_AET_BACK,
+    U_COMPOSITE_BACK,
 };
 
 static const uniform_name REDUCE_uniform[] = {
