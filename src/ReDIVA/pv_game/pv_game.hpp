@@ -105,14 +105,13 @@ struct pv_game_field {
     ~pv_game_field();
 };
 
-struct struc_269 {
+struct pv_game_edit_instrument {
     prj::vector_pair<object_info, int32_t> data;
     std::vector<auth_3d_id> auth_3d_ids;
-    int32_t field_30;
-    int32_t field_34;
+    int32_t index;
 
-    struc_269();
-    ~struc_269();
+    pv_game_edit_instrument();
+    ~pv_game_edit_instrument();
 };
 
 struct pv_game_chreff {
@@ -285,7 +284,7 @@ struct pv_game_data {
     std::vector<int32_t> itmpv_auth_3d_uids;
     std::map<int32_t, std::pair<auth_3d_id, int64_t>> itmpv[ROB_CHARA_COUNT];
     std::vector<std::string> itmpv_uids;
-    struc_269 field_2DA08[3];
+    pv_game_edit_instrument edit_instrument[3];
     std::vector<int32_t> loaded_auth_3d_uids;
     bool field_2DAC8;
     int32_t field_2DACC;
@@ -377,6 +376,8 @@ struct pv_game {
     void disp_song_name();
     void edit_effect_ctrl(float_t delta_time);
     void edit_effect_set(int32_t index, float_t frame_speed, float_t delta_time);
+    void edit_instrument_reset();
+    void edit_instrument_set_disp(int32_t chara_id, bool value);
     void end(bool complete, bool set_fade);
     float_t get_aet_frame_max_frame(int32_t aet_frame, int32_t aet_index, std::pair<std::string,
         std::string>& aet_name_id, int64_t dsc_time, int64_t curr_time, float_t* max_frame);
@@ -439,6 +440,7 @@ struct pv_game {
     void set_data_itmpv_max_frame(int32_t chara_id, int32_t index, float_t value);
     void set_data_itmpv_visibility(int32_t chara_id, bool value);
     void set_data_itmpv_visibility(int32_t chara_id, int32_t index, bool value);
+    void set_edit_instrument(int32_t chara_id, bool disp, int32_t index, float_t frame, float_t frame_speed);
     void set_eyes_adjust(pv_game_chara* chr);
     void set_item(size_t performer, rob_chara_pv_data_item& value);
     void set_item_mask(size_t performer, size_t item, bool value);
@@ -464,9 +466,6 @@ struct pv_game {
     void sub_14010F030();
     int32_t sub_14010F930();
     int32_t sub_140112C00(int32_t index);
-    void sub_140113730();
-    void sub_140115C10(int32_t chara_id, bool value);
-    void sub_140115C90(int32_t chara_id, bool disp, int32_t index, float_t frame, float_t frame_speed);
     void sub_1401230A0();
 
     static void chara_item_alpha_callback(void* data, int32_t chara_id, int32_t type, float_t alpha);

@@ -1452,7 +1452,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
             else
                 rob_chr->set_visibility(false);
 
-        pv_game->sub_140115C10(chara_id, playdata->disp);
+        pv_game->edit_instrument_set_disp(chara_id, playdata->disp);
     } break;
     case DSC_FT_AIM: {
         chara_id = data[0];
@@ -1848,7 +1848,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
             field_2C560.field_288[chara_id] = index != -1;
             field_2C560.field_290[chara_id] = index;
             field_2C560.field_2A8[chara_id] = frame_speed;
-            pv_game->sub_140115C90(chara_id, playdata->disp, index, rob_chr->get_frame(), frame_speed);
+            pv_game->set_edit_instrument(chara_id, playdata->disp, index, rob_chr->get_frame(), frame_speed);
         }
     } break;
     case DSC_FT_PV_END_FADEOUT: {
