@@ -721,36 +721,36 @@ static void farc_pack_files(farc* f, stream& s, farc_signature signature, farc_f
     case FARC_FArc:
         for (farc_file& i : f->files) {
             s.write_string_null_terminated(i.name);
-            s.write_int32_t_reverse_endianness((int32_t)i.offset, true);
-            s.write_int32_t_reverse_endianness((int32_t)i.size, true);
+            s.write_uint32_t_reverse_endianness((uint32_t)i.offset, true);
+            s.write_uint32_t_reverse_endianness((uint32_t)i.size, true);
         }
         break;
     case FARC_FArC:
         for (farc_file& i : f->files) {
             s.write_string_null_terminated(i.name);
-            s.write_int32_t_reverse_endianness((int32_t)i.offset, true);
+            s.write_uint32_t_reverse_endianness((uint32_t)i.offset, true);
             if (i.compressed) {
-                s.write_int32_t_reverse_endianness((int32_t)i.size_compressed, true);
-                s.write_int32_t_reverse_endianness((int32_t)i.size, true);
+                s.write_uint32_t_reverse_endianness((uint32_t)i.size_compressed, true);
+                s.write_uint32_t_reverse_endianness((uint32_t)i.size, true);
             }
             else {
-                s.write_int32_t_reverse_endianness((int32_t)i.size, true);
-                s.write_int32_t_reverse_endianness(0x00, true);
+                s.write_uint32_t_reverse_endianness((uint32_t)i.size, true);
+                s.write_uint32_t_reverse_endianness(0x00, true);
             }
         }
         break;
     case FARC_FARC:
         for (farc_file& i : f->files) {
             s.write_string_null_terminated(i.name);
-            s.write_int32_t_reverse_endianness((int32_t)i.offset, true);
+            s.write_uint32_t_reverse_endianness((uint32_t)i.offset, true);
             if (i.encrypted && encrypted)
-                s.write_int32_t_reverse_endianness(
+                s.write_uint32_t_reverse_endianness(
                     (uint32_t)size_compressed_enc.data()[&i - f->files.data()], true);
             else if (i.compressed && compressed)
-                s.write_int32_t_reverse_endianness((uint32_t)i.size_compressed, true);
+                s.write_uint32_t_reverse_endianness((uint32_t)i.size_compressed, true);
             else
-                s.write_int32_t_reverse_endianness((int32_t)i.size, true);
-            s.write_int32_t_reverse_endianness((int32_t)i.size, true);
+                s.write_uint32_t_reverse_endianness((uint32_t)i.size, true);
+            s.write_uint32_t_reverse_endianness((uint32_t)i.size, true);
             if (f->entry_padding)
                 s.write(f->entry_padding);
         }
