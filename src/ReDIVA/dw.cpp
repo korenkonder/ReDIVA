@@ -1658,7 +1658,7 @@ namespace dw {
                     field_100 = (field_100 & ~0x02) | 0x100;
             }
             else if (data.input & 0x10)
-                field_100 |= 0x2;
+                field_100 |= 0x02;
         }
 
         if (field_100 & 0x100) {
@@ -3349,13 +3349,13 @@ void struc_751::sub_140300A10() {
             key_input[1] |= 0x8000000;
 
         if (i->CheckDown(7))
-            key_input[1] |= 0x1;
+            key_input[1] |= 0x01;
         if (i->CheckDown(8))
-            key_input[1] |= 0x2;
+            key_input[1] |= 0x02;
         if (i->CheckDown(9))
-            key_input[1] |= 0x4;
+            key_input[1] |= 0x04;
         if (i->CheckDown(2))
-            key_input[1] |= 0x8;
+            key_input[1] |= 0x08;
 
         if (i->CheckTapped(7))
             key_input[1] |= 0x10;

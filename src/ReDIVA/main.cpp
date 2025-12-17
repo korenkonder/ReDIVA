@@ -368,13 +368,13 @@ void compile_shaders(farc* f, farc* of, const shader_table* shaders_table, const
             char uniform_vert_flags_buf[9];
             char uniform_frag_flags_buf[9];
             for (int32_t k = 0, l = 7; k < 32; k += 4, l--) {
-                int32_t vert_flags_digit = (uniform_vert_flags >> k) & 0xF;
+                int32_t vert_flags_digit = (uniform_vert_flags >> k) & 0x0F;
                 if (vert_flags_digit >= 0x00 && vert_flags_digit <= 0x09)
                     uniform_vert_flags_buf[l] = (char)('0' + vert_flags_digit);
                 else
                     uniform_vert_flags_buf[l] = (char)('A' + (vert_flags_digit - 0x0A));
 
-                int32_t frag_flags_digit = (uniform_frag_flags >> k) & 0xF;
+                int32_t frag_flags_digit = (uniform_frag_flags >> k) & 0x0F;
                 if (frag_flags_digit >= 0x00 && frag_flags_digit <= 0x09)
                     uniform_frag_flags_buf[l] = (char)('0' + frag_flags_digit);
                 else

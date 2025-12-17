@@ -14115,7 +14115,7 @@ void rob_chara_item_equip_object::load_ex_data(obj_skin_ex_data* ex_data,
             osage_count++;
         } break;
         default: {
-            if (null_count >= 0x4)
+            if (null_count >= 0x04)
                 continue;
 
             ExNullBlock* null = new ExNullBlock;
@@ -14957,7 +14957,7 @@ static void sub_140526FD0(rob_chara_item_cos_data* item_cos_data,
 
 static void sub_140527280(rob_chara_item_cos_data* item_cos_data,
     int32_t item_no, const item_table_item* item) {
-    if (!(item->attr & 0x20) || !(item->attr & 0xC))
+    if (!(item->attr & 0x20) || !(item->attr & 0x0C))
         return;
 
     for (const item_table_item_data_obj& i : item->data.obj) {
@@ -15069,7 +15069,7 @@ static void sub_14052C560(rob_chara_item_cos_data* item_sub_data,
             if (i.rpk != ITEM_NONE) {
                 rob_itm_equip->load_outfit_object_info(i.rpk,
                     i.obj_info, false, bone_data, data, obj_db);
-                if (item->attr & 0xC)
+                if (item->attr & 0x0C)
                     item_sub_data->set_texture_pattern(rob_itm_equip, item_no, i.rpk, false);
             }
             continue;
@@ -15082,7 +15082,7 @@ static void sub_14052C560(rob_chara_item_cos_data* item_sub_data,
         if (id != ITEM_NONE) {
             rob_itm_equip->load_body_parts_object_info(id, i.obj_info, bone_data, data, obj_db);
             item_sub_data->field_F0.insert({ i.obj_info, id });
-            if (item->attr & 0xC)
+            if (item->attr & 0x0C)
                 item_sub_data->set_texture_pattern(rob_itm_equip, item_no, id, false);
         }
         else {
@@ -15097,7 +15097,7 @@ static void sub_14052C560(rob_chara_item_cos_data* item_sub_data,
                 else
                     rob_itm_equip->load_body_parts_object_info(id, i.obj_info, bone_data, data, obj_db);
                 item_sub_data->field_F0.insert({ i.obj_info, id });
-                if (item->attr & 0xC)
+                if (item->attr & 0x0C)
                     item_sub_data->set_texture_pattern(rob_itm_equip, item_no, id, v8);
             }
         }
@@ -15240,7 +15240,7 @@ static void sub_140522D90(rob_chara_item_cos_data* item_cos_data, rob_chara_item
             item_id id = sub_140525B90(item_cos_data, *v6);
             rob_itm_equip->load_body_parts_object_info(id, i.obj_info, bone_data, data, obj_db);
             item_cos_data->field_F0.insert({ i.obj_info, id });
-            if (item->attr & 0xC)
+            if (item->attr & 0x0C)
                 item_cos_data->set_texture_pattern(rob_itm_equip, item_no, id, false);
 
             if (i.rpk == ITEM_NONE)
