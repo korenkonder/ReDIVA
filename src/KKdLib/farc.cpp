@@ -388,6 +388,7 @@ void farc::write(void** data, size_t* size, farc_signature signature, farc_flags
     memory_stream s;
     s.open();
     farc_pack_files(this, s, signature, flags);
+    s.copy(data, size);
 }
 
 bool farc::load_file(void* data, const char* dir, const char* file, uint32_t hash) {
