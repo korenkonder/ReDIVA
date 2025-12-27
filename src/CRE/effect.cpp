@@ -6078,7 +6078,7 @@ static void particle_init(vec3* offset) {
     const size_t ptcl_vtx_count = ptcl_count * 0x06;
 
     ptcl_data = force_malloc<particle_rot_data>(ptcl_count);
-    ptcl_vertex_data = force_malloc<particle_vertex_data>(ptcl_count);
+    ptcl_vertex_data = force_malloc<particle_vertex_data>(ptcl_count * 6);
 
     particle_rot_data* data = ptcl_data;
     for (size_t i = 0; i < ptcl_count; i++, data++)
