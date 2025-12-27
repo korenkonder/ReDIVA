@@ -85,7 +85,7 @@ namespace rndr {
         std::list<draw_pre_process> pre_process;
         texture* effect_texture;
         int32_t npr_param;
-        bool field_31C;
+        bool npr_mask;
         bool reflect_texture_mask;
         bool reflect_tone_curve;
         bool field_31F;

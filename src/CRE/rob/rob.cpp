@@ -14590,7 +14590,7 @@ void rob_chara_item_equip::disp(int32_t chara_id, render_context* rctx) {
 
     disp_manager.set_texture_color_coefficients(texture_color_coefficients);
     disp_manager.set_wet_param(wet);
-    rctx->render_manager->field_31C |= npr_flag;
+    rctx->render_manager->npr_mask |= npr_flag;
     sub_140512C20(this, rctx);
     rob_chara_age_age_array_disp(rctx, chara_id, rctx->chara_reflect, chara_color);
 

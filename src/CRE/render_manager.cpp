@@ -116,7 +116,7 @@ namespace rndr {
         field_120(), show_ref_map(), reflect_type(), clear(), tex_index(), width(), height(),
         multisample_framebuffer(), multisample_renderbuffer(), multisample(), check_state(), show_vector_flags(),
         show_vector_length(), show_vector_z_offset(), show_stage_shadow(), effect_texture(), npr_param(),
-        field_31C(), reflect_texture_mask(), reflect_tone_curve(), field_31F(), light_stage_ambient(), npr() {
+        npr_mask(), reflect_texture_mask(), reflect_tone_curve(), field_31F(), light_stage_ambient(), npr() {
         for (bool& i : pass_sw)
             i = true;
 
@@ -200,7 +200,7 @@ namespace rndr {
         reflect = false;
         refract = false;
         npr_param = 0;
-        field_31C = false;
+        npr_mask = false;
         reflect_texture_mask = false;
         reflect_tone_curve = false;
         field_31F = false;
@@ -369,7 +369,7 @@ namespace rndr {
         rend_data_ctx.state.begin_event("rndpass_post_proc");
         rctx_ptr->post_proc();
         render->post_proc();
-        field_31C = false;
+        npr_mask = false;
         rend_data_ctx.state.end_event();
     }
 

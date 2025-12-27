@@ -1405,7 +1405,7 @@ void render_context::disp() {
     render_manager->rndpass_pre_proc();
     render_manager->render_all();
     render_manager->rndpass_post_proc();
-    render_manager->field_31C = false;
+    render_manager->npr_mask = false;
     if (!get_pause())
         app::TaskWork::basic();
     finish_render_process();
