@@ -729,7 +729,7 @@ inline vec2 vec2::normalize_rcp(const vec2& left) {
     zt = _mm_mul_ps(xt, xt);
     zt = _mm_sqrt_ss(_mm_hadd_ps(zt, zt));
     if (_mm_cvtss_f32(zt) != 0.0f)
-        return vec2::store_xmm(_mm_mul_ps(xt, _mm_div_ss(vec2::load_xmm(1.0f), _mm_shuffle_ps(zt, zt, 0))));
+        return vec2::store_xmm(_mm_mul_ps(xt, _mm_div_ps(vec2::load_xmm(1.0f), _mm_shuffle_ps(zt, zt, 0))));
     return vec2::store_xmm(xt);
 }
 
@@ -1050,7 +1050,7 @@ inline vec3 vec3::normalize_rcp(const vec3& left) {
     zt = _mm_hadd_ps(zt, zt);
     zt = _mm_sqrt_ss(_mm_hadd_ps(zt, zt));
     if (_mm_cvtss_f32(zt) != 0.0f)
-        return vec3::store_xmm(_mm_mul_ps(xt, _mm_div_ss(vec3::load_xmm(1.0f), _mm_shuffle_ps(zt, zt, 0))));
+        return vec3::store_xmm(_mm_mul_ps(xt, _mm_div_ps(vec3::load_xmm(1.0f), _mm_shuffle_ps(zt, zt, 0))));
     return vec3::store_xmm(xt);
 }
 
@@ -1375,7 +1375,7 @@ inline vec4 vec4::normalize_rcp(const vec4& left) {
     zt = _mm_hadd_ps(zt, zt);
     zt = _mm_sqrt_ss(_mm_hadd_ps(zt, zt));
     if (_mm_cvtss_f32(zt) != 0.0f)
-        return vec4::store_xmm(_mm_mul_ps(xt, _mm_div_ss(vec4::load_xmm(1.0f), _mm_shuffle_ps(zt, zt, 0))));
+        return vec4::store_xmm(_mm_mul_ps(xt, _mm_div_ps(vec4::load_xmm(1.0f), _mm_shuffle_ps(zt, zt, 0))));
     return vec4::store_xmm(xt);
 }
 
