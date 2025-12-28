@@ -300,6 +300,37 @@ static char* get_uniform_location(char* data, prj::vector_pair<int32_t, std::str
     return str_utils_copy(temp.c_str());
 }
 
+static char* remove_control_flow_attributes(char* data) {
+    char* ext_control_flow_attributes_ptr = strstr(data,
+        "#extension GL_EXT_control_flow_attributes : require");
+    if (!ext_control_flow_attributes_ptr)
+        return data;
+
+    size_t ext_control_flow_attributes_pos = ext_control_flow_attributes_ptr - data;
+
+    std::string temp(data);
+    free_def(data);
+
+    size_t ext_control_flow_attributes_end_pos = temp.find('\n', ext_control_flow_attributes_pos);
+    if (ext_control_flow_attributes_end_pos != -1) {
+        ext_control_flow_attributes_end_pos++;
+
+        temp.replace(ext_control_flow_attributes_pos,
+            ext_control_flow_attributes_end_pos - ext_control_flow_attributes_pos, "#pragma optionNV(unroll all)");
+    }
+
+    size_t attribute_pos = 0;
+    while ((attribute_pos = temp.find("[[unroll]]", attribute_pos)) != -1) {
+        size_t attribute_end_pos = attribute_pos + 10;
+        while (isspace(temp.data()[attribute_end_pos]))
+            attribute_end_pos++;
+
+        temp.erase(attribute_pos, attribute_end_pos - attribute_pos);
+    }
+
+    return str_utils_copy(temp.c_str());
+}
+
 static char* replace_skinning_with_g_skinning(char* data) {
     char* buffer_skinning_ptr = strstr(data,
         "layout(std430, set = 2, binding = 0) readonly buffer Skinning");
@@ -1025,6 +1056,9 @@ void shader_set_data::load(farc* f, bool ignore_cache,
                 vert_data = shader::parse_include(vert_data, f);
                 frag_data = shader::parse_include(frag_data, f);
 
+                vert_data = remove_control_flow_attributes(vert_data);
+                frag_data = remove_control_flow_attributes(frag_data);
+
                 if (sv_texture_skinning_buffer) {
                     vert_data = replace_skinning_with_g_skinning(vert_data);
                     frag_data = replace_skinning_with_g_skinning(frag_data);
@@ -1355,8 +1389,10 @@ static GLuint shader_compile_shader(GLenum type, const char* data, const char* f
     if (!success) {
         GLint length = 0;
         glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length);
-        GLchar* info_log = force_malloc<GLchar>(length);
+        GLchar* info_log = force_malloc<GLchar>(length + 1LL);
         glGetShaderInfoLog(shader, length, 0, info_log);
+        info_log[length] = 0;
+
         const char* type_str = "Unknown";
         switch (type) {
         case GL_FRAGMENT_SHADER:
@@ -1388,8 +1424,9 @@ static GLuint shader_compile_shader(GLenum type, const char* data, const char* f
             s.open(buf, L"wb");
             s.write_utf8_string(data);
             s.write_utf8_string("\n/*\n");
-            s.write_utf8_string(info_log);
+            s.write(info_log, length);
             s.write_utf8_string("*/\n");
+            s.close();
         }
 
         free_def(info_log);
@@ -1420,8 +1457,10 @@ static GLuint shader_compile(const char* vert, const char* frag, const char* vp,
     if (!success) {
         GLint length = 0;
         glGetProgramiv(program, GL_INFO_LOG_LENGTH, &length);
-        GLchar* info_log = force_malloc<GLchar>(length);
+        GLchar* info_log = force_malloc<GLchar>(length + 1LL);
         glGetProgramInfoLog(program, length, 0, info_log);
+        info_log[length] = 0;
+
         printf_debug("Program Shader Permut linking error:\nvp: %s; fp: %s\n%s\n", vp, fp, info_log);
 
         wchar_t temp_buf[MAX_PATH];
@@ -1444,7 +1483,7 @@ static GLuint shader_compile(const char* vert, const char* frag, const char* vp,
             s.open(buf, L"wb");
             s.write_utf8_string(vert);
             s.write_utf8_string("\n/*\n");
-            s.write_utf8_string(info_log);
+            s.write(info_log, length);
             s.write_utf8_string("*/\n");
             s.close();
 
@@ -1455,7 +1494,7 @@ static GLuint shader_compile(const char* vert, const char* frag, const char* vp,
             s.open(buf, L"wb");
             s.write_utf8_string(frag);
             s.write_utf8_string("\n/*\n");
-            s.write_utf8_string(info_log);
+            s.write(info_log, length);
             s.write_utf8_string("*/\n");
             s.close();
         }
@@ -1494,8 +1533,10 @@ static GLuint shader_compile_binary(const char* vert, const char* frag, const ch
     if (!success) {
         GLint length = 0;
         glGetProgramiv(program, GL_INFO_LOG_LENGTH, &length);
-        GLchar* info_log = force_malloc<GLchar>(length);
+        GLchar* info_log = force_malloc<GLchar>(length + 1LL);
         glGetProgramInfoLog(program, length, 0, info_log);
+        info_log[length] = 0;
+
         printf_debug("Program Shader Permut linking error:\nvp: %s; fp: %s\n%s\n", vp, fp, info_log);
 
         wchar_t temp_buf[MAX_PATH];
@@ -1518,7 +1559,7 @@ static GLuint shader_compile_binary(const char* vert, const char* frag, const ch
             s.open(buf, L"wb");
             s.write_utf8_string(vert);
             s.write_utf8_string("\n/*\n");
-            s.write_utf8_string(info_log);
+            s.write(info_log, length);
             s.write_utf8_string("*/\n");
             s.close();
 
@@ -1529,7 +1570,7 @@ static GLuint shader_compile_binary(const char* vert, const char* frag, const ch
             s.open(buf, L"wb");
             s.write_utf8_string(frag);
             s.write_utf8_string("\n/*\n");
-            s.write_utf8_string(info_log);
+            s.write(info_log, length);
             s.write_utf8_string("*/\n");
             s.close();
         }

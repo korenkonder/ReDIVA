@@ -864,7 +864,7 @@ struct particle_data {
 };
 
 struct rain_particle_scene_shader_data {
-    vec4 g_view[4];
+    vec4 g_view[3];
     vec4 g_proj[4];
     vec4 g_range_scale;
     vec4 g_range_offset;
@@ -1400,7 +1400,6 @@ void rain_particle_draw(render_data_context& rend_data_ctx, const cam_data& cam)
     scene_shader_data.g_view[0] = temp.row0;
     scene_shader_data.g_view[1] = temp.row1;
     scene_shader_data.g_view[2] = temp.row2;
-    scene_shader_data.g_view[3] = temp.row3;
     mat4_transpose(&cam.proj_mat, &temp);
     scene_shader_data.g_proj[0] = temp.row0;
     scene_shader_data.g_proj[1] = temp.row1;
@@ -6105,14 +6104,14 @@ static void particle_init(vec3* offset) {
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, buffer_size,
         (void*)offsetof(particle_vertex_data, position));
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, buffer_size,
-        (void*)offsetof(particle_vertex_data, color));
-    glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, buffer_size,
-        (void*)offsetof(particle_vertex_data, texcoord));
-    glEnableVertexAttribArray(3);
-    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, buffer_size,
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, buffer_size,
         (void*)offsetof(particle_vertex_data, normal));
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, buffer_size,
+        (void*)offsetof(particle_vertex_data, color));
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, buffer_size,
+        (void*)offsetof(particle_vertex_data, texcoord));
 
     gl_state.bind_vertex_array(0);
     gl_state.bind_array_buffer(0);

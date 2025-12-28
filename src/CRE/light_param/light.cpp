@@ -276,8 +276,10 @@ void light_set::data_set(render_data_context& rend_data_ctx, face& face, light_s
 
     vec4 light_env_reflect_diffuse;
     vec4 light_env_reflect_ambient;
+    vec4 light_env_reflect_specular;
     lights[LIGHT_REFLECT].get_diffuse(light_env_reflect_diffuse);
     lights[LIGHT_REFLECT].get_ambient(light_env_reflect_ambient);
+    lights[LIGHT_REFLECT].get_specular(light_env_reflect_specular);
 
     vec4 light_env_proj_diffuse;
     vec4 light_env_proj_specular;
@@ -428,14 +430,13 @@ void light_set::data_set(render_data_context& rend_data_ctx, face& face, light_s
     }
 
     rend_data_ctx.set_scene_light(irradiance_r_transforms, irradiance_g_transforms, irradiance_b_transforms,
-        light_env_stage_diffuse, light_env_stage_specular, light_env_chara_diffuse,
-        light_env_chara_ambient, light_env_chara_specular,
-        light_env_reflect_diffuse, light_env_reflect_ambient,
-        light_env_proj_diffuse, light_env_proj_specular,
-        light_env_proj_position, light_stage_dir, light_stage_diff,
-        light_stage_spec, light_chara_dir, light_chara_spec,
-        light_chara_luce, light_chara_back, light_face_diff,
-        chara_color0, chara_color1, chara_f_dir, chara_f_ambient,
+        light_env_stage_diffuse, light_env_stage_specular,
+        light_env_chara_diffuse, light_env_chara_ambient, light_env_chara_specular,
+        light_env_reflect_diffuse, light_env_reflect_ambient, light_env_reflect_specular,
+        light_env_proj_diffuse, light_env_proj_specular, light_env_proj_position,
+        light_stage_dir, light_stage_diff, light_stage_spec,
+        light_chara_dir, light_chara_spec, light_chara_luce, light_chara_back,
+        light_face_diff, chara_color0, chara_color1, chara_f_dir, chara_f_ambient,
         chara_f_diffuse, chara_tc_param, normal_tangent_transforms,
         light_reflect_dir, clip_plane, npr_cloth_spec_color);
 

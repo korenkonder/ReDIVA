@@ -685,8 +685,11 @@ namespace spr {
         glVertexAttribPointer(1, 4, GL_UNSIGNED_BYTE, GL_TRUE, buffer_size_uv2,
             (void*)offsetof(sprite_vertex_data_uv2, color));
         glEnableVertexAttribArray(2);
-        glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, buffer_size_uv2,
-            (void*)offsetof(sprite_vertex_data_uv2, uv));
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, buffer_size_uv2,
+            (void*)offsetof(sprite_vertex_data_uv2, uv[0]));
+        glEnableVertexAttribArray(3);
+        glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, buffer_size_uv2,
+            (void*)offsetof(sprite_vertex_data_uv2, uv[1]));
 
         gl_state.bind_array_buffer(0);
         gl_state.bind_vertex_array(0);
@@ -765,8 +768,11 @@ namespace spr {
             glVertexAttribPointer(1, 4, GL_UNSIGNED_BYTE, GL_TRUE, buffer_size_uv2,
                 (void*)offsetof(sprite_vertex_data_uv2, color));
             glEnableVertexAttribArray(2);
-            glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, buffer_size_uv2,
-                (void*)offsetof(sprite_vertex_data_uv2, uv));
+            glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, buffer_size_uv2,
+                (void*)offsetof(sprite_vertex_data_uv2, uv[0]));
+            glEnableVertexAttribArray(3);
+            glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, buffer_size_uv2,
+                (void*)offsetof(sprite_vertex_data_uv2, uv[1]));
 
             gl_state.bind_array_buffer(0);
             gl_state.bind_vertex_array(0);

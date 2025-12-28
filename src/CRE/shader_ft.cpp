@@ -200,11 +200,11 @@ static const int32_t tights_fpt_unival_max[] = {
 };
 
 static const int32_t sky_default_vpt_unival_max[] = {
-    1, 0,
+    1,
 };
 
 static const int32_t sky_default_fpt_unival_max[] = {
-    0, 1,
+    0,
 };
 
 static const int32_t glass_eye_vpt_unival_max[] = {
@@ -248,19 +248,19 @@ static const int32_t lit_proj_fpt_unival_max[] = {
 };
 
 static const int32_t simple_vpt_unival_max[] = {
-    1,
+    1, 0,
 };
 
 static const int32_t simple_fpt_unival_max[] = {
-    0,
+    0, 1,
 };
 
 static const int32_t silhouette_vpt_unival_max[] = {
-    1, 1, 0,
+    1, 1, 0, 0,
 };
 
 static const int32_t silhouette_fpt_unival_max[] = {
-    0, 0, 1,
+    0, 0, 1, 1,
 };
 
 static const int32_t lambert_vpt_unival_max[] = {
@@ -568,11 +568,11 @@ static const int32_t puddle_fpt_unival_max[] = {
 };
 
 static const int32_t simple_reflect_vpt_unival_max[] = {
-    1, 1, 0,
+    1, 1, 0, 0,
 };
 
 static const int32_t simple_reflect_fpt_unival_max[] = {
-    0, 0, 1,
+    0, 0, 1, 1,
 };
 
 static const int32_t simple_refract_vpt_unival_max[] = {
@@ -1181,6 +1181,10 @@ static const shader_description simple_vpt_desc[] = {
 
 static const shader_description simple_fpt_desc[] = {
     { SHADER_DESCRIPTION_SAMPLER, 0, 0, U_INVALID, },
+    { SHADER_DESCRIPTION_SAMPLER, 1, 0, U_INVALID, },
+    { SHADER_DESCRIPTION_SAMPLER, 2, 0, U_INVALID, },
+    { SHADER_DESCRIPTION_SAMPLER, 3, 0, U_INVALID, },
+    { SHADER_DESCRIPTION_SAMPLER, 4, 0, U_INVALID, },
     SHADER_DESCRIPTION_COMMON_SCENE,
     { SHADER_DESCRIPTION_FRAGMENT_OUTPUT, 0, 4, U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
@@ -1289,8 +1293,8 @@ static const shader_description tone_map_npr1_vpt_desc[] = {
 static const shader_description tone_map_npr1_fpt_desc[] = {
     { SHADER_DESCRIPTION_SAMPLER,  0, 0, U_INVALID, },
     { SHADER_DESCRIPTION_SAMPLER,  1, 0, U_INVALID, },
-    { SHADER_DESCRIPTION_SAMPLER,  6, 0, U_AET_BACK, },
-    { SHADER_DESCRIPTION_SAMPLER, 14, 0, U_AET_BACK, },
+    { SHADER_DESCRIPTION_SAMPLER,  6, 0, U_COMPOSITE_BACK, },
+    { SHADER_DESCRIPTION_SAMPLER, 14, 0, U_COMPOSITE_BACK, },
     SHADER_DESCRIPTION_COMMON_QUAD,
     { SHADER_DESCRIPTION_UNIFORM, 1, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
         | sizeof(tone_map_shader_data), U_INVALID, },
@@ -1884,9 +1888,9 @@ static const shader_description fog_ptcl_fpt_desc[] = {
 
 static const shader_description particle_vpt_desc[] = {
     { SHADER_DESCRIPTION_VERTEX_INPUT, 0, 3, U_INVALID, },
-    { SHADER_DESCRIPTION_VERTEX_INPUT, 1, 4, U_INVALID, },
-    { SHADER_DESCRIPTION_VERTEX_INPUT, 2, 2, U_INVALID, },
-    { SHADER_DESCRIPTION_VERTEX_INPUT, 3, 3, U_INVALID, },
+    { SHADER_DESCRIPTION_VERTEX_INPUT, 1, 3, U_INVALID, },
+    { SHADER_DESCRIPTION_VERTEX_INPUT, 2, 4, U_INVALID, },
+    { SHADER_DESCRIPTION_VERTEX_INPUT, 3, 2, U_INVALID, },
     { SHADER_DESCRIPTION_UNIFORM, 0, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
         | 0x70, U_INVALID, }, // sizeof(particle_scene_shader_data)
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
@@ -1904,8 +1908,9 @@ static const shader_description particle_fpt_desc[] = {
 
 static const shader_description glitter_particle_vpt_desc[] = {
     { SHADER_DESCRIPTION_VERTEX_INPUT, 0, 3, U_INVALID, },
-    { SHADER_DESCRIPTION_VERTEX_INPUT, 1, 4, U_INVALID, },
-    { SHADER_DESCRIPTION_VERTEX_INPUT, 2, 4, U_INVALID, },
+    { SHADER_DESCRIPTION_VERTEX_INPUT, 1, 2, U_INVALID, },
+    { SHADER_DESCRIPTION_VERTEX_INPUT, 2, 2, U_INVALID, },
+    { SHADER_DESCRIPTION_VERTEX_INPUT, 3, 4, U_INVALID, },
     SHADER_DESCRIPTION_EFFECT_TEXTURE_SAMPLER,
     { SHADER_DESCRIPTION_UNIFORM, -1, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
         | sizeof(render_data::obj_shader_data), U_INVALID, },
@@ -1945,8 +1950,10 @@ static const shader_description font_fpt_desc[] = {
 };
 
 static const shader_description box4_vpt_desc[] = {
-    { SHADER_DESCRIPTION_VERTEX_INPUT, 0, 4, U_INVALID, },
-    { SHADER_DESCRIPTION_VERTEX_INPUT, 1, 4, U_INVALID, },
+    { SHADER_DESCRIPTION_VERTEX_INPUT, 0, 2, U_INVALID, },
+    { SHADER_DESCRIPTION_VERTEX_INPUT, 1, 2, U_INVALID, },
+    { SHADER_DESCRIPTION_VERTEX_INPUT, 2, 2, U_INVALID, },
+    { SHADER_DESCRIPTION_VERTEX_INPUT, 3, 2, U_INVALID, },
     { SHADER_DESCRIPTION_UNIFORM, 0, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
         | sizeof(filter_scene_shader_data), U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
@@ -1961,10 +1968,14 @@ static const shader_description box4_fpt_desc[] = {
 };
 
 static const shader_description box8_vpt_desc[] = {
-    { SHADER_DESCRIPTION_VERTEX_INPUT, 0, 4, U_INVALID, },
-    { SHADER_DESCRIPTION_VERTEX_INPUT, 1, 4, U_INVALID, },
-    { SHADER_DESCRIPTION_VERTEX_INPUT, 2, 4, U_INVALID, },
-    { SHADER_DESCRIPTION_VERTEX_INPUT, 3, 4, U_INVALID, },
+    { SHADER_DESCRIPTION_VERTEX_INPUT, 0, 2, U_INVALID, },
+    { SHADER_DESCRIPTION_VERTEX_INPUT, 1, 2, U_INVALID, },
+    { SHADER_DESCRIPTION_VERTEX_INPUT, 2, 2, U_INVALID, },
+    { SHADER_DESCRIPTION_VERTEX_INPUT, 3, 2, U_INVALID, },
+    { SHADER_DESCRIPTION_VERTEX_INPUT, 4, 2, U_INVALID, },
+    { SHADER_DESCRIPTION_VERTEX_INPUT, 5, 2, U_INVALID, },
+    { SHADER_DESCRIPTION_VERTEX_INPUT, 6, 2, U_INVALID, },
+    { SHADER_DESCRIPTION_VERTEX_INPUT, 7, 2, U_INVALID, },
     { SHADER_DESCRIPTION_UNIFORM, 0, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
         | sizeof(filter_scene_shader_data), U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
@@ -1996,6 +2007,7 @@ static const shader_description sprite_vpt_desc[] = {
     { SHADER_DESCRIPTION_VERTEX_INPUT, 0, 3, U_INVALID, },
     { SHADER_DESCRIPTION_VERTEX_INPUT, 1, 4, U_INVALID, },
     { SHADER_DESCRIPTION_VERTEX_INPUT, 2, 2, U_INVALID, },
+    { SHADER_DESCRIPTION_VERTEX_INPUT, 3, 2, U_INVALID, },
     { SHADER_DESCRIPTION_UNIFORM, 0, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
         | sizeof(sprite_scene_shader_data), U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
@@ -2376,7 +2388,6 @@ static const uniform_name TIGHTS_uniform[] = {
 
 static const uniform_name SKY_uniform[] = {
     U_MORPH,
-    U_ALPHA_TEST,
 };
 
 static const uniform_name GLASEYE_uniform[] = {
@@ -2398,12 +2409,14 @@ static const uniform_name LITPROJ_uniform[] = {
 
 static const uniform_name SIMPLE_uniform[] = {
     U_SKINNING,
+    U_ALPHA_TEST,
 };
 
 static const uniform_name SIL_uniform[] = {
     U_SKINNING,
     U_MORPH,
     U_ALPHA_TEST,
+    U_DEPTH,
 };
 
 static const uniform_name LAMBERT_uniform[] = {
@@ -2493,6 +2506,7 @@ static const uniform_name S_REFL_uniform[] = {
     U_SKINNING,
     U_MORPH,
     U_ALPHA_TEST,
+    U_CLIP_PLANE,
 };
 
 static const uniform_name S_REFR_uniform[] = {
