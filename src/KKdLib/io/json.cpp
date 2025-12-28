@@ -361,10 +361,10 @@ static char* io_json_read_string_inner(stream& s, io_json_read_buffer* buf, int3
                 uc |= io_json_read_string_hex(io_json_read_char(s, buf)) << 4;
                 uc |= io_json_read_string_hex(io_json_read_char(s, buf));
                 if (uc <= 0x7F)
-                    temp[i] = (char)uc;
+                    temp[i++] = (char)uc;
                 else if (uc <= 0x7FF) {
                     temp[i++] = 0xC0 | ((uc >> 6) & 0x1F);
-                    temp[i] = 0x80 | (uc & 0x3F);
+                    temp[i++] = 0x80 | (uc & 0x3F);
                 }
                 else {
                     temp[i++] = 0xE0 | ((uc >> 12) & 0xF);
