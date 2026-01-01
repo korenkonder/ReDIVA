@@ -187,10 +187,11 @@ namespace rndr {
             const cam_data& cam, texture* light_proj_tex, int32_t npr_param);
         void bind_render_texture(p_gl_rend_state& p_gl_rend_st, bool composite_back = false);
         void calc_exposure_chara_data(render_data_context& rend_data_ctx, const cam_data& cam);
+        void draw_lens_flare(render_data_context& rend_data_ctx, const cam_data& cam);
         void draw_quad(render_data_context& rend_data_ctx,
             int32_t width, int32_t height, float_t s0, float_t t0, float_t s1, float_t t1,
             float_t scale, float_t param_x, float_t param_y, float_t param_z, float_t param_w);
-        void draw_lens_flare(render_data_context& rend_data_ctx, const cam_data& cam);
+        void draw_sss_contour(render_data_context& rend_data_ctx, const cam_data& cam);
         bool frame_texture_cont_capture_set(bool value);
         void frame_texture_free();
         int32_t frame_texture_load(int32_t slot, FrameTextureType type, texture* tex);
@@ -214,6 +215,8 @@ namespace rndr {
         MagFilterType get_mag_filter();
         int32_t get_mlaa();
         vec3 get_radius();
+        void get_render_resolution(float_t* render_width, float_t* render_height,
+            float_t* render_post_width, float_t* render_post_height);
         float_t get_saturate_coeff();
         int32_t get_saturate_power();
         vec4 get_scene_fade();

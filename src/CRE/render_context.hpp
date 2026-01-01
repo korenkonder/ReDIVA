@@ -20,6 +20,7 @@
 #include "render.hpp"
 #include "render_manager.hpp"
 #include "render_texture.hpp"
+#include "sss.hpp"
 #include <unordered_map>
 
 #define MATRIX_BUFFER_COUNT 320
@@ -89,21 +90,6 @@ struct draw_state {
     void stats_update();
     void set_fog_height(bool value);
     void set_use_global_material(bool value);
-};
-
-struct sss_data {
-    bool init_data;
-    bool enable;
-    bool npr_contour;
-    RenderTexture textures[4];
-    vec4 param;
-
-    sss_data();
-    ~sss_data();
-
-    void free();
-    void init();
-    void set_texture(struct p_gl_rend_state& p_gl_rend_st, int32_t texture_index);
 };
 
 struct light_proj {
