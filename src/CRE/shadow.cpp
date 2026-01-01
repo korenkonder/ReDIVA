@@ -180,6 +180,18 @@ void Shadow::reset() {
     z_half_range = (z_far - z_near) * 0.5f;
 }
 
+// 0x00000001405E5A90
+void Shadow::set_curr_render_textures(int32_t index[2]) {
+    if (index) {
+        index[0] = this->index[0];
+        index[1] = this->index[1];
+    }
+
+    curr_render_textures[0] = &render_textures[0];
+    curr_render_textures[1] = &render_textures[1];
+    curr_render_textures[2] = &render_textures[2];
+}
+
 void Shadow::set_distance(float_t value) {
     if (fabs(value) > 0.000001f)
         distance = value;

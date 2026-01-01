@@ -67,6 +67,7 @@ struct Shadow {
     float_t get_shadow_range();
     int32_t init();
     void reset();
+    void set_curr_render_textures(int32_t index[2]);
     void set_distance(float_t value);
 };
 
