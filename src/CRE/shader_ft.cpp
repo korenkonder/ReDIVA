@@ -1107,7 +1107,7 @@ static const shader_description glass_eye_fpt_desc[] = {
 
 static const shader_description esm_gauss_vpt_desc[] = {
     { SHADER_DESCRIPTION_UNIFORM, 0, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
-        | sizeof(filter_scene_shader_data), U_INVALID, },
+        | sizeof(esm_filter_scene_shader_data), U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
 
@@ -1121,7 +1121,7 @@ static const shader_description esm_gauss_fpt_desc[] = {
 
 static const shader_description esm_filter_min_vpt_desc[] = {
     { SHADER_DESCRIPTION_UNIFORM, 0, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
-        | sizeof(filter_scene_shader_data), U_INVALID, },
+        | sizeof(esm_filter_scene_shader_data), U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
 
@@ -1135,7 +1135,7 @@ static const shader_description esm_filter_min_fpt_desc[] = {
 
 static const shader_description esm_filter_erosion_vpt_desc[] = {
     { SHADER_DESCRIPTION_UNIFORM, 0, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
-        | sizeof(filter_scene_shader_data), U_INVALID, },
+        | sizeof(esm_filter_scene_shader_data), U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
 
@@ -1955,14 +1955,14 @@ static const shader_description box4_vpt_desc[] = {
     { SHADER_DESCRIPTION_VERTEX_INPUT, 2, 2, U_INVALID, },
     { SHADER_DESCRIPTION_VERTEX_INPUT, 3, 2, U_INVALID, },
     { SHADER_DESCRIPTION_UNIFORM, 0, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
-        | sizeof(filter_scene_shader_data), U_INVALID, },
+        | sizeof(image_filter_scene_shader_data), U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
 
 static const shader_description box4_fpt_desc[] = {
     { SHADER_DESCRIPTION_SAMPLER, 0, 0, U_INVALID, },
     { SHADER_DESCRIPTION_UNIFORM, 1, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
-        | sizeof(imgfilter_batch_shader_data), U_INVALID, },
+        | sizeof(image_filter_batch_shader_data), U_INVALID, },
     { SHADER_DESCRIPTION_FRAGMENT_OUTPUT, 0, 4, U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
@@ -1977,28 +1977,28 @@ static const shader_description box8_vpt_desc[] = {
     { SHADER_DESCRIPTION_VERTEX_INPUT, 6, 2, U_INVALID, },
     { SHADER_DESCRIPTION_VERTEX_INPUT, 7, 2, U_INVALID, },
     { SHADER_DESCRIPTION_UNIFORM, 0, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
-        | sizeof(filter_scene_shader_data), U_INVALID, },
+        | sizeof(image_filter_scene_shader_data), U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
 
 static const shader_description box8_fpt_desc[] = {
     { SHADER_DESCRIPTION_SAMPLER, 0, 0, U_INVALID, },
     { SHADER_DESCRIPTION_UNIFORM, 1, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
-        | sizeof(imgfilter_batch_shader_data), U_INVALID, },
+        | sizeof(image_filter_batch_shader_data), U_INVALID, },
     { SHADER_DESCRIPTION_FRAGMENT_OUTPUT, 0, 4, U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
 
 static const shader_description copy_vpt_desc[] = {
     { SHADER_DESCRIPTION_UNIFORM, 0, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
-        | sizeof(filter_scene_shader_data), U_INVALID, },
+        | sizeof(image_filter_scene_shader_data), U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
 
 static const shader_description copy_fpt_desc[] = {
     { SHADER_DESCRIPTION_SAMPLER, 0, 0, U_INVALID, },
     { SHADER_DESCRIPTION_UNIFORM, 1, SHADER_DESCRIPTION_UNIFORM_READ_ONLY
-        | sizeof(imgfilter_batch_shader_data), U_INVALID, },
+        | sizeof(image_filter_batch_shader_data), U_INVALID, },
     { SHADER_DESCRIPTION_FRAGMENT_OUTPUT, 0, 4, U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
@@ -2687,7 +2687,7 @@ static void shader_bind_snow_particle(p_gl_rend_state& p_gl_rend_st,
     uniform_value& shader_flags, shader_set_data* set, shader* shad);
 static void shader_bind_star(p_gl_rend_state& p_gl_rend_st,
     uniform_value& shader_flags, shader_set_data* set, shader* shad);
-static void shader_bind_imgfilter(p_gl_rend_state& p_gl_rend_st,
+static void shader_bind_image_filter(p_gl_rend_state& p_gl_rend_st,
     uniform_value& shader_flags, shader_set_data* set, shader* shad);
 static void shader_bind_dof(p_gl_rend_state& p_gl_rend_st,
     uniform_value& shader_flags, shader_set_data* set, shader* shad);
@@ -2751,7 +2751,7 @@ const shader_bind_func shader_ft_bind_func_table[] = {
     },
     {
         SHADER_FT_IMGFILT,
-        shader_bind_imgfilter,
+        shader_bind_image_filter,
     },
     {
         SHADER_FT_DOF,
@@ -3083,7 +3083,7 @@ static void shader_bind_star(p_gl_rend_state& p_gl_rend_st,
     }
 }
 
-static void shader_bind_imgfilter(p_gl_rend_state& p_gl_rend_st,
+static void shader_bind_image_filter(p_gl_rend_state& p_gl_rend_st,
     uniform_value& shader_flags, shader_set_data* set, shader* shad) {
     switch (shader_flags.arr[U_IMAGE_FILTER]) {
     case 0:
