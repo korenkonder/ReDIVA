@@ -928,7 +928,7 @@ static void aet_set_modern_read_inner(aet_set* as, prj::shared_ptr<prj::stack_al
     s_aetc.set_position(0, SEEK_SET);
     if (!is_x)
         for (uint32_t i = 0; i < scenes_count; i++)
-            data[i] = s_aetc.read_uint32_t_reverse_endianness();
+            data[i] = s_aetc.read_uint32_t_reverse_endianness() - header_length;
     else
         for (uint32_t i = 0; i < scenes_count; i++)
             data[i] = s_aetc.read_int64_t_reverse_endianness();
@@ -1424,7 +1424,7 @@ static void aet_modern_read_comp(aet_comp* comp,
     std::unordered_map<int64_t, const aet_layer*>& layers, std::unordered_map<int64_t, aet_item>& items) {
     items[s.get_position()] = comp;
 
-    comp->layers_count = s.read_uint32_t();
+    comp->layers_count = s.read_uint32_t_reverse_endianness();
     int64_t layers_offset = s.read_offset(header_length, is_x);
 
     if (layers_offset) {
@@ -1445,7 +1445,7 @@ static void aet_modern_read_comp(aet_comp* comp,
 static void aet_modern_read_fcurve(aet_fcurve* fcurve,
     prj::shared_ptr<prj::stack_allocator> alloc, stream& s,
     uint32_t header_length, bool is_x) {
-    fcurve->keys_count = s.read_uint32_t();
+    fcurve->keys_count = s.read_uint32_t_reverse_endianness();
     int64_t keys_offset = s.read_offset(header_length, is_x);
 
     s.position_push(keys_offset, SEEK_SET);
