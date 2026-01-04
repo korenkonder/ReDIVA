@@ -337,7 +337,7 @@ static char* replace_skinning_with_g_skinning(char* data) {
     if (!buffer_skinning_ptr)
         return data;
 
-    char* apply_skinning_ptr = strstr(buffer_skinning_ptr, "vec4 apply_skinning(in const vec3 a_data,"
+    char* apply_skinning_ptr = strstr(buffer_skinning_ptr, "vec3 apply_skinning(in const vec3 data,"
         " in const ivec4 mtxidx, in const vec4 weight)");
     if (!apply_skinning_ptr)
         return data;
@@ -349,6 +349,16 @@ static char* replace_skinning_with_g_skinning(char* data) {
         "#define skinning_offset ivec2(g_bump_depth.zw)\n"
         "layout(binding = 21) uniform sampler2D g_skinning;\n"
         "\n"
+        "vec3 apply_skinning(in const vec3 data, in const int mtxidx_comp) {\n"
+        "    const ivec3 mtxidx_row = ivec3(mtxidx_comp * 3) + ivec3(0, 1, 2);\n"
+        "\n"
+        "    return vec3(\n"
+        "        dot(data, texelFetch(g_skinning, ivec2(mtxidx_row.x, 0) + skinning_offset, 0).xyz),\n"
+        "        dot(data, texelFetch(g_skinning, ivec2(mtxidx_row.y, 0) + skinning_offset, 0).xyz),\n"
+        "        dot(data, texelFetch(g_skinning, ivec2(mtxidx_row.z, 0) + skinning_offset, 0).xyz)\n"
+        "    );\n"
+        "}\n"
+        "\n"
         "vec3 apply_skinning(in const vec4 data, in const int mtxidx_comp) {\n"
         "    const ivec3 mtxidx_row = ivec3(mtxidx_comp * 3) + ivec3(0, 1, 2);\n"
         "\n"
@@ -356,16 +366,6 @@ static char* replace_skinning_with_g_skinning(char* data) {
         "        dot(data, texelFetch(g_skinning, ivec2(mtxidx_row.x, 0) + skinning_offset, 0)),\n"
         "        dot(data, texelFetch(g_skinning, ivec2(mtxidx_row.y, 0) + skinning_offset, 0)),\n"
         "        dot(data, texelFetch(g_skinning, ivec2(mtxidx_row.z, 0) + skinning_offset, 0))\n"
-        "    );\n"
-        "}\n"
-        "\n"
-        "vec3 apply_skinning_rotation(in const vec3 data, in const int mtxidx_comp) {\n"
-        "    const ivec3 mtxidx_row = ivec3(mtxidx_comp * 3) + ivec3(0, 1, 2);\n"
-        "\n"
-        "    return vec3(\n"
-        "        dot(data, texelFetch(g_skinning, ivec2(mtxidx_row.x, 0) + skinning_offset, 0).xyz),\n"
-        "        dot(data, texelFetch(g_skinning, ivec2(mtxidx_row.y, 0) + skinning_offset, 0).xyz),\n"
-        "        dot(data, texelFetch(g_skinning, ivec2(mtxidx_row.z, 0) + skinning_offset, 0).xyz)\n"
         "    );\n"
         "}\n"
         "\n";
