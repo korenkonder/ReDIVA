@@ -1080,7 +1080,11 @@ static void aet_classic_read_fcurve(aet_fcurve* fcurve,
         float_t* key = alloc->allocate<float_t>(fcurve->keys_count * 3ULL);
         fcurve->keys = key;
 
-        s.read(key, fcurve->keys_count * 3ULL * sizeof(float_t));
+        for (uint32_t i = fcurve->keys_count; i; i--, key += 3) {
+            key[0] = s.read_float_t(); // Frame
+            key[1] = s.read_float_t(); // Value
+            key[2] = s.read_float_t(); // Tangent
+        }
     }
     else if (fcurve->keys_count) {
         float_t* key = alloc->allocate<float_t>();
@@ -1109,7 +1113,13 @@ static void aet_classic_write_fcurve(const aet_fcurve* fcurve, stream& s,
             s.align_write(0x20);
 
         offsets[fcurve] = s.get_position();
-        s.write(fcurve->keys, fcurve->keys_count * 3ULL * sizeof(float_t));
+
+        const float_t* key = fcurve->keys;
+        for (uint32_t i = fcurve->keys_count; i; i--, key += 3) {
+            s.write_float_t(key[0]); // Frame
+            s.write_float_t(key[1]); // Value
+            s.write_float_t(key[2]); // Tangent
+        }
     }
 }
 
@@ -1453,7 +1463,11 @@ static void aet_modern_read_fcurve(aet_fcurve* fcurve,
         float_t* key = alloc->allocate<float_t>(fcurve->keys_count * 3ULL);
         fcurve->keys = key;
 
-        s.read(key, fcurve->keys_count * 3ULL * sizeof(float_t));
+        for (uint32_t i = fcurve->keys_count; i; i--, key += 3) {
+            key[0] = s.read_float_t_reverse_endianness(); // Frame
+            key[1] = s.read_float_t_reverse_endianness(); // Value
+            key[2] = s.read_float_t_reverse_endianness(); // Tangent
+        }
     }
     else if (fcurve->keys_count) {
         float_t* key = alloc->allocate<float_t>();
