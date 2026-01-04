@@ -1526,7 +1526,7 @@ static void aet_modern_read_layer(aet_layer* layer,
         s.position_pop();
     }
     else
-        layer->audio = 0;
+        layer->markers = 0;
 
     layer->video = aet_modern_read_layer_video(alloc, s, alh.video_offset, header_length, is_x);
     layer->audio = aet_modern_read_layer_audio(alloc, s, alh.audio_offset, header_length, is_x);
