@@ -12,6 +12,8 @@
 
 extern render_context* rctx_ptr;
 
+float_t sss_inverse_scale = 0.0f;
+float_t sss_inverse_scale_reflect = 0.0f;
 vec4 sss_param = 0.0f;
 vec4 sss_param_reflect = 0.0f;
 
@@ -37,46 +39,9 @@ sss_data::~sss_data() {
 void sss_data::apply_filter(struct render_data_context& rend_data_ctx) {
     render_context* rctx = rctx_ptr;
 
+    pre_proc(rctx->render_manager->cam);
+
     const int32_t sss_count = 6;
-    vec3 interest = rctx->camera->interest;
-    vec3 view_point = rctx->camera->view_point;
-
-    vec3 chara_position[2];
-    chara_position[0] = 0.0f;
-    chara_position[1] = 0.0f;
-    float_t chara_distance[2];
-    for (int32_t i = 0; i < 2; i++) {
-        chara_position[i] = interest;
-        chara_distance[i] = 999999.0f;
-        rob_chara_bone_data* rob_bone_data = rob_chara_array_get_bone_data(i);
-        if (rob_chara_pv_data_array_check_chara_id(i) && rob_chara_array_check_visibility(i)) {
-            mat4* mat = rob_bone_data->get_mats_mat(MOTION_BONE_N_HARA_CP);
-            if (mat) {
-                mat4_get_translation(mat, &chara_position[i]);
-                if (reflect_draw)
-                    mat4_transform_point(&reflect_mat, &chara_position[i], &chara_position[i]);
-                chara_distance[i] = vec3::distance(view_point, chara_position[i]);
-            }
-        }
-    }
-
-    vec3 closest_chara_position = chara_distance[0] <= chara_distance[1]
-        ? chara_position[0] : chara_position[1];
-
-    float_t length = vec3::distance(interest, closest_chara_position);
-    if (length > 1.25f)
-        interest = closest_chara_position;
-
-    float_t distance_to_interest = max_def(vec3::distance(view_point, interest), 0.25f);
-    float_t fov_scale = max_def(tanf(rctx->camera->fov * 0.5f * DEG_TO_RAD_FLOAT) * 5.0f, 0.25f);
-    float_t sss_strength = 0.6f;
-    float_t inverse_scale = (float_t)(1.0 / clamp_def(fov_scale * distance_to_interest, 0.25f, 100.0f));
-    if (inverse_scale < 0.145f)
-        sss_strength = max_def(inverse_scale - 0.02f, 0.0f) * 8.0f * 0.6f;
-    if (reflect_draw)
-        sss_param_reflect = { sss_strength, 0.0f, 0.0f, 0.0f };
-    else
-        sss_param = { sss_strength, 0.0f, 0.0f, 0.0f };
 
     rend_data_ctx.state.active_texture(0);
     if (downsample) {
@@ -110,7 +75,7 @@ void sss_data::apply_filter(struct render_data_context& rend_data_ctx) {
     const double_t r_radius[] = { 1.0, 2.0, 5.0 };
     const double_t g_radius[] = { 0.2, 0.4, 1.2 };
     const double_t b_radius[] = { 0.3, 0.7, 2.0 };
-    sss_calc_coef(1.0, sss_count, inverse_scale,
+    sss_calc_coef(1.0, sss_count, reflect_draw ? sss_inverse_scale_reflect : sss_inverse_scale,
         3, weights, r_radius, g_radius, b_radius, shader_data.g_coef);
 
     rctx->sss_filter_gaussian_coef_ubo.WriteMemory(rend_data_ctx.state, shader_data);
@@ -145,6 +110,59 @@ void sss_data::init() {
 
     param = { 0.0f, 0.0f, 0.0f, 1.0f };
     init_data = true;
+}
+
+// Added
+void sss_data::pre_proc(const struct cam_data& cam) {
+    if (!init_data || !enable)
+        return;
+
+    render_context* rctx = rctx_ptr;
+
+    vec3 interest = rctx->camera->interest;
+    vec3 view_point = rctx->camera->view_point;
+
+    vec3 chara_position[2];
+    chara_position[0] = 0.0f;
+    chara_position[1] = 0.0f;
+    float_t chara_distance[2];
+    for (int32_t i = 0; i < 2; i++) {
+        chara_position[i] = interest;
+        chara_distance[i] = 999999.0f;
+        rob_chara_bone_data* rob_bone_data = rob_chara_array_get_bone_data(i);
+        if (rob_chara_pv_data_array_check_chara_id(i) && rob_chara_array_check_visibility(i)) {
+            mat4* mat = rob_bone_data->get_mats_mat(MOTION_BONE_N_HARA_CP);
+            if (mat) {
+                mat4_get_translation(mat, &chara_position[i]);
+                if (reflect_draw)
+                    mat4_transform_point(&reflect_mat, &chara_position[i], &chara_position[i]);
+                chara_distance[i] = vec3::distance(view_point, chara_position[i]);
+            }
+        }
+    }
+
+    vec3 closest_chara_position = chara_distance[0] <= chara_distance[1]
+        ? chara_position[0] : chara_position[1];
+
+    float_t length = vec3::distance(interest, closest_chara_position);
+    if (length > 1.25f)
+        interest = chara_position[0];
+
+    float_t distance_to_interest = max_def(vec3::distance(view_point, interest), 0.25f);
+    float_t fov_scale = max_def(tanf(rctx->camera->fov * 0.5f * DEG_TO_RAD_FLOAT) * 5.0f, 0.25f);
+    float_t sss_strength = 0.6f;
+    float_t inverse_scale = (float_t)(1.0 / clamp_def(fov_scale * distance_to_interest, 0.25f, 100.0f));
+    if (inverse_scale < 0.145f)
+        sss_strength = max_def(inverse_scale - 0.02f, 0.0f) * 8.0f * 0.6f;
+
+    if (reflect_draw) {
+        sss_inverse_scale_reflect = inverse_scale;
+        sss_param_reflect = { sss_strength, 0.0f, 0.0f, 0.0f };
+    }
+    else {
+        sss_inverse_scale = inverse_scale;
+        sss_param = { sss_strength, 0.0f, 0.0f, 0.0f };
+    }
 }
 
 // 0x0000000140641B40
