@@ -1964,7 +1964,7 @@ struct CLOTH {
     virtual void SetSkinParamColiR(float_t value);
     virtual void SetSkinParamFriction(float_t value);
     virtual void SetSkinParamWindAfc(float_t value);
-    virtual void SetWindDirection(vec3& value);
+    virtual void SetWindDirection(const vec3& value);
     virtual void SetInertia(float_t value);
     virtual void SetSkinParamHinge(float_t hinge_y, float_t hinge_z);
     virtual CLOTHNode* GetNodes();
@@ -2033,6 +2033,7 @@ struct RobCloth : public CLOTH {
     void ResetExtrenalForce();
     void SetForceAirRes(float_t force, float_t force_gain, float_t air_res);
     void SetMotionResetData(uint32_t motion_id, float_t frame);
+    void SetMoveCancel(const float_t& value);
     const float_t* SetOsagePlayDataInit(const float_t* opdi_data);
     void SetOsageReset();
     void SetRing(const osage_ring_data& ring);
@@ -2072,11 +2073,12 @@ public:
         skin_param_osage_root* skp_root, const bone_database* bone_data);
     const float_t* LoadOpdData(size_t node_index, const float_t* opd_data, size_t opd_count);
     void SetMotionResetData(uint32_t motion_id, float_t frame);
+    void SetMoveCancel(const float_t& value);
     const float_t* SetOsagePlayDataInit(const float_t* opdi_data);
     void SetOsageReset();
     void SetRing(const osage_ring_data& ring);
     void SetSkinParam(skin_param_file_data* skp);
-    void SetSkinParamOsageRoot(skin_param_osage_root* skp_root);
+    void SetSkinParamOsageRoot(const skin_param_osage_root* skp_root);
 };
 
 struct skin_param_file_data {
@@ -2132,7 +2134,7 @@ struct RobOsage {
         const float_t step, bool disable_external_force, bool ring_coli, bool has_children_node);
     void ApplyResetData(const mat4& mat);
     void BeginCalc(const mat4& root_matrix, const vec3& parent_scale, bool has_children_node);
-    bool CheckPartsBits(rob_osage_parts_bit parts_bits);
+    bool CheckPartsBits(const rob_osage_parts_bit& parts_bits);
     void ColiSet(const mat4* mats);
     void CollideNodes(const float_t step);
     void CollideNodesTargetOsage(const mat4& root_matrix,
@@ -2158,19 +2160,22 @@ struct RobOsage {
     void RotateMat(mat4& mat, const vec3& parent_scale, bool init_rot = false);
     void SetAirRes(float_t air_res);
     void SetColiR(float_t coli_r);
+    void SetDisableCollision(const bool& value);
     void SetForce(float_t force, float_t force_gain);
     void SetHinge(float_t hinge_y, float_t hinge_z);
     void SetInitRot(float_t init_rot_y, float_t init_rot_z);
     void SetMotionResetData(uint32_t motion_id, float_t frame);
-    void SetNodesExternalForce(vec3* external_force, float_t strength);
-    void SetNodesForce(float_t force);
+    void SetMoveCancel(const float_t& value);
+    void SetNodesExternalForce(const vec3* external_force, const float_t& strength);
+    void SetNodesForce(const float_t& force);
     const float_t* SetOsagePlayDataInit(const float_t* opdi_data);
+    void SetOsageReset();
     void SetRing(const osage_ring_data& ring);
     void SetRot(float_t rot_y, float_t rot_z);
     void SetSkinParam(skin_param_file_data* skp);
     void SetSkinParamOsageRoot(const skin_param_osage_root& skp_root);
     void SetSkpOsgNodes(std::vector<skin_param_osage_node>* skp_osg_nodes);
-    void SetWindDirection(vec3* value);
+    void SetWindDirection(const vec3* value);
     void SetYZOrder(int32_t yz_order);
 };
 
@@ -2202,8 +2207,9 @@ public:
         const char* osg_data_name, obj_skin_osage_node* osg_nodes, bone_node* bone_nodes,
         bone_node* ex_data_bone_nodes, obj_skin* skin);
     const float_t* LoadOpdData(size_t node_index, const float_t* opd_data, size_t opd_count);
-    void SetDisableCollision(bool value);
+    void SetDisableCollision(const bool& value);
     void SetMotionResetData(uint32_t motion_id, float_t frame);
+    void SetMoveCancel(const float_t& value);
     const float_t* SetOsagePlayDataInit(const float_t* opdi_data);
     void SetOsageReset();
     void SetRing(const osage_ring_data& ring);
@@ -2386,7 +2392,7 @@ struct rob_chara_item_equip_object {
     void set_null_blocks_expression_data(const vec3& position, const vec3& rotation, const vec3& scale);
     void set_osage_play_data_init(const float_t* opdi_data);
     void set_osage_reset();
-    void set_osage_move_cancel(float_t value);
+    void set_osage_move_cancel(const float_t& value);
     void set_texture_pattern(texture_pattern_struct* tex_pat, size_t count);
     void skp_load(void* kv, const bone_database* bone_data);
     void skp_load(const skin_param_osage_root& skp_root, std::vector<skin_param_osage_node>& vec,
@@ -2482,7 +2488,7 @@ struct rob_chara_item_equip {
     void set_osage_play_data_init(item_id id, const float_t* opdi_data);
     void set_osage_reset();
     void set_osage_step(float_t value);
-    void set_osage_move_cancel(uint8_t id, float_t value);
+    void set_osage_move_cancel(uint8_t id, const float_t& value);
     void set_shadow_type(int32_t chara_id);
     void set_texture_pattern(texture_pattern_struct* tex_pat, size_t count);
     void skp_load(item_id id, const skin_param_osage_root& skp_root, std::vector<skin_param_osage_node>& vec,

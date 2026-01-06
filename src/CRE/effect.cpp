@@ -3237,7 +3237,7 @@ void EffectRipple::clear_tex() {
     glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
 }
 
-// 0x00000001403584A0
+// 0x1403584A0
 void EffectRipple::copy_to_ripple_tex(render_data_context& rend_data_ctx, RenderTexture* rt) {
     if (ripple_tex_id == -1)
         return;
@@ -6749,7 +6749,7 @@ static void water_particle_free() {
     water_particle_scene_ubo.Destroy();
 }
 
-// 0x00000001403B6ED0
+// 0x1403B6ED0
 static void ripple_propagate(render_data_context& rend_data_ctx,
     RenderTexture* dst, RenderTexture* curr, RenderTexture* prev, const EffectRipple::Params& params) {
     dst->Bind(rend_data_ctx.state);
@@ -6762,7 +6762,7 @@ static void ripple_propagate(render_data_context& rend_data_ctx,
     rend_data_ctx.state.bind_framebuffer(0);
 }
 
-// 0x00000001403B6F60
+// 0x1403B6F60
 static void ripple_propagate_sub(render_data_context& rend_data_ctx,
     texture* dst_tex, texture* curr_tex, texture* prev_tex, const EffectRipple::Params& params) {
     if (!dst_tex || !dst_tex->glid || !curr_tex || !curr_tex->glid || !prev_tex || !prev_tex->glid)

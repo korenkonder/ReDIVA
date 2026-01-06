@@ -28,7 +28,7 @@ extern std::vector<skin_param_file_data>* skin_param_manager_get_skin_param_file
 extern void skin_param_manager_reset(int32_t chara_id);
 
 extern void skin_param_osage_node_parse(void* kv, const char* name,
-    std::vector<skin_param_osage_node>* a3, skin_param_osage_root& skp_root);
+    std::vector<skin_param_osage_node>* a3, const skin_param_osage_root& skp_root);
 
 extern void skin_param_osage_root_parse(void* kv, const char* name,
     skin_param_osage_root& skp_root, const bone_database* bone_data);

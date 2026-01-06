@@ -193,7 +193,7 @@ struct opd_chara_data {
     bool init;
     uint32_t frame_index;
     uint32_t frame_count;
-    int32_t motion_id;
+    uint32_t motion_id;
     uint64_t field_18;
     std::vector<std::vector<opd_vec3_data_vec>> opd_data[ITEM_OSAGE_COUNT];
     p_opd_farc opd[ITEM_OSAGE_COUNT];
@@ -289,16 +289,16 @@ struct rob_osage_mothead {
     uint32_t motion_id;
     float_t frame;
     float_t last_frame;
-    rob_osage_mothead_data* type_62;
-    const mothead_data* type_62_data;
-    rob_osage_mothead_data* type_75;
-    const mothead_data* type_75_data;
-    rob_osage_mothead_data* type_67;
-    const mothead_data* type_67_data;
-    rob_osage_mothead_data* type_74;
-    const mothead_data* type_74_data;
-    rob_osage_mothead_data* type_79;
-    const mothead_data* type_79_data;
+    rob_osage_mothead_data* rob_parts_adjust;
+    const mothead_data* rob_parts_adjust_data;
+    rob_osage_mothead_data* rob_adjust_global;
+    const mothead_data* rob_adjust_global_data;
+    rob_osage_mothead_data* sleeve_adjust;
+    const mothead_data* sleeve_adjust_data;
+    rob_osage_mothead_data* disable_collision;
+    const mothead_data* disable_collision_data;
+    rob_osage_mothead_data* rob_chara_coli_ring;
+    const mothead_data* rob_chara_coli_ring_data;
     int32_t field_68;
 
 #if OPD_PLAY
@@ -1325,10 +1325,10 @@ static void rob_cmn_mottbl_read(void* a1, const void* data, size_t size);
 
 static void opd_chara_data_array_add_frame_data(int32_t chara_id);
 static void opd_chara_data_array_encode_data(int32_t chara_id);
-static void opd_chara_data_array_encode_init_data(int32_t chara_id, int32_t motion_id);
+static void opd_chara_data_array_encode_init_data(int32_t chara_id, uint32_t motion_id);
 static void opd_chara_data_array_fs_copy_file(int32_t chara_id);
 static opd_chara_data* opd_chara_data_array_get(int32_t chara_id);
-static void opd_chara_data_array_init_data(int32_t chara_id, int32_t motion_id);
+static void opd_chara_data_array_init_data(int32_t chara_id, uint32_t motion_id);
 static void opd_chara_data_array_open_opd_file(int32_t chara_id);
 static void opd_chara_data_array_open_opdi_file(int32_t chara_id);
 static void opd_chara_data_array_write_file(int32_t chara_id);
@@ -2957,19 +2957,19 @@ static void rob_chara_data_adjust_ctrl(rob_chara* rob_chr,
 }
 
 static void rob_chara_item_equip_object_set_parts_external_force(
-    rob_chara_item_equip_object* itm_eq_obj, rob_osage_parts_bit parts_bits,
-    vec3* weight, float_t force, float_t strength) {
+    rob_chara_item_equip_object* itm_eq_obj, const rob_osage_parts_bit& parts_bits,
+    const vec3* external_force, const float_t& force, const float_t& strength) {
     for (ExOsageBlock*& i : itm_eq_obj->osage_blocks) {
         RobOsage* rob_osg = &i->rob;
         if (rob_osg->CheckPartsBits(parts_bits)) {
-            rob_osg->SetNodesExternalForce(weight, strength);
+            rob_osg->SetNodesExternalForce(external_force, strength);
             rob_osg->SetNodesForce(force);
         }
     }
 }
 
 static void rob_chara_item_equip_set_parts_external_force(rob_chara_item_equip* rob_itm_eq,
-    int32_t parts, vec3* external_force, float_t force, float_t strength) {
+    const rob_osage_parts& parts, const vec3* external_force, const float_t& force, const float_t& strength) {
     item_id id = (item_id)(parts == ROB_OSAGE_PARTS_MUFFLER ? ITEM_OUTER : ITEM_KAMI);
     if (!osage_setting_data_obj_has_key(rob_itm_eq->item_equip_object[id].obj_info))
         return;
@@ -3011,7 +3011,7 @@ static void rob_chara_item_equip_set_parts_external_force(rob_chara_item_equip* 
 }
 
 static void rob_chara_item_equip_object_set_external_force(
-    rob_chara_item_equip_object* itm_eq_obj, vec3* external_force) {
+    rob_chara_item_equip_object* itm_eq_obj, const vec3* external_force) {
     for (ExOsageBlock*& i : itm_eq_obj->osage_blocks) {
         i->rob.set_external_force = true;
         i->rob.external_force = *external_force;
@@ -3024,7 +3024,7 @@ static void rob_chara_item_equip_object_set_external_force(
 }
 
 static void rob_chara_item_equip_set_external_force(
-    rob_chara_item_equip* rob_itm_eq, vec3* external_force) {
+    rob_chara_item_equip* rob_itm_eq, const vec3* external_force) {
     for (int32_t i = rob_itm_eq->first_item_equip_object; i < rob_itm_eq->max_item_equip_object; i++)
         rob_chara_item_equip_object_set_external_force(&rob_itm_eq->item_equip_object[i], external_force);
 }
@@ -3036,7 +3036,8 @@ void rob_chara::adjust_ctrl() {
         rob_chara_data_adjust* parts_adjust = &data.motion.parts_adjust[i];
         if (parts_adjust->enable) {
             rob_chara_data_adjust_ctrl(this, parts_adjust, &data.motion.parts_adjust_prev[i]);
-            rob_chara_item_equip_set_parts_external_force(rob_itm_equip, i,
+            rob_osage_parts parts = (rob_osage_parts)i;
+            rob_chara_item_equip_set_parts_external_force(rob_itm_equip, parts,
                 &parts_adjust->curr_external_force, parts_adjust->curr_force, parts_adjust->curr_strength);
         }
     }
@@ -12006,7 +12007,7 @@ static void opd_chara_data_array_encode_data(int32_t chara_id) {
     opd_chara_data_array_get(chara_id)->encode_data();
 }
 
-static void opd_chara_data_array_encode_init_data(int32_t chara_id, int32_t motion_id) {
+static void opd_chara_data_array_encode_init_data(int32_t chara_id, uint32_t motion_id) {
     opd_chara_data_array_get(chara_id)->encode_init_data(motion_id);
 }
 
@@ -12020,7 +12021,7 @@ static opd_chara_data* opd_chara_data_array_get(int32_t chara_id) {
     return &opd_chara_data_array[chara_id];
 }
 
-static void opd_chara_data_array_init_data(int32_t chara_id, int32_t motion_id) {
+static void opd_chara_data_array_init_data(int32_t chara_id, uint32_t motion_id) {
     opd_chara_data_array_get(chara_id)->init_data(motion_id);
 }
 
@@ -14379,11 +14380,12 @@ void rob_chara_item_equip_object::set_osage_reset() {
         i->SetOsageReset();
 }
 
-void rob_chara_item_equip_object::set_osage_move_cancel(float_t value) {
+void rob_chara_item_equip_object::set_osage_move_cancel(const float_t& value) {
     for (ExOsageBlock*& i : osage_blocks)
-        i->rob.move_cancel = value;
+        i->SetMoveCancel(value);
+
     for (ExClothBlock*& i : cloth_blocks)
-        i->rob.move_cancel = value;
+        i->SetMoveCancel(value);
 }
 
 void rob_chara_item_equip_object::set_texture_pattern(texture_pattern_struct* tex_pat, size_t count) {
@@ -14815,7 +14817,7 @@ void rob_chara_item_equip::set_osage_step(float_t value) {
     osage_step = value;
 }
 
-void rob_chara_item_equip::set_osage_move_cancel(uint8_t id, float_t value) {
+void rob_chara_item_equip::set_osage_move_cancel(uint8_t id, const float_t& value) {
     switch (id) {
     case 0:
         for (int32_t i = first_item_equip_object; i < max_item_equip_object; i++)
@@ -17730,8 +17732,8 @@ bool OsagePlayDataManager::ctrl() {
                 if (_frame > frame)
                     break;
 
-                rob_chr->set_motion_reset_data(motion_id, _frame);
                 rob_chr->set_motion_skin_param(motion_id, _frame);
+                rob_chr->set_motion_reset_data(motion_id, _frame);
                 set_motion_index++;
             }
 
@@ -18053,13 +18055,15 @@ rob_osage_mothead::rob_osage_mothead(rob_chara* rob_chr, int32_t stage_index, ui
 rob_osage_mothead::rob_osage_mothead(rob_chara* rob_chr, int32_t stage_index, uint32_t motion_id,
     float_t frame, const bone_database* bone_data, const motion_database* mot_db) : rob_chr(),
 #endif
-    motion_id(), frame(), last_frame(), type_62(), type_62_data(), type_75(), type_75_data(),
-    type_67(), type_67_data(), type_74(), type_74_data(), type_79(), type_79_data(), field_68() {
-    type_62 = 0;
-    type_75 = 0;
-    type_67 = 0;
-    type_74 = 0;
-    type_79 = 0;
+    motion_id(), frame(), last_frame(),
+    rob_parts_adjust(), rob_parts_adjust_data(), rob_adjust_global(), rob_adjust_global_data(),
+    sleeve_adjust(), sleeve_adjust_data(), disable_collision(), disable_collision_data(),
+    rob_chara_coli_ring(), rob_chara_coli_ring_data(), field_68() {
+    rob_parts_adjust = 0;
+    rob_adjust_global = 0;
+    sleeve_adjust = 0;
+    disable_collision = 0;
+    rob_chara_coli_ring = 0;
     this->rob_chr = rob_chr;
     if (rob_chr) {
 #if OPD_PLAY
@@ -18088,6 +18092,7 @@ rob_osage_mothead::~rob_osage_mothead() {
     reset();
 }
 
+// 0x14053D360
 void rob_osage_mothead::ctrl() {
     rob_chara* rob_chr = this->rob_chr;
     if (!rob_chr)
@@ -18100,6 +18105,7 @@ void rob_osage_mothead::ctrl() {
     rob_disp_rob_chara_ctrl_thread_main(rob_chr);
 }
 
+// 0x14053D3E0
 void rob_osage_mothead::reset() {
     rob_chr = 0;
     motion_id = -1;
@@ -18108,116 +18114,123 @@ void rob_osage_mothead::reset() {
     reset_data();
 }
 
+// 0x14053D6C0
 void rob_osage_mothead::init_data(const motion_database* mot_db) {
     reset_data();
 
-    type_62 = new rob_osage_mothead_data(MOTHEAD_DATA_ROB_PARTS_ADJUST, motion_id, mot_db);
-    type_62_data = type_62->find_next_data();
+    rob_parts_adjust = new rob_osage_mothead_data(MOTHEAD_DATA_ROB_PARTS_ADJUST, motion_id, mot_db);
+    rob_parts_adjust_data = rob_parts_adjust->find_next_data();
 
-    type_75 = new rob_osage_mothead_data(MOTHEAD_DATA_ROB_ADJUST_GLOBAL, motion_id, mot_db);
-    type_75_data = type_75->find_next_data();
+    rob_adjust_global = new rob_osage_mothead_data(MOTHEAD_DATA_ROB_ADJUST_GLOBAL, motion_id, mot_db);
+    rob_adjust_global_data = rob_adjust_global->find_next_data();
 
-    type_67 = new rob_osage_mothead_data(MOTHEAD_DATA_SLEEVE_ADJUST, motion_id, mot_db);
-    type_67_data = type_67->find_next_data();
+    sleeve_adjust = new rob_osage_mothead_data(MOTHEAD_DATA_SLEEVE_ADJUST, motion_id, mot_db);
+    sleeve_adjust_data = sleeve_adjust->find_next_data();
 
-    type_74 = new rob_osage_mothead_data(MOTHEAD_DATA_DISABLE_COLLISION, motion_id, mot_db);
-    type_74_data = type_74->find_next_data();
+    disable_collision = new rob_osage_mothead_data(MOTHEAD_DATA_DISABLE_COLLISION, motion_id, mot_db);
+    disable_collision_data = disable_collision->find_next_data();
 
-    type_79 = new rob_osage_mothead_data(MOTHEAD_DATA_ROB_CHARA_COLI_RING, motion_id, mot_db);
-    type_79_data = type_79->find_next_data();
+    rob_chara_coli_ring = new rob_osage_mothead_data(MOTHEAD_DATA_ROB_CHARA_COLI_RING, motion_id, mot_db);
+    rob_chara_coli_ring_data = rob_chara_coli_ring->find_next_data();
 }
 
+// 0x14053D450
 void rob_osage_mothead::reset_data() {
-    if (type_62)
-        delete type_62;
-    type_62 = 0;
-    type_62_data = 0;
+    if (rob_parts_adjust)
+        delete rob_parts_adjust;
+    rob_parts_adjust = 0;
+    rob_parts_adjust_data = 0;
 
-    if (type_75)
-        delete type_75;
-    type_75 = 0;
-    type_75_data = 0;
+    if (rob_adjust_global)
+        delete rob_adjust_global;
+    rob_adjust_global = 0;
+    rob_adjust_global_data = 0;
 
-    if (type_67)
-        delete type_67;
-    type_67 = 0;
-    type_67_data = 0;
+    if (sleeve_adjust)
+        delete sleeve_adjust;
+    sleeve_adjust = 0;
+    sleeve_adjust_data = 0;
 
-    if (type_74)
-        delete type_74;
-    type_74 = 0;
-    type_74_data = 0;
+    if (disable_collision)
+        delete disable_collision;
+    disable_collision = 0;
+    disable_collision_data = 0;
 
-    if (type_79)
-        delete type_79;
-    type_79_data = 0;
-    type_79 = 0;
+    if (rob_chara_coli_ring)
+        delete rob_chara_coli_ring;
+    rob_chara_coli_ring_data = 0;
+    rob_chara_coli_ring = 0;
 }
 
+// 0x14053EC90
 void rob_osage_mothead::set_coli_ring(const mothead_data* mhd_data) {
     const void* data = mhd_data->data;
 
     rob_chara_set_coli_ring(rob_chr, ((int8_t*)data)[0]);
 }
 
+// 0x14053E7B0
 void rob_osage_mothead::set_frame(float_t value) {
     if (last_frame > value)
         frame = value;
 }
 
+// 0x14053E7C0
 void rob_osage_mothead::set_disable_collision(const mothead_data* mhd_data) {
     const void* data = mhd_data->data;
 
     rob_chr->set_disable_collision((rob_osage_parts)((uint8_t*)data)[0], !!((uint8_t*)data)[1]);
 }
 
+// 0x14053E170
 void rob_osage_mothead::set_mothead_frame() {
-    while (type_62_data) {
-        if ((float_t)type_62_data->frame > frame)
+    while (rob_parts_adjust_data) {
+        if ((float_t)rob_parts_adjust_data->frame > frame)
             break;
 
-        set_rob_parts_adjust(type_62_data);
+        set_rob_parts_adjust(rob_parts_adjust_data);
 
-        type_62_data = type_62->find_next_data();
+        rob_parts_adjust_data = rob_parts_adjust->find_next_data();
     }
 
-    while (type_75_data) {
-        if ((float_t)type_75_data->frame > frame)
+    while (rob_adjust_global_data) {
+        if ((float_t)rob_adjust_global_data->frame > frame)
             break;
 
-        set_rob_adjust_global(type_75_data);
+        set_rob_adjust_global(rob_adjust_global_data);
 
-        type_75_data = type_75->find_next_data();
+        rob_adjust_global_data = rob_adjust_global->find_next_data();
     }
 
-    while (type_67_data) {
-        if ((float_t)type_67_data->frame > frame)
+    while (sleeve_adjust_data) {
+        if ((float_t)sleeve_adjust_data->frame > frame)
             break;
 
-        set_sleeve_adjust(type_67_data);
+        set_sleeve_adjust(sleeve_adjust_data);
 
-        type_67_data = type_67->find_next_data();
+        sleeve_adjust_data = sleeve_adjust->find_next_data();
     }
 
-    while (type_74_data) {
-        if ((float_t)type_74_data->frame > frame)
+    while (disable_collision_data) {
+        if ((float_t)disable_collision_data->frame > frame)
             break;
 
-        set_disable_collision(type_74_data);
+        set_disable_collision(disable_collision_data);
 
-        type_74_data = type_74->find_next_data();
+        disable_collision_data = disable_collision->find_next_data();
     }
 
-    while (type_79_data) {
-        if ((float_t)type_79_data->frame > frame)
+    while (rob_chara_coli_ring_data) {
+        if ((float_t)rob_chara_coli_ring_data->frame > frame)
             break;
 
-        set_coli_ring(type_79_data);
+        set_coli_ring(rob_chara_coli_ring_data);
 
-        type_79_data = type_79->find_next_data();
+        rob_chara_coli_ring_data = rob_chara_coli_ring->find_next_data();
     }
 }
 
+// 0x14053EA00
 void rob_osage_mothead::set_rob_adjust_global(const mothead_data* mhd_data) {
     const void* data = mhd_data->data;
 
@@ -18250,6 +18263,7 @@ void rob_osage_mothead::set_rob_adjust_global(const mothead_data* mhd_data) {
     rob_chara_set_adjust_global(rob_chr, &v14);
 }
 
+// 0x14053E810
 void rob_osage_mothead::set_rob_parts_adjust(const mothead_data* mhd_data) {
     const void* data = mhd_data->data;
 
@@ -18289,6 +18303,7 @@ void rob_osage_mothead::set_rob_parts_adjust(const mothead_data* mhd_data) {
     rob_chara_set_parts_adjust_by_index(rob_chr, (rob_osage_parts)((uint8_t*)data)[4], &v16);
 }
 
+// 0x14053EBE0
 void rob_osage_mothead::set_sleeve_adjust(const mothead_data* mhd_data) {
     const void* data = mhd_data->data;
 

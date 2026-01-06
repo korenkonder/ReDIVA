@@ -180,7 +180,7 @@ void Shadow::reset() {
     z_half_range = (z_far - z_near) * 0.5f;
 }
 
-// 0x00000001405E5A90
+// 0x1405E5A90
 void Shadow::set_curr_render_textures(int32_t index[2]) {
     if (index) {
         index[0] = this->index[0];

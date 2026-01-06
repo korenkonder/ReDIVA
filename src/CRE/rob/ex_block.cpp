@@ -1119,7 +1119,7 @@ void CLOTH::SetSkinParamWindAfc(float_t value) {
     skin_param_ptr->wind_afc = value;
 }
 
-void CLOTH::SetWindDirection(vec3& value) {
+void CLOTH::SetWindDirection(const vec3& value) {
     this->wind_direction = value;
 }
 
@@ -1883,6 +1883,11 @@ void RobCloth::SetMotionResetData(uint32_t motion_id, float_t frame) {
     }
 }
 
+// 0x14021EF50
+void RobCloth::SetMoveCancel(const float_t& value) {
+    move_cancel = value;
+}
+
 const float_t* RobCloth::SetOsagePlayDataInit(const float_t* opdi_data) {
     CLOTHNode* i_begin = nodes.data() + root_count;
     CLOTHNode* i_end = nodes.data() + nodes.size();
@@ -2215,6 +2220,11 @@ void ExClothBlock::SetMotionResetData(uint32_t motion_id, float_t frame) {
     rob.SetMotionResetData(motion_id, frame);
 }
 
+// 0x1405F9280
+void ExClothBlock::SetMoveCancel(const float_t& value) {
+    rob.SetMoveCancel(value);
+}
+
 const float_t* ExClothBlock::SetOsagePlayDataInit(const float_t* opdi_data) {
     return rob.SetOsagePlayDataInit(opdi_data);
 }
@@ -2231,7 +2241,7 @@ void ExClothBlock::SetSkinParam(skin_param_file_data* skp) {
     rob.SetSkinParam(skp);
 }
 
-void ExClothBlock::SetSkinParamOsageRoot(skin_param_osage_root* skp_root) {
+void ExClothBlock::SetSkinParamOsageRoot(const skin_param_osage_root* skp_root) {
     if (!skp_root)
         return;
 
@@ -2379,7 +2389,7 @@ void RobOsage::BeginCalc(const mat4& root_matrix, const vec3& parent_scale, bool
     }
 }
 
-bool RobOsage::CheckPartsBits(rob_osage_parts_bit parts_bits) {
+bool RobOsage::CheckPartsBits(const rob_osage_parts_bit& parts_bits) {
     if (osage_setting.parts != ROB_OSAGE_PARTS_NONE)
         return !!(parts_bits & (1 << osage_setting.parts));
     return false;
@@ -2933,6 +2943,11 @@ void RobOsage::SetColiR(float_t coli_r) {
         i->data_ptr->skp_osg_node.coli_r = coli_r;
 }
 
+// 0x140481090
+void RobOsage::SetDisableCollision(const bool& value) {
+    disable_collision = value;
+}
+
 void RobOsage::SetForce(float_t force, float_t force_gain) {
     skin_param_ptr->force = force;
     skin_param_ptr->force_gain = force_gain;
@@ -2972,8 +2987,13 @@ void RobOsage::SetMotionResetData(uint32_t motion_id, float_t frame) {
         reset_data_list = &elem->second;
 }
 
+// 0x1404810D0
+void RobOsage::SetMoveCancel(const float_t& value) {
+    move_cancel = value;
+}
+
 // 0x140480F40
-void RobOsage::SetNodesExternalForce(vec3* external_force, float_t strength) {
+void RobOsage::SetNodesExternalForce(const vec3* external_force, const float_t& strength) {
     if (!external_force) {
         RobOsageNode* i_begin = nodes.data() + 1;
         RobOsageNode* i_end = nodes.data() + nodes.size();
@@ -2982,30 +3002,20 @@ void RobOsage::SetNodesExternalForce(vec3* external_force, float_t strength) {
         return;
     }
 
-    vec3 v4 = *external_force;
-    size_t exf = osage_setting.exf;
-    size_t v8 = 0;
-    if (exf >= 4) {
-        float_t strength4 = strength * strength * strength * strength;
-        v8 = ((exf - 4) / 4 + 1) * 4;
-        for (size_t v10 = v8 / 4; v10; v10--)
-            v4 *= strength4;
-    }
-
-    if (v8 < exf)
-        for (size_t v12 = exf - v8; v12; v12--)
-            v4 *= strength;
+    vec3 _external_force = *external_force;
+    for (size_t i = osage_setting.exf; i; i--)
+        _external_force *= strength;
 
     RobOsageNode* i_begin = nodes.data() + 1;
     RobOsageNode* i_end = nodes.data() + nodes.size();
     for (RobOsageNode* i = i_begin; i != i_end; i++) {
-        i->external_force = v4;
-        v4 *= strength;
+        i->external_force = _external_force;
+        _external_force *= strength;
     }
 }
 
 // 0x140481540
-void RobOsage::SetNodesForce(float_t force) {
+void RobOsage::SetNodesForce(const float_t& force) {
     RobOsageNode* i_begin = nodes.data() + 1;
     RobOsageNode* i_end = nodes.data() + nodes.size();
     for (RobOsageNode* i = i_begin; i != i_end; i++)
@@ -3025,6 +3035,11 @@ const float_t* RobOsage::SetOsagePlayDataInit(const float_t* opdi_data) {
         i->fixed_pos = i->pos;
     }
     return opdi_data;
+}
+
+// 0x1405F9A90, but it's combined with ExOsageBlock::SetOsageReset
+void RobOsage::SetOsageReset() {
+    osage_reset = true;
 }
 
 void RobOsage::SetRing(const osage_ring_data& ring) {
@@ -3088,7 +3103,7 @@ void RobOsage::SetSkpOsgNodes(std::vector<skin_param_osage_node>* skp_osg_nodes)
     }
 }
 
-void RobOsage::SetWindDirection(vec3* value) {
+void RobOsage::SetWindDirection(const vec3* value) {
     if (value)
         wind_direction = *value;
     else
@@ -3246,8 +3261,9 @@ const float_t* ExOsageBlock::LoadOpdData(size_t node_index, const float_t* opd_d
     return rob.LoadOpdData(node_index, opd_data, opd_count);
 }
 
-void ExOsageBlock::SetDisableCollision(bool value) {
-    rob.disable_collision = value;
+// 0x1405F9510
+void ExOsageBlock::SetDisableCollision(const bool& value) {
+    rob.SetDisableCollision(value);
 }
 
 void ExOsageBlock::SetMotionResetData(uint32_t motion_id, float_t frame) {
@@ -3258,8 +3274,14 @@ const float_t* ExOsageBlock::SetOsagePlayDataInit(const float_t* opdi_data) {
     return rob.SetOsagePlayDataInit(opdi_data);
 }
 
+// 0x1405F9290
+void ExOsageBlock::SetMoveCancel(const float_t& value) {
+    rob.SetMoveCancel(value);
+}
+
+// 0x1405F9A90, but it's combined with RobOsage::SetOsageReset
 void ExOsageBlock::SetOsageReset() {
-    rob.osage_reset = true;
+    rob.SetOsageReset();
 }
 
 void ExOsageBlock::SetRing(const osage_ring_data& ring) {

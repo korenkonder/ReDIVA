@@ -312,7 +312,7 @@ void skin_param_manager_reset(int32_t chara_id) {
 }
 
 void skin_param_osage_node_parse(void* kv, const char* name,
-    std::vector<skin_param_osage_node>* vec, skin_param_osage_root& skp_root) {
+    std::vector<skin_param_osage_node>* vec, const skin_param_osage_root& skp_root) {
     key_val* _kv = (key_val*)kv;
     if (!_kv->open_scope(name))
         return;
