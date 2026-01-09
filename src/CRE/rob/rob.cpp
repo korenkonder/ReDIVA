@@ -231,10 +231,10 @@ public:
     std::vector<GenData> gen_data;
     std::vector<pv_data_set_motion> set_motion;
 #else
-    prj::vector_pair<object_info, uint32_t> opd_req_data;
+    prj::vector_pair<object_info, uint32_t> req_data;
     std::list<p_file_handler*> file_handlers;
 #endif
-    std::map<std::pair<object_info, uint32_t>, opd_file_data> opd_file_data;
+    std::map<std::pair<object_info, uint32_t>, opd_file_data> file_data;
 
     OsagePlayDataManager();
     virtual ~OsagePlayDataManager() override;
@@ -17751,12 +17751,12 @@ bool OsagePlayDataManager::ctrl() {
                 continue;
 
             int32_t load_count = 1;
-            auto elem = opd_file_data.find({ obj_info, motion_id });
-            if (elem != opd_file_data.end()) {
+            auto elem = file_data.find({ obj_info, motion_id });
+            if (elem != file_data.end()) {
                 load_count = elem->second.load_count;
                 while (elem->second.load_count > 0)
                     elem->second.unload();
-                opd_file_data.erase(elem);
+                file_data.erase(elem);
             }
 
             std::vector<std::vector<opd_vec3_data_vec>>& opd_data = opd_chr_data->opd_data[j];
@@ -17770,7 +17770,7 @@ bool OsagePlayDataManager::ctrl() {
             if (!buf)
                 continue;
 
-            ::opd_file_data data;
+            opd_file_data data;
             data.head.obj_info.first = obj_info.id;
             data.head.obj_info.second = obj_info.set_id;
             data.head.motion_id = motion_id;
@@ -17789,7 +17789,7 @@ bool OsagePlayDataManager::ctrl() {
                     buf += _frame_count;
                 }
 
-            opd_file_data.insert({ { obj_info, motion_id }, data });
+            file_data.insert({ { obj_info, motion_id }, data });
         }
 
         opd_chr_data->reset();
@@ -17863,7 +17863,7 @@ void OsagePlayDataManager::AppendCharaMotionId(rob_chara* rob_chr, const std::ve
             continue;
 
         for (const uint32_t j : motion_ids)
-            opd_req_data.push_back(itm_eq_obj->obj_info, j);
+            req_data.push_back(itm_eq_obj->obj_info, j);
     }
 }
 #endif
@@ -17877,17 +17877,17 @@ void OsagePlayDataManager::GetOpdFileData(object_info obj_info,
     data = 0;
     count = 0;
 
-    auto elem = opd_file_data.find({ obj_info, motion_id });
-    if (elem != opd_file_data.end()) {
+    auto elem = file_data.find({ obj_info, motion_id });
+    if (elem != file_data.end()) {
         data = elem->second.data;
         count = elem->second.head.frame_count;
     }
 }
 
 void OsagePlayDataManager::LoadOpdFile(p_file_handler* pfhndl) {
-    ::opd_file_data data;
+    opd_file_data data;
     if (opd_decode_data(pfhndl->get_data(), data.data, data.head))
-        opd_file_data.insert({ { object_info(data.head.obj_info.first,
+        file_data.insert({ { object_info(data.head.obj_info.first,
             data.head.obj_info.second), data.head.motion_id }, data });
 }
 
@@ -17896,10 +17896,10 @@ void OsagePlayDataManager::LoadOpdFileList() {
     data_struct* aft_data = &data_list[DATA_AFT];
     motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
-    prj::sort_unique(opd_req_data);
-    for (const std::pair<object_info, uint32_t>& i : opd_req_data) {
-        auto elem = opd_file_data.find(i);
-        if (elem != opd_file_data.end())
+    prj::sort_unique(req_data);
+    for (const std::pair<object_info, uint32_t>& i : req_data) {
+        auto elem = file_data.find(i);
+        if (elem != file_data.end())
             continue;
 
         const char* object_name = objset_info_storage_get_obj_name(i.first);
@@ -17932,7 +17932,7 @@ void OsagePlayDataManager::LoadOpdFileList() {
             continue;
         }
     }
-    opd_req_data.clear();
+    req_data.clear();
 }
 #endif
 
@@ -17942,11 +17942,11 @@ void OsagePlayDataManager::Reset() {
     set_motion.clear();
 #else
     file_handlers.clear();
-    opd_req_data.clear();
+    req_data.clear();
 #endif
-    for (auto& i : opd_file_data)
+    for (auto& i : file_data)
         i.second.unload();
-    opd_file_data.clear();
+    file_data.clear();
 }
 
 osage_play_data_database_struct::osage_play_data_database_struct() {

@@ -289,7 +289,7 @@ static char* io_json_read_string_inner(stream& s, io_json_read_buffer* buf, int3
                 uint32_t uc = 0;
                 if ((*c = io_json_read_char(s, buf)) == EOF)
                     break;
-                uc |= io_json_read_string_hex(*c) << 16;
+                uc |= io_json_read_string_hex(*c) << 12;
 
                 if ((*c = io_json_read_char(s, buf)) == EOF)
                     break;
@@ -356,7 +356,7 @@ static char* io_json_read_string_inner(stream& s, io_json_read_buffer* buf, int3
                 break;
             case 'u': {
                 uint32_t uc = 0;
-                uc |= io_json_read_string_hex(io_json_read_char(s, buf)) << 16;
+                uc |= io_json_read_string_hex(io_json_read_char(s, buf)) << 12;
                 uc |= io_json_read_string_hex(io_json_read_char(s, buf)) << 8;
                 uc |= io_json_read_string_hex(io_json_read_char(s, buf)) << 4;
                 uc |= io_json_read_string_hex(io_json_read_char(s, buf));
