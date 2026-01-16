@@ -642,14 +642,14 @@ namespace Glitter {
                             if (key.type == KEY_HERMITE) {
                                 key.tangent1 = load_reverse_endianness_float_t((void*)(d + 4));
                                 key.tangent2 = load_reverse_endianness_float_t((void*)(d + 8));
-                                key.random_range = load_reverse_endianness_float_t((void*)(d + 12));
-                                key.value = load_reverse_endianness_float_t((void*)(d + 16));
+                                key.min_value = load_reverse_endianness_float_t((void*)(d + 12));
+                                key.max_value = load_reverse_endianness_float_t((void*)(d + 16));
                                 keys.push_back(key);
                                 d += 20;
                             }
                             else {
-                                key.random_range = load_reverse_endianness_float_t((void*)(d + 4));
-                                key.value = load_reverse_endianness_float_t((void*)(d + 8));
+                                key.min_value = load_reverse_endianness_float_t((void*)(d + 4));
+                                key.max_value = load_reverse_endianness_float_t((void*)(d + 8));
                                 keys.push_back(key);
                                 d += 12;
                             }
@@ -679,14 +679,14 @@ namespace Glitter {
                             if (key.type == KEY_HERMITE) {
                                 key.tangent1 = *(float_t*)(d + 4);
                                 key.tangent2 = *(float_t*)(d + 8);
-                                key.random_range = *(float_t*)(d + 12);
-                                key.value = *(float_t*)(d + 16);
+                                key.min_value = *(float_t*)(d + 12);
+                                key.max_value = *(float_t*)(d + 16);
                                 keys.push_back(key);
                                 d += 20;
                             }
                             else {
-                                key.random_range = *(float_t*)(d + 4);
-                                key.value = *(float_t*)(d + 8);
+                                key.min_value = *(float_t*)(d + 4);
+                                key.max_value = *(float_t*)(d + 8);
                                 keys.push_back(key);
                                 d += 12;
                             }
@@ -718,14 +718,14 @@ namespace Glitter {
                             if (key.type == KEY_HERMITE) {
                                 key.tangent1 = load_reverse_endianness_float_t((void*)(d + 16));
                                 key.tangent2 = load_reverse_endianness_float_t((void*)(d + 20));
-                                key.random_range = load_reverse_endianness_float_t((void*)(d + 24));
-                                key.value = load_reverse_endianness_float_t((void*)(d + 28));
+                                key.min_value = load_reverse_endianness_float_t((void*)(d + 24));
+                                key.max_value = load_reverse_endianness_float_t((void*)(d + 28));
                                 keys.push_back(key);
                                 d += 32;
                             }
                             else {
-                                key.random_range = load_reverse_endianness_float_t((void*)(d + 8));
-                                key.value = load_reverse_endianness_float_t((void*)(d + 12));
+                                key.min_value = load_reverse_endianness_float_t((void*)(d + 8));
+                                key.max_value = load_reverse_endianness_float_t((void*)(d + 12));
                                 keys.push_back(key);
                                 d += 16;
                             }
@@ -755,14 +755,14 @@ namespace Glitter {
                             if (key.type == KEY_HERMITE) {
                                 key.tangent1 = *(float_t*)(d + 16);
                                 key.tangent2 = *(float_t*)(d + 20);
-                                key.random_range = *(float_t*)(d + 24);
-                                key.value = *(float_t*)(d + 28);
+                                key.min_value = *(float_t*)(d + 24);
+                                key.max_value = *(float_t*)(d + 28);
                                 keys.push_back(key);
                                 d += 32;
                             }
                             else {
-                                key.random_range = *(float_t*)(d + 8);
-                                key.value = *(float_t*)(d + 12);
+                                key.min_value = *(float_t*)(d + 8);
+                                key.max_value = *(float_t*)(d + 12);
                                 keys.push_back(key);
                                 d += 16;
                             }

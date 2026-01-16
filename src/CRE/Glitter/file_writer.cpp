@@ -161,13 +161,13 @@ namespace Glitter {
                             if (i.type == KEY_HERMITE) {
                                 store_reverse_endianness_float_t((void*)(d + 4), i.tangent1);
                                 store_reverse_endianness_float_t((void*)(d + 8), i.tangent2);
-                                store_reverse_endianness_float_t((void*)(d + 12), i.random_range);
-                                store_reverse_endianness_float_t((void*)(d + 16), i.value);
+                                store_reverse_endianness_float_t((void*)(d + 12), i.min_value);
+                                store_reverse_endianness_float_t((void*)(d + 16), i.max_value);
                                 d += 20;
                             }
                             else {
-                                store_reverse_endianness_float_t((void*)(d + 4), i.random_range);
-                                store_reverse_endianness_float_t((void*)(d + 8), i.value);
+                                store_reverse_endianness_float_t((void*)(d + 4), i.min_value);
+                                store_reverse_endianness_float_t((void*)(d + 8), i.max_value);
                                 d += 12;
                             }
                         }
@@ -194,13 +194,13 @@ namespace Glitter {
                             if (i.type == KEY_HERMITE) {
                                 *(float_t*)(d + 4) = i.tangent1;
                                 *(float_t*)(d + 8) = i.tangent2;
-                                *(float_t*)(d + 12) = i.random_range;
-                                *(float_t*)(d + 16) = i.value;
+                                *(float_t*)(d + 12) = i.min_value;
+                                *(float_t*)(d + 16) = i.max_value;
                                 d += 20;
                             }
                             else {
-                                *(float_t*)(d + 4) = i.random_range;
-                                *(float_t*)(d + 8) = i.value;
+                                *(float_t*)(d + 4) = i.min_value;
+                                *(float_t*)(d + 8) = i.max_value;
                                 d += 12;
                             }
                         }
@@ -229,13 +229,13 @@ namespace Glitter {
                             if (i.type == KEY_HERMITE) {
                                 store_reverse_endianness_float_t((void*)(d + 16), i.tangent1);
                                 store_reverse_endianness_float_t((void*)(d + 20), i.tangent2);
-                                store_reverse_endianness_float_t((void*)(d + 24), i.random_range);
-                                store_reverse_endianness_float_t((void*)(d + 28), i.value);
+                                store_reverse_endianness_float_t((void*)(d + 24), i.min_value);
+                                store_reverse_endianness_float_t((void*)(d + 28), i.max_value);
                                 d += 32;
                             }
                             else {
-                                store_reverse_endianness_float_t((void*)(d + 8), i.random_range);
-                                store_reverse_endianness_float_t((void*)(d + 12), i.value);
+                                store_reverse_endianness_float_t((void*)(d + 8), i.min_value);
+                                store_reverse_endianness_float_t((void*)(d + 12), i.max_value);
                                 d += 16;
                             }
                         }
@@ -262,13 +262,13 @@ namespace Glitter {
                             if (i.type == KEY_HERMITE) {
                                 *(float_t*)(d + 16) = i.tangent1;
                                 *(float_t*)(d + 20) = i.tangent2;
-                                *(float_t*)(d + 24) = i.random_range;
-                                *(float_t*)(d + 28) = i.value;
+                                *(float_t*)(d + 24) = i.min_value;
+                                *(float_t*)(d + 28) = i.max_value;
                                 d += 32;
                             }
                             else {
-                                *(float_t*)(d + 8) = i.random_range;
-                                *(float_t*)(d + 12) = i.value;
+                                *(float_t*)(d + 8) = i.min_value;
+                                *(float_t*)(d + 12) = i.max_value;
                                 d += 16;
                             }
                         }
@@ -1993,15 +1993,6 @@ namespace Glitter {
                 *(uint16_t*)(d + 18) = (uint16_t)c->start_time;
                 *(uint16_t*)(d + 20) = (uint16_t)c->end_time;
             }
-
-            if (c->version == 0)
-                switch (c->type) {
-                case CURVE_ROTATION_X:
-                case CURVE_ROTATION_Y:
-                case CURVE_ROTATION_Z:
-                    c->random_range = 0.0f;
-                    break;
-                }
         }
 
         st->enrs = e;
