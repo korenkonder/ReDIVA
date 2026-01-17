@@ -5482,9 +5482,9 @@ static void glitter_editor_curve_editor_property_window(GlitterEditor* glt_edt) 
             Glitter::CURVE_RANDOM_RANGE_NEGATE))
             changed = true;
 
-        if (ImGui::CheckboxFlagsEnterKeyPressed("Step Random",
+        if (ImGui::CheckboxFlagsEnterKeyPressed("Global Random",
             (uint32_t*)&curve->flags,
-            Glitter::CURVE_STEP))
+            Glitter::CURVE_GLOBAL_RANDOM))
             changed = true;
 
         if (ImGui::CheckboxFlagsEnterKeyPressed("Curve Negate",
@@ -5692,7 +5692,7 @@ static void glitter_editor_curve_editor_selector(GlitterEditor* glt_edt) {
         if (flags & (Glitter::CURVE_TYPE_UV_SCROLL | Glitter::CURVE_TYPE_UV_SCROLL_ALPHA)
             && ImGui::TreeNodeEx("UV Scroll", tree_node_flags)) {
             ImGui::PushID("UV");
-            glitter_editor_curve_editor_selector_list_box_multi_selectable(glt_edt, flags, "Y",
+            glitter_editor_curve_editor_selector_list_box_multi_selectable(glt_edt, flags, "U",
                 Glitter::CURVE_U_SCROLL, reset);
             glitter_editor_curve_editor_selector_list_box_multi_selectable(glt_edt, flags, "V",
                 Glitter::CURVE_V_SCROLL, reset);
