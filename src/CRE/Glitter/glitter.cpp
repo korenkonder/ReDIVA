@@ -13,14 +13,14 @@ namespace Glitter {
         | CURVE_TYPE_TRANSLATION_XYZ
         | CURVE_TYPE_ROTATION_XYZ
         | CURVE_TYPE_SCALE_XYZ
-        | CURVE_TYPE_SCALE_ALL
+        | CURVE_TYPE_UNIFORM_SCALE
         | CURVE_TYPE_COLOR_RGBA);
 
     const CurveTypeFlags emitter_curve_flags = (CurveTypeFlags)(0
         | CURVE_TYPE_TRANSLATION_XYZ
         | CURVE_TYPE_ROTATION_XYZ
         | CURVE_TYPE_SCALE_XYZ
-        | CURVE_TYPE_SCALE_ALL
+        | CURVE_TYPE_UNIFORM_SCALE
         | CURVE_TYPE_EMISSION_INTERVAL
         | CURVE_TYPE_PARTICLES_PER_EMISSION);
 
@@ -28,7 +28,7 @@ namespace Glitter {
         | CURVE_TYPE_TRANSLATION_XYZ
         | CURVE_TYPE_ROTATION_XYZ
         | CURVE_TYPE_SCALE_XYZ
-        | CURVE_TYPE_SCALE_ALL
+        | CURVE_TYPE_UNIFORM_SCALE
         | CURVE_TYPE_COLOR_RGBA
         | CURVE_TYPE_UV_SCROLL);
 
@@ -36,7 +36,7 @@ namespace Glitter {
         | CURVE_TYPE_TRANSLATION_XYZ
         | CURVE_TYPE_ROTATION_XYZ
         | CURVE_TYPE_SCALE_XYZ
-        | CURVE_TYPE_SCALE_ALL
+        | CURVE_TYPE_UNIFORM_SCALE
         | CURVE_TYPE_COLOR_RGBA
         | CURVE_TYPE_COLOR_RGB_SCALE
         | CURVE_TYPE_UV_SCROLL

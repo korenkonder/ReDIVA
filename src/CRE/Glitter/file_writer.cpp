@@ -1831,7 +1831,7 @@ namespace Glitter {
             CURVE_SCALE_X,
             CURVE_SCALE_Y,
             CURVE_SCALE_Z,
-            CURVE_SCALE_ALL,
+            CURVE_UNIFORM_SCALE,
             CURVE_EMISSION_INTERVAL,
             CURVE_PARTICLES_PER_EMISSION,
             CURVE_U_SCROLL,

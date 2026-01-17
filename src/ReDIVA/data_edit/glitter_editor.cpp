@@ -223,7 +223,7 @@ void GlitterEditor::CurveEditor::ResetState(Glitter::CurveType type) {
     case Glitter::CURVE_SCALE_X:
     case Glitter::CURVE_SCALE_Y:
     case Glitter::CURVE_SCALE_Z:
-    case Glitter::CURVE_SCALE_ALL:
+    case Glitter::CURVE_UNIFORM_SCALE:
         range = 5.0f;
         break;
     case Glitter::CURVE_COLOR_R:
@@ -282,8 +282,8 @@ void GlitterEditor::CurveEditor::SetFlag(const Glitter::CurveTypeFlags type_flag
     case Glitter::CURVE_SCALE_X:
     case Glitter::CURVE_SCALE_Y:
     case Glitter::CURVE_SCALE_Z:
-    case Glitter::CURVE_SCALE_ALL:
-        if (type_flag & (Glitter::CURVE_TYPE_SCALE_XYZ | Glitter::CURVE_TYPE_SCALE_ALL))
+    case Glitter::CURVE_UNIFORM_SCALE:
+        if (type_flag & (Glitter::CURVE_TYPE_SCALE_XYZ | Glitter::CURVE_TYPE_UNIFORM_SCALE))
             enum_xor(type_flags, type_flag);
         break;
     case Glitter::CURVE_COLOR_R:
@@ -1945,7 +1945,7 @@ static void glitter_editor_draw_emitter_type_emitter_inst_f2(
     else
         mat4_normalize_rotation(&emit_inst->mat, &mat);
 
-    vec3 scale = emit_inst->scale * emit_inst->scale_all;
+    vec3 scale = emit_inst->scale * emit_inst->uniform_scale;
 
     switch (emit_inst->data.type) {
     case Glitter::EMITTER_BOX: {
@@ -2023,7 +2023,7 @@ static void glitter_editor_draw_emitter_type_emitter_inst_x(
     else
         mat4_normalize_rotation(&emit_inst->mat, &mat);
 
-    vec3 scale = emit_inst->scale * emit_inst->scale_all;
+    vec3 scale = emit_inst->scale * emit_inst->uniform_scale;
 
     switch (emit_inst->data.type) {
     case Glitter::EMITTER_BOX: {
@@ -5130,7 +5130,7 @@ static float_t glitter_editor_curve_editor_get_value(GlitterEditor* glt_edt, Gli
         case Glitter::CURVE_SCALE_Z:
             value = sel_efct->scale.z;
             break;
-        case Glitter::CURVE_SCALE_ALL:
+        case Glitter::CURVE_UNIFORM_SCALE:
             break;
         }
         break;
@@ -5635,7 +5635,7 @@ static void glitter_editor_curve_editor_selector(GlitterEditor* glt_edt) {
             ImGui::TreePop();
         }
 
-        if (flags & (Glitter::CURVE_TYPE_SCALE_XYZ | Glitter::CURVE_TYPE_SCALE_ALL)
+        if (flags & (Glitter::CURVE_TYPE_SCALE_XYZ | Glitter::CURVE_TYPE_UNIFORM_SCALE)
             && ImGui::TreeNodeEx("Scale", tree_node_flags)) {
             ImGui::PushID("S");
             glitter_editor_curve_editor_selector_list_box_multi_selectable(glt_edt, flags, "X",
@@ -5644,8 +5644,8 @@ static void glitter_editor_curve_editor_selector(GlitterEditor* glt_edt) {
                 Glitter::CURVE_SCALE_Y, reset);
             glitter_editor_curve_editor_selector_list_box_multi_selectable(glt_edt, flags, "Z",
                 Glitter::CURVE_SCALE_Z, reset);
-            glitter_editor_curve_editor_selector_list_box_multi_selectable(glt_edt, flags, "All",
-                Glitter::CURVE_SCALE_ALL, reset);
+            glitter_editor_curve_editor_selector_list_box_multi_selectable(glt_edt, flags, "Uniform",
+                Glitter::CURVE_UNIFORM_SCALE, reset);
             ImGui::PopID();
             ImGui::TreePop();
         }
@@ -6193,43 +6193,43 @@ static void glitter_editor_curve_editor_window(GlitterEditor* glt_edt) {
             min, max, canvas_size, canvas_pos, canvas_pos_min, canvas_pos_max);
         break;
     case Glitter::CURVE_SCALE_X:
-        glitter_editor_curve_editor_window_draw(glt_edt, Glitter::CURVE_SCALE_Y  ,  green_bcolor, false,
+        glitter_editor_curve_editor_window_draw(glt_edt, Glitter::CURVE_SCALE_Y      ,  green_bcolor, false,
             min, max, canvas_size, canvas_pos, canvas_pos_min, canvas_pos_max);
-        glitter_editor_curve_editor_window_draw(glt_edt, Glitter::CURVE_SCALE_Z  ,   blue_bcolor, false,
+        glitter_editor_curve_editor_window_draw(glt_edt, Glitter::CURVE_SCALE_Z      ,   blue_bcolor, false,
             min, max, canvas_size, canvas_pos, canvas_pos_min, canvas_pos_max);
-        glitter_editor_curve_editor_window_draw(glt_edt, Glitter::CURVE_SCALE_ALL, nwhite_bcolor, false,
+        glitter_editor_curve_editor_window_draw(glt_edt, Glitter::CURVE_UNIFORM_SCALE, nwhite_bcolor, false,
             min, max, canvas_size, canvas_pos, canvas_pos_min, canvas_pos_max);
-        glitter_editor_curve_editor_window_draw(glt_edt, Glitter::CURVE_SCALE_X  ,    red_color ,  true,
+        glitter_editor_curve_editor_window_draw(glt_edt, Glitter::CURVE_SCALE_X      ,    red_color ,  true,
             min, max, canvas_size, canvas_pos, canvas_pos_min, canvas_pos_max);
         break;
     case Glitter::CURVE_SCALE_Y:
-        glitter_editor_curve_editor_window_draw(glt_edt, Glitter::CURVE_SCALE_X  ,    red_bcolor, false,
+        glitter_editor_curve_editor_window_draw(glt_edt, Glitter::CURVE_SCALE_X      ,    red_bcolor, false,
             min, max, canvas_size, canvas_pos, canvas_pos_min, canvas_pos_max);
-        glitter_editor_curve_editor_window_draw(glt_edt, Glitter::CURVE_SCALE_Z  ,   blue_bcolor, false,
+        glitter_editor_curve_editor_window_draw(glt_edt, Glitter::CURVE_SCALE_Z      ,   blue_bcolor, false,
             min, max, canvas_size, canvas_pos, canvas_pos_min, canvas_pos_max);
-        glitter_editor_curve_editor_window_draw(glt_edt, Glitter::CURVE_SCALE_ALL, nwhite_bcolor, false,
+        glitter_editor_curve_editor_window_draw(glt_edt, Glitter::CURVE_UNIFORM_SCALE, nwhite_bcolor, false,
             min, max, canvas_size, canvas_pos, canvas_pos_min, canvas_pos_max);
-        glitter_editor_curve_editor_window_draw(glt_edt, Glitter::CURVE_SCALE_Y  ,  green_color ,  true,
+        glitter_editor_curve_editor_window_draw(glt_edt, Glitter::CURVE_SCALE_Y      ,  green_color ,  true,
             min, max, canvas_size, canvas_pos, canvas_pos_min, canvas_pos_max);
         break;
     case Glitter::CURVE_SCALE_Z:
-        glitter_editor_curve_editor_window_draw(glt_edt, Glitter::CURVE_SCALE_X  ,    red_bcolor, false,
+        glitter_editor_curve_editor_window_draw(glt_edt, Glitter::CURVE_SCALE_X      ,    red_bcolor, false,
             min, max, canvas_size, canvas_pos, canvas_pos_min, canvas_pos_max);
-        glitter_editor_curve_editor_window_draw(glt_edt, Glitter::CURVE_SCALE_Y  ,  green_bcolor, false,
+        glitter_editor_curve_editor_window_draw(glt_edt, Glitter::CURVE_SCALE_Y      ,  green_bcolor, false,
             min, max, canvas_size, canvas_pos, canvas_pos_min, canvas_pos_max);
-        glitter_editor_curve_editor_window_draw(glt_edt, Glitter::CURVE_SCALE_ALL, nwhite_bcolor, false,
+        glitter_editor_curve_editor_window_draw(glt_edt, Glitter::CURVE_UNIFORM_SCALE, nwhite_bcolor, false,
             min, max, canvas_size, canvas_pos, canvas_pos_min, canvas_pos_max);
-        glitter_editor_curve_editor_window_draw(glt_edt, Glitter::CURVE_SCALE_Z  ,   blue_color ,  true,
+        glitter_editor_curve_editor_window_draw(glt_edt, Glitter::CURVE_SCALE_Z      ,   blue_color ,  true,
             min, max, canvas_size, canvas_pos, canvas_pos_min, canvas_pos_max);
         break;
-    case Glitter::CURVE_SCALE_ALL:
-        glitter_editor_curve_editor_window_draw(glt_edt, Glitter::CURVE_SCALE_X  ,    red_bcolor, false,
+    case Glitter::CURVE_UNIFORM_SCALE:
+        glitter_editor_curve_editor_window_draw(glt_edt, Glitter::CURVE_SCALE_X      ,    red_bcolor, false,
             min, max, canvas_size, canvas_pos, canvas_pos_min, canvas_pos_max);
-        glitter_editor_curve_editor_window_draw(glt_edt, Glitter::CURVE_SCALE_Y  ,  green_bcolor, false,
+        glitter_editor_curve_editor_window_draw(glt_edt, Glitter::CURVE_SCALE_Y      ,  green_bcolor, false,
             min, max, canvas_size, canvas_pos, canvas_pos_min, canvas_pos_max);
-        glitter_editor_curve_editor_window_draw(glt_edt, Glitter::CURVE_SCALE_Z  ,   blue_bcolor, false,
+        glitter_editor_curve_editor_window_draw(glt_edt, Glitter::CURVE_SCALE_Z      ,   blue_bcolor, false,
             min, max, canvas_size, canvas_pos, canvas_pos_min, canvas_pos_max);
-        glitter_editor_curve_editor_window_draw(glt_edt, Glitter::CURVE_SCALE_ALL, nwhite_color ,  true,
+        glitter_editor_curve_editor_window_draw(glt_edt, Glitter::CURVE_UNIFORM_SCALE, nwhite_color ,  true,
             min, max, canvas_size, canvas_pos, canvas_pos_min, canvas_pos_max);
         break;
     case Glitter::CURVE_COLOR_R:

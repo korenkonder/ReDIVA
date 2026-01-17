@@ -407,7 +407,7 @@ namespace Glitter {
                     float_t v00;
                     float_t v01;
                     CalcDispLocusSetPivot(pivot,
-                        hist_data.scale * elem->scale.x * elem->scale_all,
+                        hist_data.scale * elem->scale.x * elem->uniform_scale,
                         v00, v01);
 
                     buf[0].position = pos + x_vec * v00;
@@ -431,7 +431,7 @@ namespace Glitter {
                     float_t v00;
                     float_t v01;
                     CalcDispLocusSetPivot(pivot,
-                        hist_data.scale * elem->scale.x * elem->scale_all,
+                        hist_data.scale * elem->scale.x * elem->uniform_scale,
                         v00, v01);
 
                     buf[0].position = pos + x_vec * v00;
@@ -586,7 +586,7 @@ namespace Glitter {
                 if (!elem->disp)
                     continue;
 
-                vec2 scale_particle = *(vec2*)&elem->scale * elem->scale_particle * elem->scale_all;
+                vec2 scale_particle = *(vec2*)&elem->scale * elem->scale_particle * elem->uniform_scale;
                 if (fabsf(scale_particle.x) < 0.000001f || fabsf(scale_particle.y) < 0.000001f)
                     continue;
 
@@ -738,7 +738,7 @@ namespace Glitter {
                     if (!elem->disp)
                         continue;
 
-                    vec2 scale_particle = *(vec2*)&elem->scale * elem->scale_particle * elem->scale_all;
+                    vec2 scale_particle = *(vec2*)&elem->scale * elem->scale_particle * elem->uniform_scale;
                     if (fabsf(scale_particle.x) < 0.000001f || fabsf(scale_particle.y) < 0.000001f)
                         continue;
 
@@ -812,7 +812,7 @@ namespace Glitter {
                     if (!elem->disp)
                         continue;
 
-                    vec2 scale_particle = *(vec2*)&elem->scale * elem->scale_particle * elem->scale_all;
+                    vec2 scale_particle = *(vec2*)&elem->scale * elem->scale_particle * elem->uniform_scale;
                     if (fabsf(scale_particle.x) < 0.000001f || fabsf(scale_particle.y) < 0.000001f)
                         continue;
 
@@ -1401,7 +1401,7 @@ namespace Glitter {
                     float_t v00;
                     float_t v01;
                     CalcDispLocusSetPivot(pivot,
-                        hist_data.scale * elem->scale.x * elem->scale_all,
+                        hist_data.scale * elem->scale.x * elem->uniform_scale,
                         v00, v01);
 
                     buf[0].position = pos + x_vec * v00;
@@ -1425,7 +1425,7 @@ namespace Glitter {
                     float_t v00;
                     float_t v01;
                     CalcDispLocusSetPivot(pivot,
-                        hist_data.scale * elem->scale.x * elem->scale_all,
+                        hist_data.scale * elem->scale.x * elem->uniform_scale,
                         v00, v01);
 
                     buf[0].position = pos + x_vec * v00;
@@ -1574,7 +1574,7 @@ namespace Glitter {
                 if (!elem->disp)
                     continue;
 
-                vec2 scale_particle = *(vec2*)&elem->scale * elem->scale_particle * elem->scale_all;
+                vec2 scale_particle = *(vec2*)&elem->scale * elem->scale_particle * elem->uniform_scale;
                 if (fabsf(scale_particle.x) < 0.000001f || fabsf(scale_particle.y) < 0.000001f)
                     continue;
 
@@ -1722,7 +1722,7 @@ namespace Glitter {
                     if (!elem->disp)
                         continue;
 
-                    vec2 scale_particle = *(vec2*)&elem->scale * elem->scale_particle * elem->scale_all;
+                    vec2 scale_particle = *(vec2*)&elem->scale * elem->scale_particle * elem->uniform_scale;
                     if (fabsf(scale_particle.x) < 0.000001f || fabsf(scale_particle.y) < 0.000001f)
                         continue;
 
@@ -1793,7 +1793,7 @@ namespace Glitter {
                     if (!elem->disp)
                         continue;
 
-                    vec2 scale_particle = *(vec2*)&elem->scale * elem->scale_particle * elem->scale_all;
+                    vec2 scale_particle = *(vec2*)&elem->scale * elem->scale_particle * elem->uniform_scale;
                     if (fabsf(scale_particle.x) < 0.000001f || fabsf(scale_particle.y) < 0.000001f)
                         continue;
 
@@ -2282,7 +2282,7 @@ namespace Glitter {
 
                 vec3 trans = elem->translation;
                 vec3 rot = elem->rotation;
-                vec3 scale = elem->scale * elem->scale_all;
+                vec3 scale = elem->scale * elem->uniform_scale;
                 if (has_scale)
                     scale *= emit_scale;
 

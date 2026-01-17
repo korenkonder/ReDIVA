@@ -19,7 +19,7 @@ namespace Glitter {
         scale = emit->scale;
         mat = mat4_identity;
         mat_rot = mat4_identity;
-        scale_all = 1.0f;
+        uniform_scale = 1.0f;
         emission_interval = data.emission_interval;
         particles_per_emission = data.particles_per_emission;
         frame = -(float_t)data.start_time;
@@ -72,7 +72,7 @@ namespace Glitter {
         dst->scale = scale;
         dst->mat = mat;
         dst->mat_rot = mat_rot;
-        dst->scale_all = scale_all;
+        dst->uniform_scale = uniform_scale;
         dst->emission_timer = emission_timer;
         dst->emission_interval = emission_interval;
         dst->particles_per_emission = particles_per_emission;
@@ -142,7 +142,7 @@ namespace Glitter {
     void EmitterInstF2::CtrlMat(GPM, GLT, EffectInstF2* eff_inst) {
         vec3 trans = translation;
         vec3 rot = rotation;
-        vec3 scale = this->scale * scale_all;
+        vec3 scale = this->scale * uniform_scale;
 
         bool mult = true;
         mat4 dir_mat;
@@ -322,8 +322,8 @@ namespace Glitter {
             case CURVE_SCALE_Z:
                 scale.z = value;
                 break;
-            case CURVE_SCALE_ALL:
-                scale_all = value;
+            case CURVE_UNIFORM_SCALE:
+                uniform_scale = value;
                 break;
             case CURVE_EMISSION_INTERVAL:
                 emission_interval = value;
@@ -490,7 +490,7 @@ namespace Glitter {
         dst->scale = scale;
         dst->mat = mat;
         dst->mat_rot = mat_rot;
-        dst->scale_all = scale_all;
+        dst->uniform_scale = uniform_scale;
         dst->emission_timer = emission_timer;
         dst->emission_interval = emission_interval;
         dst->particles_per_emission = particles_per_emission;
@@ -550,7 +550,7 @@ namespace Glitter {
 
         vec3 trans = translation;
         vec3 rot = rotation;
-        vec3 scale = this->scale * scale_all;
+        vec3 scale = this->scale * uniform_scale;
 
         mat4 mat = eff_inst->mat;
         mat4_mul_translate(&mat, &trans, &mat);
@@ -665,7 +665,7 @@ namespace Glitter {
     void EmitterInstX::CtrlMat(GPM, EffectInstX* eff_inst) {
         vec3 trans = translation;
         vec3 rot = rotation;
-        vec3 scale = this->scale * scale_all;
+        vec3 scale = this->scale * uniform_scale;
 
         mat4 mat = eff_inst->mat;
         mat4_mul_translate(&mat, &trans, &mat);
@@ -875,8 +875,8 @@ namespace Glitter {
             case CURVE_SCALE_Z:
                 scale.z = value;
                 break;
-            case CURVE_SCALE_ALL:
-                scale_all = value;
+            case CURVE_UNIFORM_SCALE:
+                uniform_scale = value;
                 break;
             case CURVE_EMISSION_INTERVAL:
                 emission_interval = value;
