@@ -337,7 +337,7 @@ namespace Glitter {
         PARTICLE_NONE              = 0x00000,
         PARTICLE_LOOP              = 0x00001,
         PARTICLE_EMITTER_LOCAL     = 0x00004,
-        PARTICLE_SCALE_Y_BY_X      = 0x00010,
+        PARTICLE_UNIFORM_SCALE     = 0x00010,
         PARTICLE_REBOUND_PLANE     = 0x00020,
         PARTICLE_ROTATE_BY_EMITTER = 0x00040,
         PARTICLE_SCALE             = 0x00080,

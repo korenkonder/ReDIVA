@@ -219,7 +219,7 @@ namespace Glitter {
 
         rend_elem->scale_particle.x = random->GetFloat(GLT_VAL, ptcl_data->scale_random.x)
             + ptcl_data->scale.x;
-        if (ptcl_data->flags & PARTICLE_SCALE_Y_BY_X)
+        if (ptcl_data->flags & PARTICLE_UNIFORM_SCALE)
             rend_elem->scale_particle.y = rend_elem->scale_particle.x;
         else
             rend_elem->scale_particle.y = random->GetFloat(GLT_VAL, ptcl_data->scale_random.y)
@@ -733,7 +733,7 @@ namespace Glitter {
 
         rend_elem->scale_particle.x = random->GetFloat(ptcl_data->scale_random.x)
             + ptcl_data->scale.x;
-        if (ptcl_data->flags & PARTICLE_SCALE_Y_BY_X) {
+        if (ptcl_data->flags & PARTICLE_UNIFORM_SCALE) {
             rend_elem->scale_particle.y = rend_elem->scale_particle.x;
             random->StepValue();
         }

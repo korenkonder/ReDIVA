@@ -3648,9 +3648,9 @@ static void glitter_editor_property_particle(GlitterEditor* glt_edt) {
         Glitter::PARTICLE_EMITTER_LOCAL))
         flags_changed = true;
 
-    if (ImGui::CheckboxFlagsEnterKeyPressed("Scale Y by X",
+    if (ImGui::CheckboxFlagsEnterKeyPressed("Uniform Scale",
         (uint32_t*)&particle->data.flags,
-        Glitter::PARTICLE_SCALE_Y_BY_X))
+        Glitter::PARTICLE_UNIFORM_SCALE))
         flags_changed = true;
 
     if (ImGui::CheckboxFlagsEnterKeyPressed("Rebound Plane",
@@ -3865,13 +3865,13 @@ static void glitter_editor_property_particle(GlitterEditor* glt_edt) {
     if (ImGui::ColumnDragVec2("Scale",
         (vec2*)&particle->data.scale, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
         ImGuiSliderFlags_NoRoundToFormat,
-        particle->data.flags & Glitter::PARTICLE_SCALE_Y_BY_X ? 0x01 : 0x03))
+        particle->data.flags & Glitter::PARTICLE_UNIFORM_SCALE ? 0x01 : 0x03))
         changed = true;
 
     if (ImGui::ColumnDragVec2("Scale Random",
         (vec2*)&particle->data.scale_random, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
         ImGuiSliderFlags_NoRoundToFormat,
-        particle->data.flags & Glitter::PARTICLE_SCALE_Y_BY_X ? 0x01 : 0x03))
+        particle->data.flags & Glitter::PARTICLE_UNIFORM_SCALE ? 0x01 : 0x03))
         changed = true;
     ImGui::DisableElementPop(particle->data.type != Glitter::PARTICLE_MESH);
 
