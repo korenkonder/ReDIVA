@@ -1182,7 +1182,7 @@ static int64_t key_val_get_key_index(key_val* kv, const char* str, size_t size) 
     return -1;
 }
 
-#define RADIX_BASE 4
+#define RADIX_BASE 8
 #define RADIX (1 << RADIX_BASE)
 
 static void key_val_sort(key_val* kv) {
