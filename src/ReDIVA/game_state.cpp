@@ -928,6 +928,7 @@ std::vector<uint32_t> stru_1411A12F8;
 
 static bool game_state_call_sub(GameState* game_state);
 static GameState* game_state_get();
+static const char* game_state_get_name(GameStateEnum state);
 static void game_state_set_state(GameStateEnum state, SubGameStateEnum sub_state);
 
 static GameStateData* game_state_data_array_get(GameStateEnum state);
@@ -2693,6 +2694,10 @@ static GameState* game_state_get() {
     return &game_state;
 }
 
+static const char* game_state_get_name(GameStateEnum state) {
+    return game_state_names[state];
+}
+
 static void game_state_set_state(GameStateEnum state, SubGameStateEnum sub_state) {
     GameState* game_state = game_state_get();
     if (state != GAME_STATE_MAX) {
@@ -2706,7 +2711,7 @@ static void game_state_set_state(GameStateEnum state, SubGameStateEnum sub_state
         game_state->inner_state = 0;
 
         dw_console_printf(DW_CONSOLE_MODE_CTRL, "[%s]->[%s]\n",
-            game_state_names[game_state_prev], game_state_names[state]);
+            game_state_get_name(game_state_prev), game_state_get_name(state));
 
         GameStateData* game_state_data = game_state_data_array_get(game_state->game_state);
         if (game_state_data) {
