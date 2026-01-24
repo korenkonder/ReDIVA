@@ -11363,7 +11363,7 @@ static void rob_chara_bone_data_set_mats(rob_chara_bone_data* rob_bone_data,
             leaf_pos++;
             break;
         case BONE_DATABASE_BONE_HEAD_IK_ROTATION:
-            nodes->mat = &rob_bone_data->mats[matrix2++];
+            nodes->mat = &rob_bone_data->mats2[matrix2++];
             nodes->name = motion_bones->c_str();
             nodes++;
             motion_bones++;
@@ -11373,7 +11373,7 @@ static void rob_chara_bone_data_set_mats(rob_chara_bone_data* rob_bone_data,
             nodes++;
             motion_bones++;
 
-            nodes->mat = &rob_bone_data->mats[matrix2++];
+            nodes->mat = &rob_bone_data->mats2[matrix2++];
             nodes->name = motion_bones->c_str();
             nodes++;
             motion_bones++;
@@ -11399,7 +11399,7 @@ static void rob_chara_bone_data_set_mats(rob_chara_bone_data* rob_bone_data,
             nodes++;
             motion_bones++;
 
-            nodes->mat = &rob_bone_data->mats[matrix2++];
+            nodes->mat = &rob_bone_data->mats2[matrix2++];
             nodes->name = motion_bones->c_str();
             nodes++;
             motion_bones++;
