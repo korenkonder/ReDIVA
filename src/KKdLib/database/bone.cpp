@@ -398,51 +398,35 @@ bool bone_database::load_file(void* data, const char* dir, const char* file, uin
 }
 
 void bone_database_bones_calculate_count(const std::vector<bone_database_bone>* bones,
-    size_t* object_bone_count, size_t* motion_bone_count,
-    size_t* total_bone_count, size_t* ik_bone_count, size_t* chain_pos) {
-    size_t _object_bone_count = 0;
-    size_t _motion_bone_count = 0;
-    size_t _total_bone_count = 0;
-    size_t _ik_bone_count = 0;
-    size_t _chain_pos = 0;
-    for (const bone_database_bone& i : *bones)
-        switch (i.type) {
-        case BONE_DATABASE_BONE_ROTATION:
-        case BONE_DATABASE_BONE_TYPE_1:
-        case BONE_DATABASE_BONE_POSITION:
-            _object_bone_count++;
-            _motion_bone_count++;
-            _total_bone_count++;
-            _chain_pos++;
-            break;
-        case BONE_DATABASE_BONE_POSITION_ROTATION:
-            _object_bone_count++;
-            _motion_bone_count++;
-            _total_bone_count++;
-            _ik_bone_count++;
-            _chain_pos++;
-            break;
-        case BONE_DATABASE_BONE_HEAD_IK_ROTATION:
-            _object_bone_count++;
-            _motion_bone_count++;
-            _total_bone_count += 3;
-            _ik_bone_count++;
-            _chain_pos += 2;
-            break;
-        case BONE_DATABASE_BONE_ARM_IK_ROTATION:
-        case BONE_DATABASE_BONE_LEGS_IK_ROTATION:
-            _object_bone_count += 3;
-            _motion_bone_count++;
-            _total_bone_count += 4;
-            _ik_bone_count++;
-            _chain_pos += 3;
-            break;
+    size_t& object_bone_count, size_t& motion_bone_count,
+    size_t& node_count, size_t& leaf_pos, size_t& chain_pos) {
+    object_bone_count = 0;
+    motion_bone_count = 0;
+    node_count = 0;
+    leaf_pos = 0;
+    chain_pos = 0;
+
+    for (const bone_database_bone& i : *bones) {
+        object_bone_count++;
+        node_count++;
+        if (i.type >= BONE_DATABASE_BONE_ARM_IK_ROTATION)
+            object_bone_count += 2;
+        chain_pos++;
+
+        if (i.type >= BONE_DATABASE_BONE_HEAD_IK_ROTATION) {
+            chain_pos++;
+            node_count += 2;
+
+            if (i.type >= BONE_DATABASE_BONE_ARM_IK_ROTATION) {
+                chain_pos++;
+                node_count++;
+            }
         }
-    *object_bone_count = _object_bone_count;
-    *motion_bone_count = _motion_bone_count;
-    *total_bone_count = _total_bone_count;
-    *ik_bone_count = _ik_bone_count;
-    *chain_pos = _chain_pos;
+
+        if (i.type >= BONE_DATABASE_BONE_POSITION_ROTATION)
+            leaf_pos++;
+        motion_bone_count++;
+    }
 }
 
 const char* bone_database_skeleton_type_to_string(bone_database_skeleton_type type) {

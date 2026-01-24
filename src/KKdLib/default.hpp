@@ -391,6 +391,50 @@ inline void wprintf_debug(_In_z_ _Printf_format_string_ const wchar_t* fmt, ...)
 #endif
 }
 
+inline void printf_debug_error(_In_z_ _Printf_format_string_ const char* fmt, ...) {
+#ifdef DEBUG
+    printf("[Error] ");
+
+    va_list args;
+    va_start(args, fmt);
+    vprintf(fmt, args);
+    va_end(args);
+#endif
+}
+
+inline void wprintf_debug_error(_In_z_ _Printf_format_string_ const wchar_t* fmt, ...) {
+#ifdef DEBUG
+    printf("[Error] ");
+
+    va_list args;
+    va_start(args, fmt);
+    vwprintf(fmt, args);
+    va_end(args);
+#endif
+}
+
+inline void printf_debug_info(_In_z_ _Printf_format_string_ const char* fmt, ...) {
+#ifdef DEBUG
+    printf("[Info] ");
+
+    va_list args;
+    va_start(args, fmt);
+    vprintf(fmt, args);
+    va_end(args);
+#endif
+}
+
+inline void wprintf_debug_info(_In_z_ _Printf_format_string_ const wchar_t* fmt, ...) {
+#ifdef DEBUG
+    printf("[Info] ");
+
+    va_list args;
+    va_start(args, fmt);
+    vwprintf(fmt, args);
+    va_end(args);
+#endif
+}
+
 inline _Check_return_ constexpr size_t utf8_length(_In_z_ const char* s) {
     if (!s)
         return 0;

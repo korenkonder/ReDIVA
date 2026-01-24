@@ -2242,7 +2242,7 @@ TaskEffectFogAnim::~TaskEffectFogAnim() {
 }
 
 bool TaskEffectFogAnim::init() {
-    //sub_1400DE640("TaskEffectFogAnim::init()\n");
+    printf_debug_info(__FUNCTION__ "()\n");
     return true;
 }
 
@@ -2254,7 +2254,7 @@ bool TaskEffectFogAnim::ctrl() {
 bool TaskEffectFogAnim::dest() {
     data.reset();
     effect_fog_anim = 0;
-    //sub_1400DE640("TaskEffectFogAnim::dest()\n");
+    printf_debug_info(__FUNCTION__ "()\n");
     return true;
 }
 
@@ -2265,7 +2265,7 @@ void TaskEffectFogAnim::disp() {
 void TaskEffectFogAnim::pre_init(int32_t) {
     data.reset();
     effect_fog_anim = &data;
-    //sub_1400DE640("TaskEffectFogAnim::pre_init()\n");
+    printf_debug_info(__FUNCTION__ "()\n");
 }
 
 void TaskEffectFogAnim::reset() {
@@ -2696,7 +2696,7 @@ TaskEffectFogRing::~TaskEffectFogRing() {
 }
 
 bool TaskEffectFogRing::init() {
-    //sub_1400DE640("TaskEffectFogRing::init()\n");
+    printf_debug_info(__FUNCTION__ "()\n");
     return true;
 }
 
@@ -2709,7 +2709,7 @@ bool TaskEffectFogRing::ctrl() {
 bool TaskEffectFogRing::dest() {
     data.dest();
     effect_fog_ring = 0;
-    //sub_1400DE640("TaskEffectFogRing::dest()\n");
+    printf_debug_info(__FUNCTION__ "()\n");
     return 1;
 }
 
@@ -3657,7 +3657,7 @@ TaskEffectRipple::~TaskEffectRipple() {
 
 bool TaskEffectRipple::init() {
     ripple_emit_init();
-    //sub_1400DE640("TaskEffectRipple::init()\n");
+    printf_debug_info(__FUNCTION__ "()\n");
     return true;
 }
 
@@ -3669,7 +3669,7 @@ bool TaskEffectRipple::ctrl() {
 
 bool TaskEffectRipple::dest() {
     emit->dest();
-    //sub_1400DE640("TaskEffectRipple::dest()\n");
+    printf_debug_info(__FUNCTION__ "()\n");
     ripple_emit_free();
     return true;
 }
@@ -4704,7 +4704,7 @@ TaskEffectSplash::~TaskEffectSplash() {
 bool TaskEffectSplash::init() {
     water_particle_init();
     set_enable(true);
-    //sub_1400DE640("TaskEffectSplash::init()\n");
+    printf_debug_info(__FUNCTION__ "()\n");
     return true;
 }
 
@@ -4719,7 +4719,7 @@ bool TaskEffectSplash::dest() {
     water_particle_free();
 
     effect_splash = 0;
-    //sub_1400DE640("TaskEffectSplash::dest()\n");
+    printf_debug_info(__FUNCTION__ "()\n");
     return true;
 }
 

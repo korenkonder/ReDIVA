@@ -261,7 +261,7 @@ void app_system_detail::SystemInfo::MeasureFps::exec() {
             break;
 
         if (res_window_get()->resolution_mode == RESOLUTION_MODE_HD && (fps < 59.940002f || fps > 60.060001f)) {
-            printf_debug("%s: %f(%zu) -> retry\n", __FUNCTION__, fps, retry_count);
+            printf_debug_info("%s: %f(%zu) -> retry\n", __FUNCTION__, fps, retry_count);
             retry_count++;
             if (retry_count < 3) {
                 state = 1;
@@ -273,7 +273,7 @@ void app_system_detail::SystemInfo::MeasureFps::exec() {
 
         this->fps = fps;
         state = 3;
-        printf_debug("%s: %f(%zu)\n", __FUNCTION__, fps, retry_count);*/
+        printf_debug_info("%s: %f(%zu)\n", __FUNCTION__, fps, retry_count);*/
 
         this->fps = 60.0;
         state = 3;

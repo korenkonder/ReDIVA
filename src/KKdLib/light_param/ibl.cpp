@@ -95,8 +95,10 @@ static void light_param_ibl_read_inner(light_param_ibl* ibl, stream& s) {
 
     char buf[0x200];
     const char* d = light_param_read_line(buf, sizeof(buf), data);
-    if (str_utils_compare(buf, "VF5_IBL"))
+    if (str_utils_compare(buf, "VF5_IBL")) {
+        printf_debug_error("Not VF5_IBL file\n");
         return;
+    }
 
     int32_t widths[6] = { 0 };
     int32_t heights[6] = { 0 };
@@ -105,7 +107,43 @@ static void light_param_ibl_read_inner(light_param_ibl* ibl, stream& s) {
             d = light_param_read_line(buf, sizeof(buf), d);
         while (buf[0] == '#');
 
-        if (!str_utils_compare(buf, "VERSION"))
+        if (!str_utils_compare(buf, "BINARY")) {
+            half_t* dh = (half_t*)d;
+            for (int32_t i = 0, j = -2; i < 6; i++, j++) {
+                size_t size = widths[i];
+                size = 4 * (size * size);
+
+                if (i < 2) {
+                    light_param_ibl_diffuse* diffuse = &ibl->diffuse[i];
+                    diffuse->data = std::vector<half_t>(size * 6);
+                    diffuse->size = widths[i];
+                    diffuse->level = i;
+
+                    for (int32_t k = 0; k < 6; k++, dh += size)
+                        memcpy(&diffuse->data[size * k], dh, sizeof(half_t) * size);
+                }
+                else {
+                    const int32_t max_level = 2;
+
+                    light_param_ibl_specular* specular = &ibl->specular[j];
+                    specular->data = std::vector<std::vector<half_t>>(max_level + 1ULL);
+                    specular->max_level = max_level;
+                    specular->size = widths[i];
+
+                    size_t img_size = widths[i];
+                    for (int32_t i = 0; i <= max_level; i++, img_size /= 2)
+                        specular->data[i] = std::vector<half_t>(4 * (img_size * img_size) * 6);
+
+                    std::vector<half_t>& specular_data = specular->data[0];
+                    for (int32_t k = 0; k < 6; k++, dh += size)
+                        memcpy(&specular_data[size * k], dh, sizeof(half_t) * size);
+
+                    light_param_ibl_specular_generate_mipmaps(specular);
+                }
+            }
+            break;
+        }
+        else if (!str_utils_compare(buf, "VERSION"))
             d = light_param_read_line(buf, sizeof(buf), d);
         else if (!str_utils_compare(buf, "LIT_DIR")) {
             d = light_param_read_line(buf, sizeof(buf), d);
@@ -190,44 +228,10 @@ static void light_param_ibl_read_inner(light_param_ibl* ibl, stream& s) {
             widths[index] = w;
             heights[index] = h;
         }
-        else if (!str_utils_compare(buf, "BINARY")) {
-            half_t* dh = (half_t*)d;
-            for (int32_t i = 0, j = -2; i < 6; i++, j++) {
-                size_t size = widths[i];
-                size = 4 * (size * size);
-
-                if (i < 2) {
-                    light_param_ibl_diffuse* diffuse = &ibl->diffuse[i];
-                    diffuse->data = std::vector<half_t>(size * 6);
-                    diffuse->size = widths[i];
-                    diffuse->level = i;
-
-                    for (int32_t k = 0; k < 6; k++, dh += size)
-                        memcpy(&diffuse->data[size * k], dh, sizeof(half_t) * size);
-                }
-                else {
-                    const int32_t max_level = 2;
-
-                    light_param_ibl_specular* specular = &ibl->specular[j];
-                    specular->data = std::vector<std::vector<half_t>>(max_level + 1ULL);
-                    specular->max_level = max_level;
-                    specular->size = widths[i];
-
-                    size_t img_size = widths[i];
-                    for (int32_t i = 0; i <= max_level; i++, img_size /= 2)
-                        specular->data[i] = std::vector<half_t>(4 * (img_size * img_size) * 6);
-
-                    std::vector<half_t>& specular_data = specular->data[0];
-                    for (int32_t k = 0; k < 6; k++, dh += size)
-                        memcpy(&specular_data[size * k], dh, sizeof(half_t) * size);
-
-                    light_param_ibl_specular_generate_mipmaps(specular);
-                }
-            }
-            break;
-        }
-        else
+        else {
+            printf_debug_error("%s: unknown tag %s\n", "light_table_detail::LightDataIbl::load", buf);
             goto End;
+        }
     }
 
     free_def(data);

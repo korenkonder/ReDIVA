@@ -102,7 +102,7 @@ struct bone_database {
 };
 
 extern void bone_database_bones_calculate_count(const std::vector<bone_database_bone>* bones,
-    size_t* object_bone_count, size_t* motion_bone_count,
-    size_t* total_bone_count, size_t* ik_bone_count, size_t* chain_pos);
+    size_t& object_bone_count, size_t& motion_bone_count,
+    size_t& node_count, size_t& leaf_pos, size_t& chain_pos);
 
 extern const char* bone_database_skeleton_type_to_string(bone_database_skeleton_type type);

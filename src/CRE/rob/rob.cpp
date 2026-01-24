@@ -914,9 +914,9 @@ static bool mot_load_file(mot* a1, const mot_data* a2);
 
 static void mot_key_data_get_key_set_count_by_bone_database_bones(mot_key_data* a1,
     const std::vector<bone_database_bone>* a2);
-static void mot_key_data_get_key_set_count(mot_key_data* a1, size_t motion_bone_count, size_t ik_bone_count);
+static void mot_key_data_get_key_set_count(mot_key_data* a1, size_t motion_bone_count, size_t leaf_pos);
 static void mot_key_data_init_key_sets(mot_key_data* a1, bone_database_skeleton_type type,
-    size_t motion_bone_count, size_t ik_bone_count);
+    size_t motion_bone_count, size_t leaf_pos);
 static const mot_data* mot_key_data_load_file(mot_key_data* a1, uint32_t motion_id, const motion_database* mot_db);
 static void mot_key_data_reserve_key_sets(mot_key_data* a1);
 
@@ -5966,8 +5966,8 @@ static void bone_data_parent_load_bone_database(bone_data_parent* bone,
     const std::vector<bone_database_bone>* bones, const vec3* common_position, const vec3* position) {
     rob_chara_bone_data* rob_bone_data = bone->rob_bone_data;
     size_t chain_pos = 0;
-    size_t total_bone_count = 0;
-    size_t ik_bone_count = 0;
+    size_t node_count = 0;
+    size_t leaf_pos = 0;
 
     bone_data* bone_node = bone->bones.data();
     for (const bone_database_bone& i : *bones ) {
@@ -5982,7 +5982,7 @@ static void bone_data_parent_load_bone_database(bone_data_parent* bone,
             bone_node->key_set_count = 3;
         bone_node->base_position[0] = *common_position++;
         bone_node->base_position[1] = *position++;
-        bone_node->node = &rob_bone_data->nodes[total_bone_count];
+        bone_node->node = &rob_bone_data->nodes[node_count];
         bone_node->has_parent = i.has_parent;
         if (i.has_parent)
             bone_node->parent_mat = &rob_bone_data->mats[i.parent];
@@ -5995,20 +5995,20 @@ static void bone_data_parent_load_bone_database(bone_data_parent* bone,
         case BONE_DATABASE_BONE_TYPE_1:
         case BONE_DATABASE_BONE_POSITION:
             chain_pos++;
-            total_bone_count++;
+            node_count++;
             break;
         case BONE_DATABASE_BONE_POSITION_ROTATION:
             chain_pos++;
-            ik_bone_count++;
-            total_bone_count++;
+            leaf_pos++;
+            node_count++;
             break;
         case BONE_DATABASE_BONE_HEAD_IK_ROTATION:
             bone_node->ik_segment_length[0] = (common_position++)->x;
             bone_node->ik_segment_length[1] = (position++)->x;
 
             chain_pos += 2;
-            ik_bone_count++;
-            total_bone_count += 3;
+            leaf_pos++;
+            node_count += 3;
             break;
         case BONE_DATABASE_BONE_ARM_IK_ROTATION:
         case BONE_DATABASE_BONE_LEGS_IK_ROTATION:
@@ -6023,12 +6023,19 @@ static void bone_data_parent_load_bone_database(bone_data_parent* bone,
             bone_node->pole_target_mat = pole_target;
 
             chain_pos += 3;
-            ik_bone_count++;
-            total_bone_count += 4;
+            leaf_pos++;
+            node_count += 4;
             break;
         }
         bone_node++;
     }
+
+    if (node_count != rob_bone_data->node_count)
+        printf_debug_error("Node mismatch");
+    if (leaf_pos != bone->leaf_pos)
+        printf_debug_error("LeafPos mismatch");
+    if (chain_pos != bone->chain_pos)
+        printf_debug_error("ChainPos mismatch");
 }
 
 static void bone_data_parent_load_bone_indices_from_mot(bone_data_parent* a1,
@@ -6076,12 +6083,12 @@ static void bone_data_parent_load_rob_chara(bone_data_parent* bone) {
         return;
 
     bone->motion_bone_count = rob_bone_data->motion_bone_count;
-    bone->ik_bone_count = rob_bone_data->ik_bone_count;
+    bone->leaf_pos = rob_bone_data->leaf_pos;
     bone->chain_pos = rob_bone_data->chain_pos;
     bone->bones.clear();
     bone->bones.resize(rob_bone_data->motion_bone_count);
     bone->global_key_set_count = 6;
-    bone->bone_key_set_count = (uint32_t)((bone->motion_bone_count + bone->ik_bone_count) * 3);
+    bone->bone_key_set_count = (uint32_t)((bone->motion_bone_count + bone->leaf_pos) * 3);
 }
 
 static void sub_14040F650(struc_313* a1, size_t a2) {
@@ -6342,16 +6349,16 @@ static void mot_key_data_get_key_set_count_by_bone_database_bones(mot_key_data* 
     const std::vector<bone_database_bone>* a2) {
     size_t object_bone_count;
     size_t motion_bone_count;
-    size_t total_bone_count;
-    size_t ik_bone_count;
+    size_t node_count;
+    size_t leaf_pos;
     size_t chain_pos;
-    bone_database_bones_calculate_count(a2, &object_bone_count,
-        &motion_bone_count, &total_bone_count, &ik_bone_count, &chain_pos);
-    mot_key_data_get_key_set_count(a1, motion_bone_count, ik_bone_count);
+    bone_database_bones_calculate_count(a2, object_bone_count,
+        motion_bone_count, node_count, leaf_pos, chain_pos);
+    mot_key_data_get_key_set_count(a1, motion_bone_count, leaf_pos);
 }
 
-static void mot_key_data_get_key_set_count(mot_key_data* a1, size_t motion_bone_count, size_t ik_bone_count) {
-    a1->key_set_count = (motion_bone_count + ik_bone_count) * 3 + 16;
+static void mot_key_data_get_key_set_count(mot_key_data* a1, size_t motion_bone_count, size_t leaf_pos) {
+    a1->key_set_count = (motion_bone_count + leaf_pos) * 3 + 16;
 }
 
 static void mot_key_data_init(mot_key_data* a1,
@@ -6367,8 +6374,8 @@ static void mot_key_data_init(mot_key_data* a1,
 }
 
 static void mot_key_data_init_key_sets(mot_key_data* a1, bone_database_skeleton_type type,
-    size_t motion_bone_count, size_t ik_bone_count) {
-    mot_key_data_get_key_set_count(a1, motion_bone_count, ik_bone_count);
+    size_t motion_bone_count, size_t leaf_pos) {
+    mot_key_data_get_key_set_count(a1, motion_bone_count, leaf_pos);
     mot_key_data_reserve_key_sets(a1);
     a1->skeleton_type = type;
 }
@@ -8127,7 +8134,7 @@ static void motion_blend_mot_load_bone_data(motion_blend_mot* a1,
         &a1->mot_key_data,
         a1->bone_data.rob_bone_data->base_skeleton_type,
         a1->bone_data.motion_bone_count,
-        a1->bone_data.ik_bone_count);
+        a1->bone_data.leaf_pos);
     sub_140413350(&a1->field_0, bone_check_func, a1->bone_data.motion_bone_count);
 }
 
@@ -10781,9 +10788,9 @@ static void rob_chara_age_age_set_step_full(rob_chara_age_age* arr,
 
 static void rob_chara_bone_data_calculate_bones(rob_chara_bone_data* rob_bone_data,
     const std::vector<bone_database_bone>* bones) {
-    bone_database_bones_calculate_count(bones, &rob_bone_data->object_bone_count,
-        &rob_bone_data->motion_bone_count, &rob_bone_data->total_bone_count,
-        &rob_bone_data->ik_bone_count, &rob_bone_data->chain_pos);
+    bone_database_bones_calculate_count(bones, rob_bone_data->object_bone_count,
+        rob_bone_data->motion_bone_count, rob_bone_data->node_count,
+        rob_bone_data->leaf_pos, rob_bone_data->chain_pos);
 }
 
 static void rob_chara_bone_data_get_ik_scale(
@@ -11167,13 +11174,13 @@ static void rob_chara_bone_data_reserve(rob_chara_bone_data* rob_bone_data) {
         i = mat4_identity;
 
     rob_bone_data->mats2.clear();
-    rob_bone_data->mats2.resize(rob_bone_data->total_bone_count - rob_bone_data->object_bone_count);
+    rob_bone_data->mats2.resize(rob_bone_data->node_count - rob_bone_data->object_bone_count);
 
     for (mat4& i : rob_bone_data->mats2)
         i = mat4_identity;
 
     rob_bone_data->nodes.clear();
-    rob_bone_data->nodes.resize(rob_bone_data->total_bone_count);
+    rob_bone_data->nodes.resize(rob_bone_data->node_count);
 }
 
 static void sub_140412BB0(motion_blend_mot* a1, std::vector<bone_data>& bones) {
@@ -11328,86 +11335,97 @@ static void rob_chara_bone_data_set_look_anim_param(rob_chara_bone_data* rob_bon
 
 static void rob_chara_bone_data_set_mats(rob_chara_bone_data* rob_bone_data,
     const std::vector<bone_database_bone>* bones, const std::string* motion_bones) {
+    size_t node = 0;
+    size_t matrix = 0;
+    size_t matrix2 = 0;
+    size_t leaf_pos = 0;
     size_t chain_pos = 0;
-    size_t ik_bone_count = 0;
-    size_t total_bone_count = 0;
 
-    mat4* mats = rob_bone_data->mats.data();
-    mat4* mats2 = rob_bone_data->mats2.data();
     bone_node* nodes = rob_bone_data->nodes.data();
-    for (const bone_database_bone& i : *bones)
+    for (const bone_database_bone& i : *bones) {
+        chain_pos++;
+
         switch (i.type) {
         case BONE_DATABASE_BONE_ROTATION:
         case BONE_DATABASE_BONE_TYPE_1:
         case BONE_DATABASE_BONE_POSITION:
-            nodes->mat = mats++;
+            nodes->mat = &rob_bone_data->mats[matrix++];
             nodes->name = motion_bones->c_str();
             nodes++;
             motion_bones++;
-
-            chain_pos++;
-            total_bone_count++;
             break;
         case BONE_DATABASE_BONE_POSITION_ROTATION:
-            nodes->mat = mats++;
+            nodes->mat = &rob_bone_data->mats[matrix++];
+            nodes->name = motion_bones->c_str();
+            nodes++;
+            motion_bones++;
+
+            leaf_pos++;
+            break;
+        case BONE_DATABASE_BONE_HEAD_IK_ROTATION:
+            nodes->mat = &rob_bone_data->mats[matrix2++];
+            nodes->name = motion_bones->c_str();
+            nodes++;
+            motion_bones++;
+
+            nodes->mat = &rob_bone_data->mats[matrix++];
+            nodes->name = motion_bones->c_str();
+            nodes++;
+            motion_bones++;
+
+            nodes->mat = &rob_bone_data->mats[matrix2++];
             nodes->name = motion_bones->c_str();
             nodes++;
             motion_bones++;
 
             chain_pos++;
-            ik_bone_count++;
-            total_bone_count++;
+            leaf_pos++;
+            node += 2;
             break;
-        case BONE_DATABASE_BONE_HEAD_IK_ROTATION:
-            nodes->mat = mats2++;
+        case BONE_DATABASE_BONE_ARM_IK_ROTATION:
+        case BONE_DATABASE_BONE_LEGS_IK_ROTATION:
+            nodes->mat = &rob_bone_data->mats[matrix++];
             nodes->name = motion_bones->c_str();
             nodes++;
             motion_bones++;
 
-            nodes->mat = mats++;
+            nodes->mat = &rob_bone_data->mats[matrix++];
             nodes->name = motion_bones->c_str();
             nodes++;
             motion_bones++;
 
-            nodes->mat = mats2++;
+            nodes->mat = &rob_bone_data->mats[matrix++];
+            nodes->name = motion_bones->c_str();
+            nodes++;
+            motion_bones++;
+
+            nodes->mat = &rob_bone_data->mats[matrix2++];
             nodes->name = motion_bones->c_str();
             nodes++;
             motion_bones++;
 
             chain_pos += 2;
-            ik_bone_count++;
-            total_bone_count += 3;
-            break;
-        case BONE_DATABASE_BONE_ARM_IK_ROTATION:
-        case BONE_DATABASE_BONE_LEGS_IK_ROTATION:
-            nodes->mat = mats++;
-            nodes->name = motion_bones->c_str();
-            nodes++;
-            motion_bones++;
-
-            nodes->mat = mats++;
-            nodes->name = motion_bones->c_str();
-            nodes++;
-            motion_bones++;
-
-            nodes->mat = mats++;
-            nodes->name = motion_bones->c_str();
-            nodes++;
-            motion_bones++;
-
-            nodes->mat = mats2++;
-            nodes->name = motion_bones->c_str();
-            nodes++;
-            motion_bones++;
-
-            chain_pos += 3;
-            ik_bone_count++;
-            total_bone_count += 4;
+            leaf_pos++;
+            node += 3;
             break;
         }
+        node++;
+    }
 
     for (bone_node& i : rob_bone_data->nodes)
         i.ex_data_mat = i.mat;
+
+    if (node != rob_bone_data->node_count)
+        printf_debug_error("Node mismatch");
+    if (matrix != rob_bone_data->object_bone_count)
+        printf_debug_error("Matrix mismatch");
+    if (matrix2 != rob_bone_data->node_count - rob_bone_data->object_bone_count)
+        printf_debug_error("Matrix2 mismatch");
+    if (leaf_pos != rob_bone_data->leaf_pos)
+        printf_debug_error("LeafPos mismatch");
+    if (chain_pos != rob_bone_data->chain_pos)
+        printf_debug_error("ChainPos mismatch");
+    rob_bone_data->field_1 = true;
 }
 
 static void rob_chara_bone_data_set_parent_mats(rob_chara_bone_data* rob_bone_data,
@@ -12608,7 +12626,7 @@ void bone_data::store_curr_rot_trans(int32_t skeleton_select) {
 }
 
 bone_data_parent::bone_data_parent() : rob_bone_data(),
-motion_bone_count(), ik_bone_count(), chain_pos(), global_position(),
+motion_bone_count(), leaf_pos(), chain_pos(), global_position(),
 global_rotation(), bone_key_set_count(), global_key_set_count(), rot_y() {
 
 }
@@ -13333,8 +13351,8 @@ void rob_chara_sleeve_adjust::reset() {
     field_80 = 0.0f;
 }
 
-rob_chara_bone_data::rob_chara_bone_data() : field_0(), field_1(), object_bone_count(), total_bone_count(),
-motion_bone_count(), ik_bone_count(), chain_pos(), disable_eye_motion(), look_anim() {
+rob_chara_bone_data::rob_chara_bone_data() : field_0(), field_1(), object_bone_count(), node_count(),
+motion_bone_count(), leaf_pos(), chain_pos(), disable_eye_motion(), look_anim() {
     base_skeleton_type = BONE_DATABASE_SKELETON_NONE;
     skeleton_type = BONE_DATABASE_SKELETON_NONE;
 }
@@ -13613,8 +13631,8 @@ void rob_chara_bone_data::motion_step() {
 void rob_chara_bone_data::reset() {
     object_bone_count = 0;
     motion_bone_count = 0;
-    total_bone_count = 0;
-    ik_bone_count = 0;
+    node_count = 0;
+    leaf_pos = 0;
     chain_pos = 0;
     mats.clear();
     mats2.clear();

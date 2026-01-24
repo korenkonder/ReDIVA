@@ -126,6 +126,18 @@ static const exp_func_op3 exp_func_op3_array[] = {
     { 0     , 0        },
 };
 
+static const char* expression_component_names[] = {
+    "posx",
+    "posy",
+    "posz",
+    "rotx",
+    "roty",
+    "rotz",
+    "scalex",
+    "scaley",
+    "scalez",
+};
+
 size_t rob_cloth_iterations_count = 0;
 int32_t rob_cloth_update_vertices_flags = 0x03;
 bool rob_cloth_update_normals_select = false;
@@ -3736,8 +3748,14 @@ void ExExpressionBlock::InitData(rob_chara_item_equip_object* itm_eq_obj,
             std::string value_type;
             expression = str_utils_get_next_string(expression, value_type, ' ');
             if (!value_type.size() || !memcmp(value_type.c_str(), "error",
-                min_def(value_type.size(), 5)) && value_type.size() == 5)
+                min_def(value_type.size(), 5)) && value_type.size() == 5) {
+                printf_debug_info("Expression error: %s.", this->name);
+                if (index >= 0 && index < 9)
+                    printf_debug_info("%s\n", expression_component_names[index]);
+                else
+                    printf_debug_info("\n");
                 break;
+            }
 
             if (value_type[0] == 'n') {
                 stack_val->type = EX_EXPRESSION_BLOCK_STACK_NUMBER;

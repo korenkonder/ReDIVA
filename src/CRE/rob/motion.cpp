@@ -244,8 +244,10 @@ void MotFile::ParseFileParent(MotFile* mot, const void* file_data, size_t size) 
 
 void motion_set_load_mothead(uint32_t set, std::string&& mdata_dir, const motion_database* mot_db) {
     const motion_set_info* set_info = mot_db->get_motion_set_by_id(set);
-    if (!set_info)
+    if (!set_info) {
+        printf_debug_error("request_load_mhd_file(): illegal file_id(%d).\n", set);
         return;
+    }
 
     std::string file;
     file.assign("mothead_");
@@ -344,8 +346,10 @@ MotFile* motion_storage_get_mot_file(uint32_t set_id) {
 
 const mot_data* motion_storage_get_mot_data(uint32_t motion_id, const motion_database* mot_db) {
     const motion_set_info* set_info = mot_db->get_motion_set_by_motion_id(motion_id);
-    if (!set_info)
+    if (!set_info) {
+        printf_debug_info("%08x : illegal motfile Num.\n", motion_id);
         return 0;
+    }
 
     for (const motion_info& i : set_info->motion) {
         if (i.id != motion_id)

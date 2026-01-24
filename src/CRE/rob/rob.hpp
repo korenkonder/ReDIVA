@@ -995,7 +995,7 @@ struct bone_data {
 struct bone_data_parent {
     rob_chara_bone_data* rob_bone_data;
     size_t motion_bone_count;
-    size_t ik_bone_count;
+    size_t leaf_pos;
     size_t chain_pos;
     std::vector<bone_data> bones;
     std::vector<uint16_t> bone_indices;
@@ -1371,9 +1371,9 @@ struct rob_chara_bone_data {
     bool field_0;
     bool field_1;
     size_t object_bone_count;
-    size_t total_bone_count;
+    size_t node_count;
     size_t motion_bone_count;
-    size_t ik_bone_count;
+    size_t leaf_pos;
     size_t chain_pos;
     std::vector<mat4> mats;
     std::vector<mat4> mats2;
