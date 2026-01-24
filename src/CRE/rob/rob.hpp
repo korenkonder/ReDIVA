@@ -1275,6 +1275,15 @@ struct struc_823 {
     float_t field_C;
 };
 
+struct struc_936 {
+    vec3 toe_l;
+    vec3 toe_r;
+
+    struc_936();
+
+    void reset();
+};
+
 struct rob_chara_look_anim {
     std::vector<bone_data>* bones;
     mat4 mat;
@@ -1383,7 +1392,7 @@ struct rob_chara_bone_data {
     partial_motion_blend_mot eyelid;
     bool disable_eye_motion;
     rob_chara_bone_data_ik_scale ik_scale;
-    vec3 field_76C[2];
+    struc_936 field_76C;
     rob_chara_look_anim look_anim;
     rob_chara_sleeve_adjust sleeve_adjust;
 
@@ -1897,7 +1906,7 @@ struct osage_ring_data {
     osage_ring_data();
     ~osage_ring_data();
 
-    float_t get_floor_height(const vec3& pos, const float_t coli_r);
+    float_t get_floor_height(const vec3& pos, const float_t coli_r) const;
     void reset();
 
     static void parse(const std::string& path, osage_ring_data& ring);

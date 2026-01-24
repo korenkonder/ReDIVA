@@ -62,6 +62,49 @@ lens_flare(), ground(), ring(), sky(), auth_3d_loaded(), mat(), rot_y(), obj_set
 
 }
 
+// 0x14064AA30
+float_t stage::get_floor_height(const vec3& pos, const float_t& coli_r) const {
+    ::stage_data* v3 = this->stage_data;
+    if (!stage_data)
+        return -1000.0f;
+
+    const float_t x = stage_data->rect_x - coli_r;
+    const float_t y = stage_data->rect_y - coli_r;
+    if (pos.x < x || pos.z < y
+        || pos.x > x + stage_data->rect_width + coli_r
+        || pos.z > y + stage_data->rect_height + coli_r)
+        return stage_data->out_height;
+    else
+        return stage_data->ring_height;
+}
+
+// 0x14064DEA0
+void stage::set_ground(bool value) {
+    ground = value;
+}
+
+// 0x14064DF90
+void stage::set_lens_flare(bool value) {
+    lens_flare = value;
+}
+
+// 0x14064DF10
+void stage::set_ring(bool value) {
+    ring = value;
+}
+
+// 0x14064DF50
+void stage::set_sky(bool value) {
+    sky = value;
+}
+
+// 0x14064DE80
+void stage::set_stage_display(bool value, bool effect_enable) {
+    stage_display = value;
+    if (effect_enable)
+        effect_manager_set_enable(value);
+}
+
 stage_detail::TaskStage::TaskStage() : state(), current_stage(), stage_display(),
 field_FB1(), field_FB2(), field_FB3(), field_FB4(), mat(), field_FF8() {
 
@@ -115,6 +158,14 @@ bool task_stage_info::check() const {
     return task_stage_get_stage(*this) != 0;
 }
 
+// 0x14064A9E0
+float_t task_stage_info::get_floor_height(const vec3& pos, const float_t& coli_r) const {
+    stage* stg = task_stage_get_stage(*this);
+    if (stg)
+        return stg->get_floor_height(pos, coli_r);
+    return -1000.0f;
+}
+
 int32_t task_stage_info::get_stage_index() const {
     stage* stg = task_stage_get_stage(*this);
     if (stg)
@@ -122,35 +173,44 @@ int32_t task_stage_info::get_stage_index() const {
     return -1;
 }
 
+// 0x14064DEA0
 void task_stage_info::set_ground(bool value) const {
     stage* stg = task_stage_get_stage(*this);
     if (stg)
-        stg->ground = value;
+        stg->set_ground(value);
 }
 
+// 0x14064DF60
+void task_stage_info::set_lens_flare(bool value) const {
+    stage* stg = task_stage_get_stage(*this);
+    if (stg)
+        stg->set_lens_flare(value);
+}
+
+// 0x14064DEE0
 void task_stage_info::set_ring(bool value) const {
     stage* stg = task_stage_get_stage(*this);
     if (stg)
-        stg->ring = value;
+        stg->set_ring(value);
 }
 
+// 0x14064DF20
 void task_stage_info::set_sky(bool value) const {
     stage* stg = task_stage_get_stage(*this);
     if (stg)
-        stg->sky = value;
+        stg->set_sky(value);
 }
 
+// 0x14064DB90
 void task_stage_info::set_stage() const {
     stage_detail::TaskStage_SetStage(task_stage, *this);
 }
 
+// 0x14064DE40
 void task_stage_info::set_stage_display(bool value, bool effect_enable) const {
     stage* stg = task_stage_get_stage(*this);
-    if (stg) {
-        stg->stage_display = value;
-        if (effect_enable)
-            effect_manager_set_enable(value);
-    }
+    if (stg)
+        stg->set_stage_display(value, effect_enable);
 }
 
 void task_stage_init() {
@@ -166,24 +226,43 @@ bool task_stage_check_not_loaded() {
     return task_stage->load_stage_indices.size() || task_stage->state != 6;
 }
 
+// 0x14064AD10
+float_t task_stage_current_get_floor_height(const vec3& pos, const float_t coli_r) {
+    task_stage_info stg_info = task_stage_get_current_stage_info();
+    if (stg_info.check())
+        return stg_info.get_floor_height(pos, coli_r);
+    return -1000.0f;
+}
+
+// 0x14064DD10
 void task_stage_current_set_ground(bool value) {
     task_stage_info stg_info = task_stage_get_current_stage_info();
     if (stg_info.check())
         stg_info.set_ground(value);
 }
 
+// 0x14064DDD0
+void task_stage_current_set_lens_flare(bool value) {
+    task_stage_info stg_info = task_stage_get_current_stage_info();
+    if (stg_info.check())
+        stg_info.set_lens_flare(value);
+}
+
+// 0x14064DD50
 void task_stage_current_set_ring(bool value) {
     task_stage_info stg_info = task_stage_get_current_stage_info();
     if (stg_info.check())
         stg_info.set_ring(value);
 }
 
+// 0x14064DD90
 void task_stage_current_set_sky(bool value) {
     task_stage_info stg_info = task_stage_get_current_stage_info();
     if (stg_info.check())
         stg_info.set_sky(value);
 }
 
+// 0x14064DCC0
 void task_stage_current_set_stage_display(bool value, bool effect_enable) {
     task_stage_info stg_info = task_stage_get_current_stage_info();
     if (stg_info.check())

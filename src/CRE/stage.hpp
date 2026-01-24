@@ -28,6 +28,13 @@ struct stage {
     uint32_t obj_set;
 
     stage();
+
+    float_t get_floor_height(const vec3& pos, const float_t& coli_r) const;
+    void set_ground(bool value);
+    void set_lens_flare(bool value);
+    void set_ring(bool value);
+    void set_sky(bool value);
+    void set_stage_display(bool value, bool effect_enable);
 };
 
 #define TASK_STAGE_STAGE_COUNT 37
@@ -66,8 +73,10 @@ struct task_stage_info {
     task_stage_info(int16_t load_index, uint16_t load_counter);
 
     bool check() const;
+    float_t get_floor_height(const vec3& pos, const float_t& coli_r) const;
     int32_t get_stage_index() const;
     void set_ground(bool value) const;
+    void set_lens_flare(bool value) const;
     void set_ring(bool value) const;
     void set_sky(bool value) const;
     void set_stage() const;
@@ -77,7 +86,9 @@ struct task_stage_info {
 extern void task_stage_init();
 extern bool task_stage_add_task(const char* name);
 extern bool task_stage_check_not_loaded();
+extern float_t task_stage_current_get_floor_height(const vec3& pos, const float_t coli_r);
 extern void task_stage_current_set_ground(bool value);
+extern void task_stage_current_set_lens_flare(bool value);
 extern void task_stage_current_set_ring(bool value);
 extern void task_stage_current_set_sky(bool value);
 extern void task_stage_current_set_stage_display(bool value, bool effect_enable);

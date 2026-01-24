@@ -894,11 +894,12 @@ void osage_ring_data::reset() {
     skp_root_coli.clear();
 }
 
-inline float_t osage_ring_data::get_floor_height(const vec3& pos, const float_t coli_r) {
-    if (pos.x < rect_x - coli_r
-        || pos.z < rect_y - coli_r
-        || pos.x > rect_x + rect_width
-        || pos.z > rect_y + rect_height)
+inline float_t osage_ring_data::get_floor_height(const vec3& pos, const float_t coli_r) const {
+    const float_t x = rect_x - coli_r;
+    const float_t y = rect_y - coli_r;
+    if (pos.x < x || pos.z < y
+        || pos.x > x + rect_width + coli_r
+        || pos.z > y + rect_height + coli_r)
         return out_height + coli_r;
     else
         return ring_height + coli_r;

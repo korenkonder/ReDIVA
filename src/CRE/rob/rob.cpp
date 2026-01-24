@@ -9937,7 +9937,7 @@ static void sub_14040AE10(mat4* mat, const vec3 a2) {
     }
 }
 
-static void sub_140406A70(vec3* a1, std::vector<bone_data>& bones, mat4* a3, vec3* a4,
+static void sub_140406A70(struc_936* a1, std::vector<bone_data>& bones, mat4* a3, vec3* a4,
     const motion_bone_index* a5, float_t rotation_blend, float_t arm_length, bool solve_ik) {
     bone_data* v14 = &bones[a5[0]];
 
@@ -9990,7 +9990,7 @@ static void sub_140418A00(rob_chara_bone_data* rob_bone_data, vec3* a2,
     const motion_bone_index* a3, float_t rotation_blend, float_t arm_length, bool solve_ik) {
     motion_blend_mot* v7 = rob_bone_data->motion_loaded.front();
     mat4 m = v7->field_4F8.mat;
-    sub_140406A70(rob_bone_data->field_76C, v7->bone_data.bones,
+    sub_140406A70(&rob_bone_data->field_76C, v7->bone_data.bones,
         &m, a2, a3, rotation_blend, arm_length, solve_ik);
 }
 
@@ -10598,31 +10598,10 @@ static float_t sub_140406E90(bone_data* a1, bone_data* a2, float_t a3, vec3* a4)
     return  v17.y;
 }
 
-static float_t sub_14064AD10(vec3* a1, float_t a2) {
-    task_stage_info stg_info = task_stage_get_current_stage_info();
-    if (stg_info.check()) {
-        stage* stg = task_stage_get_stage(stg_info);
-        if (!stg)
-            return -1000.0f;
-
-        stage_data* v3 = stg->stage_data;
-        if (!v3)
-            return -1000.0f;
-
-        if (a1->x < v3->rect_x - a2
-            || a1->z < v3->rect_y - a2
-            || a1->x > v3->rect_x + v3->rect_width
-            || a1->z > v3->rect_y + v3->rect_height)
-            return v3->out_height;
-        return v3->ring_height;
-    }
-    return -1000.0f;
-}
-
-static void sub_140406920(vec3* a1, bone_data* a2, bone_data* a3, float_t heel_height, vec3* a5, float_t step) {
+static void sub_140406920(struc_936* a1, bone_data* a2, bone_data* a3, float_t heel_height, vec3* a5, float_t step) {
     vec3 v18;
     float_t v7 = sub_140406E90(a2, a3, heel_height, &v18);
-    float_t v8 = sub_14064AD10(&v18, heel_height);
+    float_t v8 = task_stage_current_get_floor_height(v18, heel_height);
     if (a5->y != v8) {
         a5->x = a5->y;
         a5->z = 0.0f;
@@ -10647,7 +10626,7 @@ static void sub_140406920(vec3* a1, bone_data* a2, bone_data* a3, float_t heel_h
     a2->ik_target.z = v18.z;
 }
 
-static void sub_1404065B0(vec3* a1, std::vector<bone_data>* a2, mat4* a3, float_t a4,
+static void sub_1404065B0(struc_936* a1, std::vector<bone_data>* a2, mat4* a3, float_t a4,
     bone_database_skeleton_type skeleton_type, const motion_bone_index* a6, const motion_bone_index* a7) {
     data_struct* aft_data = &data_list[DATA_AFT];
     bone_database* aft_bone_data = &aft_data->data_ft.bone_data;
@@ -10657,8 +10636,8 @@ static void sub_1404065B0(vec3* a1, std::vector<bone_data>* a2, mat4* a3, float_
     if (!heel_height)
         return;
 
-    sub_140406920(a1, &a2->data()[a6[0]], &a2->data()[MOTION_BONE_KL_TOE_L_WJ], *heel_height, &a1[0], a4);
-    sub_140406920(a1, &a2->data()[a7[0]], &a2->data()[MOTION_BONE_KL_TOE_R_WJ], *heel_height, &a1[1], a4);
+    sub_140406920(a1, &a2->data()[a6[0]], &a2->data()[MOTION_BONE_KL_TOE_L_WJ], *heel_height, &a1->toe_l, a4);
+    sub_140406920(a1, &a2->data()[a7[0]], &a2->data()[MOTION_BONE_KL_TOE_R_WJ], *heel_height, &a1->toe_r, a4);
 
     ::bone_data* v7 = a2->data();
     ::bone_data* v17 = &v7[a6[0]];
@@ -10685,7 +10664,7 @@ static void sub_1404065B0(vec3* a1, std::vector<bone_data>* a2, mat4* a3, float_
 static void sub_140418810(rob_chara_bone_data* rob_bone_data, const motion_bone_index* a6, const motion_bone_index* a7) {
     motion_blend_mot* v3 = rob_bone_data->motion_loaded.front();
     mat4 m = v3->field_4F8.mat;
-    sub_1404065B0(rob_bone_data->field_76C, &v3->bone_data.bones, &m,
+    sub_1404065B0(&rob_bone_data->field_76C, &v3->bone_data.bones, &m,
         v3->mot_play_data.frame_data.step, rob_bone_data->skeleton_type, a6, a7);
 }
 
@@ -13243,6 +13222,15 @@ void rob_chara_look_anim_eye_param::reset() {
     xrot_adjust_clear_pos = 6.0f;
 }
 
+struc_936::struc_936() {
+
+}
+
+void struc_936::reset() {
+    toe_l = 0.0f;
+    toe_r = 0.0f;
+}
+
 rob_chara_look_anim::rob_chara_look_anim() : bones(), update_view_point(), init_head_rotation(),
 head_rotation(), init_eyes_rotation(), eyes_rotation(), disable(), head_rot_strength(),
 eyes_rot_strength(), eyes_rot_step(), duration(), eyes_rot_frame(), step(), head_rot_frame(), field_B0(),
@@ -13346,7 +13334,7 @@ void rob_chara_sleeve_adjust::reset() {
 }
 
 rob_chara_bone_data::rob_chara_bone_data() : field_0(), field_1(), object_bone_count(), total_bone_count(),
-motion_bone_count(), ik_bone_count(), chain_pos(), disable_eye_motion(), field_76C(), look_anim() {
+motion_bone_count(), ik_bone_count(), chain_pos(), disable_eye_motion(), look_anim() {
     base_skeleton_type = BONE_DATABASE_SKELETON_NONE;
     skeleton_type = BONE_DATABASE_SKELETON_NONE;
 }
@@ -13653,8 +13641,7 @@ void rob_chara_bone_data::reset() {
     eyelid.reset();
     disable_eye_motion = false;
     ik_scale = rob_chara_bone_data_ik_scale();
-    field_76C[0] = 0.0f;
-    field_76C[0] = 0.0f;
+    field_76C.reset();
     look_anim.reset();
     sleeve_adjust.reset();
 }
