@@ -633,17 +633,26 @@ namespace Vulkan {
             return elem->second;
 
         VkFilter vk_mag_filter = sampler_data.mag_filter != GL_NEAREST ? VK_FILTER_LINEAR : VK_FILTER_NEAREST;
+        bool no_mipmap = false;
         VkFilter vk_min_filter;
         VkSamplerMipmapMode vk_mipmap_mode;
         switch (sampler_data.min_filter) {
         case GL_NEAREST:
+            no_mipmap = true;
+            vk_min_filter = VK_FILTER_NEAREST;
+            vk_mipmap_mode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+            break;
         case GL_NEAREST_MIPMAP_NEAREST:
             vk_min_filter = VK_FILTER_NEAREST;
             vk_mipmap_mode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
             break;
         case GL_LINEAR:
-        case GL_LINEAR_MIPMAP_NEAREST:
         default:
+            no_mipmap = true;
+            vk_min_filter = VK_FILTER_LINEAR;
+            vk_mipmap_mode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+            break;
+        case GL_LINEAR_MIPMAP_NEAREST:
             vk_min_filter = VK_FILTER_LINEAR;
             vk_mipmap_mode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
             break;
@@ -656,6 +665,9 @@ namespace Vulkan {
             vk_mipmap_mode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
             break;
         }
+
+        float_t min_lod = max_def(sampler_data.min_lod, 0.0f);
+        float_t max_lod = max_def(sampler_data.max_lod, min_lod);
 
         VkBorderColor vk_border_color;
         if (sampler_data.border_color == 0.0f)
@@ -672,7 +684,7 @@ namespace Vulkan {
             get_sampler_address_mode(sampler_data.wrap_s),
             get_sampler_address_mode(sampler_data.wrap_t),
             get_sampler_address_mode(sampler_data.wrap_r),
-            sampler_data.min_lod, sampler_data.max_lod,
+            no_mipmap, min_lod, max_lod,
             sampler_data.max_anisotropy, vk_border_color));
         samplers.insert({ sampler_hash, sampler });
         return sampler;

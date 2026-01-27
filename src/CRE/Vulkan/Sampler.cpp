@@ -11,7 +11,7 @@ namespace Vulkan {
     Sampler::Sampler(VkDevice device, VkSamplerCreateFlags flags, VkFilter mag_filter,
         VkFilter min_filter, VkSamplerMipmapMode mipmap_mode, float_t mip_lod_bias,
         VkSamplerAddressMode address_mode_u, VkSamplerAddressMode address_mode_v,
-        VkSamplerAddressMode address_mode_w, float_t min_lod, float_t max_lod,
+        VkSamplerAddressMode address_mode_w, bool no_mipmap, float_t min_lod, float_t max_lod,
         float_t max_anisotropy, VkBorderColor border_color) {
         VkSamplerCreateInfo sampler_create_info = {};
         sampler_create_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -28,8 +28,8 @@ namespace Vulkan {
         sampler_create_info.maxAnisotropy = min_def(max_anisotropy, 16.0f);
         sampler_create_info.compareEnable = VK_FALSE;
         sampler_create_info.compareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
-        sampler_create_info.minLod = min_lod;
-        sampler_create_info.maxLod = max_lod;
+        sampler_create_info.minLod = no_mipmap ? clamp_def(min_lod, 0.0f, 0.25f) : min_lod;
+        sampler_create_info.maxLod = no_mipmap ? clamp_def(max_lod, 0.0f, 0.25f) : max_lod;
         sampler_create_info.borderColor = border_color;
         sampler_create_info.unnormalizedCoordinates = VK_FALSE;
 
