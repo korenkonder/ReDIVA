@@ -7210,6 +7210,9 @@ namespace Vulkan {
         VkFormat format = VK_FORMAT_UNDEFINED;
         switch (type) {
         case GL_BYTE:
+            if (stride == 0)
+                stride = size * sizeof(int8_t);
+
             switch (size) {
             case 1:
                 format = VK_FORMAT_R8_SINT;
@@ -7225,6 +7228,9 @@ namespace Vulkan {
             }
             break;
         case GL_UNSIGNED_BYTE:
+            if (stride == 0)
+                stride = size * sizeof(uint8_t);
+
             switch (size) {
             case 1:
                 format = VK_FORMAT_R8_UINT;
@@ -7240,6 +7246,9 @@ namespace Vulkan {
             }
             break;
         case GL_SHORT:
+            if (stride == 0)
+                stride = size * sizeof(int16_t);
+
             switch (size) {
             case 1:
                 format = VK_FORMAT_R16_SINT;
@@ -7256,6 +7265,9 @@ namespace Vulkan {
             }
             break;
         case GL_UNSIGNED_SHORT:
+            if (stride == 0)
+                stride = size * sizeof(uint16_t);
+
             switch (size) {
             case 1:
                 format = VK_FORMAT_R16_UINT;
@@ -7300,6 +7312,9 @@ namespace Vulkan {
         VkFormat format = VK_FORMAT_UNDEFINED;
         switch (type) {
         case GL_BYTE:
+            if (stride == 0)
+                stride = size * sizeof(int8_t);
+
             if (normalized)
                 switch (size) {
                 case 1:
@@ -7331,6 +7346,9 @@ namespace Vulkan {
                 }
             break;
         case GL_UNSIGNED_BYTE:
+            if (stride == 0)
+                stride = size * sizeof(uint8_t);
+
             if (normalized)
                 switch (size) {
                 case 1:
@@ -7362,6 +7380,9 @@ namespace Vulkan {
                 }
             break;
         case GL_SHORT:
+            if (stride == 0)
+                stride = size * sizeof(int16_t);
+
             if (normalized)
                 switch (size) {
                 case 1:
@@ -7394,6 +7415,9 @@ namespace Vulkan {
                 }
             break;
         case GL_UNSIGNED_SHORT:
+            if (stride == 0)
+                stride = size * sizeof(uint16_t);
+
             if (normalized)
                 switch (size) {
                 case 1:
@@ -7426,6 +7450,9 @@ namespace Vulkan {
                 }
             break;
         case GL_FLOAT:
+            if (stride == 0)
+                stride = size * sizeof(float_t);
+
             switch (size) {
             case 1:
                 format = VK_FORMAT_R32_SFLOAT;
@@ -7442,6 +7469,9 @@ namespace Vulkan {
             }
             break;
         case GL_HALF_FLOAT:
+            if (stride == 0)
+                stride = size * sizeof(half_t);
+
             switch (size) {
             case 1:
                 format = VK_FORMAT_R16_SFLOAT;
@@ -7458,10 +7488,16 @@ namespace Vulkan {
             }
             break;
         case GL_UNSIGNED_INT_2_10_10_10_REV:
+            if (stride == 0)
+                stride = sizeof(uint32_t);
+
             if (size == 4)
                 format = VK_FORMAT_A2B10G10R10_UNORM_PACK32;
             break;
         case GL_INT_2_10_10_10_REV:
+            if (stride == 0)
+                stride = sizeof(uint32_t);
+
             if (size == 4)
                 format = VK_FORMAT_A2B10G10R10_SNORM_PACK32;
             break;
