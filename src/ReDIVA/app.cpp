@@ -1264,6 +1264,7 @@ static void render_context_disp(render_context* rctx) {
         post_rend_data_ctx.state.bind_vertex_array(ibl_vao);
         post_rend_data_ctx.state.active_bind_texture_cube_map(0,
             light_param_data_storage_data_get_ibl_textures()[max_def(ibl_index - 1, 0)]);
+        post_rend_data_ctx.state.bind_sampler(0, 0);
         for (int32_t i = 0; i < 6; i++)
             post_rend_data_ctx.state.draw_arrays(GL_TRIANGLES, faces[i].second * 6, 6);
         post_rend_data_ctx.state.bind_vertex_array(0);
