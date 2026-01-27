@@ -7186,12 +7186,16 @@ namespace Vulkan {
     }
 
     static void gl_wrap_manager_vertex_attrib(GLuint index, GLfloat x, GLfloat y, GLfloat z, GLfloat w) {
-        if (index >= Vulkan::MAX_VERTEX_ATTRIB_COUNT)
+        if (index >= Vulkan::MAX_VERTEX_ATTRIB_COUNT) {
+            gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
             return;
+        }
 
         gl_vertex_array* vk_vao = gl_vertex_array::get(gl_state.vertex_array_binding);
-        if (!vk_vao)
+        if (!vk_vao) {
+            gl_wrap_manager_ptr->push_error(GL_INVALID_OPERATION);
             return;
+        }
 
         vec4& generic_value = vk_vao->vertex_attribs[index].generic_value;
         generic_value.x = x;
