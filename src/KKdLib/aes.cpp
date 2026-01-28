@@ -669,23 +669,23 @@ inline static void inv_shift_rows(state_t* state) {
     uint8_t temp;
 
     // Rotate first row 1 columns to right
-    temp = (*state)[3][1];
+    temp           = (*state)[3][1];
     (*state)[3][1] = (*state)[2][1];
     (*state)[2][1] = (*state)[1][1];
     (*state)[1][1] = (*state)[0][1];
     (*state)[0][1] = temp;
 
     // Rotate second row 2 columns to right
-    temp = (*state)[0][2];
+    temp           = (*state)[0][2];
     (*state)[0][2] = (*state)[2][2];
     (*state)[2][2] = temp;
 
-    temp = (*state)[1][2];
+    temp           = (*state)[1][2];
     (*state)[1][2] = (*state)[3][2];
     (*state)[3][2] = temp;
 
     // Rotate third row 3 columns to right
-    temp = (*state)[0][3];
+    temp           = (*state)[0][3];
     (*state)[0][3] = (*state)[1][3];
     (*state)[1][3] = (*state)[2][3];
     (*state)[2][3] = (*state)[3][3];
@@ -762,7 +762,7 @@ inline static void cipher_aes256(state_t* state, const uint8_t* RoundKey) {
     add_round_key(Nr256, state, RoundKey);
 }
 
-inline static void cipher_aes128_ni(void* state, __m128i* round_key) {
+inline static void cipher_aes128_ni(void* state, const __m128i* round_key) {
     __m128i m = _mm_loadu_si128((__m128i*)state);
     m = _mm_xor_si128(m, round_key[0]);
     m = _mm_aesenc_si128(m, round_key[1]);
@@ -778,7 +778,7 @@ inline static void cipher_aes128_ni(void* state, __m128i* round_key) {
     _mm_storeu_si128((__m128i*)state, m);
 }
 
-inline static void cipher_aes192_ni(void* state, __m128i* round_key) {
+inline static void cipher_aes192_ni(void* state, const __m128i* round_key) {
     __m128i m = _mm_loadu_si128((__m128i*)state);
     m = _mm_xor_si128(m, round_key[0]);
     m = _mm_aesenc_si128(m, round_key[1]);
@@ -796,7 +796,7 @@ inline static void cipher_aes192_ni(void* state, __m128i* round_key) {
     _mm_storeu_si128((__m128i*)state, m);
 }
 
-inline static void cipher_aes256_ni(void* state, __m128i* round_key) {
+inline static void cipher_aes256_ni(void* state, const __m128i* round_key) {
     __m128i m = _mm_loadu_si128((__m128i*)state);
     m = _mm_xor_si128(m, round_key[0]);
     m = _mm_aesenc_si128(m, round_key[1]);
@@ -882,7 +882,7 @@ inline static void inv_cipher_aes256(state_t* state, const uint8_t* RoundKey) {
 
 }
 
-inline static void inv_cipher_aes128_ni(void* state, __m128i* round_key) {
+inline static void inv_cipher_aes128_ni(void* state, const __m128i* round_key) {
     __m128i m = _mm_loadu_si128((__m128i*)state);
     m = _mm_xor_si128(m, round_key[10]);
     m = _mm_aesdec_si128(m, round_key[11]);
@@ -898,7 +898,7 @@ inline static void inv_cipher_aes128_ni(void* state, __m128i* round_key) {
     _mm_storeu_si128((__m128i*)state, m);
 }
 
-inline static void inv_cipher_aes192_ni(void* state, __m128i* round_key) {
+inline static void inv_cipher_aes192_ni(void* state, const __m128i* round_key) {
     __m128i m = _mm_loadu_si128((__m128i*)state);
     m = _mm_xor_si128(m, round_key[12]);
     m = _mm_aesdec_si128(m, round_key[13]);
@@ -916,7 +916,7 @@ inline static void inv_cipher_aes192_ni(void* state, __m128i* round_key) {
     _mm_storeu_si128((__m128i*)state, m);
 }
 
-inline static void inv_cipher_aes256_ni(void* state, __m128i* round_key) {
+inline static void inv_cipher_aes256_ni(void* state, const __m128i* round_key) {
     __m128i m = _mm_loadu_si128((__m128i*)state);
     m = _mm_xor_si128(m, round_key[14]);
     m = _mm_aesdec_si128(m, round_key[15]);
