@@ -7473,32 +7473,44 @@ static void mothead_mot_func_0(mothead_mot_func_data* func_data,
 
     std::list<std::pair<const void*, uint32_t>> v23;
     uint32_t v8 = 0;
-    if (!mhd_mot_data || mhd_mot_data->type < 0)
+    if (!mhd_mot_data)
         return;
 
-    while (mhd_mot_data->type)
-        if ((mhd_mot_data++)->type < 0)
-            return;
-
-    if (!mhd_mot_data->data)
+    bool v9 = mhd_mot_data->type == 0;
+    if (mhd_mot_data->type < 0)
         return;
 
-    const void* _data = mhd_mot_data->data;
-    v8 += ((uint16_t*)_data)[11];
-    v23.push_back({ _data, v8 });
-    mhd_mot_data++;
-
-    do {
-        if (!mhd_mot_data->type) {
-            const void* data = mhd_mot_data->data;
-            if (!data)
-                break;
-
-            v8 += ((uint16_t*)data)[11];
-            v23.push_back({ data, v8 });
-        }
+    while (!v9) {
         mhd_mot_data++;
-    } while (mhd_mot_data->type >= 0);
+        v9 = mhd_mot_data->type == 0;
+        if (mhd_mot_data->type < 0)
+            return;
+    }
+
+    const void* v10 = mhd_mot_data->data;
+    if (!v10)
+        return;
+
+LABEL_8:
+    v8 += ((uint16_t*)v10)[11];
+    v23.push_back({ v10, v8 });
+
+    if (mhd_mot_data) {
+        const mothead_mot_data* v13 = mhd_mot_data + 1;
+        bool v9 = v13 == 0;
+        if (!v9) {
+            while (v13->type >= 0) {
+                if (!v13->type) {
+                    mhd_mot_data = v13;
+                    v10 = v13->data;
+                    if (v10)
+                        goto LABEL_8;
+                    break;
+                }
+                v13++;
+            }
+        }
+    }
 
     if (!v8 || !v23.size())
         return;
