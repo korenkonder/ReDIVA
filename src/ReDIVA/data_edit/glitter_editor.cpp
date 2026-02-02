@@ -1609,7 +1609,7 @@ static void glitter_editor_load_file(GlitterEditor* glt_edt, const char* path, c
     } break;
     }
 
-    if (!load_success && !glitter_editor_list_open_window(glt_edt->effect_group)) {
+    if (!load_success && !glitter_editor_list_open_window(eg)) {
         close = true;
         return;
     }
