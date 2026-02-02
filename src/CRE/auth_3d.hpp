@@ -12,7 +12,6 @@
 #include "../KKdLib/database/object.hpp"
 #include "../KKdLib/database/texture.hpp"
 #include "../KKdLib/a3da.hpp"
-#include "../KKdLib/farc.hpp"
 #include "../KKdLib/kf.hpp"
 #include "auth_2d.hpp"
 #include "frame_rate_control.hpp"
@@ -988,7 +987,7 @@ struct auth_3d {
     auth_3d_id get_id();
     void load(a3da* auth_file,
         object_database* obj_db, texture_database* tex_db);
-    void load_from_farc(farc* f, const char* file,
+    void load_from_farc(struct farc* f, const char* file,
         object_database* obj_db, texture_database* tex_db);
     void parse();
     void reset();
@@ -1005,7 +1004,7 @@ struct auth_3d_farc {
     std::string path;
     std::string file;
     p_file_handler file_handler;
-    farc* farc;
+    struct farc* farc;
     const void* data;
     size_t size;
 

@@ -7,6 +7,7 @@
 #include "../KKdLib/post_process_table/dof.hpp"
 #include "../KKdLib/a3da.hpp"
 #include "../KKdLib/dsc.hpp"
+#include "../KKdLib/farc.hpp"
 #include "../KKdLib/pv_exp.hpp"
 #include "../CRE/auth_3d.hpp"
 #include "../CRE/shader_dev.hpp"

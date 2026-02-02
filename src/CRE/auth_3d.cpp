@@ -8,6 +8,7 @@
 #include "../KKdLib/io/json.hpp"
 #include "../KKdLib/io/path.hpp"
 #include "../KKdLib/prj/algorithm.hpp"
+#include "../KKdLib/farc.hpp"
 #include "../KKdLib/hash.hpp"
 #include "../KKdLib/interpolation.hpp"
 #include "../KKdLib/msgpack.hpp"
@@ -700,7 +701,7 @@ void auth_3d::load(a3da* auth_file,
     file_name.assign(auth_file->_file_name);
 }
 
-void auth_3d::load_from_farc(farc* f, const char* file,
+void auth_3d::load_from_farc(struct farc* f, const char* file,
     object_database* obj_db, texture_database* tex_db) {
     farc_file* ff = f->read_file(file);
     if (!ff)

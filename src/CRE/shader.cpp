@@ -8,6 +8,7 @@
 #include "../KKdLib/io/path.hpp"
 #include "../KKdLib/prj/shared_ptr.hpp"
 #include "../KKdLib/prj/vector_pair.hpp"
+#include "../KKdLib/farc.hpp"
 #include "../KKdLib/hash.hpp"
 #include "../KKdLib/str_utils.hpp"
 #include "Vulkan/gl_wrap.hpp"
@@ -508,7 +509,7 @@ bool shader::parse_define(const char* data, int32_t num_uniform,
     return true;
 }
 
-char* shader::parse_include(char* data, farc* f) {
+char* shader::parse_include(char* data, struct farc* f) {
     if (!data || !f)
         return data;
 
@@ -653,7 +654,7 @@ const char* shader_set_data::get_name_by_index(int32_t index) {
     return 0;
 }
 
-void shader_set_data::load(farc* f, bool ignore_cache,
+void shader_set_data::load(struct farc* f, bool ignore_cache,
     const char* name, const shader_table* shaders_table, const size_t size,
     const shader_bind_func* bind_func_table, const size_t bind_func_table_size,
     PFNSHADERGETINDEXFUNCPROC get_index_by_name, PFNSHADERGETNAMEFUNCPROC get_name_by_index) {

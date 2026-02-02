@@ -12,7 +12,6 @@
 #include "../../KKdLib/f2/header.hpp"
 #include "../../KKdLib/f2/struct.hpp"
 #include "../../KKdLib/default.hpp"
-#include "../../KKdLib/farc.hpp"
 #include "../../KKdLib/hash.hpp"
 #include "../../KKdLib/mat.hpp"
 #include "../../KKdLib/txp.hpp"
@@ -30,6 +29,7 @@
 #define SHARED_GLITTER_BUFFER (1)
 
 struct cam_data;
+struct farc;
 struct render_data_context;
 
 namespace Glitter {
@@ -1230,7 +1230,7 @@ namespace Glitter {
 
     struct FileReader {
         p_file_handler* file_handler;
-        farc* farc;
+        ::farc* farc;
         EffectGroup* effect_group;
         uint64_t hash;
         int32_t load_count;
