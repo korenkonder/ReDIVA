@@ -6,6 +6,7 @@
 #include "sound.hpp"
 #include "../KKdLib/io/file_stream.hpp"
 #include "../KKdLib/key_val.hpp"
+#include "../KKdLib/farc.hpp"
 #include "../KKdLib/str_utils.hpp"
 #include "../KKdLib/time.hpp"
 #include "../KKdLib/vec.hpp"
@@ -14,6 +15,175 @@
 #include <functiondiscoverykeys_devpkey.h>
 #include <timeapi.h>
 
+#define SOUND_WORK_SE_QUEUE_COUNT 5
+#define SOUND_WORK_STREAM_COUNT 3
+#define SOUND_WORK_SE_CHANNELS_COUNT 32
+#define SOUND_WORK_STREAMING_CHANNELS_COUNT 4
+
+enum SoundCueDataState {
+    SOUND_CUE_DATA_STATE_NONE = 0,
+    SOUND_CUE_DATA_STATE_LOAD,
+    SOUND_CUE_DATA_STATE_RESET,
+    SOUND_CUE_DATA_STATE_MAX,
+};
+
+enum WaveAudioDataFormat {
+    WAVE_AUDIO_DATA_FORMAT_NONE = 0,
+    WAVE_AUDIO_DATA_FORMAT_RIFF = 1,
+    WAVE_AUDIO_DATA_FORMAT_DIVA = 3,
+};
+
+struct sound_db_farc {
+    std::string file_path;
+    bool ready;
+    p_file_handler file_handler;
+    farc farc;
+
+    sound_db_farc();
+    ~sound_db_farc();
+
+    bool load();
+    bool read(const char* file_path);
+    bool unload();
+};
+
+struct sound_db_property {
+    sound_db_farc* farc;
+    std::string file_name;
+    float_t volume;
+    size_t loop_start;
+    size_t loop_end;
+    float_t release_time;
+    //std::string field_28;
+    //int32_t field_48;
+
+    sound_db_property();
+    ~sound_db_property();
+};
+
+struct SoundCueVolume;
+
+struct SoundCue {
+    std::atomic_uint32_t thread_state;
+    std::atomic_uint32_t data_state;
+    std::thread* thread;
+    std::mutex mtx;
+    std::condition_variable cnd;
+    SoundCueVolume* volume;
+    int32_t queue_index;
+    std::string name;
+    sound_db_property* property;
+    int32_t counter;
+    float_t release_time;
+    time_struct time;
+    std::atomic_uint32_t load_state;
+    sound::wasapi::SEChannel* se_channel;
+
+    SoundCue();
+    ~SoundCue();
+
+    bool CanPlay();
+    void Ctrl();
+    int32_t Load(int32_t queue_index, const char* name, float_t volume);
+    void LoadData();
+    void Play();
+    void PlayProt();
+    void Release(bool force_release);
+    void ReleaseProt(bool force_release);
+    void Reset();
+    void ResetData();
+    void SetSEChannel(sound::wasapi::SEChannel* se_channel);
+
+    static void ThreadMain(SoundCue* cue);
+};
+
+struct SoundCueVolume {
+    SoundCue* cue;
+    float_t value;
+    bool set;
+
+    inline SoundCueVolume(SoundCue* cue) : cue(cue), value(), set() {
+
+    }
+
+    inline void SetValue(float_t value) {
+        this->value = value;
+        set = true;
+    }
+};
+
+struct SoundCueQueueVolume {
+    float_t min;
+    float_t max;
+};
+
+struct SoundWork {
+    std::map<std::string, sound_db_property> properties;
+    sound_db_farc farcs[16];
+    SoundCue cues[SOUND_WORK_SE_CHANNELS_COUNT];
+    int32_t counter;
+    std::vector<std::string> names_list;
+    bool se_queue_enable[SOUND_WORK_SE_QUEUE_COUNT];
+    bool stream_enable[SOUND_WORK_STREAM_COUNT];
+    float_t speakers_volume;
+    bool speakers_volume_changed;
+    float_t headphones_volume;
+    bool headphones_volume_changed;
+    float_t se_queue_volume[5];
+    float_t se_volume;
+
+    SoundWork();
+    virtual ~SoundWork();
+
+    sound_db_property* FindProperty(const char* name);
+    bool ParseProperty(sound_db_farc* snd_db_farc);
+    bool UnloadProperty(const char* file_path);
+};
+
+struct WaveAudioDataFileMemoryStream {
+    FILE* file;
+    const void* data;
+    size_t size;
+    size_t position;
+
+    inline WaveAudioDataFileMemoryStream(const void* data, size_t size) : file(),
+        data(data), size(size), position() {
+
+    }
+};
+
+struct WaveAudioData {
+    WaveAudioDataFormat format;
+    size_t channels;
+    size_t sample_rate;
+    size_t bit_depth;
+    size_t samples_count;
+    size_t position;
+    size_t data_size;
+    bool has_loop;
+    size_t loop_start;
+    size_t loop_end;
+
+    WaveAudioData();
+    ~WaveAudioData();
+
+    bool Read(WaveAudioDataFileMemoryStream* fms);
+    bool ReadData(const void* data, size_t size);
+    bool ReadDiva(WaveAudioDataFileMemoryStream* fms);
+    void Reset();
+};
+
+struct WaveAudio {
+    float_t* buffer;
+    size_t buffer_size;
+    WaveAudioData data;
+
+    WaveAudio();
+
+    bool Read(sound_db_farc* farc, const char* file_name);
+    void Reset();
+};
+
 struct ima_storage {
     int32_t step_index;
     int32_t current;
@@ -21,11 +191,6 @@ struct ima_storage {
     inline ima_storage() : step_index(), current() {
 
     }
-};
-
-struct SoundCueQueueVolume {
-    float_t min;
-    float_t max;
 };
 
 struct sound_stream {
@@ -59,11 +224,6 @@ struct sound_stream {
     bool stop();
     bool stop_playback();
 };
-
-static void sound_stream_array_init();
-static void sound_stream_array_ctrl();
-static sound_stream* sound_stream_array_get(int32_t index);
-static void sound_stream_array_free();
 
 SoundWork* sound_work;
 sound::wasapi::System* sound_wasapi_system_data;
@@ -105,6 +265,16 @@ static const SoundCueQueueVolume sound_cue_queue_volume_array[SOUND_WORK_SE_QUEU
 
 static size_t ima_decode(int16_t* dst, size_t dst_size, uint8_t* data, size_t samples_count,
     size_t channels, ima_storage* storage, size_t storage_size);
+
+static void sound_stream_array_init();
+static void sound_stream_array_ctrl();
+static sound_stream* sound_stream_array_get(int32_t index);
+static void sound_stream_array_free();
+
+static SoundCue* sound_work_get_cue(int32_t queue_index, const char* name);
+static sound_db_farc* sound_work_get_farc(const char* file_path);
+
+static WaveAudio* wave_audio_storage_get_wave_audio(const std::string& name);
 
 namespace sound {
     namespace wasapi {
@@ -837,533 +1007,6 @@ namespace sound {
     }
 }
 
-sound_db_farc::sound_db_farc() : ready() {
-
-}
-
-sound_db_farc::~sound_db_farc() {
-
-}
-
-bool sound_db_farc::load() {
-    if (ready)
-        return false;
-    else if (file_handler.check_not_ready())
-        return true;
-
-    farc.read(file_handler.get_data(), file_handler.get_size(), true);
-    if (farc.files.size() && sound_work->ParseProperty(this))
-        ready = true;
-    return false;
-}
-
-bool sound_db_farc::read(const char* file_path) {
-    if (ready)
-        unload();
-
-    this->file_path.assign(file_path);
-    return file_handler.read_file(&data_list[DATA_AFT], file_path);
-}
-
-bool sound_db_farc::unload() {
-    sound_work_release_farc_se(file_path.c_str());
-    if (!sound_work->UnloadProperty(file_path.c_str()))
-        return false;
-
-    file_path.clear();
-    ready = false;
-    file_handler.reset();
-    return true;
-}
-
-sound_db_property::sound_db_property() : farc(),
-volume(), loop_start(), loop_end(), release_time()/*, field_48()*/ {
-
-}
-
-sound_db_property::~sound_db_property() {
-
-}
-
-SoundCue::SoundCue() : thread(), property(), counter(), release_time(), se_channel() {
-    queue_index = SOUND_WORK_SE_QUEUE_COUNT;
-    volume = new SoundCueVolume(this);
-}
-
-SoundCue::~SoundCue() {
-    if (thread) {
-        thread_state = 1;
-        cnd.notify_one();
-        thread->join();
-        delete thread;
-        thread = 0;
-    }
-
-    if (volume) {
-        delete volume;
-        volume = 0;
-    }
-}
-
-bool SoundCue::CanPlay() {
-    if (se_channel && se_channel->play_state)
-        return true;
-    return !!load_state;
-}
-
-void SoundCue::Ctrl() {
-    std::unique_lock<std::mutex> u_lock(mtx);
-    while (!thread_state) {
-        if (!data_state)
-            cnd.wait(u_lock);
-
-        int32_t _data_state = data_state;
-        data_state = SOUND_CUE_DATA_STATE_NONE;
-        switch (_data_state) {
-        case SOUND_CUE_DATA_STATE_LOAD:
-            LoadData();
-            break;
-        case SOUND_CUE_DATA_STATE_RESET:
-            ResetData();
-            break;
-        }
-    }
-    thread_state = 0;
-}
-
-int32_t SoundCue::Load(int32_t queue_index, const char* name, float_t volume) {
-    ReleaseProt(true);
-    std::unique_lock<std::mutex> u_lock(mtx);
-    if (!se_channel)
-        return 0;
-
-    sound_db_property* property = sound_work->FindProperty(name);
-    if (!property)
-        return 0;
-
-    this->name.assign(name);
-    this->property = property;
-    this->queue_index = queue_index;
-    this->volume->SetValue(volume);
-
-    Play();
-    load_state = 1;
-    data_state = SOUND_CUE_DATA_STATE_LOAD;
-    cnd.notify_one();
-    counter = sound_work->counter;
-    if (++sound_work->counter <= -1)
-        sound_work->counter = 1;
-    return counter;
-}
-
-void SoundCue::LoadData() {
-    WaveAudio* _wave_audio = 0;
-    if (!property || !property->farc) {
-        load_state = 0;
-        return;
-    }
-
-    WaveAudio* wave_audio = wave_audio_storage_get_wave_audio(name);
-    if (!wave_audio) {
-        _wave_audio = new WaveAudio;
-        if (_wave_audio && _wave_audio->Read(property->farc, property->file_name.c_str()))
-            wave_audio = _wave_audio;
-    }
-
-    if (wave_audio) {
-        float_t* buffer = se_channel->InitBuffer(wave_audio->data.channels,
-            wave_audio->data.samples_count, wave_audio->data.sample_rate);
-        if (buffer) {
-            memmove(buffer, wave_audio->buffer, wave_audio->buffer_size);
-            se_channel->Play(property->loop_start, property->loop_end);
-        }
-    }
-
-    if (_wave_audio) {
-        _wave_audio->Reset();
-        delete _wave_audio;
-    }
-    load_state = 0;
-}
-
-void SoundCue::Play() {
-    if (se_channel && !property)
-        return;
-
-    bool master_volume_set = false;
-    float_t master_volume = property->volume * volume->value;
-
-    if (volume->set) {
-        volume->set = false;
-        master_volume_set = true;
-    }
-
-    if (release_time > 0.0f) {
-        double_t release_time = this->release_time * 1000.0;
-        double_t current_time = time.calc_time();
-        double_t remain_time;
-        if (current_time >= release_time) {
-            remain_time = 0.0;
-            Release(true);
-        }
-        else
-            remain_time = release_time - current_time;
-
-        master_volume_set = true;
-        master_volume = (float_t)(remain_time / release_time) * master_volume;
-    }
-
-    if (se_channel) {
-        if (master_volume_set)
-            se_channel->SetMasterVolume(master_volume);
-
-        if (!queue_index)
-            se_channel->SetChannelsVolume(0x03, get_max_speakers_volume());
-    }
-    return;
-}
-
-void SoundCue::PlayProt() {
-    std::unique_lock<std::mutex> u_lock(mtx);
-    Play();
-}
-
-void SoundCue::Release(bool force_release) {
-    if (!property || fabsf(property->release_time) <= 0.000001f || force_release) {
-        data_state = SOUND_CUE_DATA_STATE_RESET;
-        cnd.notify_one();
-        queue_index = SOUND_WORK_SE_QUEUE_COUNT;
-        name.clear();
-        property = 0;
-        counter = 0;
-        release_time = 0.0f;
-    }
-    else
-        release_time = property->release_time;
-
-    time.get_timestamp();
-}
-
-void SoundCue::ReleaseProt(bool force_release) {
-    std::unique_lock<std::mutex> u_lock(mtx);
-    Release(force_release);
-}
-
-void SoundCue::Reset() {
-    ReleaseProt(true);
-
-    if (thread) {
-        thread_state = 1;
-        cnd.notify_one();
-        thread->join();
-        delete thread;
-        thread = 0;
-    }
-}
-
-void SoundCue::ResetData() {
-    if (se_channel)
-        se_channel->ResetDataProt();
-}
-
-void SoundCue::SetSEChannel(sound::wasapi::SEChannel* se_channel) {
-    this->se_channel = se_channel;
-    if (se_channel)
-        se_channel->SetMasterVolume(1.0f);
-
-    thread = new std::thread(SoundCue::ThreadMain, this);
-    if (thread) {
-        wchar_t buf[0x80];
-        swprintf_s(buf, sizeof(buf) / sizeof(wchar_t), L"SoundCue #%d", sound_cue_counter++);
-        SetThreadDescription((HANDLE)thread->native_handle(), buf);
-    }
-}
-
-void SoundCue::ThreadMain(SoundCue* cue) {
-    if (cue)
-        cue->Ctrl();
-}
-
-WaveAudioData::WaveAudioData() : format(), channels(), sample_rate(), bit_depth(),
-samples_count(), position(), data_size(), has_loop(), loop_start(), loop_end() {
-
-}
-
-WaveAudioData::~WaveAudioData() {
-
-}
-
-bool WaveAudioData::Read(WaveAudioDataFileMemoryStream* fms) {
-    Reset();
-    return ReadDiva(fms)/* || ReadRiff(fms)*/;
-}
-
-bool WaveAudioData::ReadData(const void* data, size_t size) {
-    if (!this || !data || !size)
-        return false;
-
-    WaveAudioDataFileMemoryStream fms(data, size);
-    return Read(&fms);
-}
-
-bool WaveAudioData::ReadDiva(WaveAudioDataFileMemoryStream* fms) {
-    struct DivaAudioHeader {
-        uint32_t signature;
-        uint8_t pad_4[4];
-        uint32_t size;
-        uint32_t sample_rate;
-        uint32_t samples_count;
-        uint32_t loop_start;
-        uint32_t loop_end;
-        uint8_t channels;
-        uint8_t pad_1D[3];
-        uint8_t reserved1[32];
-    } header;
-
-    if (fms->file) {
-        if (fseek(fms->file, 0, SEEK_SET))
-            return false;
-    }
-    else {
-        if (!fms->data || !fms->size)
-            return false;
-        fms->position = 0;
-    }
-
-    size_t read_bytes = 0;
-    if (fms->file)
-        read_bytes = fread(&header, sizeof(DivaAudioHeader), 1, fms->file);
-    else if (fms->data && fms->size && fms->position + sizeof(DivaAudioHeader) <= fms->size) {
-        memmove(&header, (uint8_t*)fms->data + fms->position, sizeof(DivaAudioHeader));
-        read_bytes = sizeof(DivaAudioHeader);
-    }
-
-    if (!read_bytes || header.signature != reverse_endianness_uint32_t('DIVA'))
-        return false;
-
-    format = WAVE_AUDIO_DATA_FORMAT_DIVA;
-    channels = header.channels;
-    sample_rate = header.sample_rate;
-    bit_depth = 0;
-    samples_count = header.samples_count;
-    position = 0;
-    data_size = 0;
-    has_loop = header.loop_start < header.loop_end;
-    loop_start = header.loop_start;
-    loop_end = header.loop_end;
-    return true;
-}
-
-void WaveAudioData::Reset() {
-    format = WAVE_AUDIO_DATA_FORMAT_NONE;
-    channels = 0;
-    sample_rate = 0;
-    bit_depth = 0;
-    samples_count = 0;
-    position = 0;
-    data_size = 0;
-    has_loop = false;
-    loop_start = 0;
-    loop_end = 0;
-}
-
-WaveAudio::WaveAudio() : buffer(), buffer_size() {
-
-}
-
-bool WaveAudio::Read(sound_db_farc* farc, const char* file_name) {
-    if (!this)
-        return false;
-
-    if (!farc) {
-        Reset();
-        return false;
-    }
-
-    ::farc* f = &farc->farc;
-    farc_file* ff = f->read_file(file_name);
-    if (!ff || !ff->data || !ff->size) {
-        Reset();
-        return false;
-    }
-
-    data.ReadData(ff->data, ff->size);
-
-    size_t buffer_size = sizeof(float_t) * data.samples_count * data.channels;
-    float_t* buffer = (float_t*)malloc(buffer_size);
-    this->buffer_size = buffer_size;
-    this->buffer = buffer;
-
-    if (!buffer) {
-        Reset();
-        return false;
-    }
-
-    bool ret = false;
-    memset(buffer, 0, buffer_size);
-    if (data.format == WAVE_AUDIO_DATA_FORMAT_DIVA) {
-        size_t buf_size = sizeof(int16_t) * data.samples_count * data.channels;
-        int16_t* buf = (int16_t*)malloc(buf_size);
-        if (!buf) {
-            Reset();
-            return false;
-        }
-
-        memset(buf, 0, buf_size);
-
-        {
-            std::vector<ima_storage> storage(data.channels);
-            data.samples_count = ima_decode(buf, buf_size, (uint8_t*)ff->data + data.position,
-                data.samples_count, data.channels, storage.data(), storage.size());
-        }
-
-        int16_t* _buf = buf;
-        float_t* buffer = this->buffer;
-        size_t channels = data.channels;
-        size_t samples_count = data.samples_count;
-        if (channels == 1)
-            for (size_t i = samples_count; i; i--, buffer++, _buf++)
-                *buffer = (float_t)*_buf * (float_t)(1.0 / (double_t)0x7FFF);
-        else if (channels == 2)
-            for (size_t i = samples_count; i; i--, buffer += 2, _buf += 2) {
-                vec2 value;
-                vec2i16_to_vec2(*(vec2i16*)_buf, value);
-                *(vec2*)buffer = value * (float_t)(1.0 / (double_t)0x7FFF);
-            }
-        else if (channels == 4)
-            for (size_t i = samples_count; i; i--, buffer += 4, _buf += 4) {
-                vec4 value;
-                vec4i16_to_vec4(*(vec4i16*)_buf, value);
-                *(vec4*)buffer = value * (float_t)(1.0 / (double_t)0x7FFF);
-            }
-        else
-            for (size_t i = samples_count; i; i--)
-                for (size_t j = channels; j; j--, buffer++, _buf++)
-                    *buffer++ = (float_t)*_buf++ * (float_t)(1.0 / (double_t)0x7FFF);
-
-        free(buf);
-        ret = true;
-    }
-
-    if (!ret) {
-        Reset();
-        return false;
-    }
-    return true;
-}
-
-void WaveAudio::Reset() {
-    if (buffer) {
-        free(buffer);
-        buffer = 0;
-    }
-    buffer_size = 0;
-    data.Reset();
-}
-
-SoundWork::SoundWork() : se_queue_enable(), stream_enable(), se_queue_volume() {
-    counter = 1;
-    speakers_volume = get_max_speakers_volume();
-    speakers_volume_changed = true;
-    headphones_volume = get_min_headphones_volume();
-    headphones_volume_changed = true;
-    se_volume = 1.0f;
-
-    for (bool& i : se_queue_enable)
-        i = true;
-
-    for (bool& i : stream_enable)
-        i = true;
-
-    for (int32_t i = 0; i < SOUND_WORK_SE_QUEUE_COUNT; i++)
-        se_queue_volume[i] = sound_cue_queue_volume_array_get_max(i);
-}
-
-SoundWork::~SoundWork() {
-
-}
-
-sound_db_property* SoundWork::FindProperty(const char* name) {
-    auto elem = properties.find(name);
-    if (elem != properties.end())
-        return &elem->second;
-    return 0;
-}
-
-bool SoundWork::ParseProperty(sound_db_farc* snd_db_farc) {
-    if (!snd_db_farc)
-        return false;
-
-    farc& f = snd_db_farc->farc;
-    farc_file* property_ff = f.read_file("property.txt");
-    if (!property_ff || !property_ff->data || !property_ff->size)
-        return false;
-
-    key_val kv;
-    kv.parse(property_ff->data, property_ff->size);
-
-    int32_t max;
-    float_t volume_bias;
-    if (!kv.read("max", max) || !kv.read("volume_bias", volume_bias))
-        return false;
-
-    size_t j = 1;
-    for (int32_t i = 0; i < max; i++, j++) {
-        if (!kv.open_scope_fmt("%zu", j))
-            continue;
-
-        std::string name;
-        std::string file_name;
-        if (!kv.read("name", name) || !kv.read("file_name", file_name)
-            || !kv.has_key("volume") || !f.has_file(file_name.c_str())) {
-            kv.close_scope();
-            continue;
-        }
-
-        uint32_t loop_start = 0;
-        if (kv.open_scope("loop_start")) {
-            kv.read(loop_start);
-            kv.close_scope();
-        }
-
-        uint32_t loop_end = 0;
-        if (kv.open_scope("loop_end")) {
-            kv.read(loop_end);
-            kv.close_scope();
-        }
-
-        float_t release_time = 0.0f;
-        if (kv.open_scope("release_time")) {
-            kv.read(release_time);
-            release_time *= 0.001f;
-            kv.close_scope();
-        }
-
-        float_t volume = 0.0f;
-        kv.read("volume", volume);
-
-        sound_db_property property;
-        property.farc = snd_db_farc;
-        property.file_name.assign(file_name);
-        property.volume = volume * volume_bias;
-        property.loop_start = loop_start;
-        property.loop_end = loop_end;
-        property.release_time = release_time;
-        properties.insert_or_assign(name, property);
-        kv.close_scope();
-    }
-    return true;
-}
-
-bool SoundWork::UnloadProperty(const char* file_path) {
-    for (auto i = properties.begin(); i != properties.end(); i++)
-        if (!i->second.farc->file_path.compare(file_path)) {
-            properties.erase(i);
-            break;
-        }
-    return true;
-}
-
 sound_stream_info::sound_stream_info() : duration(), time() {
 
 }
@@ -1562,14 +1205,6 @@ bool sound_work_cue_release(int32_t queue_index, const char* name, bool force_re
     return false;
 }
 
-SoundCue* sound_work_get_cue(int32_t queue_index, const char* name) {
-    for (SoundCue& i : sound_work->cues)
-        if ((!i.se_channel || i.property) && i.queue_index == queue_index
-            && !i.name.compare(name))
-            return &i;
-    return 0;
-}
-
 bool sound_work_get_cue_can_play(int32_t queue_index, const char* name) {
     if (!name)
         return false;
@@ -1578,13 +1213,6 @@ bool sound_work_get_cue_can_play(int32_t queue_index, const char* name) {
     if (cue)
         return cue->CanPlay();
     return false;
-}
-
-sound_db_farc* sound_work_get_farc(const char* file_path) {
-    for (sound_db_farc& i : sound_work->farcs)
-        if (!i.file_path.compare(file_path))
-            return &i;
-    return 0;
 }
 
 bool sound_work_get_stream_info(sound_stream_info& info, int32_t index) {
@@ -1873,13 +1501,6 @@ void wave_audio_storage_clear() {
     wave_audio_storage_data.clear();
 }
 
-WaveAudio* wave_audio_storage_get_wave_audio(const std::string& name) {
-    auto elem = wave_audio_storage_data.find(name);
-    if (elem != wave_audio_storage_data.end())
-        return &elem->second;
-    return 0;
-}
-
 bool wave_audio_storage_load_wave_audio(const std::string& name) {
     wave_audio_storage_unload_wave_audio(name);
 
@@ -1910,44 +1531,531 @@ void wave_audio_storage_free() {
     wave_audio_storage_data.clear();
 }
 
-static size_t ima_decode(int16_t* dst, size_t dst_size, uint8_t* data, size_t samples_count,
-    size_t channels, ima_storage* storage, size_t storage_size) {
-    if (!dst || !dst_size || !data || !samples_count || !storage || channels > storage_size)
-        return 0;
+sound_db_farc::sound_db_farc() : ready() {
 
-    bool odd_sample = false;
-    size_t act_samp_count = 0;
-    for (size_t i = min_def(samples_count, dst_size / sizeof(int16_t)); i; i--, act_samp_count++) {
-        for (size_t j = channels, k = 0; j; j--, k++, odd_sample ^= true) {
-            ima_storage& _storage = storage[k];
-            int16_t step = ima_step_table[_storage.step_index];
+}
 
-            uint8_t nibble = (odd_sample ? *data : (*data >> 4)) & 0x0F;
+sound_db_farc::~sound_db_farc() {
 
-            int32_t diff = step >> 3;
-            if (nibble & 0x01)
-                diff += step >> 2;
-            if (nibble & 0x02)
-                diff += step >> 1;
-            if (nibble & 0x04)
-                diff += step;
-            if (nibble & 0x08)
-                diff = -diff;
+}
 
-            int32_t current = _storage.current + diff;
-            current = clamp_def(current, -0x8000, 0x7FFF);
-            _storage.current = current;
+bool sound_db_farc::load() {
+    if (ready)
+        return false;
+    else if (file_handler.check_not_ready())
+        return true;
 
-            int32_t step_index = _storage.step_index + ima_index_table[nibble];
-            _storage.step_index = clamp_def(step_index, 0, 88);
+    farc.read(file_handler.get_data(), file_handler.get_size(), true);
+    if (farc.files.size() && sound_work->ParseProperty(this))
+        ready = true;
+    return false;
+}
 
-            *dst++ = current;
+bool sound_db_farc::read(const char* file_path) {
+    if (ready)
+        unload();
 
-            if (odd_sample)
-                data++;
+    this->file_path.assign(file_path);
+    return file_handler.read_file(&data_list[DATA_AFT], file_path);
+}
+
+bool sound_db_farc::unload() {
+    sound_work_release_farc_se(file_path.c_str());
+    if (!sound_work->UnloadProperty(file_path.c_str()))
+        return false;
+
+    file_path.clear();
+    ready = false;
+    file_handler.reset();
+    return true;
+}
+
+sound_db_property::sound_db_property() : farc(),
+volume(), loop_start(), loop_end(), release_time()/*, field_48()*/ {
+
+}
+
+sound_db_property::~sound_db_property() {
+
+}
+
+SoundCue::SoundCue() : thread(), property(), counter(), release_time(), se_channel() {
+    queue_index = SOUND_WORK_SE_QUEUE_COUNT;
+    volume = new SoundCueVolume(this);
+}
+
+SoundCue::~SoundCue() {
+    if (thread) {
+        thread_state = 1;
+        cnd.notify_one();
+        thread->join();
+        delete thread;
+        thread = 0;
+    }
+
+    if (volume) {
+        delete volume;
+        volume = 0;
+    }
+}
+
+bool SoundCue::CanPlay() {
+    if (se_channel && se_channel->play_state)
+        return true;
+    return !!load_state;
+}
+
+void SoundCue::Ctrl() {
+    std::unique_lock<std::mutex> u_lock(mtx);
+    while (!thread_state) {
+        if (!data_state)
+            cnd.wait(u_lock);
+
+        int32_t _data_state = data_state;
+        data_state = SOUND_CUE_DATA_STATE_NONE;
+        switch (_data_state) {
+        case SOUND_CUE_DATA_STATE_LOAD:
+            LoadData();
+            break;
+        case SOUND_CUE_DATA_STATE_RESET:
+            ResetData();
+            break;
         }
     }
-    return act_samp_count;
+    thread_state = 0;
+}
+
+int32_t SoundCue::Load(int32_t queue_index, const char* name, float_t volume) {
+    ReleaseProt(true);
+    std::unique_lock<std::mutex> u_lock(mtx);
+    if (!se_channel)
+        return 0;
+
+    sound_db_property* property = sound_work->FindProperty(name);
+    if (!property)
+        return 0;
+
+    this->name.assign(name);
+    this->property = property;
+    this->queue_index = queue_index;
+    this->volume->SetValue(volume);
+
+    Play();
+    load_state = 1;
+    data_state = SOUND_CUE_DATA_STATE_LOAD;
+    cnd.notify_one();
+    counter = sound_work->counter;
+    if (++sound_work->counter <= -1)
+        sound_work->counter = 1;
+    return counter;
+}
+
+void SoundCue::LoadData() {
+    WaveAudio* _wave_audio = 0;
+    if (!property || !property->farc) {
+        load_state = 0;
+        return;
+    }
+
+    WaveAudio* wave_audio = wave_audio_storage_get_wave_audio(name);
+    if (!wave_audio) {
+        _wave_audio = new WaveAudio;
+        if (_wave_audio && _wave_audio->Read(property->farc, property->file_name.c_str()))
+            wave_audio = _wave_audio;
+    }
+
+    if (wave_audio) {
+        float_t* buffer = se_channel->InitBuffer(wave_audio->data.channels,
+            wave_audio->data.samples_count, wave_audio->data.sample_rate);
+        if (buffer) {
+            memmove(buffer, wave_audio->buffer, wave_audio->buffer_size);
+            se_channel->Play(property->loop_start, property->loop_end);
+        }
+    }
+
+    if (_wave_audio) {
+        _wave_audio->Reset();
+        delete _wave_audio;
+    }
+    load_state = 0;
+}
+
+void SoundCue::Play() {
+    if (se_channel && !property)
+        return;
+
+    bool master_volume_set = false;
+    float_t master_volume = property->volume * volume->value;
+
+    if (volume->set) {
+        volume->set = false;
+        master_volume_set = true;
+    }
+
+    if (release_time > 0.0f) {
+        double_t release_time = this->release_time * 1000.0;
+        double_t current_time = time.calc_time();
+        double_t remain_time;
+        if (current_time >= release_time) {
+            remain_time = 0.0;
+            Release(true);
+        }
+        else
+            remain_time = release_time - current_time;
+
+        master_volume_set = true;
+        master_volume = (float_t)(remain_time / release_time) * master_volume;
+    }
+
+    if (se_channel) {
+        if (master_volume_set)
+            se_channel->SetMasterVolume(master_volume);
+
+        if (!queue_index)
+            se_channel->SetChannelsVolume(0x03, get_max_speakers_volume());
+    }
+    return;
+}
+
+void SoundCue::PlayProt() {
+    std::unique_lock<std::mutex> u_lock(mtx);
+    Play();
+}
+
+void SoundCue::Release(bool force_release) {
+    if (!property || fabsf(property->release_time) <= 0.000001f || force_release) {
+        data_state = SOUND_CUE_DATA_STATE_RESET;
+        cnd.notify_one();
+        queue_index = SOUND_WORK_SE_QUEUE_COUNT;
+        name.clear();
+        property = 0;
+        counter = 0;
+        release_time = 0.0f;
+    }
+    else
+        release_time = property->release_time;
+
+    time.get_timestamp();
+}
+
+void SoundCue::ReleaseProt(bool force_release) {
+    std::unique_lock<std::mutex> u_lock(mtx);
+    Release(force_release);
+}
+
+void SoundCue::Reset() {
+    ReleaseProt(true);
+
+    if (thread) {
+        thread_state = 1;
+        cnd.notify_one();
+        thread->join();
+        delete thread;
+        thread = 0;
+    }
+}
+
+void SoundCue::ResetData() {
+    if (se_channel)
+        se_channel->ResetDataProt();
+}
+
+void SoundCue::SetSEChannel(sound::wasapi::SEChannel* se_channel) {
+    this->se_channel = se_channel;
+    if (se_channel)
+        se_channel->SetMasterVolume(1.0f);
+
+    thread = new std::thread(SoundCue::ThreadMain, this);
+    if (thread) {
+        wchar_t buf[0x80];
+        swprintf_s(buf, sizeof(buf) / sizeof(wchar_t), L"SoundCue #%d", sound_cue_counter++);
+        SetThreadDescription((HANDLE)thread->native_handle(), buf);
+    }
+}
+
+void SoundCue::ThreadMain(SoundCue* cue) {
+    if (cue)
+        cue->Ctrl();
+}
+
+SoundWork::SoundWork() : se_queue_enable(), stream_enable(), se_queue_volume() {
+    counter = 1;
+    speakers_volume = get_max_speakers_volume();
+    speakers_volume_changed = true;
+    headphones_volume = get_min_headphones_volume();
+    headphones_volume_changed = true;
+    se_volume = 1.0f;
+
+    for (bool& i : se_queue_enable)
+        i = true;
+
+    for (bool& i : stream_enable)
+        i = true;
+
+    for (int32_t i = 0; i < SOUND_WORK_SE_QUEUE_COUNT; i++)
+        se_queue_volume[i] = sound_cue_queue_volume_array_get_max(i);
+}
+
+SoundWork::~SoundWork() {
+
+}
+
+sound_db_property* SoundWork::FindProperty(const char* name) {
+    auto elem = properties.find(name);
+    if (elem != properties.end())
+        return &elem->second;
+    return 0;
+}
+
+bool SoundWork::ParseProperty(sound_db_farc* snd_db_farc) {
+    if (!snd_db_farc)
+        return false;
+
+    farc& f = snd_db_farc->farc;
+    farc_file* property_ff = f.read_file("property.txt");
+    if (!property_ff || !property_ff->data || !property_ff->size)
+        return false;
+
+    key_val kv;
+    kv.parse(property_ff->data, property_ff->size);
+
+    int32_t max;
+    float_t volume_bias;
+    if (!kv.read("max", max) || !kv.read("volume_bias", volume_bias))
+        return false;
+
+    size_t j = 1;
+    for (int32_t i = 0; i < max; i++, j++) {
+        if (!kv.open_scope_fmt("%zu", j))
+            continue;
+
+        std::string name;
+        std::string file_name;
+        if (!kv.read("name", name) || !kv.read("file_name", file_name)
+            || !kv.has_key("volume") || !f.has_file(file_name.c_str())) {
+            kv.close_scope();
+            continue;
+        }
+
+        uint32_t loop_start = 0;
+        if (kv.open_scope("loop_start")) {
+            kv.read(loop_start);
+            kv.close_scope();
+        }
+
+        uint32_t loop_end = 0;
+        if (kv.open_scope("loop_end")) {
+            kv.read(loop_end);
+            kv.close_scope();
+        }
+
+        float_t release_time = 0.0f;
+        if (kv.open_scope("release_time")) {
+            kv.read(release_time);
+            release_time *= 0.001f;
+            kv.close_scope();
+        }
+
+        float_t volume = 0.0f;
+        kv.read("volume", volume);
+
+        sound_db_property property;
+        property.farc = snd_db_farc;
+        property.file_name.assign(file_name);
+        property.volume = volume * volume_bias;
+        property.loop_start = loop_start;
+        property.loop_end = loop_end;
+        property.release_time = release_time;
+        properties.insert_or_assign(name, property);
+        kv.close_scope();
+    }
+    return true;
+}
+
+bool SoundWork::UnloadProperty(const char* file_path) {
+    for (auto i = properties.begin(); i != properties.end(); i++)
+        if (!i->second.farc->file_path.compare(file_path)) {
+            properties.erase(i);
+            break;
+        }
+    return true;
+}
+
+WaveAudioData::WaveAudioData() : format(), channels(), sample_rate(), bit_depth(),
+samples_count(), position(), data_size(), has_loop(), loop_start(), loop_end() {
+
+}
+
+WaveAudioData::~WaveAudioData() {
+
+}
+
+bool WaveAudioData::Read(WaveAudioDataFileMemoryStream* fms) {
+    Reset();
+    return ReadDiva(fms)/* || ReadRiff(fms)*/;
+}
+
+bool WaveAudioData::ReadData(const void* data, size_t size) {
+    if (!this || !data || !size)
+        return false;
+
+    WaveAudioDataFileMemoryStream fms(data, size);
+    return Read(&fms);
+}
+
+bool WaveAudioData::ReadDiva(WaveAudioDataFileMemoryStream* fms) {
+    struct DivaAudioHeader {
+        uint32_t signature;
+        uint8_t pad_4[4];
+        uint32_t size;
+        uint32_t sample_rate;
+        uint32_t samples_count;
+        uint32_t loop_start;
+        uint32_t loop_end;
+        uint8_t channels;
+        uint8_t pad_1D[3];
+        uint8_t reserved1[32];
+    } header;
+
+    if (fms->file) {
+        if (fseek(fms->file, 0, SEEK_SET))
+            return false;
+    }
+    else {
+        if (!fms->data || !fms->size)
+            return false;
+        fms->position = 0;
+    }
+
+    size_t read_bytes = 0;
+    if (fms->file)
+        read_bytes = fread(&header, sizeof(DivaAudioHeader), 1, fms->file);
+    else if (fms->data && fms->size && fms->position + sizeof(DivaAudioHeader) <= fms->size) {
+        memmove(&header, (uint8_t*)fms->data + fms->position, sizeof(DivaAudioHeader));
+        read_bytes = sizeof(DivaAudioHeader);
+    }
+
+    if (!read_bytes || header.signature != reverse_endianness_uint32_t('DIVA'))
+        return false;
+
+    format = WAVE_AUDIO_DATA_FORMAT_DIVA;
+    channels = header.channels;
+    sample_rate = header.sample_rate;
+    bit_depth = 0;
+    samples_count = header.samples_count;
+    position = 0;
+    data_size = 0;
+    has_loop = header.loop_start < header.loop_end;
+    loop_start = header.loop_start;
+    loop_end = header.loop_end;
+    return true;
+}
+
+void WaveAudioData::Reset() {
+    format = WAVE_AUDIO_DATA_FORMAT_NONE;
+    channels = 0;
+    sample_rate = 0;
+    bit_depth = 0;
+    samples_count = 0;
+    position = 0;
+    data_size = 0;
+    has_loop = false;
+    loop_start = 0;
+    loop_end = 0;
+}
+
+WaveAudio::WaveAudio() : buffer(), buffer_size() {
+
+}
+
+bool WaveAudio::Read(sound_db_farc* farc, const char* file_name) {
+    if (!this)
+        return false;
+
+    if (!farc) {
+        Reset();
+        return false;
+    }
+
+    ::farc* f = &farc->farc;
+    farc_file* ff = f->read_file(file_name);
+    if (!ff || !ff->data || !ff->size) {
+        Reset();
+        return false;
+    }
+
+    data.ReadData(ff->data, ff->size);
+
+    size_t buffer_size = sizeof(float_t) * data.samples_count * data.channels;
+    float_t* buffer = (float_t*)malloc(buffer_size);
+    this->buffer_size = buffer_size;
+    this->buffer = buffer;
+
+    if (!buffer) {
+        Reset();
+        return false;
+    }
+
+    bool ret = false;
+    memset(buffer, 0, buffer_size);
+    if (data.format == WAVE_AUDIO_DATA_FORMAT_DIVA) {
+        size_t buf_size = sizeof(int16_t) * data.samples_count * data.channels;
+        int16_t* buf = (int16_t*)malloc(buf_size);
+        if (!buf) {
+            Reset();
+            return false;
+        }
+
+        memset(buf, 0, buf_size);
+
+        {
+            std::vector<ima_storage> storage(data.channels);
+            data.samples_count = ima_decode(buf, buf_size, (uint8_t*)ff->data + data.position,
+                data.samples_count, data.channels, storage.data(), storage.size());
+        }
+
+        int16_t* _buf = buf;
+        float_t* buffer = this->buffer;
+        size_t channels = data.channels;
+        size_t samples_count = data.samples_count;
+        if (channels == 1)
+            for (size_t i = samples_count; i; i--, buffer++, _buf++)
+                *buffer = (float_t)*_buf * (float_t)(1.0 / (double_t)0x7FFF);
+        else if (channels == 2)
+            for (size_t i = samples_count; i; i--, buffer += 2, _buf += 2) {
+                vec2 value;
+                vec2i16_to_vec2(*(vec2i16*)_buf, value);
+                *(vec2*)buffer = value * (float_t)(1.0 / (double_t)0x7FFF);
+            }
+        else if (channels == 4)
+            for (size_t i = samples_count; i; i--, buffer += 4, _buf += 4) {
+                vec4 value;
+                vec4i16_to_vec4(*(vec4i16*)_buf, value);
+                *(vec4*)buffer = value * (float_t)(1.0 / (double_t)0x7FFF);
+            }
+        else
+            for (size_t i = samples_count; i; i--)
+                for (size_t j = channels; j; j--, buffer++, _buf++)
+                    *buffer++ = (float_t)*_buf++ * (float_t)(1.0 / (double_t)0x7FFF);
+
+        free(buf);
+        ret = true;
+    }
+
+    if (!ret) {
+        Reset();
+        return false;
+    }
+    return true;
+}
+
+void WaveAudio::Reset() {
+    if (buffer) {
+        free(buffer);
+        buffer = 0;
+    }
+    buffer_size = 0;
+    data.Reset();
 }
 
 sound_stream::sound_stream() : ogg_playback(), duration(), pause(), file_loading_frames(),
@@ -2138,6 +2246,46 @@ bool sound_stream::stop_playback() {
     return true;
 }
 
+static size_t ima_decode(int16_t* dst, size_t dst_size, uint8_t* data, size_t samples_count,
+    size_t channels, ima_storage* storage, size_t storage_size) {
+    if (!dst || !dst_size || !data || !samples_count || !storage || channels > storage_size)
+        return 0;
+
+    bool odd_sample = false;
+    size_t act_samp_count = 0;
+    for (size_t i = min_def(samples_count, dst_size / sizeof(int16_t)); i; i--, act_samp_count++) {
+        for (size_t j = channels, k = 0; j; j--, k++, odd_sample ^= true) {
+            ima_storage& _storage = storage[k];
+            int16_t step = ima_step_table[_storage.step_index];
+
+            uint8_t nibble = (odd_sample ? *data : (*data >> 4)) & 0x0F;
+
+            int32_t diff = step >> 3;
+            if (nibble & 0x01)
+                diff += step >> 2;
+            if (nibble & 0x02)
+                diff += step >> 1;
+            if (nibble & 0x04)
+                diff += step;
+            if (nibble & 0x08)
+                diff = -diff;
+
+            int32_t current = _storage.current + diff;
+            current = clamp_def(current, -0x8000, 0x7FFF);
+            _storage.current = current;
+
+            int32_t step_index = _storage.step_index + ima_index_table[nibble];
+            _storage.step_index = clamp_def(step_index, 0, 88);
+
+            *dst++ = current;
+
+            if (odd_sample)
+                data++;
+        }
+    }
+    return act_samp_count;
+}
+
 static void sound_stream_array_init() {
     if (!sound_stream_array)
         sound_stream_array = new sound_stream[SOUND_WORK_STREAM_COUNT];
@@ -2159,4 +2307,26 @@ static void sound_stream_array_free() {
         delete[] sound_stream_array;
         sound_stream_array = 0;
     }
+}
+
+static SoundCue* sound_work_get_cue(int32_t queue_index, const char* name) {
+    for (SoundCue& i : sound_work->cues)
+        if ((!i.se_channel || i.property) && i.queue_index == queue_index
+            && !i.name.compare(name))
+            return &i;
+    return 0;
+}
+
+static sound_db_farc* sound_work_get_farc(const char* file_path) {
+    for (sound_db_farc& i : sound_work->farcs)
+        if (!i.file_path.compare(file_path))
+            return &i;
+    return 0;
+}
+
+static WaveAudio* wave_audio_storage_get_wave_audio(const std::string& name) {
+    auto elem = wave_audio_storage_data.find(name);
+    if (elem != wave_audio_storage_data.end())
+        return &elem->second;
+    return 0;
 }
