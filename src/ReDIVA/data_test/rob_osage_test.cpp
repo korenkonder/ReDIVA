@@ -1127,8 +1127,9 @@ void RobOsageTest::disp_coli_cls_list(ExNodeBlock* ex_node, SkinParam::Collision
 
             vec3 pos;
             mat4_transform_point(&transform[i.node_idx[0]], &i.pos[0], &pos);
+            pos += i.pos[1] * 0.5f;
 
-            etc.data.cube.size = i.radius;
+            etc.data.cube.size = i.pos[1];
             etc.data.cube.wire = false;
 
             mat4 mat;
