@@ -8,6 +8,7 @@
 #include "../../KKdLib/io/json.hpp"
 #include "../../KKdLib/io/path.hpp"
 #include "../../KKdLib/prj/algorithm.hpp"
+#include "../../KKdLib/farc.hpp"
 #include "../../KKdLib/key_val.hpp"
 #include "../../KKdLib/sort.hpp"
 #include "../../KKdLib/str_utils.hpp"

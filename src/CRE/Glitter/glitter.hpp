@@ -1230,7 +1230,7 @@ namespace Glitter {
 
     struct FileReader {
         p_file_handler* file_handler;
-        ::farc* farc;
+        farc* farc;
         EffectGroup* effect_group;
         uint64_t hash;
         int32_t load_count;

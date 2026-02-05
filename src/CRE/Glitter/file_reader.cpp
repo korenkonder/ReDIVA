@@ -430,7 +430,8 @@ namespace Glitter {
     }
 
     bool FileReader::ParseDivaResource(GPM, f2_struct* st, EffectGroup* eff_group) {
-        if (!st || !st->header.get_raw_data_size())
+        if (!st || !st->header.get_raw_data_size()
+            || st->header.signature != reverse_endianness_uint32_t('DVRS'))
             return false;
 
         for (f2_struct& i : st->sub_structs)
