@@ -8,17 +8,18 @@
 #include <string>
 #include <vector>
 #include "default.hpp"
-
-enum farc_signature {
-    FARC_FArc = 'FArc',
-    FARC_FArC = 'FArC',
-    FARC_FARC = 'FARC',
-};
+#include "prj/rijndael.hpp"
 
 enum farc_flags {
     FARC_NONE = 0x00,
     FARC_GZIP = 0x02,
     FARC_AES  = 0x04,
+};
+
+enum farc_signature {
+    FARC_FArc = 'FArc',
+    FARC_FArC = 'FArC',
+    FARC_FARC = 'FARC',
 };
 
 struct farc_file {

@@ -35,7 +35,7 @@
 #if BAKE_X_PACK
 #include "../KKdLib/f2/header.hpp"
 #include "../KKdLib/io/memory_stream.hpp"
-#include "../KKdLib/aes.hpp"
+#include "../KKdLib/prj/rijndael.hpp"
 #include "../KKdLib/deflate.hpp"
 #include "../KKdLib/waitable_timer.hpp"
 #include <meshoptimizer/meshoptimizer.h>
@@ -10005,9 +10005,18 @@ void obj_set_reflect::pack_file(void** data, size_t* size, bool mmp,
             for (uint32_t i = 0; i < 0x10; i += sizeof(uint32_t))
                 *(uint32_t*)(iv + i) = rand_state_array_get_int(4);
 
-            aes256_ctx aes;
-            aes256_init_ctx_iv(&aes, key, iv);
-            aes256_cbc_encrypt_buffer(&aes, section_data, section_size);
+
+            prj::Rijndael rijndael(prj::Rijndael_Nb, prj::Rijndael_Nk128, key);
+
+            uint8_t _iv[prj::Rijndael_Nlen];
+            memcpy(_iv, iv, prj::Rijndael_Nlen);
+            for (size_t i = 0; i < section_size; i += prj::Rijndael_Nlen) {
+                for (uint32_t j = 0; j < prj::Rijndael_Nlen / sizeof(uint32_t); j++)
+                    ((uint32_t*)(section_data  + i))[j] ^= ((uint32_t*)_iv)[j];
+                rijndael.encrypt16(section_data + i);
+                memcpy(_iv, section_data + i, prj::Rijndael_Nlen);
+            }
+
             head->attrib.set_aes(true);
         }
     }

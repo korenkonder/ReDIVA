@@ -7,7 +7,6 @@
 #include "io/path.hpp"
 #include "io/file_stream.hpp"
 #include "io/memory_stream.hpp"
-#include "aes.hpp"
 #include "deflate.hpp"
 #include "hash.hpp"
 #include "str_utils.hpp"
@@ -506,9 +505,9 @@ static void farc_pack_files(farc* f, stream& s, farc_signature signature, farc_f
     s.set_position(align, SEEK_SET);
     size_t dir_len = f->directory_path.size();
 
-    aes128_ctx ctx;
+    prj::Rijndael rijndael;
     if (signature == FARC_FARC)
-        aes128_init_ctx(&ctx, f->ft ? key_ft : key);
+        rijndael = prj::Rijndael(prj::Rijndael_Nb, prj::Rijndael_Nk128, f->ft ? key_ft : key);
 
     f->compression_level = clamp_def(f->compression_level, 0, 12);
 
@@ -592,8 +591,14 @@ static void farc_pack_files(farc* f, stream& s, farc_signature signature, farc_f
                 const int32_t pkcs7_pad_len = (int32_t)(t2_len - t1_len - 0x10);
                 memset(t2 + 0x10 + t1_len, pkcs7_pad_len, pkcs7_pad_len); // PKCS7 Padding
 
-                aes128_ctx_set_iv(&ctx, t2);
-                aes128_cbc_encrypt_buffer(&ctx, t2 + 0x10, t2_len - 0x10);
+                uint8_t iv[prj::Rijndael_Nlen];
+                memcpy(iv, t2, prj::Rijndael_Nlen);
+                for (size_t j = 0; j < t2_len - 0x10; j += prj::Rijndael_Nlen) {
+                    for (uint32_t k = 0; k < prj::Rijndael_Nlen / sizeof(uint32_t); k++)
+                        ((uint32_t*)(t2 + 0x10 + j))[k] ^= ((uint32_t*)iv)[k];
+                    rijndael.encrypt16(t2 + 0x10 + j);
+                    memcpy(iv, t2 + 0x10 + j, prj::Rijndael_Nlen);
+                }
 
                 s.write(t2, t2_len);
                 free_def(t2);
@@ -606,7 +611,8 @@ static void farc_pack_files(farc* f, stream& s, farc_signature signature, farc_f
                 memcpy(t2, t1, t1_len);
                 memset(t2 + t1_len, 0x78, t2_len - t1_len);
 
-                aes128_ecb_encrypt_buffer(&ctx, t2, t2_len);
+                for (size_t j = 0; j < t2_len; j += prj::Rijndael_Nlen)
+                    rijndael.encrypt16(t2 + j);
 
                 s.write(t2, t2_len);
                 free_def(t2);
@@ -683,8 +689,14 @@ static void farc_pack_files(farc* f, stream& s, farc_signature signature, farc_f
             const int32_t pkcs7_pad_len = (int32_t)(head_data_len - (dt - head_data));
             memset(dt, pkcs7_pad_len, pkcs7_pad_len); // PKCS7 Padding
 
-            aes128_ctx_set_iv(&ctx, head_data);
-            aes128_cbc_encrypt_buffer(&ctx, head_data + 0x10, head_data_len - 0x10);
+            uint8_t iv[prj::Rijndael_Nlen];
+            memcpy(iv, head_data, prj::Rijndael_Nlen);
+            for (size_t i = 0; i < head_data_len - 0x10; i += prj::Rijndael_Nlen) {
+                for (uint32_t j = 0; j < prj::Rijndael_Nlen / sizeof(uint32_t); j++)
+                    ((uint32_t*)(head_data + 0x10 + i))[j] ^= ((uint32_t*)iv)[j];
+                rijndael.encrypt16(head_data + 0x10 + i);
+                memcpy(iv, head_data + 0x10 + i, prj::Rijndael_Nlen);
+            }
         }
 
         s.write(head_data, head_data_len);
@@ -802,10 +814,19 @@ static errno_t farc_read_header(farc* f, stream& s) {
     if (f->ft) {
         header_length -= 0x10;
 
-        aes128_ctx ctx;
-        aes128_init_ctx_iv(&ctx, key_ft, dt);
+        prj::Rijndael rijndael(prj::Rijndael_Nb, prj::Rijndael_Nk128, key_ft);
+
+        uint8_t iv[prj::Rijndael_Nlen];
+        uint8_t next_iv[prj::Rijndael_Nlen];
+        memcpy(iv, dt, prj::Rijndael_Nlen);
         dt += 0x10;
-        aes128_cbc_decrypt_buffer(&ctx, dt, header_length);
+        for (size_t i = 0; i < header_length; i += prj::Rijndael_Nlen) {
+            memcpy(next_iv, dt + i, prj::Rijndael_Nlen);
+            rijndael.decrypt16(dt + i);
+            for (uint32_t j = 0; j < prj::Rijndael_Nlen / sizeof(uint32_t); j++)
+                ((uint32_t*)(dt + i))[j] ^= ((uint32_t*)iv)[j];
+            memcpy(iv, next_iv, prj::Rijndael_Nlen);
+        }
 
         header_length -= ((uint8_t*)dt)[header_length - 1]; // PKCS7 Padding
     }
@@ -1017,34 +1038,44 @@ static void farc_unpack_file(farc* f, stream& s, farc_file* ff, bool save, char*
         void* temp = force_malloc(temp_s);
         s.read(temp, temp_s);
 
-        size_t t = (size_t)temp;
+        uint8_t* t = (uint8_t*)temp;
         if (ff->encrypted)
             if (f->ft) {
                 temp_s -= 0x10;
                 t += 0x10;
 
-                aes128_ctx ctx;
-                aes128_init_ctx_iv(&ctx, key_ft, (uint8_t*)temp);
-                aes128_cbc_decrypt_buffer(&ctx, (uint8_t*)t, temp_s);
+                prj::Rijndael rijndael(prj::Rijndael_Nb, prj::Rijndael_Nk128, key_ft);
 
-                ff->size_compressed = temp_s - ((uint8_t*)t)[temp_s - 1]; // PKCS7 Padding
+                uint8_t iv[prj::Rijndael_Nlen];
+                uint8_t next_iv[prj::Rijndael_Nlen];
+                memcpy(iv, (uint8_t*)temp, prj::Rijndael_Nlen);
+                for (size_t i = 0; i < temp_s; i += prj::Rijndael_Nlen) {
+                    memcpy(next_iv, t + i, prj::Rijndael_Nlen);
+                    rijndael.decrypt16(t + i);
+                    for (uint32_t j = 0; j < prj::Rijndael_Nlen / sizeof(uint32_t); j++)
+                        ((uint32_t*)(t + i))[j] ^= ((uint32_t*)iv)[j];
+                    memcpy(iv, next_iv, prj::Rijndael_Nlen);
+                }
+
+                ff->size_compressed = temp_s - t[temp_s - 1]; // PKCS7 Padding
             }
             else {
-                aes128_ctx ctx;
-                aes128_init_ctx(&ctx, key);
-                aes128_ecb_decrypt_buffer(&ctx, (uint8_t*)t, temp_s);
+                prj::Rijndael rijndael(prj::Rijndael_Nb, prj::Rijndael_Nk128, key);
+
+                for (size_t i = 0; i < temp_s; i += prj::Rijndael_Nlen)
+                    rijndael.decrypt16(t + i);
             }
 
         if (ff->compressed) {
             ff->data_compressed = force_malloc(ff->size_compressed);
-            memcpy(ff->data_compressed, (void*)t, ff->size_compressed);
+            memcpy(ff->data_compressed, t, ff->size_compressed);
             deflate::decompress(ff->data_compressed, ff->size_compressed,
                 ff->data, ff->size, deflate::MODE_GZIP);
         }
         else {
             ff->data_compressed = 0;
             ff->data = force_malloc(ff->size);
-            memcpy(ff->data, (void*)t, ff->size);
+            memcpy(ff->data, t, ff->size);
         }
         free_def(temp);
     }

@@ -5,7 +5,7 @@
 
 #include "divafile.hpp"
 #include "io/file_stream.hpp"
-#include "aes.hpp"
+#include "prj/rijndael.hpp"
 #include "str_utils.hpp"
 
 namespace divafile {
@@ -35,9 +35,9 @@ namespace divafile {
                 void* data = force_malloc(stream_length);
                 s_enc.read(data, stream_length);
 
-                aes128_ctx ctx;
-                aes128_init_ctx(&ctx, key);
-                aes128_ecb_decrypt_buffer(&ctx, (uint8_t*)data, stream_length);
+                prj::Rijndael rijndael(prj::Rijndael_Nb, prj::Rijndael_Nk128, key);
+                for (size_t i = 0; i < stream_length; i += prj::Rijndael_Nlen)
+                    rijndael.decrypt16((uint8_t*)data + i);
 
                 file_stream s_dec;
                 s_dec.open(file_temp, L"wb");
@@ -66,9 +66,9 @@ namespace divafile {
         void* data = force_malloc(stream_length);
         memcpy(data, (void*)(d + 16), stream_length);
 
-        aes128_ctx ctx;
-        aes128_init_ctx(&ctx, key);
-        aes128_ecb_decrypt_buffer(&ctx, (uint8_t*)data, stream_length);
+        prj::Rijndael rijndael(prj::Rijndael_Nb, prj::Rijndael_Nk128, key);
+        for (size_t i = 0; i < stream_length; i += prj::Rijndael_Nlen)
+            rijndael.decrypt16((uint8_t*)data + i);
 
         *dec_data = data;
         *dec_size = file_length;
@@ -93,9 +93,9 @@ namespace divafile {
         void* data = force_malloc(stream_length);
         enc.read(data, stream_length);
 
-        aes128_ctx ctx;
-        aes128_init_ctx(&ctx, key);
-        aes128_ecb_decrypt_buffer(&ctx, (uint8_t*)data, stream_length);
+        prj::Rijndael rijndael(prj::Rijndael_Nb, prj::Rijndael_Nk128, key);
+        for (size_t i = 0; i < stream_length; i += prj::Rijndael_Nlen)
+            rijndael.decrypt16((uint8_t*)data + i);
 
         dec.open(data, file_length);
         free_def(data);
@@ -121,9 +121,9 @@ namespace divafile {
             void* data = force_malloc(len_align);
             s_dec.read(data, len);
 
-            aes128_ctx ctx;
-            aes128_init_ctx(&ctx, key);
-            aes128_ecb_encrypt_buffer(&ctx, (uint8_t*)data, len_align);
+            prj::Rijndael rijndael(prj::Rijndael_Nb, prj::Rijndael_Nk128, key);
+            for (size_t i = 0; i < len_align; i += prj::Rijndael_Nlen)
+                rijndael.encrypt16((uint8_t*)data + i);
 
             file_stream s_enc;
             s_enc.open(file_temp, L"wb");
@@ -147,9 +147,9 @@ namespace divafile {
         size_t d = (size_t)data;
         memcpy((void*)(d + 16), dec_data, len);
 
-        aes128_ctx ctx;
-        aes128_init_ctx(&ctx, key);
-        aes128_ecb_encrypt_buffer(&ctx, (uint8_t*)(d + 16), len_align);
+        prj::Rijndael rijndael(prj::Rijndael_Nb, prj::Rijndael_Nk128, key);
+        for (size_t i = 0; i < len_align; i += prj::Rijndael_Nlen)
+            rijndael.encrypt16((uint8_t*)data + i);
 
         *(uint64_t*)d = 0x454C494641564944;
         *(uint32_t*)(d + 8) = (uint32_t)len_align;

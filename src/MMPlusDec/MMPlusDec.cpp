@@ -10,7 +10,7 @@
 #include "../KKdLib/default.hpp"
 #include "../KKdLib/io/file_stream.hpp"
 #include "../KKdLib/io/path.hpp"
-#include "../KKdLib/aes.hpp"
+#include "../KKdLib/prj/rijndael.hpp"
 #include "../KKdLib/str_utils.hpp"
 #include <intrin.h>
 
@@ -67,8 +67,7 @@ int32_t wmain(int32_t argc, wchar_t** argv) {
     cpu_caps_aes_ni = (cpuid_data[2] & (1 << 25)) ? true : false;
     cpu_caps_f16c = (cpuid_data[2] & (1 << 29)) ? true : false;
 
-    aes256_ctx ctx;
-    aes256_init_ctx(&ctx, mmplus_key);
+    prj::Rijndael rijndael(prj::Rijndael_Nb, prj::Rijndael_Nk256, mmplus_key);
 
     {
         std::vector<std::wstring> files = path_get_files(indir.c_str());
@@ -85,7 +84,9 @@ int32_t wmain(int32_t argc, wchar_t** argv) {
             if (in_file.check_not_null() && out_file.check_not_null()) {
                 printf(encrypt ? "Encrypting %ls\n" : "Decrypting %ls\n", i.c_str());
 
-                aes256_ctx_set_iv(&ctx, mmplus_iv);
+                uint8_t iv[prj::Rijndael_Nlen];
+                uint8_t next_iv[prj::Rijndael_Nlen];
+                memcpy(iv, mmplus_iv, prj::Rijndael_Nlen);
 
                 size_t length = in_file.get_length();
 
@@ -100,7 +101,13 @@ int32_t wmain(int32_t argc, wchar_t** argv) {
                             size += align;
                         }
 
-                        aes256_cbc_encrypt_buffer(&ctx, buf, size);
+                        for (size_t j = 0; j < size; j += prj::Rijndael_Nlen) {
+                            for (uint32_t k = 0; k < prj::Rijndael_Nlen / sizeof(uint32_t); k++)
+                                ((uint32_t*)(buf + j))[k] ^= ((uint32_t*)iv)[k];
+                            rijndael.encrypt16(buf + j);
+                            memcpy(iv, buf + j, prj::Rijndael_Nlen);
+                        }
+
                         out_file.write(buf, size);
 
                         length -= min_def(length, size);
@@ -108,7 +115,13 @@ int32_t wmain(int32_t argc, wchar_t** argv) {
                 }
                 else {
                     while (length && (size = in_file.read_data(buf))) {
-                        aes256_cbc_decrypt_buffer(&ctx, buf, size);
+                        for (size_t j = 0; j < size; j += prj::Rijndael_Nlen) {
+                            memcpy(next_iv, buf + j, prj::Rijndael_Nlen);
+                            rijndael.decrypt16(buf + j);
+                            for (uint32_t k = 0; k < prj::Rijndael_Nlen / sizeof(uint32_t); k++)
+                                ((uint32_t*)(buf + j))[k] ^= ((uint32_t*)iv)[k];
+                            memcpy(iv, next_iv, prj::Rijndael_Nlen);
+                        }
 
                         if (length == size) // PKCS7 Padding
                             size -= buf[size - 1];
@@ -145,7 +158,9 @@ int32_t wmain(int32_t argc, wchar_t** argv) {
             if (in_file.check_not_null() && out_file.check_not_null()) {
                 printf(encrypt ? "Encrypting %ls\\%ls\n" : "Decrypting %ls\\%ls\n", i.c_str(), j.c_str());
 
-                aes256_ctx_set_iv(&ctx, mmplus_iv);
+                uint8_t iv[prj::Rijndael_Nlen];
+                uint8_t next_iv[prj::Rijndael_Nlen];
+                memcpy(iv, mmplus_iv, prj::Rijndael_Nlen);
 
                 size_t length = in_file.get_length();
 
@@ -160,7 +175,13 @@ int32_t wmain(int32_t argc, wchar_t** argv) {
                             size += align;
                         }
 
-                        aes256_cbc_encrypt_buffer(&ctx, buf, size);
+                        for (size_t j = 0; j < size; j += prj::Rijndael_Nlen) {
+                            for (uint32_t k = 0; k < prj::Rijndael_Nlen / sizeof(uint32_t); k++)
+                                ((uint32_t*)(buf + j))[k] ^= ((uint32_t*)iv)[k];
+                            rijndael.encrypt16(buf + j);
+                            memcpy(iv, buf + j, prj::Rijndael_Nlen);
+                        }
+
                         out_file.write(buf, size);
 
                         length -= size;
@@ -168,7 +189,13 @@ int32_t wmain(int32_t argc, wchar_t** argv) {
                 }
                 else {
                     while (length && (size = in_file.read_data(buf))) {
-                        aes256_cbc_decrypt_buffer(&ctx, buf, size);
+                        for (size_t j = 0; j < size; j += prj::Rijndael_Nlen) {
+                            memcpy(next_iv, buf + j, prj::Rijndael_Nlen);
+                            rijndael.decrypt16(buf + j);
+                            for (uint32_t k = 0; k < prj::Rijndael_Nlen / sizeof(uint32_t); k++)
+                                ((uint32_t*)(buf + j))[k] ^= ((uint32_t*)iv)[k];
+                            memcpy(iv, next_iv, prj::Rijndael_Nlen);
+                        }
 
                         if (length == size) // PKCS7 Padding
                             size -= buf[size - 1];

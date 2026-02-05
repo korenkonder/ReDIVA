@@ -6,7 +6,7 @@
 #include "x_save.hpp"
 #include "f2/header.hpp"
 #include "io/file_stream.hpp"
-#include "aes.hpp"
+#include "prj/rijndael.hpp"
 #include "deflate.hpp"
 
 static const uint8_t savedata_key[] = {
@@ -171,9 +171,9 @@ static bool x_save_decode(std::vector<uint8_t>& data, void*& dec, size_t& dec_le
         uint8_t* section_data = head->get_section_data();
         uint32_t section_size = head->get_section_size();
         if (section_data && section_size == align_val(section_size, 0x20)) {
-            aes256_ctx aes;
-            aes256_init_ctx(&aes, savedata_key);
-            aes256_ecb_decrypt_buffer(&aes, section_data, section_size);
+            prj::Rijndael rijndael(prj::Rijndael_Nb, prj::Rijndael_Nk256, savedata_key);
+            for (size_t i = 0; i < section_size; i += prj::Rijndael_Nlen)
+                rijndael.decrypt16(section_data + i);
             head->attrib.set_aes(false);
         }
     }
@@ -270,9 +270,9 @@ static bool x_save_encode(std::vector<uint8_t>& data, void*& enc, x_save_encode_
         uint8_t* section_data = head->get_section_data();
         uint32_t section_size = head->get_section_size();
         if (section_data && section_size == align_val(section_size, 0x20)) {
-            aes256_ctx aes;
-            aes256_init_ctx(&aes, savedata_key);
-            aes256_ecb_encrypt_buffer(&aes, section_data, section_size);
+            prj::Rijndael rijndael(prj::Rijndael_Nb, prj::Rijndael_Nk256, savedata_key);
+            for (size_t i = 0; i < section_size; i += prj::Rijndael_Nlen)
+                rijndael.encrypt16(section_data + i);
             head->attrib.set_aes(true);
         }
     }
