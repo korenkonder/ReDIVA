@@ -16,10 +16,13 @@ enum farc_flags {
     FARC_AES  = 0x04,
 };
 
-enum farc_signature {
+enum farc_signature : uint32_t {
     FARC_FArc = 'FArc',
     FARC_FArC = 'FArC',
     FARC_FARC = 'FARC',
+    FARC_FARc = 'FARc', // Unsupported
+
+    FARC_SIGNATURE_MASK = 0xFFFFDFDFu,
 };
 
 struct farc_file {
@@ -82,6 +85,7 @@ struct farc {
     farc_file* read_file(const char* name);
     farc_file* read_file(const wchar_t* name);
     farc_file* read_file(uint32_t hash);
+    void reset();
     void write(const char* path, farc_signature signature,
         farc_flags flags, bool add_extension, bool get_files);
     void write(const wchar_t* path, farc_signature signature,

@@ -332,6 +332,22 @@ farc_file* farc::read_file(uint32_t hash) {
     return 0;
 }
 
+void farc::reset()  {
+    file_path.clear();
+    file_path.shrink_to_fit();
+    directory_path.clear();
+    directory_path.shrink_to_fit();
+    files.clear();
+    files.shrink_to_fit();
+    signature = FARC_FArC;
+    flags = (farc_flags)0;
+    compression_level = 12;
+    alignment = 0x10;
+    entry_padding = 0;
+    header_padding = 0;
+    ft = false;
+}
+
 void farc::write(const char* path, farc_signature signature,
     farc_flags flags, bool add_extension, bool get_files) {
     if (!path)
