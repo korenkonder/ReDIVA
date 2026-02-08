@@ -8,11 +8,11 @@
 #include "../../KKdLib/io/json.hpp"
 #include "../../KKdLib/io/path.hpp"
 #include "../../KKdLib/prj/algorithm.hpp"
-#include "../../KKdLib/farc.hpp"
 #include "../../KKdLib/key_val.hpp"
 #include "../../KKdLib/sort.hpp"
 #include "../../KKdLib/str_utils.hpp"
 #include "../../KKdLib/waitable_timer.hpp"
+#include "../app_farc.hpp"
 #include "../customize_item_table.hpp"
 #include "../module_table.hpp"
 #include "../data.hpp"
@@ -142,53 +142,6 @@ struct opd_vec3_data_vec {
     ~opd_vec3_data_vec();
 };
 
-struct opd_farc_params {
-    size_t align;
-    bool compress;
-    bool encrypt;
-
-    opd_farc_params();
-};
-
-struct opd_farc_file {
-    std::string name;
-    size_t offset;
-    size_t size;
-
-    opd_farc_file();
-    opd_farc_file(const std::string& name, size_t offset, size_t size);
-    ~opd_farc_file();
-};
-
-struct opd_farc {
-    std::string path;
-    opd_farc_params params;
-    std::vector<opd_farc_file> files;
-    std::string data_path;
-    file_stream* stream;
-    size_t farc_size;
-
-    opd_farc();
-    ~opd_farc();
-
-    bool add_file(const void* data, size_t size, const std::string& name);
-    bool open(const std::string& path, const opd_farc_params& params);
-    void reset();
-    bool write_file();
-};
-
-struct p_opd_farc {
-    opd_farc* ptr;
-
-    p_opd_farc();
-    ~p_opd_farc();
-
-    bool add_file(const void* data, size_t size, const std::string& file);
-    bool open(const std::string& path, const opd_farc_params& params);
-    bool open(const std::string& path, bool compress, size_t align);
-    bool write_file();
-};
-
 struct opd_chara_data {
     int32_t chara_id;
     bool init;
@@ -197,8 +150,8 @@ struct opd_chara_data {
     uint32_t motion_id;
     uint64_t field_18;
     std::vector<std::vector<opd_vec3_data_vec>> opd_data[ITEM_OSAGE_COUNT];
-    p_opd_farc opd[ITEM_OSAGE_COUNT];
-    p_opd_farc opdi[ITEM_OSAGE_COUNT];
+    p_farc_write opd[ITEM_OSAGE_COUNT];
+    p_farc_write opdi[ITEM_OSAGE_COUNT];
 
     opd_chara_data();
     ~opd_chara_data();
@@ -17152,171 +17105,6 @@ opd_vec3_data_vec::~opd_vec3_data_vec() {
 
 }
 
-opd_farc_params::opd_farc_params() : compress(), encrypt() {
-    align = 1;
-}
-
-opd_farc_file::opd_farc_file() : offset(), size() {
-
-}
-
-opd_farc_file::opd_farc_file(const std::string& name, size_t offset, size_t size) {
-    this->name.assign(name);
-    this->offset = offset;
-    this->size = size;
-}
-
-opd_farc_file::~opd_farc_file() {
-
-}
-
-opd_farc::opd_farc() : stream(), farc_size() {
-
-}
-
-opd_farc::~opd_farc() {
-
-}
-
-bool opd_farc::add_file(const void* data, size_t size, const std::string& name) {
-    if (!data || !size || !name.size() || !stream)
-        return false;
-
-    size_t offset = stream->get_position();
-    stream->write(data, size);
-    files.push_back({ name, offset, size });
-    return true;
-}
-
-bool opd_farc::open(const std::string& path, const opd_farc_params& params) {
-    reset();
-    if (!path.size() || !params.align || ((params.align - 1) & params.align))
-        return 0;
-
-    this->params = params;
-    this->path.assign(path);
-    data_path.assign(path);
-    data_path.append(".data");
-    stream = new file_stream;
-    stream->open(data_path.c_str(), "wb");
-    return stream->check_not_null();
-}
-
-void opd_farc::reset() {
-    path.clear();
-    params = {};
-    files.clear();
-    data_path.clear();
-    if (stream) {
-        delete stream;
-        stream = 0;
-    }
-    farc_size = 0;
-}
-
-bool opd_farc::write_file() {
-    std::string path_tmp(path);
-    path_tmp.append(".tmp");
-
-    file_stream fs;
-    bool ret = false;
-    if (!stream)
-        goto End;
-
-    stream->close();
-
-    delete stream;
-    stream = 0;
-
-    if (!path_delete_file(path.c_str()))
-        goto End;
-
-    fs.open(data_path.c_str(), "rb");
-    if (fs.check_not_null() && fs.get_length()) {
-        bool compress = params.compress;
-        bool encrypt = params.encrypt;
-        farc f;
-
-        for (opd_farc_file& i : files) {
-            fs.set_position(i.offset, SEEK_SET);
-            uint8_t* data = force_malloc<uint8_t>(i.size);
-            size_t len = fs.read(data, i.size);
-            if (len) {
-                farc_file* ff = f.add_file(i.name.c_str());
-                ff->data = data;
-                ff->size = i.size;
-                ff->compressed = compress;
-                ff->encrypted = encrypt;
-                ff->data_changed = true;
-            }
-        }
-
-        farc_signature signature;
-        farc_flags flags;
-        if (encrypt) {
-            signature = FARC_FARC;
-            flags = FARC_AES;
-
-            if (compress)
-                enum_or(flags, FARC_GZIP);
-        }
-        else if (compress) {
-            signature = FARC_FArC;
-            flags = FARC_NONE;
-        }
-        else {
-            signature = FARC_FArc;
-            flags = FARC_NONE;
-        }
-        f.alignment = (uint32_t)params.align;
-        f.write(path_tmp.c_str(), signature, flags, false, false);
-        ret = true;
-    }
-    fs.close();
-
-    if (ret) {
-        path_delete_file(path.c_str());
-        if (!path_move_file(path_tmp.c_str(), path.c_str()))
-            ret = false;
-    }
-
-End:
-    path_delete_file(data_path.c_str());
-    path_delete_file(path_tmp.c_str());
-    reset();
-    return ret;
-}
-
-p_opd_farc::p_opd_farc() : ptr() {
-    ptr = new opd_farc;
-}
-
-p_opd_farc::~p_opd_farc() {
-    if (ptr) {
-        delete ptr;
-        ptr = 0;
-    }
-}
-
-bool p_opd_farc::add_file(const void* data, size_t size, const std::string& file) {
-    return ptr->add_file(data, size, file);
-}
-
-bool p_opd_farc::open(const std::string& path, const opd_farc_params& params) {
-    return ptr->open(path, params);
-}
-
-bool p_opd_farc::open(const std::string& path, bool compress, size_t align) {
-    opd_farc_params farc_data;
-    farc_data.compress = compress;
-    farc_data.align = align;
-    return open(path, farc_data);
-}
-
-bool p_opd_farc::write_file() {
-    return ptr->write_file();
-}
-
 opd_chara_data::opd_chara_data() : chara_id(), init(), frame_index(), frame_count(), motion_id(), field_18() {
     chara_id = opd_chara_data_counter++;
     reset();
@@ -17388,7 +17176,7 @@ void opd_chara_data::encode_data() {
 
     std::string buf = sprintf_s_string("%s/%d", get_ram_osage_play_data_tmp_dir(), chara_id);
 
-    p_opd_farc* opd = this->opd;
+    p_farc_write* opd = this->opd;
     for (int32_t i = 0; i < ITEM_OSAGE_COUNT; i++, opd++) {
         rob_chara_item_equip_object* itm_eq_obj
             = rob_itm_equip->get_item_equip_object((item_id)(ITEM_OSAGE_FIRST + i));
@@ -17473,7 +17261,7 @@ void opd_chara_data::encode_init_data(uint32_t motion_id) {
 
     rob_chara_item_equip* rob_itm_equip = rob_chr->item_equip;
 
-    p_opd_farc* opdi = this->opdi;
+    p_farc_write* opdi = this->opdi;
     for (int32_t i = 0; i < ITEM_OSAGE_COUNT; i++, opdi++) {
         rob_chara_item_equip_object* itm_eq_obj
             = rob_itm_equip->get_item_equip_object((item_id)(ITEM_OSAGE_FIRST + i));
@@ -17617,7 +17405,7 @@ void opd_chara_data::open_opd_file() {
 
     rob_chara_item_equip* rob_itm_equip = rob_chr->item_equip;
 
-    p_opd_farc* opd = this->opd;
+    p_farc_write* opd = this->opd;
     for (int32_t i = 0; i < ITEM_OSAGE_COUNT; i++, opd++) {
         rob_chara_item_equip_object* itm_eq_obj
             = rob_itm_equip->get_item_equip_object((item_id)(ITEM_OSAGE_FIRST + i));
@@ -17647,7 +17435,7 @@ void opd_chara_data::open_opdi_file() {
 
     rob_chara_item_equip* rob_itm_equip = rob_chr->item_equip;
 
-    p_opd_farc* opdi = this->opdi;
+    p_farc_write* opdi = this->opdi;
     for (int32_t i = 0; i < ITEM_OSAGE_COUNT; i++, opdi++) {
         rob_chara_item_equip_object* itm_eq_obj
             = rob_itm_equip->get_item_equip_object((item_id)(ITEM_OSAGE_FIRST + i));

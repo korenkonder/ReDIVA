@@ -23,9 +23,10 @@ namespace deflate {
     extern const allocator default_allocator;
 
     extern int32_t compress(const void* src, size_t src_length, void*& dst, size_t& dst_length,
-        mode mode, int32_t compression_level = 12, const allocator& allocator = default_allocator);
+        mode mode, int32_t compression_level = 12, const allocator* allocator = &default_allocator);
+    extern size_t compress_bound(size_t src_length, mode mode);
     extern int32_t compress_gzip(const void* src, size_t src_length, void*& dst, size_t& dst_length,
         int32_t compression_level, const char* file_name = 0, const allocator& allocator = default_allocator);
     extern int32_t decompress(const void* src, size_t src_length, void*& dst, size_t& dst_length,
-        mode mode, const allocator& allocator = default_allocator);
+        mode mode, const allocator* allocator = &default_allocator);
 }

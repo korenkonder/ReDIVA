@@ -18,12 +18,12 @@ namespace deflate {
     };
 
     static int32_t compress_static(struct libdeflate_compressor* c, const void* src, size_t src_length,
-        void*& dst, size_t& dst_length, int32_t compression_level, mode mode, const allocator& allocator);
+        void*& dst, size_t& dst_length, int32_t compression_level, mode mode, const allocator* allocator);
     static int32_t decompress_static(struct libdeflate_decompressor* d, const void* src, size_t src_length,
-        void*& dst, size_t& dst_length, mode mode, const allocator& allocator);
+        void*& dst, size_t& dst_length, mode mode, const allocator* allocator);
 
     int32_t compress(const void* src, size_t src_length, void*& dst, size_t& dst_length,
-        mode mode, int32_t compression_level, const allocator& allocator) {
+        mode mode, int32_t compression_level, const allocator* allocator) {
         if (!src_length)
             return -1;
         else if (!src)
@@ -43,6 +43,17 @@ namespace deflate {
         return result >= 0 ? result : result - 0x10;
     }
 
+    size_t compress_bound(size_t src_length, mode mode) {
+        switch (mode) {
+        case MODE_GZIP:
+            return libdeflate_gzip_compress_bound(0, src_length);
+        case MODE_ZLIB:
+            return libdeflate_zlib_compress_bound(0, src_length);
+        default:
+            return libdeflate_deflate_compress_bound(0, src_length);
+        }
+    }
+
     int32_t compress_gzip(const void* src, size_t src_length, void*& dst, size_t& dst_length,
         int32_t compression_level, const char* file_name, const allocator& allocator) {
         if (!src_length)
@@ -57,7 +68,7 @@ namespace deflate {
             return -5;
 
         int32_t result = compress_static(c, src, src_length,
-            dst, dst_length, compression_level, MODE_GZIP, allocator);
+            dst, dst_length, compression_level, MODE_GZIP, &allocator);
         libdeflate_free_compressor(c);
         if (result < 0)
             return result - 0x10;
@@ -80,7 +91,7 @@ namespace deflate {
     }
 
     int32_t decompress(const void* src, size_t src_length, void*& dst, size_t& dst_length,
-        mode mode, const allocator& allocator) {
+        mode mode, const allocator* allocator) {
         if (!src_length)
             return -1;
         else if (!src)
@@ -100,7 +111,7 @@ namespace deflate {
     }
 
     static int32_t compress_static(struct libdeflate_compressor* c, const void* src, size_t src_length,
-        void*& dst, size_t& dst_length, int32_t compression_level, mode mode, const allocator& allocator) {
+        void*& dst, size_t& dst_length, int32_t compression_level, mode mode, const allocator* allocator) {
         size_t dst_max_length;
         switch (mode) {
         case MODE_GZIP:
@@ -114,7 +125,8 @@ namespace deflate {
             break;
         }
 
-        dst = allocator.malloc_callback(allocator.data, dst_max_length);
+        if (allocator)
+            dst = allocator->malloc_callback(allocator->data, dst_max_length);
         if (!dst)
             return -1;
 
@@ -136,18 +148,23 @@ namespace deflate {
             return 0;
         }
 
-        void* temp = allocator.malloc_callback(allocator.data, dst_act_length);
-        if (!temp) {
+        if (!allocator) {
+            dst_length = dst_act_length;
+            return -2;
+        }
+
+        void* temp = allocator->malloc_callback(allocator->data, dst_act_length);
+        if (!temp || !allocator) {
             if (dst) {
-                allocator.free_callback(allocator.data, dst);
+                allocator->free_callback(allocator->data, dst);
                 dst = 0;
             }
             return -2;
         }
 
         memcpy(temp, dst, dst_act_length);
-        if (dst) {
-            allocator.free_callback(allocator.data, dst);
+        if (allocator && dst) {
+            allocator->free_callback(allocator->data, dst);
             dst = 0;
         }
         dst = temp;
@@ -156,8 +173,9 @@ namespace deflate {
     }
 
     static int32_t decompress_static(struct libdeflate_decompressor* d, const void* src, size_t src_length,
-        void*& dst, size_t& dst_length, mode mode, const allocator& allocator) {
-        dst = allocator.malloc_callback(allocator.data, dst_length);
+        void*& dst, size_t& dst_length, mode mode, const allocator* allocator) {
+        if (allocator)
+            dst = allocator->malloc_callback(allocator->data, dst_length);
         if (!dst)
             return -1;
 
@@ -177,14 +195,14 @@ namespace deflate {
 
         switch (result) {
         case LIBDEFLATE_BAD_DATA:
-            if (dst) {
-                allocator.free_callback(allocator.data, dst);
+            if (allocator && dst) {
+                allocator->free_callback(allocator->data, dst);
                 dst = 0;
             }
             return -2;
         case LIBDEFLATE_INSUFFICIENT_SPACE:
-            if (dst) {
-                allocator.free_callback(allocator.data, dst);
+            if (allocator && dst) {
+                allocator->free_callback(allocator->data, dst);
                 dst = 0;
             }
             dst_length *= 2;
@@ -193,10 +211,13 @@ namespace deflate {
             if (dst_act_length >= dst_length)
                 break;
 
-            void* temp = allocator.malloc_callback(allocator.data, dst_act_length);
+            if (!allocator)
+                return -3;
+
+            void* temp = allocator->malloc_callback(allocator->data, dst_act_length);
             if (!temp) {
                 if (dst) {
-                    allocator.free_callback(allocator.data, dst);
+                    allocator->free_callback(allocator->data, dst);
                     dst = 0;
                 }
                 return -3;
@@ -204,7 +225,7 @@ namespace deflate {
 
             memcpy(temp, dst, dst_act_length);
             if (dst) {
-                allocator.free_callback(allocator.data, dst);
+                allocator->free_callback(allocator->data, dst);
                 dst = 0;
             }
             dst = temp;
