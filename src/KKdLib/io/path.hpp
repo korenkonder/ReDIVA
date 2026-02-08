@@ -44,3 +44,12 @@ extern bool path_fs_copy_file(_In_z_ const char* src, _In_z_ const char* dst);
 extern bool path_fs_copy_file(_In_z_ const wchar_t* src, _In_z_ const wchar_t* dst);
 extern bool path_move_file(_In_z_ const char* old_path, _In_z_ const char* new_path);
 extern bool path_move_file(_In_z_ const wchar_t* old_path, _In_z_ const wchar_t* new_path);
+
+extern time_t path_stat_get_access_time(const std::string& path);
+extern int64_t path_stat_get_file_size(const std::string& path);
+extern time_t path_stat_get_modification_time(const std::string& path);
+extern bool path_stat_get_no_error(const std::string& path);
+extern bool path_stat_is_dir(const std::string& path);
+extern bool path_stat_is_file(const std::string& path);
+extern void path_stat_set_access_time(const std::string& path, time_t t);
+extern void path_stat_set_modification_time(const std::string& path, time_t t);

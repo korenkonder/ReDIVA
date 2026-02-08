@@ -6,7 +6,29 @@
 #include "path.hpp"
 #include "../str_utils.hpp"
 #include "file_stream.hpp"
+#include <sys/stat.h>
+#include <sys/utime.h>
 #include <fstream>
+
+struct path_stat {
+    std::string path;
+    bool no_error;
+    int32_t err_no;
+    struct _stat64 stat; // struct stat stat;
+
+    path_stat(const std::string& path);
+    ~path_stat();
+
+    bool check_exist();
+    time_t get_access_time();
+    size_t get_file_size();
+    time_t get_modification_time();
+    bool get_no_error();
+    bool is_dir();
+    bool is_file();
+    void set_access_time(time_t t);
+    void set_modification_time(time_t t);
+};
 
 bool path_check_path_exists(_In_z_ const char* path) {
     if (!path)
@@ -790,4 +812,115 @@ bool path_move_file(_In_z_ const wchar_t* old_path, _In_z_ const wchar_t* new_pa
 
     path_delete_file(new_path);
     return MoveFileW(old_path, new_path);
+}
+
+time_t path_stat_get_access_time(const std::string& path) {
+    path_stat p_st(path);
+    return p_st.get_access_time();
+}
+
+int64_t path_stat_get_file_size(const std::string& path) {
+    path_stat p_st(path);
+    return p_st.get_file_size();
+}
+
+time_t path_stat_get_modification_time(const std::string& path) {
+    path_stat p_st(path);
+    return p_st.get_modification_time();
+}
+
+bool path_stat_get_no_error(const std::string& path) {
+    path_stat p_st(path);
+    return p_st.get_no_error();
+}
+
+bool path_stat_is_dir(const std::string& path) {
+    path_stat p_st(path);
+    return p_st.is_dir();
+}
+
+bool path_stat_is_file(const std::string& path) {
+    path_stat p_st(path);
+    return p_st.is_file();
+}
+
+void path_stat_set_access_time(const std::string& path, time_t t) {
+    path_stat p_st(path);
+    p_st.set_access_time(t);
+}
+
+void path_stat_set_modification_time(const std::string& path, time_t t) {
+    path_stat p_st(path);
+    p_st.set_modification_time(t);
+}
+
+path_stat::path_stat(const std::string& path) {
+    this->path.assign(path);
+    int32_t err = _wstat64(utf8_to_utf16(path).c_str(), &this->stat); // ::stat(path.c_str(), &this->stat)
+    err_no = 0;
+    no_error = err == 0;
+    if (!no_error)
+        err_no = errno;
+}
+
+path_stat::~path_stat() {
+
+}
+
+bool path_stat::check_exist() {
+    return err_no == ENOENT;
+}
+
+time_t path_stat::get_access_time() {
+    if (no_error)
+        return stat.st_atime;
+    return -1;
+}
+
+size_t path_stat::get_file_size() {
+    if (is_file())
+        return stat.st_size;
+    return -1;
+}
+
+time_t path_stat::get_modification_time() {
+    if (no_error)
+        return stat.st_mtime;
+    return -1;
+}
+
+inline bool path_stat::get_no_error() {
+    return no_error;
+}
+
+bool path_stat::is_dir() {
+    if (no_error)
+        return !!(stat.st_mode & S_IFDIR);
+    return false;
+}
+
+bool path_stat::is_file() {
+    if (no_error)
+        return !!(stat.st_mode & S_IFREG);
+    return false;
+}
+
+void path_stat::set_access_time(time_t t) {
+    if (!no_error)
+        return;
+
+    __utimbuf64 _time; // utimbuf
+    _time.actime = t;
+    _time.modtime = stat.st_mtime;
+    _wutime64(utf8_to_utf16(path).c_str(), &_time); // utime(path.c_str(), &_time)
+}
+
+void path_stat::set_modification_time(time_t t) {
+    if (!no_error)
+        return;
+
+    __utimbuf64 _time; // utimbuf
+    _time.modtime = t;
+    _time.actime = stat.st_atime;
+    _wutime64(utf8_to_utf16(path).c_str(), &_time); // utime(path.c_str(), &_time)
 }
