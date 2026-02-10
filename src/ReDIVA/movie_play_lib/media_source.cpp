@@ -37,17 +37,7 @@ namespace MoviePlayLib {
         MOVIE_PLAY_LIB_TRACE_BEGIN;
         m_lock.Acquire();
         m_sub.Acquire();
-
-        m_bShutdown = TRUE;
-        m_bStarted = FALSE;
-
-        if (m_pVideoStream)
-            m_pVideoStream->Shutdown();
-        if (m_pAudioStream)
-            m_pAudioStream->Shutdown();
-        if (m_pSource)
-            m_pSource->Shutdown();
-
+        _shutdown();
         m_sub.Release();
         m_lock.Release();
         MOVIE_PLAY_LIB_TRACE_END;
@@ -269,15 +259,7 @@ namespace MoviePlayLib {
 
     MediaSource::~MediaSource() {
         MOVIE_PLAY_LIB_TRACE_BEGIN;
-        m_bShutdown = TRUE;
-        m_bStarted = FALSE;
-
-        if (m_pVideoStream)
-            m_pVideoStream->Shutdown();
-        if (m_pAudioStream)
-            m_pAudioStream->Shutdown();
-        if (m_pSource)
-            m_pSource->Shutdown();
+        _shutdown();
 
         if (m_pVideoDecoder) {
             m_pVideoDecoder->Release();
@@ -595,7 +577,19 @@ namespace MoviePlayLib {
         return hr;
     }
 
-    uint32_t __stdcall MediaSource::_thread_proc(MediaSource* media_source) {
+    inline void MediaSource::_shutdown() {
+        m_bShutdown = TRUE;
+        m_bStarted = FALSE;
+
+        if (m_pVideoStream)
+            m_pVideoStream->Shutdown();
+        if (m_pAudioStream)
+            m_pAudioStream->Shutdown();
+        if (m_pSource)
+            m_pSource->Shutdown();
+    }
+
+    uint32_t MediaSource::_thread_proc(MediaSource* media_source) {
         HANDLE pHandles[3];
         pHandles[0] = media_source->m_hQuitEvent;
         pHandles[1] = media_source->m_hRequestEvent;

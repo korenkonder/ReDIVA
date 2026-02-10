@@ -31,9 +31,9 @@ namespace MoviePlayLib {
     ULONG GLDXInteropTexture::Release() {
         ULONG ref = --m_ref;
         if (ref == 1)
-            _unlock_texture();
+            _unlock_texture_get_current_context();
         else if (!ref) {
-            _unlock_texture();
+            _unlock_texture_get_current_context();
             Destroy();
         }
         return ref;
@@ -68,7 +68,7 @@ namespace MoviePlayLib {
     }
 
     HRESULT GLDXInteropTexture::SetSample(IMFSample* pSample) {
-        _unlock_texture();
+        _unlock_texture_get_current_context();
 
         IMFMediaBuffer* pMediaBuffer = 0;
         IDirect3DTexture9* pDXTexture = 0;
@@ -136,9 +136,7 @@ namespace MoviePlayLib {
         if (FAILED(hr))
             goto End;
 
-        if (lockIndex < m_count && wglDXLockObjectsNV(m_hGLDevice, 1, &m_textures[lockIndex].hGLTexture))
-            m_lockIndex = lockIndex;
-        else
+        if (!_lock_texture(lockIndex))
             hr = HRESULT_FROM_WIN32(GetLastError());
 
     End:
@@ -192,6 +190,15 @@ namespace MoviePlayLib {
         tx.hShareHandle = 0;
     }
 
+    inline bool GLDXInteropTexture::_lock_texture(uint32_t index) {
+        if (index >= 0 && index < m_count
+            && wglDXLockObjectsNV(m_hGLDevice, 1, &m_textures[index].hGLTexture)) {
+            m_lockIndex = index;
+            return true;
+        }
+        return false;
+    }
+
     bool GLDXInteropTexture::_open_texture(TEXTURE& tx, IDirect3DTexture9* pDXTexture, HANDLE wddmShareHandle) {
         tx.pGLTex = texture_load_tex_2d(texture_id(0x24, gl_dx_interop_texture_counter), GL_RGBA8, 1280, 720, 0, 0, 0);
         if (!tx.pGLTex)
@@ -210,13 +217,17 @@ namespace MoviePlayLib {
     }
 
     inline void GLDXInteropTexture::_unlock_texture() {
-        GetCurrentThreadId();
-        wglGetCurrentContext();
-
         if (m_lockIndex >= 0 && m_lockIndex < m_count) {
             wglDXUnlockObjectsNV(m_hGLDevice, 1, &m_textures[m_lockIndex].hGLTexture);
             m_lockIndex = -1;
         }
+    }
+
+    inline void GLDXInteropTexture::_unlock_texture_get_current_context() {
+        GetCurrentThreadId();
+        wglGetCurrentContext();
+
+        _unlock_texture();
     }
 
     HRESULT CreateGLDXInteropTexture(GLDXInteropTexture*& pp) {

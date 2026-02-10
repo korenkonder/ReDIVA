@@ -48,8 +48,10 @@ namespace MoviePlayLib {
     protected: 
         void _close_device();
         void _close_texture(TEXTURE& tx);
+        bool _lock_texture(uint32_t index);
         bool _open_texture(TEXTURE& tx, IDirect3DTexture9* pDXTexture, HANDLE wddmShareHandle);
         void _unlock_texture();
+        void _unlock_texture_get_current_context();
     };
 
     extern HRESULT CreateGLDXInteropTexture(GLDXInteropTexture*& pp);

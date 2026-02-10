@@ -67,6 +67,8 @@ namespace MoviePlayLib {
 
         HRESULT _open(const wchar_t* filePath);
 
+        void _shutdown();
+
         static uint32_t __stdcall _thread_proc(MoviePlayLib::MediaSource* media_source);
     };
 
