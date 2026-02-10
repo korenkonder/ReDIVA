@@ -1455,12 +1455,12 @@ static size_t check_pkcs7_padding(const uint8_t* buff16) {
 static bool farc_ft_decrypt_data(const farc_aes_key* key, const farc_buf_data& src, farc_buf_data& dst) {
     prj::Rijndael rijndael(prj::Rijndael_Nb, prj::Rijndael_Nk128, key->data);
 
-    if (src.len < prj::Rijndael_Nk128 * sizeof(uint32_t))
+    if (src.len < prj::Rijndael_Nlen)
         return false;
 
     uint8_t iv[prj::Rijndael_Nlen];
     memcpy(iv, src.data, prj::Rijndael_Nlen);
-    size_t offset = min_def(src.len, prj::Rijndael_Nk128 * sizeof(uint32_t));
+    size_t offset = min_def(src.len, prj::Rijndael_Nlen);
 
     size_t src_len = src.len - offset;
     size_t dst_len = dst.size;
@@ -1475,7 +1475,7 @@ static bool farc_ft_decrypt_data(const farc_aes_key* key, const farc_buf_data& s
     if (dst_len < src_len_align)
         return false;
 
-    memcpy(dst.data, src.data + offset, src_len_align);
+    memcpy(dst.data, src.data + offset, src_len_align + prj::Rijndael_Nlen);
 
     uint8_t next_iv[prj::Rijndael_Nlen];
     for (size_t i = 0; i < src_len_align; i += prj::Rijndael_Nlen) {
@@ -1486,7 +1486,11 @@ static bool farc_ft_decrypt_data(const farc_aes_key* key, const farc_buf_data& s
         memcpy(iv, next_iv, prj::Rijndael_Nlen);
     }
 
-    size_t pad = check_pkcs7_padding(dst.data + (src_len_align - prj::Rijndael_Nk128 * sizeof(uint32_t)));
+    rijndael.decrypt16(dst.data + src_len_align);
+    for (uint32_t j = 0; j < prj::Rijndael_Nlen / sizeof(uint32_t); j++)
+        ((uint32_t*)(dst.data + src_len_align))[j] ^= ((uint32_t*)iv)[j];
+
+    size_t pad = check_pkcs7_padding(dst.data + src_len_align);
 
     if (dst_len < src_len_align + prj::Rijndael_Nlen - pad)
         return false;
