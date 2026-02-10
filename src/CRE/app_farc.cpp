@@ -1401,7 +1401,7 @@ bool farc_ft_write::write_pad(size_t align, bool random, FILE* f) {
         if (random)
             pad = reverse_endianness_uint32_t(mt_rand());
         else
-            pad = 0x78787878;
+            pad = 'xxxx';
 
         size_t size = min_def(align - offset, sizeof(uint32_t));
         if (!fwrite(&pad, size, 1, f))
