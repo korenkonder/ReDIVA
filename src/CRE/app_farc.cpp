@@ -1062,7 +1062,7 @@ bool farc_ft_write::add_file(const void* data, size_t size, const std::string& n
 }
 
 size_t farc_ft_write::get_align(size_t size) const {
-    return (~(params.align - 1) & (params.align + size - 1)) - size;
+    return ((size + (params.align - 1)) & ~(params.align - 1)) - size;
 }
 
 bool farc_ft_write::open(const std::string& path, const farc_ft_params& params) {

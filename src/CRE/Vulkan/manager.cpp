@@ -147,43 +147,27 @@ constexpr bool operator==(const render_pass_data& left, const render_pass_data& 
 
 namespace Vulkan {
     struct manager {
-        struct free_framebuffer_data {
+        template <typename T>
+        struct free_data {
             VkDevice device;
-            VkFramebuffer framebuffer;
+            T data;
             const VkAllocationCallbacks* allocator;
 
-            inline free_framebuffer_data() : device(), framebuffer(), allocator() {
+            inline free_data() : device(), data(), allocator() {
 
             }
 
-            inline free_framebuffer_data(VkDevice device,
-                VkFramebuffer framebuffer, const VkAllocationCallbacks* allocator) {
+            inline free_data(VkDevice device,
+                T data, const VkAllocationCallbacks* allocator) {
                 this->device = device;
-                this->framebuffer = framebuffer;
-                this->allocator = allocator;
-            }
-        };
-
-        struct free_image_view_data {
-            VkDevice device;
-            VkImageView image_view;
-            const VkAllocationCallbacks* allocator;
-
-            inline free_image_view_data() : device(), image_view(), allocator() {
-
-            }
-
-            inline free_image_view_data(VkDevice device,
-                VkImageView image_view, const VkAllocationCallbacks* allocator) {
-                this->device = device;
-                this->image_view = image_view;
+                this->data = data;
                 this->allocator = allocator;
             }
         };
 
         struct frame_data {
-            std::vector<free_framebuffer_data> free_framebuffers;
-            std::vector<free_image_view_data> free_image_views;
+            std::vector<free_data<VkFramebuffer>> free_framebuffers;
+            std::vector<free_data<VkImageView>> free_image_views;
             std::vector<Vulkan::DynamicBuffer> dynamic_buffers;
             std::vector<Vulkan::StagingBuffer> staging_buffers;
 
@@ -345,12 +329,12 @@ namespace Vulkan {
     }
 
     void manager::frame_data::ctrl() {
-        for (free_framebuffer_data& i : free_framebuffers)
-            vkDestroyFramebuffer(i.device, i.framebuffer, i.allocator);
+        for (free_data<VkFramebuffer>& i : free_framebuffers)
+            vkDestroyFramebuffer(i.device, i.data, i.allocator);
         free_framebuffers.clear();
 
-        for (free_image_view_data& i : free_image_views)
-            vkDestroyImageView(i.device, i.image_view, i.allocator);
+        for (free_data<VkImageView>& i : free_image_views)
+            vkDestroyImageView(i.device, i.data, i.allocator);
         free_image_views.clear();
 
         for (Vulkan::DynamicBuffer& i : dynamic_buffers) {
