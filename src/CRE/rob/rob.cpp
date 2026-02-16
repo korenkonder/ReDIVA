@@ -26,6 +26,7 @@
 #include "../resolution_mode.hpp"
 #include "../stage.hpp"
 #include "../stage_param.hpp"
+#include "../static_var.hpp"
 #include "motion.hpp"
 #include "skin_param.hpp"
 
@@ -99,6 +100,57 @@ struct OpdMakeWorker : public app::Task {
     bool del_task();
 };
 
+#if OPD_PLAY_GEN
+struct OpdPlayGen {
+    struct Object {
+        uint64_t file_hash;
+        bool generate;
+
+        Object();
+        Object(uint64_t file_hash);
+    };
+
+    std::atomic_int32_t state;
+    std::thread* thread;
+    std::map<uint32_t, std::vector<std::pair<object_info, Object>>> gen_data;
+    std::vector<pv_data_set_motion> set_motion[ROB_CHARA_COUNT];
+    object_info obj_info[ROB_CHARA_COUNT][ITEM_OSAGE_COUNT];
+
+    OpdPlayGen();
+    ~OpdPlayGen();
+
+    bool CheckState();
+    void Ctrl();
+    void Reset();
+
+    static void ThreadMain(OpdPlayGen* opd_play);
+};
+
+bool operator==(const OpdPlayGen::Object& left, const OpdPlayGen::Object& right) {
+    return left.file_hash == right.file_hash;
+}
+
+bool operator!=(const OpdPlayGen::Object& left, const OpdPlayGen::Object& right) {
+    return left.file_hash != right.file_hash;
+}
+
+bool operator<(const OpdPlayGen::Object& left, const OpdPlayGen::Object& right) {
+    return left.file_hash < right.file_hash;
+}
+
+bool operator>(const OpdPlayGen::Object& left, const OpdPlayGen::Object& right) {
+    return left.file_hash > right.file_hash;
+}
+
+bool operator<=(const OpdPlayGen::Object& left, const OpdPlayGen::Object& right) {
+    return left.file_hash <= right.file_hash;
+}
+
+bool operator>=(const OpdPlayGen::Object& left, const OpdPlayGen::Object& right) {
+    return left.file_hash >= right.file_hash;
+}
+#endif
+
 struct osage_play_data_init_header {
     uint32_t signature;
     std::pair<uint16_t, uint16_t> obj_info;
@@ -170,24 +222,8 @@ struct opd_chara_data {
 class OsagePlayDataManager : public app::Task {
 public:
     int32_t state;
-#if OPD_PLAY
-    struct GenData {
-        object_info obj_info[ITEM_OSAGE_COUNT];
-        uint32_t motion_id;
-        int32_t chara_id;
-
-        inline GenData() {
-            motion_id = -1;
-            chara_id = -1;
-        }
-    };
-
-    std::vector<GenData> gen_data;
-    std::vector<pv_data_set_motion> set_motion;
-#else
     prj::vector_pair<object_info, uint32_t> req_data;
     std::list<p_file_handler*> file_handlers;
-#endif
     std::map<std::pair<object_info, uint32_t>, opd_file_data> file_data;
 
     OsagePlayDataManager();
@@ -199,20 +235,15 @@ public:
     virtual void disp() override;
 
     bool add();
-#if OPD_PLAY
-    void AppendCharaMotionId(rob_chara* rob_chr, const std::vector<uint32_t>& motion_ids,
-        const std::vector<pv_data_set_motion>& set_motion);
-#else
     void AppendCharaMotionId(rob_chara* rob_chr, const std::vector<uint32_t>& motion_ids);
-#endif
     bool CheckTaskReady();
     void GetOpdFileData(object_info obj_info,
         uint32_t motion_id, const float_t*& data, uint32_t& count);
     void LoadOpdFile(p_file_handler* pfhndl);
-#if !OPD_PLAY
     void LoadOpdFileList();
-#endif
     void Reset();
+
+    static std::string GetOpdFarcFilePath(const std::string& path);
 };
 
 struct osage_play_data_database_struct {
@@ -255,12 +286,12 @@ struct rob_osage_mothead {
     const mothead_data* rob_chara_coli_ring_data;
     int32_t field_68;
 
-#if OPD_PLAY
-    rob_osage_mothead(rob_chara* rob_chr, int32_t stage_index, uint32_t motion_id, float_t frame,
-        const bone_database* bone_data, const motion_database* mot_db, bool set_motion_reset_data = false);
-#else
     rob_osage_mothead(rob_chara* rob_chr, int32_t stage_index, uint32_t motion_id,
         float_t frame, const bone_database* bone_data, const motion_database* mot_db);
+#if OPD_PLAY_GEN
+    rob_osage_mothead(rob_chara* rob_chr, int32_t stage_index,
+        uint32_t motion_id, float_t frame, bool set_motion_reset_data,
+        const bone_database* bone_data, const motion_database* mot_db);
 #endif
     ~rob_osage_mothead();
 
@@ -1311,6 +1342,11 @@ rob_sleeve_handler* rob_sleeve_handler_data;
 RobThreadHandler* rob_thread_handler;
 TaskRobLoad* task_rob_load;
 TaskRobManager* task_rob_manager;
+
+#if OPD_PLAY_GEN
+OpdPlayGen* opd_play_gen;
+std::atomic_bool opd_play_gen_run;
+#endif
 
 static int32_t opd_chara_data_counter = 0;
 static int32_t opd_maker_counter = 0;
@@ -2555,6 +2591,11 @@ void opd_make_start_get_motion_ids(std::vector<int32_t>& motion_ids) {
         opd_motion_set_ids++;
     }
 
+    /*const uint32_t* opd_motion_ids = get_opd_motion_ids();
+    while (*opd_motion_ids != -1) {
+        motion_ids.push_back(*opd_motion_ids);
+        opd_motion_ids++;
+    }*/
     motion_ids.push_back(195); // CMN_MRA00_13_01
     prj::sort_unique(motion_ids);
 }
@@ -2568,28 +2609,15 @@ bool osage_play_data_manager_add_task() {
     return osage_play_data_manager->add();
 }
 
-#if OPD_PLAY
-void osage_play_data_manager_append_chara_motion_id(rob_chara* rob_chr, uint32_t motion_id,
-    const std::vector<pv_data_set_motion>& set_motion) {
-    std::vector<uint32_t> motion_ids;
-    motion_ids.push_back(motion_id);
-    osage_play_data_manager->AppendCharaMotionId(rob_chr, motion_ids, set_motion);
-}
-#else
 void osage_play_data_manager_append_chara_motion_id(rob_chara* rob_chr, uint32_t motion_id) {
     std::vector<uint32_t> motion_ids;
     motion_ids.push_back(motion_id);
     osage_play_data_manager->AppendCharaMotionId(rob_chr, motion_ids);
 }
-#endif
 
 void osage_play_data_manager_append_chara_motion_ids(
     rob_chara* rob_chr, const std::vector<uint32_t>& motion_ids) {
-#if OPD_PLAY
-    osage_play_data_manager->AppendCharaMotionId(rob_chr, motion_ids, {});
-#else
     osage_play_data_manager->AppendCharaMotionId(rob_chr, motion_ids);
-#endif
 }
 
 bool osage_play_data_manager_check_task_ready() {
@@ -2775,6 +2803,13 @@ static void rob_chara_item_equip_object_load_opd_data(rob_chara_item_equip_objec
         osage_play_data_manager_get_opd_file_data(itm_eq_obj->obj_info, i.motion_id, opd_data, opd_count);
         if (!opd_data)
             break;
+
+#if OPD_PLAY_GEN
+        bool no_loop = opd_count & 0x80000000u;
+        opd_count &= ~0x80000000u;
+
+        i.no_loop = no_loop;
+#endif
 
         for (ExOsageBlock*& j : itm_eq_obj->osage_blocks)
             opd_data = j->LoadOpdData(index, opd_data, opd_count);
@@ -14755,6 +14790,9 @@ void rob_chara_item_equip::set_opd_blend_data(std::list<motion_blend_mot*>* a2) 
         v11.frame = i->mot_play_data.frame_data.frame;
         v11.frame_count = (float_t)i->mot_key_data.mot.frame_count - 1.0f;
         v11.use_blend = false;
+#if OPD_PLAY_GEN
+        v11.no_loop = false;
+#endif
         v11.type = MOTION_BLEND_NONE;
         v11.blend = 0.0f;
 
@@ -16726,15 +16764,15 @@ void OpdMaker::Ctrl() {
 
         rob_osage_mothead osg_mhd(rob_chr, 0, motion_id, start_frame, aft_bone_data, aft_mot_db);
         if (no_opdi) {
-            int32_t frame = 0;
+            uint64_t frame = 0;
             int32_t iteration = 0;
             while (true) {
-                osg_mhd.set_frame((float_t)frame);
+                osg_mhd.set_frame((float_t)(int64_t)frame);
                 osg_mhd.ctrl();
 
                 frame++;
                 iteration++;
-                if ((float_t)frame >= frame_count) {
+                if ((float_t)(int64_t)frame >= frame_count) {
                     if (iteration > iterations)
                         break;
 
@@ -16752,13 +16790,13 @@ void OpdMaker::Ctrl() {
 
         opd_chara_data_array_init_data(chara_id, motion_id);
 
-        int32_t frame_int = 0;
+        uint64_t frame_int = 0;
         float_t frame = 0.0f;
         while (frame < frame_count) {
             osg_mhd.set_frame(frame);
             osg_mhd.ctrl();
             opd_chara_data_array_add_frame_data(chara_id);
-            frame = (float_t)++frame_int;
+            frame = (float_t)(int64_t)++frame_int;
         }
 
         opd_chara_data_array_encode_data(chara_id);
@@ -17078,6 +17116,311 @@ bool OpdMakeWorker::add_task(bool use_current_skp) {
 bool OpdMakeWorker::del_task() {
     return del();
 }
+
+#if OPD_PLAY_GEN
+inline OpdPlayGen::Object::Object() : file_hash(hash_fnv1a64m_empty), generate(true) {
+
+}
+
+inline OpdPlayGen::Object::Object(uint64_t file_hash) : file_hash(file_hash), generate(false) {
+
+}
+
+OpdPlayGen::OpdPlayGen() : state(), thread() {
+
+}
+
+OpdPlayGen::~OpdPlayGen() {
+
+}
+
+bool OpdPlayGen::CheckState() {
+    switch (state) {
+    default:
+        if (thread) {
+            thread->join();
+            delete thread;
+            thread = 0;
+        }
+        return true;
+    case 1:
+        if (skin_param_manager_array_check_task_ready())
+            return false;
+
+        state = 2;
+        return false;
+    case 2:
+        state = 3;
+        thread = new std::thread(OpdPlayGen::ThreadMain, this);
+        if (thread)
+            SetThreadDescription((HANDLE)thread->native_handle(), L"OPD Play");
+        return false;
+    case 3:
+        return false;
+    }
+}
+
+void OpdPlayGen::Ctrl() {
+    if (state != 3)
+        return;
+
+    data_struct* aft_data = &data_list[DATA_AFT];
+    bone_database* aft_bone_data = &aft_data->data_ft.bone_data;
+    motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
+
+    opd_play_gen_run = true;
+    std::vector<uint32_t> motion_ids[6];
+    for (auto& i : gen_data) {
+        const uint32_t motion_id = i.first;
+
+        for (int32_t chara_id = 0; chara_id < ROB_CHARA_COUNT && i.second.size(); chara_id++) {
+            rob_chara* rob_chr = rob_chara_array_get(chara_id);
+            if (!rob_chr)
+                continue;
+
+            std::vector<pv_data_set_motion>& set_motion = this->set_motion[chara_id];
+
+            if (set_motion.size()) {
+                bool found_set_motion = false;
+                for (pv_data_set_motion& j : set_motion)
+                    if (j.motion_id == motion_id) {
+                        found_set_motion = true;
+                        break;
+                    }
+
+                if (!found_set_motion)
+                    continue;
+            }
+
+            rob_chara_item_equip* rob_itm_equip = rob_chr->item_equip;
+
+            for (int32_t j = ITEM_KAMI; j < ITEM_ITEM16 && i.second.size(); j++) {
+                rob_chara_item_equip_object* itm_eq_obj = rob_itm_equip->get_item_equip_object((item_id)j);
+
+                auto find = [](std::vector<std::pair<object_info, Object>>& vec, const object_info key) {
+                    auto k = vec.begin();
+                    size_t l = vec.size();
+                    size_t temp;
+                    while (l > 0) {
+                        if (k[temp = l / 2].first >= key)
+                            l /= 2;
+                        else {
+                            k += temp + 1;
+                            l -= temp + 1;
+                        }
+                    }
+                    if (k == vec.end() || key < k->first)
+                        return vec.end();
+                    return k;
+                };
+
+                auto elem = find(i.second, itm_eq_obj->obj_info);
+                if (elem != i.second.end()) {
+                    if (elem->second.generate) {
+                        obj_info[chara_id][j - ITEM_OSAGE_FIRST] = itm_eq_obj->obj_info;
+                        motion_ids[chara_id].push_back(motion_id);
+                    }
+
+                    i.second.erase(elem);
+                }
+            }
+        }
+    }
+
+    for (int32_t chara_id = 0; chara_id < ROB_CHARA_COUNT; chara_id++) {
+        std::vector<uint32_t>& _motion_ids = motion_ids[chara_id];
+        std::sort(_motion_ids.begin(), _motion_ids.end());
+        _motion_ids.erase(std::unique(_motion_ids.begin(), _motion_ids.end()), _motion_ids.end());
+    }
+
+    for (int32_t chara_id = 0; chara_id < ROB_CHARA_COUNT; chara_id++) {
+        rob_chara* rob_chr = rob_chara_array_get(chara_id);
+        if (!rob_chr)
+            continue;
+
+        for (const uint32_t motion_id : motion_ids[chara_id]) {
+            rob_chr->set_motion_id(motion_id, 0.0f, 0.0f,
+                true, false, MOTION_BLEND_CROSS, aft_bone_data, aft_mot_db);
+            //rob_chr->set_step_motion_step(1.0f);
+
+            float_t frame_count = (float_t)(int32_t)rob_chr->bone_data->get_frame_count() - 1.0f;
+            uint32_t iterations = 60;
+            if (rob_chr->data.field_1588.field_0.iterations > 0)
+                iterations = rob_chr->data.field_1588.field_0.iterations;
+
+            bool has_opd = false;
+            {
+                const uint32_t* opd_motion_ids = get_opd_motion_ids();
+                while (*opd_motion_ids != -1 && !has_opd) {
+                    if (*opd_motion_ids == motion_id)
+                        has_opd = true;
+                    opd_motion_ids++;
+                }
+
+                const uint32_t motion_set_id = aft_mot_db->get_motion_set_id_by_motion_id(motion_id);
+                const uint32_t* opd_motion_set_ids = get_opd_motion_set_ids();
+                while (*opd_motion_set_ids != -1 && !has_opd) {
+                    if (*opd_motion_set_ids == motion_set_id)
+                        has_opd = true;
+                    opd_motion_set_ids++;
+                }
+            }
+
+            std::vector<pv_data_set_motion>& set_motion = this->set_motion[chara_id];
+
+            bool has_osage_reset = false; // Added
+            rob_osage_mothead osg_mhd(rob_chr, 0, motion_id, 0.0f, false, aft_bone_data, aft_mot_db);
+            if (has_opd) {
+                rob_osage_mothead_data* osage_reset = new rob_osage_mothead_data(
+                    MOTHEAD_DATA_OSAGE_RESET, motion_id, aft_mot_db);
+                const mothead_data* osage_reset_data = osage_reset->find_next_data();
+
+                uint64_t frame = 0;
+                uint64_t iteration = 0;
+                while (true) {
+                    osg_mhd.set_frame((float_t)(int64_t)frame);
+                    osg_mhd.ctrl();
+
+                    if (osage_reset_data) { // Added
+                        if (osage_reset_data->frame == 0) {
+                            uint32_t _motion_id = motion_id;
+                            float_t _frame = (float_t)(int64_t)frame;
+
+                            rob_chara_item_equip* rob_itm_equip = rob_chr->item_equip;
+                            for (int32_t i = 0; i < 600; i++) // Should calm phys
+                                osg_mhd.ctrl();
+
+                            rob_chara_add_motion_reset_data(rob_chr, _motion_id, _frame, 0);
+                            set_motion.push_back({ motion_id, { (float_t)(int64_t)frame, 0  } });
+                            has_osage_reset = true;
+                        }
+
+                        osage_reset_data = 0;
+                    }
+
+                    frame++;
+                    iteration++;
+                    if ((float_t)(int64_t)frame >= frame_count) {
+                        if (iteration > iterations)
+                            break;
+
+                        frame = 0;
+                        osg_mhd.init_data(aft_mot_db);
+                    }
+                }
+
+                if (osage_reset)
+                    delete osage_reset;
+                osage_reset_data = 0;
+                osage_reset = 0;
+            }
+
+            osg_mhd.init_data(aft_mot_db);
+
+            opd_chara_data_array_init_data(chara_id, motion_id);
+
+            bool no_loop = has_osage_reset; // Added
+
+            size_t set_motion_index = 0;
+            uint64_t frame_int = 0;
+            float_t frame = 0.0f;
+            while (frame <= frame_count) {
+                osg_mhd.set_frame(frame);
+
+                while (set_motion_index < set_motion.size()) {
+                    if (set_motion.data()[set_motion_index].motion_id != motion_id) {
+                        set_motion_index++;
+                        continue;
+                    }
+
+                    float_t _frame = (float_t)(int32_t)prj::roundf(
+                        set_motion.data()[set_motion_index].frame_stage_index.first);
+                    if (_frame > frame)
+                        break;
+
+                    rob_chr->set_motion_skin_param(motion_id, _frame);
+                    rob_chr->set_motion_reset_data(motion_id, _frame);
+                    set_motion_index++;
+                }
+
+                osg_mhd.ctrl();
+                opd_chara_data_array_add_frame_data(chara_id);
+                frame = (float_t)(int64_t)++frame_int;
+            }
+
+            opd_chara_data* opd_chr_data = opd_chara_data_array_get(chara_id);
+
+            for (int32_t i = 0; i < ITEM_OSAGE_COUNT; i++) {
+                object_info obj_info = this->obj_info[chara_id][i];
+                this->obj_info[chara_id][i] = {};
+                if (obj_info.is_null())
+                    continue;
+
+                int32_t load_count = 1;
+                auto elem = osage_play_data_manager->file_data.find({ obj_info, motion_id });
+                if (elem != osage_play_data_manager->file_data.end())
+                    continue;
+
+                std::vector<std::vector<opd_vec3_data_vec>>& opd_data = opd_chr_data->opd_data[i];
+
+                size_t nodes_count = 0;
+                for (const std::vector<opd_vec3_data_vec>& j : opd_data)
+                    nodes_count += j.size();
+
+                int64_t _frame_count = (int64_t)frame_count;
+                float_t* buf = (float_t*)malloc(sizeof(float_t) * 3ULL * _frame_count * nodes_count);
+                if (!buf)
+                    continue;
+
+                opd_file_data data;
+                memset(&data.head, 0, sizeof(data.head));
+                data.head.obj_info.first = obj_info.id;
+                data.head.obj_info.second = obj_info.set_id;
+                data.head.motion_id = motion_id;
+                data.head.frame_count = (uint32_t)_frame_count;
+                data.head.nodes_count = (uint16_t)nodes_count;
+                *(uint16_t*)((uint8_t*)&data.head + 0x12) = no_loop ? 0x01 : 0x00;
+                data.data = buf;
+                data.load_count = load_count;
+
+                for (const std::vector<opd_vec3_data_vec>& j : opd_data)
+                    for (const opd_vec3_data_vec& k : j) {
+                        memcpy(buf, k.x.data(), _frame_count * sizeof(float_t));
+                        buf += _frame_count;
+                        memcpy(buf, k.y.data(), _frame_count * sizeof(float_t));
+                        buf += _frame_count;
+                        memcpy(buf, k.z.data(), _frame_count * sizeof(float_t));
+                        buf += _frame_count;
+                    }
+
+                osage_play_data_manager->file_data.insert({ { obj_info, motion_id }, data });
+            }
+
+            opd_chara_data_array_encode_data(chara_id);
+            opd_chr_data->reset();
+        }
+
+        motion_ids[chara_id].clear();
+        motion_ids[chara_id].shrink_to_fit();
+    }
+    opd_play_gen_run = false;
+
+    Reset();
+}
+
+void OpdPlayGen::Reset() {
+    state = 0;
+
+    gen_data.clear();
+
+    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++)
+        set_motion[i].clear();
+}
+
+void OpdPlayGen::ThreadMain(OpdPlayGen* opd_play) {
+    opd_play->Ctrl();
+}
+#endif
 
 osage_play_data_header::osage_play_data_header() : frame_count(), nodes_count() {
     signature = 0x11033115;
@@ -17489,9 +17832,7 @@ OsagePlayDataManager::~OsagePlayDataManager() {
 }
 
 bool OsagePlayDataManager::init() {
-#if !OPD_PLAY
     LoadOpdFileList();
-#endif
     state = 0;
     return true;
 }
@@ -17500,110 +17841,6 @@ bool OsagePlayDataManager::ctrl() {
     if (state)
         return false;
 
-#if OPD_PLAY
-    for (OsagePlayDataManager::GenData& i : gen_data) {
-        if (i.chara_id < 0 || i.chara_id >= ROB_CHARA_COUNT)
-            continue;
-
-        const uint32_t motion_id = i.motion_id;
-        const uint32_t chara_id = i.chara_id;
-
-        data_struct* aft_data = &data_list[DATA_AFT];
-        bone_database* aft_bone_data = &aft_data->data_ft.bone_data;
-        motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
-
-        rob_chara* rob_chr = rob_chara_array_get(chara_id);
-
-        rob_osage_mothead osg_mhd(rob_chr, 0, motion_id, 0.0f, aft_bone_data, aft_mot_db, true);
-
-        float_t frame_count = (float_t)(int32_t)rob_chr->bone_data->get_frame_count() - 1.0f;
-
-        osg_mhd.init_data(aft_mot_db);
-
-        opd_chara_data_array_init_data(chara_id, motion_id);
-
-        int32_t set_motion_index = 0;
-        int32_t frame_int = 0;
-        float_t frame = 0.0f;
-        while (frame <= frame_count) {
-            osg_mhd.set_frame(frame);
-
-            while (set_motion_index < set_motion.size()) {
-                if (set_motion.data()[set_motion_index].motion_id != motion_id) {
-                    set_motion_index++;
-                    continue;
-                }
-
-                float_t _frame = (float_t)(int32_t)prj::roundf(set_motion.data()[set_motion_index].frame_stage_index.first);
-                if (_frame > frame)
-                    break;
-
-                rob_chr->set_motion_skin_param(motion_id, _frame);
-                rob_chr->set_motion_reset_data(motion_id, _frame);
-                set_motion_index++;
-            }
-
-            osg_mhd.ctrl();
-            opd_chara_data_array_add_frame_data(chara_id);
-            frame = (float_t)++frame_int;
-        }
-
-        opd_chara_data* opd_chr_data = opd_chara_data_array_get(chara_id);
-
-        rob_chara_item_equip* rob_itm_equip = rob_chr->item_equip;
-        for (int32_t j = 0; j < ITEM_OSAGE_COUNT; j++) {
-            object_info obj_info = i.obj_info[j];
-            if (obj_info.is_null())
-                continue;
-
-            int32_t load_count = 1;
-            auto elem = file_data.find({ obj_info, motion_id });
-            if (elem != file_data.end()) {
-                load_count = elem->second.load_count;
-                while (elem->second.load_count > 0)
-                    elem->second.unload();
-                file_data.erase(elem);
-            }
-
-            std::vector<std::vector<opd_vec3_data_vec>>& opd_data = opd_chr_data->opd_data[j];
-
-            size_t nodes_count = 0;
-            for (const std::vector<opd_vec3_data_vec>& j : opd_data)
-                nodes_count += j.size();
-
-            int64_t _frame_count = (int64_t)frame_count;
-            float_t* buf = force_malloc<float_t>(3ULL * _frame_count * nodes_count);
-            if (!buf)
-                continue;
-
-            opd_file_data data;
-            data.head.obj_info.first = obj_info.id;
-            data.head.obj_info.second = obj_info.set_id;
-            data.head.motion_id = motion_id;
-            data.head.frame_count = (uint32_t)_frame_count;
-            data.head.nodes_count = (uint16_t)nodes_count;
-            data.data = buf;
-            data.load_count = load_count;
-
-            for (std::vector<opd_vec3_data_vec>& k : opd_data)
-                for (opd_vec3_data_vec& l : k) {
-                    memcpy(buf, l.x.data(), _frame_count * sizeof(float_t));
-                    buf += _frame_count;
-                    memcpy(buf, l.y.data(), _frame_count * sizeof(float_t));
-                    buf += _frame_count;
-                    memcpy(buf, l.z.data(), _frame_count * sizeof(float_t));
-                    buf += _frame_count;
-                }
-
-            file_data.insert({ { obj_info, motion_id }, data });
-        }
-
-        opd_chr_data->reset();
-    }
-    gen_data.clear();
-    set_motion.clear();
-    return true;
-#else
     for (auto i = file_handlers.begin(); i != file_handlers.end();) {
         if (!(*i)->check_not_ready()) {
             LoadOpdFile(*i);
@@ -17614,11 +17851,22 @@ bool OsagePlayDataManager::ctrl() {
             i++;
     }
 
-    return !file_handlers.size();
+    bool ret = !file_handlers.size();
+#if OPD_PLAY_GEN
+    if (ret && opd_play_gen && !opd_play_gen->CheckState())
+        return false;
 #endif
+    return ret;
 }
 
 bool OsagePlayDataManager::dest() {
+#if OPD_PLAY_GEN
+    if (opd_play_gen) {
+        delete opd_play_gen;
+        opd_play_gen = 0;
+    }
+#endif
+
     return true;
 }
 
@@ -17630,33 +17878,6 @@ bool OsagePlayDataManager::add() {
     return app::TaskWork::add_task(this, "OSAGE_PLAY_DATA_MANAGER");
 }
 
-#if OPD_PLAY
-void OsagePlayDataManager::AppendCharaMotionId(rob_chara* rob_chr, const std::vector<uint32_t>& motion_ids,
-    const std::vector<pv_data_set_motion>& set_motion) {
-    if (CheckTaskReady() || !rob_chr)
-        return;
-
-    OsagePlayDataManager::GenData gen_data;
-    gen_data.chara_id = rob_chr->chara_id;
-
-    rob_chara_item_equip* rob_itm_equip = rob_chr->item_equip;
-    for (int32_t i = ITEM_KAMI; i < ITEM_ITEM16; i++) {
-        rob_chara_item_equip_object* itm_eq_obj = rob_itm_equip->get_item_equip_object((item_id)i);
-        if (!itm_eq_obj || itm_eq_obj->obj_info.is_null()
-            || (!itm_eq_obj->osage_blocks.size() && !itm_eq_obj->cloth_blocks.size()))
-            continue;
-
-        gen_data.obj_info[i - ITEM_OSAGE_FIRST] = itm_eq_obj->obj_info;
-    }
-
-    for (const uint32_t i : motion_ids) {
-        gen_data.motion_id = i;
-        this->gen_data.push_back(gen_data);
-    }
-
-    this->set_motion.assign(set_motion.begin(), set_motion.end());
-}
-#else
 void OsagePlayDataManager::AppendCharaMotionId(rob_chara* rob_chr, const std::vector<uint32_t>& motion_ids) {
     if (CheckTaskReady() || !rob_chr)
         return;
@@ -17672,7 +17893,6 @@ void OsagePlayDataManager::AppendCharaMotionId(rob_chara* rob_chr, const std::ve
             req_data.push_back(itm_eq_obj->obj_info, j);
     }
 }
-#endif
 
 bool OsagePlayDataManager::CheckTaskReady() {
     return app::TaskWork::check_task_ready(this);
@@ -17687,72 +17907,159 @@ void OsagePlayDataManager::GetOpdFileData(object_info obj_info,
     if (elem != file_data.end()) {
         data = elem->second.data;
         count = elem->second.head.frame_count;
+
+#if OPD_PLAY_GEN
+        osage_play_data_header* head = &elem->second.head;
+        if (*(uint16_t*)((uint8_t*)head + 0x12) & 0x01)
+            count |= 0x80000000u;
+#endif
     }
 }
 
 void OsagePlayDataManager::LoadOpdFile(p_file_handler* pfhndl) {
+#if OPD_PLAY_GEN
+    if (pfhndl->get_data() && pfhndl->get_size() == 0x14
+        && *(uint32_t*)pfhndl->get_data() == 'OPDP') {
+        if (!opd_play_gen)
+            opd_play_gen = new OpdPlayGen;
+
+        uint64_t file_hash = hash_string_fnv1a64m(pfhndl->ptr->file);
+        for (auto& i : opd_play_gen->gen_data)
+            for (auto& j : i.second)
+                if (j.second.file_hash == file_hash) {
+                    j.second.generate = true;
+                    opd_play_gen->state = 1;
+                    return;
+                }
+        return;
+    }
+#endif
+
     opd_file_data data;
     if (opd_decode_data(pfhndl->get_data(), data.data, data.head))
         file_data.insert({ { object_info(data.head.obj_info.first,
             data.head.obj_info.second), data.head.motion_id }, data });
 }
 
-#if !OPD_PLAY
 void OsagePlayDataManager::LoadOpdFileList() {
+#if OPD_PLAY_GEN
+    prj::vector_pair<uint32_t, std::vector<std::pair<object_info, OpdPlayGen::Object>>> req_data_mot;
+#endif
+
     data_struct* aft_data = &data_list[DATA_AFT];
     motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
     prj::sort_unique(req_data);
-    for (const std::pair<object_info, uint32_t>& i : req_data) {
-        auto elem = file_data.find(i);
-        if (elem != file_data.end())
-            continue;
 
-        const char* object_name = objset_info_storage_get_obj_name(i.first);
-        if (!object_name)
-            continue;
+    auto i_begin = req_data.begin();
+    auto i_end = req_data.end();
+    for (auto i = i_begin; i != i_end; ) {
+        auto elem = file_data.find(*i);
+        if (elem != file_data.end()) {
+            elem->second.load_count++;
 
-        const char* motion_name = aft_mot_db->get_motion_name(i.second);
-        if (!motion_name)
-            continue;
-
-        std::string obj_name_buf = string_to_lower(object_name);
-        std::string mot_name_buf = string_to_lower(motion_name);
-
-        std::string file_buf = sprintf_s_string("%s_%s.%s",
-            obj_name_buf.c_str(), mot_name_buf.c_str(), "opd");
-
-        std::string rom_farc_buf = sprintf_s_string("%s/%s.farc",
-            get_rom_osage_play_data_dir(), obj_name_buf.c_str());
-        if (aft_data->check_file_exists(rom_farc_buf.c_str())) {
-            file_handlers.push_back(new p_file_handler);
-            file_handlers.back()->read_file(aft_data, rom_farc_buf.c_str(), file_buf.c_str(), true);
+            i = req_data.erase(i);
+            i_end = req_data.end();
             continue;
         }
 
-        std::string ram_farc_buf = sprintf_s_string("%s/%s.farc",
-            get_ram_osage_play_data_dir(), obj_name_buf.c_str());
-        if (path_check_file_exists(ram_farc_buf.c_str())) {
-            file_handlers.push_back(new p_file_handler);
-            file_handlers.back()->read_file(0, ram_farc_buf.c_str(), file_buf.c_str(), true);
-            continue;
+        const char* object_name = objset_info_storage_get_obj_name(i->first);
+        if (object_name) {
+            std::string obj_name_buf = string_to_lower(object_name);
+
+            const char* motion_name = aft_mot_db->get_motion_name(i->second);
+            if (motion_name) {
+                std::string mot_name_buf = string_to_lower(motion_name);
+
+                std::string file_buf = sprintf_s_string("%s_%s.%s",
+                    obj_name_buf.c_str(), mot_name_buf.c_str(), "opd");
+
+#if OPD_PLAY_GEN
+                size_t idx = -1;
+                if (sv_opd_play_gen) {
+                    for (auto& j : req_data_mot)
+                        if (j.first == i->second) {
+                            idx = &j - req_data_mot.data();
+                            break;
+                        }
+
+                    if (idx == -1) {
+                        idx = req_data_mot.size();
+                        req_data_mot.push_back(i->second, {});
+                    }
+
+                    req_data_mot.data()[idx].second.push_back({ i->first, hash_string_fnv1a64m(file_buf) });
+                }
+#endif
+
+                std::string farc_buf = OsagePlayDataManager::GetOpdFarcFilePath(
+                    sprintf_s_string("%s.farc", obj_name_buf.c_str()));
+                if (aft_data->check_file_exists(farc_buf.c_str())) {
+                    /*file_handlers.push_back(new p_file_handler);
+                    file_handlers.back()->read_file(aft_data, farc_buf.c_str(), file_buf.c_str(), true);
+                    i++;
+                    continue;*/
+                }
+
+#if OPD_PLAY_GEN
+                if (sv_opd_play_gen)
+                    req_data_mot.data()[idx].second.back().second.generate = true;
+#endif
+            }
         }
+
+        i = req_data.erase(i);
+        i_end = req_data.end();
     }
     req_data.clear();
-}
+
+#if OPD_PLAY_GEN
+    if (req_data_mot.size()) {
+        if (!opd_play_gen)
+            opd_play_gen = new OpdPlayGen;
+
+        bool generate = false;
+        for (auto& i : req_data_mot) {
+            auto& object = opd_play_gen->gen_data[i.first];
+            object.insert(object.end(), i.second.begin(), i.second.end());
+
+            std::sort(object.begin(), object.end());
+            object.erase(std::unique(object.begin(), object.end()), object.end());
+
+            for (auto& j : i.second)
+                if (j.second.generate) {
+                    generate = true;
+                    break;
+                }
+        }
+
+        if (generate)
+            opd_play_gen->state = 1;
+    }
 #endif
+}
 
 void OsagePlayDataManager::Reset() {
-#if OPD_PLAY
-    gen_data.clear();
-    set_motion.clear();
-#else
+#if OPD_PLAY_GEN
+    if (opd_play_gen)
+        opd_play_gen->Reset();
+#endif
+
     file_handlers.clear();
     req_data.clear();
-#endif
     for (auto& i : file_data)
         i.second.unload();
     file_data.clear();
+}
+
+std::string OsagePlayDataManager::GetOpdFarcFilePath(const std::string& path) {
+    data_struct* aft_data = &data_list[DATA_AFT];
+
+    std::string ram_path_buf = std::string(get_ram_osage_play_data_dir()) + "/" + path;
+    if (aft_data->check_file_exists(ram_path_buf.c_str()))
+        return ram_path_buf;
+
+    return std::string(get_rom_osage_play_data_dir()) + "/" + path;
 }
 
 osage_play_data_database_struct::osage_play_data_database_struct() {
@@ -17854,13 +18161,8 @@ inline const mothead_data* rob_osage_mothead_data::find_next_data() {
     return data;
 }
 
-#if OPD_PLAY
-rob_osage_mothead::rob_osage_mothead(rob_chara* rob_chr, int32_t stage_index, uint32_t motion_id, float_t frame,
-    const bone_database* bone_data, const motion_database* mot_db, bool set_motion_reset_data) : rob_chr(),
-#else
 rob_osage_mothead::rob_osage_mothead(rob_chara* rob_chr, int32_t stage_index, uint32_t motion_id,
     float_t frame, const bone_database* bone_data, const motion_database* mot_db) : rob_chr(),
-#endif
     motion_id(), frame(), last_frame(),
     rob_parts_adjust(), rob_parts_adjust_data(), rob_adjust_global(), rob_adjust_global_data(),
     sleeve_adjust(), sleeve_adjust_data(), disable_collision(), disable_collision_data(),
@@ -17872,13 +18174,8 @@ rob_osage_mothead::rob_osage_mothead(rob_chara* rob_chr, int32_t stage_index, ui
     rob_chara_coli_ring = 0;
     this->rob_chr = rob_chr;
     if (rob_chr) {
-#if OPD_PLAY
-        rob_chr->set_motion_id(motion_id, frame, 0.0f,
-            true, set_motion_reset_data, MOTION_BLEND_CROSS, bone_data, mot_db);
-#else
         rob_chr->set_motion_id(motion_id, frame, 0.0f,
             true, false, MOTION_BLEND_CROSS, bone_data, mot_db);
-#endif
         this->frame = frame;
         this->motion_id = motion_id;
         last_frame = rob_chr->bone_data->get_frame_count() - 1.0f;
@@ -17893,6 +18190,39 @@ rob_osage_mothead::rob_osage_mothead(rob_chara* rob_chr, int32_t stage_index, ui
         reset();
 
 }
+
+#if OPD_PLAY_GEN
+rob_osage_mothead::rob_osage_mothead(rob_chara* rob_chr, int32_t stage_index,
+    uint32_t motion_id, float_t frame, bool set_motion_reset_data,
+    const bone_database* bone_data, const motion_database* mot_db) : rob_chr(),
+    motion_id(), frame(), last_frame(),
+    rob_parts_adjust(), rob_parts_adjust_data(), rob_adjust_global(), rob_adjust_global_data(),
+    sleeve_adjust(), sleeve_adjust_data(), disable_collision(), disable_collision_data(),
+    rob_chara_coli_ring(), rob_chara_coli_ring_data(), field_68() {
+    rob_parts_adjust = 0;
+    rob_adjust_global = 0;
+    sleeve_adjust = 0;
+    disable_collision = 0;
+    rob_chara_coli_ring = 0;
+    this->rob_chr = rob_chr;
+    if (rob_chr) {
+        rob_chr->set_motion_id(motion_id, frame, 0.0f,
+            true, set_motion_reset_data, MOTION_BLEND_CROSS, bone_data, mot_db);
+        this->frame = frame;
+        this->motion_id = motion_id;
+        last_frame = rob_chr->bone_data->get_frame_count() - 1.0f;
+        rob_chr->set_stage_data_ring(stage_index);
+        rob_chr->reset_osage();
+        rob_chr->set_bone_data_frame(frame);
+        rob_chara_item_equip_ctrl_iterate_nodes(rob_chr->item_equip);
+        init_data(mot_db);
+        set_mothead_frame();
+    }
+    else
+        reset();
+
+}
+#endif
 
 rob_osage_mothead::~rob_osage_mothead() {
     reset();

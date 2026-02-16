@@ -10,6 +10,7 @@
 #include "../KKdLib/hash.hpp"
 #include "data.hpp"
 #include "file_handler.hpp"
+#include "static_var.hpp"
 #include <sys/stat.h>
 
 struct farc_read_handler {
@@ -293,6 +294,19 @@ static bool file_handler_load_farc_file(void* data, const char* dir, const char*
         free(fhndl->data);
         fhndl->data = 0;
     }
+
+#if OPD_PLAY_GEN
+    if (sv_opd_play_gen && fhndl->file.size() >= 4
+        && !fhndl->file.compare(fhndl->file.size() - 4, 4, ".opd")) {
+        fhndl->size = 0x14;
+        fhndl->data = malloc(fhndl->size);;
+        if (fhndl->data) {
+            memset(fhndl->data, 0, 0x14);
+            *(uint32_t*)fhndl->data = 'OPDP';
+            return true;
+        }
+    }
+#endif
     return false;
 }
 

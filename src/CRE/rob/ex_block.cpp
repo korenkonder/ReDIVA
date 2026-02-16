@@ -143,6 +143,10 @@ int32_t rob_cloth_update_vertices_flags = 0x03;
 bool rob_cloth_update_normals_select = false;
 static bool rob_osage_enable_sibling_node = true;
 
+#if OPD_PLAY_GEN
+extern std::atomic_bool opd_play_gen_run;
+#endif
+
 ExNodeBlock::ExNodeBlock() : bone_node_ptr(), type(), name(), parent_bone_node(),
 parent_name(), parent_node(), item_equip_object(), is_parent(), done(), has_children_node() {
 
@@ -1446,13 +1450,23 @@ void RobCloth::CtrlOsagePlayData(std::vector<opd_blend_data>& opd_blend_data) {
         i--;
 
         float_t frame = i->frame;
+#if OPD_PLAY_GEN
+        if (frame >= i->frame_count)
+            frame = i->no_loop ? i->frame_count - 1.0f : 0.0f;
+#else
         if (frame >= i->frame_count)
             frame = 0.0f;
+#endif
 
         int32_t curr_key = (int32_t)(int64_t)prj::floorf(frame);
         int32_t next_key = curr_key + 1;
+#if OPD_PLAY_GEN
+        if ((float_t)next_key >= i->frame_count)
+            next_key = i->no_loop ? (int32_t)i->frame_count - 1 : 0;
+#else
         if ((float_t)next_key >= i->frame_count)
             next_key = 0;
+#endif
 
         float_t blend = frame - (float_t)(int64_t)frame;
         float_t inv_blend = 1.0f - blend;
@@ -2168,7 +2182,12 @@ void ExClothBlock::CtrlMain() {
     ColiSet();
 
     rob_chara_item_equip* rob_itm_equip = item_equip_object->item_equip;
-    float_t step = get_delta_frame() * rob_itm_equip->osage_step;
+    float_t delta_frame = get_delta_frame();
+#if OPD_PLAY_GEN
+    if (opd_play_gen_run)
+        delta_frame = 1.0f;
+#endif
+    float_t step = delta_frame * rob_itm_equip->osage_step;
     if (rob_itm_equip->opd_blend_data.size() && rob_itm_equip->opd_blend_data.front().use_blend)
         step = 1.0f;
     rob.CtrlMain(step, false);
@@ -2664,13 +2683,23 @@ void RobOsage::CtrlOsagePlayData(const mat4& root_matrix,
         i--;
 
         float_t frame = i->frame;
+#if OPD_PLAY_GEN
+        if (frame >= i->frame_count)
+            frame = i->no_loop ? i->frame_count - 1.0f : 0.0f;
+#else
         if (frame >= i->frame_count)
             frame = 0.0f;
+#endif
 
         int32_t curr_key = (int32_t)(int64_t)prj::floorf(frame);
         int32_t next_key = curr_key + 1;
+#if OPD_PLAY_GEN
+        if ((float_t)next_key >= i->frame_count)
+            next_key = i->no_loop ? (int32_t)i->frame_count - 1 : 0;
+#else
         if ((float_t)next_key >= i->frame_count)
             next_key = 0;
+#endif
 
         float_t blend = frame - (float_t)(int64_t)frame;
         float_t inv_blend = 1.0f - blend;
@@ -3146,7 +3175,12 @@ void ExOsageBlock::CtrlBegin() {
 
 void ExOsageBlock::CtrlStep(int32_t stage, bool disable_external_force) {
     rob_chara_item_equip* rob_itm_equip = item_equip_object->item_equip;
-    float_t step = get_delta_frame() * rob_itm_equip->osage_step;
+    float_t delta_frame = get_delta_frame();
+#if OPD_PLAY_GEN
+    if (opd_play_gen_run)
+        delta_frame = 1.0f;
+#endif
+    float_t step = delta_frame * rob_itm_equip->osage_step;
     if (rob_itm_equip->opd_blend_data.size() && rob_itm_equip->opd_blend_data.front().use_blend)
         step = 1.0f;
 
@@ -3187,7 +3221,12 @@ void ExOsageBlock::CtrlMain() {
     }
 
     rob_chara_item_equip* rob_itm_equip = item_equip_object->item_equip;
-    float_t step = get_delta_frame() * rob_itm_equip->osage_step;
+    float_t delta_frame = get_delta_frame();
+#if OPD_PLAY_GEN
+    if (opd_play_gen_run)
+        delta_frame = 1.0f;
+#endif
+    float_t step = delta_frame * rob_itm_equip->osage_step;
     if (rob_itm_equip->opd_blend_data.size() && rob_itm_equip->opd_blend_data.front().use_blend)
         step = 1.0f;
 
@@ -3678,6 +3717,10 @@ void ExExpressionBlock::CtrlInitMain() {
 
 void ExExpressionBlock::Calc() {
     float_t delta_frame = get_delta_frame();
+#if OPD_PLAY_GEN
+    if (opd_play_gen_run)
+        delta_frame = 1.0f;
+#endif
     if (step)
         delta_frame *= item_equip_object->item_equip->osage_step;
     float_t frame = this->frame + delta_frame;

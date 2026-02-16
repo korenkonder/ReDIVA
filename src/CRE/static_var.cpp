@@ -20,6 +20,10 @@ bool sv_better_reflect = false;
 
 gpu_vendor sv_gpu_vendor = GPU_VENDOR_UNKNOWN;
 
+#if OPD_PLAY_GEN
+bool sv_opd_play_gen = true;
+#endif
+
 bool sv_shared_storage_uniform_buffer = true;
 
 bool sv_texture_skinning_buffer = false;

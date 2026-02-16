@@ -12,6 +12,8 @@
 #include "../KKdLib/vec.hpp"
 #include "gl.hpp"
 
+#define OPD_PLAY_GEN (1)
+
 enum draw_pass_3d_type {
     DRAW_PASS_3D_OPAQUE = 0,
     DRAW_PASS_3D_TRANSLUCENT,
@@ -122,6 +124,10 @@ extern int32_t sv_anisotropy;
 extern bool sv_better_reflect;
 
 extern gpu_vendor sv_gpu_vendor;
+
+#if OPD_PLAY_GEN
+extern bool sv_opd_play_gen;
+#endif
 
 extern bool sv_shared_storage_uniform_buffer;
 

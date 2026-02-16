@@ -199,7 +199,7 @@ void RobCharaAdjust::window() {
 
         ImGui::TableNextColumn();
         w = ImGui::GetContentRegionAvailWidth();
-#if OPD_PLAY
+#if OPD_PLAY_GEN
         ImGui::BeginDisabled(!(dtm_mot_array[chara_id].use_opd && dtm_mot_array[chara_id].state == 13));
 #else
         ImGui::BeginDisabled(true);

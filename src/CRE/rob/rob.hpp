@@ -18,8 +18,6 @@
 #include "../object.hpp"
 #include "../static_var.hpp"
 
-#define OPD_PLAY (0)
-
 enum ex_expression_block_stack_type {
     EX_EXPRESSION_BLOCK_STACK_NUMBER          = 0x00,
     EX_EXPRESSION_BLOCK_STACK_VARIABLE        = 0x01,
@@ -1654,6 +1652,9 @@ struct opd_blend_data {
     float_t frame;
     float_t frame_count;
     bool use_blend;
+#if OPD_PLAY_GEN
+    bool no_loop; // Added
+#endif
     MotionBlendType type;
     float_t blend;
 };
@@ -3862,12 +3863,7 @@ extern void opd_make_start_get_motion_ids(std::vector<int32_t>& motion_ids);
 extern void opd_make_stop();
 
 extern bool osage_play_data_manager_add_task();
-#if OPD_PLAY
-extern void osage_play_data_manager_append_chara_motion_id(rob_chara* rob_chr, uint32_t motion_id,
-    const std::vector<pv_data_set_motion>& set_motion);
-#else
 extern void osage_play_data_manager_append_chara_motion_id(rob_chara* rob_chr, uint32_t motion_id);
-#endif
 extern void osage_play_data_manager_append_chara_motion_ids(
     rob_chara* rob_chr, const std::vector<uint32_t>& motion_ids);
 extern bool osage_play_data_manager_check_task_ready();
