@@ -6,6 +6,7 @@
 #include <map>
 #include <vector>
 #include "auth_2d.hpp"
+#include "../KKdLib/farc.hpp"
 #include "../KKdLib/str_utils.hpp"
 #include "data.hpp"
 #include "sound.hpp"

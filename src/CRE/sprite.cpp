@@ -6,6 +6,7 @@
 #include "sprite.hpp"
 #include "../KKdLib/prj/shared_ptr.hpp"
 #include "../KKdLib/prj/stack_allocator.hpp"
+#include "../KKdLib/farc.hpp"
 #include "../KKdLib/txp.hpp"
 #include "GL/array_buffer.hpp"
 #include "GL/element_array_buffer.hpp"

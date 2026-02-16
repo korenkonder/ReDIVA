@@ -8,6 +8,7 @@
 #include "../KKdLib/io/json.hpp"
 #include "../KKdLib/io/path.hpp"
 #include "../KKdLib/dds.hpp"
+#include "../KKdLib/farc.hpp"
 #include "../KKdLib/hash.hpp"
 #include "../KKdLib/msgpack.hpp"
 #include "../KKdLib/str_utils.hpp"

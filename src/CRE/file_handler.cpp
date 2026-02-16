@@ -8,8 +8,8 @@
 #include "../KKdLib/io/path.hpp"
 #include "../KKdLib/farc.hpp"
 #include "../KKdLib/hash.hpp"
-#include "file_handler.hpp"
 #include "data.hpp"
+#include "file_handler.hpp"
 #include <sys/stat.h>
 
 struct farc_read_handler {
