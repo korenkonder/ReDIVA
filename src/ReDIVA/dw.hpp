@@ -41,6 +41,42 @@ namespace dw {
         FLAG_1000000 = 0x1000000,
     };
 
+    enum InputState {
+        INPUT_STATE_ALT   = 0x10000,
+        INPUT_STATE_SHIFT = 0x20000,
+        INPUT_STATE_CTRL  = 0x40000,
+    };
+
+    enum MouseInput {
+        MOUSE_INPUT_DOWN_LEFT       = 0x00000001,
+        MOUSE_INPUT_DOWN_MIDDLE     = 0x00000002,
+        MOUSE_INPUT_DOWN_RIGHT      = 0x00000004,
+        MOUSE_INPUT_TAP_LEFT        = 0x00000010,
+        MOUSE_INPUT_TAP_MIDDLE      = 0x00000020,
+        MOUSE_INPUT_TAP_RIGHT       = 0x00000040,
+        MOUSE_INPUT_RELEASE_LEFT    = 0x00000100,
+        MOUSE_INPUT_RELEASE_MIDDLE  = 0x00000200,
+        MOUSE_INPUT_RELEASE_RIGHT   = 0x00000400,
+        MOUSE_INPUT_DBL_TAP_LEFT    = 0x00001000,
+        MOUSE_INPUT_DBL_TAP_MIDDLE  = 0x00002000,
+        MOUSE_INPUT_DBL_TAP_RIGHT   = 0x00004000,
+        MOUSE_INPUT_100000          = 0x00100000,
+        MOUSE_INPUT_200000          = 0x00200000,
+        MOUSE_INPUT_INTERVAL_LEFT   = 0x01000000,
+        MOUSE_INPUT_INTERVAL_MIDDLE = 0x02000000,
+        MOUSE_INPUT_INTERVAL_RIGHT  = 0x04000000,
+
+        MOUSE_INPUT_20000000        = 0x20000000,
+        MOUSE_INPUT_MOVE            = 0x40000000,
+
+        MOUSE_INPUT_DOWN_MASK       = 0x0000000F,
+        MOUSE_INPUT_TAP_MASK        = 0x000000F0,
+        MOUSE_INPUT_RELEASE_MASK    = 0x00000F00,
+        MOUSE_INPUT_DBL_TAP_MASK    = 0x0000F000,
+        MOUSE_INPUT_INTERVAL_MASK   = 0x0F000000,
+        MOUSE_INPUT_CLICK_MASK      = ~(MOUSE_INPUT_MOVE | MOUSE_INPUT_20000000),
+    };
+
     struct Font {
         font_info font;
         std::string name;
@@ -144,10 +180,11 @@ namespace dw {
 
         struct KeyCallbackData {
             Widget* widget;
-            int32_t modifier;
-            int8_t field_C;
-            int8_t field_D;
-            int32_t input[2];
+            InputState state;
+            uint8_t field_C;
+            uint8_t char_input;
+            int32_t key_input;
+            int32_t joy_input;
 
             KeyCallbackData();
         };
@@ -155,8 +192,8 @@ namespace dw {
         struct MouseCallbackData {
             Widget* widget;
             vec2 pos;
-            int32_t input;
-            int32_t modifier;
+            MouseInput input;
+            InputState state;
 
             MouseCallbackData();
         };
@@ -222,6 +259,7 @@ namespace dw {
     class Composite;
     class Shell;
     class Menu;
+    class MenuItem;
 
     class Control : public Widget {
     public:
@@ -389,10 +427,10 @@ namespace dw {
         MouseListener();
         virtual ~MouseListener();
 
-        virtual void Field_8(const Widget::MouseCallbackData& data) = 0;
-        virtual void Field_10(const Widget::MouseCallbackData& data) = 0;
-        virtual void Field_18(const Widget::MouseCallbackData& data) = 0;
-        virtual void Field_20(const Widget::MouseCallbackData& data) = 0;
+        virtual void OnDoubleTap(const Widget::MouseCallbackData& data) = 0;
+        virtual void OnTap(const Widget::MouseCallbackData& data) = 0;
+        virtual void OnInterval(const Widget::MouseCallbackData& data) = 0;
+        virtual void OnRelease(const Widget::MouseCallbackData& data) = 0;
     };
 
     class MouseAdapter : public MouseListener {
@@ -400,10 +438,10 @@ namespace dw {
         MouseAdapter();
         virtual ~MouseAdapter() override;
 
-        virtual void Field_8(const Widget::MouseCallbackData& data) override;
-        virtual void Field_10(const Widget::MouseCallbackData& data) override;
-        virtual void Field_18(const Widget::MouseCallbackData& data) override;
-        virtual void Field_20(const Widget::MouseCallbackData& data) override;
+        virtual void OnDoubleTap(const Widget::MouseCallbackData& data) override;
+        virtual void OnTap(const Widget::MouseCallbackData& data) override;
+        virtual void OnInterval(const Widget::MouseCallbackData& data) override;
+        virtual void OnRelease(const Widget::MouseCallbackData& data) override;
     };
 
     class MouseMoveListener {
@@ -411,7 +449,7 @@ namespace dw {
         MouseMoveListener();
         virtual ~MouseMoveListener();
 
-        virtual void Field_8(const Widget::MouseCallbackData& data) = 0;
+        virtual void OnMove(const Widget::MouseCallbackData& data) = 0;
     };
 
     class Layout {

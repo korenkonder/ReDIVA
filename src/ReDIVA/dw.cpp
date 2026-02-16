@@ -92,25 +92,26 @@ namespace dw {
     };
 }
 
-struct struc_751 {
-    vec2 mouse_pos;
-    vec2 mouse_delta;
-    int32_t mouse_input;
-    int32_t modifier;
-    int32_t field_18;
-    int8_t field_1C;
-    int8_t field_1D;
-    int64_t field_20;
-    uint8_t field_28;
-    int32_t key_input[2];
-
-    struc_751();
-
-    void sub_140300A10();
-    void sub_1403011A0();
-};
-
 namespace dw_gui_detail {
+    struct Input {
+        vec2 mouse_pos;
+        vec2 mouse_delta;
+        dw::MouseInput mouse_input;
+        dw::InputState state;
+        int32_t field_18;
+        int8_t field_1C;
+        int8_t field_1D;
+        int64_t field_20;
+        uint8_t char_input;
+        int32_t key_input;
+        int32_t joy_input;
+
+        Input();
+
+        void Ctrl();
+        void Draw();
+    };
+
     struct Display {
         class RootKeySelection : public dw::KeyAdapter {
         public:
@@ -120,12 +121,12 @@ namespace dw_gui_detail {
             virtual void Field_8(const dw::Widget::KeyCallbackData& data) override;
         };
 
-        dw::Shell* selected_shell;
-        dw::Menu* opened_menu;
-        dw::Widget* howered_shell;
-        dw::Widget* move_resize_shell;
-        dw::Widget* howered_widget;
-        dw::Widget* selected_widget;
+        dw::Shell* active_shell;
+        dw::Menu* active_menu;
+        dw::Widget* on;
+        dw::Widget* move;
+        dw::Widget* widget;
+        dw::Widget* cap;
         dw::Shell* focused_shell;
         bool set_focus;
         bool find_focus;
@@ -134,8 +135,8 @@ namespace dw_gui_detail {
         dw::Widget::MouseCallbackData mouse_callback_data;
         dw::Widget::KeyCallbackData key_callback_data;
         std::vector<dw::Widget*> free_widgets;
-        struc_751 field_C0;
-        dw::init_data init_data;
+        dw_gui_detail::Input input;
+        dw::init_data field_F8;
         int64_t field_118;
         vec2 field_120;
         float_t field_128;
@@ -168,7 +169,7 @@ dw_gui_detail::Display* dw_gui_detail_display;
 static bool dw_gui_get_ctrl();
 static bool dw_gui_get_disp();
 
-static void dw_gui_detail_display_set_selected_widget(dw::Widget* widget, bool set);
+static void dw_gui_detail_display_set_cap(dw::Widget* widget, bool set);
 
 static void sub_1402EE3C0(rectangle rect, float_t border, int32_t type, color4u8* fill_color);
 
@@ -211,7 +212,7 @@ namespace dw {
     static DropDownListScrollBarSelectionListener drop_down_list_scroll_bar_selection_listener;
     static ScrollBarTestSelectionListener scroll_bar_test_Selection_listener;
 
-    std::wstring* text_buf;
+    std::wstring* clipboard;
 
     Print* print;
 
@@ -352,10 +353,10 @@ namespace dw {
     }
 
     Widget::KeyCallbackData::KeyCallbackData() : widget(),
-        modifier(), field_C(), field_D(), input() {
+        state(), field_C(), char_input(), key_input(), joy_input() {
     }
 
-    Widget::MouseCallbackData::MouseCallbackData() : widget(), input(), modifier() {
+    Widget::MouseCallbackData::MouseCallbackData() : widget(), input(), state() {
 
     }
 
@@ -445,7 +446,7 @@ namespace dw {
             return;
 
         rectangle v10 = widget->GetRectangle();
-        rectangle v11 = dw_gui_detail_display->init_data.field_0;
+        rectangle v11 = dw_gui_detail_display->field_F8.field_0;
         if (v11.pos.x > v10.pos.x || v10.pos.x + v10.size.x > v11.pos.x + v11.size.x
             || v11.pos.y > v10.pos.y || v10.pos.y + v10.size.y > v11.pos.y + v11.size.y) {
             vec2 v7 = v10.pos;
@@ -491,11 +492,11 @@ namespace dw {
         if (!GetParentEnabled())
             return 0;
 
-        /*if ((data.field_8 & 0x20000) && data.field_10 == 0x1000013)
+        /*if ((data.state & INPUT_STATE_SHIFT) && data.key_input == 0x1000013)
             if (parent_menu)
                 parent_menu->sub_1402F35E0();*/
 
-        if (data.input[0] || (data.input[1] & 0x40000000)) {
+        if (data.key_input || (data.joy_input & 0x01)) {
             Widget::KeyCallbackData v8 = data;
             v8.widget = parent;
             for (KeyListener*& i : key_listener)
@@ -508,55 +509,56 @@ namespace dw {
         if (!GetParentEnabled())
             return 0;
 
-        /*if (dw_gui_detail_display->field_C0.field_18 == 9 && (data.field_10 & 0x40) && !data.field_14)
+        /*if (dw_gui_detail_display->input.field_18 == 9
+            && (data.input & MOUSE_INPUT_TAP_RIGHT) && !data.state)
             if (parent_menu)
                 parent_menu->sub_1402F35E0();*/
 
         if (!data.input)
             return 0;
 
-        if (data.input & 0xF0) {
-            Widget::MouseCallbackData v19 = data;
-            v19.widget = parent;
-            v19.input = data.input & 0xF0;
+        if (data.input & MOUSE_INPUT_TAP_MASK) {
+            Widget::MouseCallbackData _data = data;
+            _data.widget = parent;
+            _data.input = (MouseInput)(data.input & MOUSE_INPUT_TAP_MASK);
 
             for (MouseListener* i : mouse_listener)
-                i->Field_10(v19);
+                i->OnTap(_data);
         }
 
-        if (data.input & 0xF000000) {
-            Widget::MouseCallbackData v19 = data;
-            v19.widget = parent;
-            v19.input = data.input & 0xF000000;
+        if (data.input & MOUSE_INPUT_INTERVAL_MASK) {
+            Widget::MouseCallbackData _data = data;
+            _data.widget = parent;
+            _data.input = (MouseInput)(data.input & MOUSE_INPUT_INTERVAL_MASK);
 
             for (MouseListener* i : mouse_listener)
-                i->Field_18(v19);
+                i->OnInterval(_data);
         }
 
-        if (data.input & 0xF000) {
-            Widget::MouseCallbackData v19 = data;
-            v19.widget = parent;
-            v19.input = data.input & 0xF000;
+        if (data.input & MOUSE_INPUT_DBL_TAP_MASK) {
+            Widget::MouseCallbackData _data = data;
+            _data.widget = parent;
+            _data.input = (MouseInput)(data.input & MOUSE_INPUT_DBL_TAP_MASK);
 
             for (MouseListener* i : mouse_listener)
-                i->Field_8(v19);
+                i->OnDoubleTap(_data);
         }
 
-        if (data.input & 0xF00) {
-            Widget::MouseCallbackData v19 = data;
-            v19.widget = parent;
-            v19.input = data.input & 0xF00;
+        if (data.input & MOUSE_INPUT_RELEASE_MASK) {
+            Widget::MouseCallbackData _data = data;
+            _data.widget = parent;
+            _data.input = (MouseInput)(data.input & MOUSE_INPUT_RELEASE_MASK);
 
             for (MouseListener* i : mouse_listener)
-                i->Field_20(v19);
+                i->OnRelease(_data);
         }
 
-        if (data.input & 0x40000000) {
-            Widget::MouseCallbackData v19 = data;
-            v19.widget = parent;
+        if (data.input & MOUSE_INPUT_MOVE) {
+            Widget::MouseCallbackData _data = data;
+            _data.widget = parent;
 
             for (MouseMoveListener* i : mouse_move_listener)
-                i->Field_8(v19);
+                i->OnMove(_data);
         }
         return 0;
     }
@@ -683,7 +685,7 @@ namespace dw {
         bool v4 = v_bar->field_A6;
         int32_t ret = v_bar->MouseCallback(data);
         if (v4 != v_bar->field_A6)
-            dw_gui_detail_display_set_selected_widget(v_bar, v_bar->field_A6);
+            dw_gui_detail_display_set_cap(v_bar, v_bar->field_A6);
         return ret;
     }
 
@@ -873,7 +875,7 @@ namespace dw {
             return;
 
         rectangle v12 = GetRectangle();
-        bool active = dw_gui_detail_display->selected_shell == this;
+        bool active = dw_gui_detail_display->active_shell == this;
 
         print->SetColor(active
             ? colors_current.active_border_color
@@ -958,7 +960,8 @@ namespace dw {
         if (!GetDisp())
             return 0;
 
-        if ((data.modifier & 0x10000) && data.input[0] == 0x100000D || (data.input[0] & 0x2000)) {
+        if ((data.state & INPUT_STATE_ALT) && data.key_input == 0x100000D
+            || (data.key_input & MOUSE_INPUT_DBL_TAP_MIDDLE)) {
             Hide();
             return 0;
         }
@@ -970,30 +973,30 @@ namespace dw {
         if (!GetDisp())
             return 0;
 
-        if (data.input & 0xF0) {
+        if (data.input & MOUSE_INPUT_TAP_MASK) {
             if (!sub_140192D00())
                 return 0;
 
             dw_gui_detail_display->MakeShellFirst(this);
         }
 
-        if ((uint16_t)dw_gui_detail_display->field_C0.field_18 >= 1 && (uint16_t)dw_gui_detail_display->field_C0.field_18 <= 8) {
-            if (data.input & 0x10) {
+        if ((uint16_t)dw_gui_detail_display->input.field_18 >= 1 && (uint16_t)dw_gui_detail_display->input.field_18 <= 8) {
+            if (data.input & MOUSE_INPUT_TAP_LEFT) {
                 if (sub_140192D00()) {
-                    dw_gui_detail_display->field_C0.field_18 |= 0x20000000;
-                    dw_gui_detail_display->move_resize_shell = dw_gui_detail_display->selected_shell;
+                    dw_gui_detail_display->input.field_18 |= 0x20000000;
+                    dw_gui_detail_display->move = dw_gui_detail_display->active_shell;
                 }
                 return 0;
             }
         }
-        else if ((uint16_t)dw_gui_detail_display->field_C0.field_18 == 10) {
+        else if ((uint16_t)dw_gui_detail_display->input.field_18 == 10) {
             if (close_button && close_button->CheckHitPos(data.pos))
                 return close_button->MouseCallback(data);
 
-            if (data.input & 0x10) {
+            if (data.input & MOUSE_INPUT_TAP_LEFT) {
                 if (sub_140192D00()) {
-                    dw_gui_detail_display->field_C0.field_18 |= 0x40000000;
-                    dw_gui_detail_display->move_resize_shell = dw_gui_detail_display->selected_shell;
+                    dw_gui_detail_display->input.field_18 |= 0x40000000;
+                    dw_gui_detail_display->move = dw_gui_detail_display->active_shell;
                 }
                 return 0;
             }
@@ -1034,7 +1037,7 @@ namespace dw {
     }
 
     bool Shell::Field_58() {
-        return this == dw_gui_detail_display->selected_shell && GetDisp();
+        return this == dw_gui_detail_display->active_shell && GetDisp();
     }
 
     Widget* Shell::GetHitWidget(const vec2& hit_pos) {
@@ -1170,19 +1173,19 @@ namespace dw {
 
     }
 
-    void MouseAdapter::Field_8(const Widget::MouseCallbackData& data) {
+    void MouseAdapter::OnDoubleTap(const Widget::MouseCallbackData& data) {
 
     }
 
-    void MouseAdapter::Field_10(const Widget::MouseCallbackData& data) {
+    void MouseAdapter::OnTap(const Widget::MouseCallbackData& data) {
 
     }
 
-    void MouseAdapter::Field_18(const Widget::MouseCallbackData& data) {
+    void MouseAdapter::OnInterval(const Widget::MouseCallbackData& data) {
 
     }
 
-    void MouseAdapter::Field_20(const Widget::MouseCallbackData& data) {
+    void MouseAdapter::OnRelease(const Widget::MouseCallbackData& data) {
 
     }
 
@@ -1622,7 +1625,7 @@ namespace dw {
         if (!GetParentEnabled())
             return 0;
 
-        if (data.input[0] != 0x0D && data.input[0] != 0x20)
+        if (data.key_input != 0x0D && data.key_input != 0x20)
             return Control::KeyCallback(data);
 
         if (flags & CHECKBOX)
@@ -1650,14 +1653,14 @@ namespace dw {
             field_100 |= 0x01;
 
         if (field_100 & 0x01) {
-            if ((data.input & 0xF0) && !Field_60())
+            if ((data.input & MOUSE_INPUT_TAP_MASK) && !Field_60())
                 Field_58();
 
-            if (data.input & 0x100) {
+            if (data.input & MOUSE_INPUT_RELEASE_LEFT) {
                 if (field_100 & 0x02)
                     field_100 = (field_100 & ~0x02) | 0x100;
             }
-            else if (data.input & 0x10)
+            else if (data.input & MOUSE_INPUT_TAP_LEFT)
                 field_100 |= 0x02;
         }
 
@@ -1828,7 +1831,7 @@ namespace dw {
 
     int32_t List::KeyCallback(const Widget::KeyCallbackData& data) {
         size_t items_count = items.size();
-        if (!data.input[0] || !items_count)
+        if (!data.key_input || !items_count)
             return Control::KeyCallback(data);
 
         size_t hovered_item = this->hovered_item;
@@ -1836,7 +1839,7 @@ namespace dw {
         SelectionListener::CallbackData v12 = v_bar;
 
         size_t max_items_visible = GetMaxItemsVisible();
-        switch (data.input[0]) {
+        switch (data.key_input) {
         case 0x1000001:
             if (hovered_item == -1)
                 hovered_item = 0;
@@ -1844,7 +1847,7 @@ namespace dw {
                 hovered_item--;
 
             if (sub_1402F1F20(hovered_item) && !sub_1402F1F20(hovered_item))
-                v12.field_8 = data.input[0];
+                v12.field_8 = data.key_input;
             break;
         case 0x1000002:
             if (hovered_item == -1)
@@ -1853,14 +1856,14 @@ namespace dw {
                 hovered_item++;
 
             if (sub_1402F1F20(hovered_item) && !sub_1402F1F20(hovered_item))
-                v12.field_8 = data.input[0];
+                v12.field_8 = data.key_input;
             break;
         case 0x1000005:
             if (hovered_item == -1 || hovered_item < max_items_visible)
                 hovered_item = 0;
             else
                 hovered_item -= max_items_visible;
-            v12.field_8 = data.input[0];
+            v12.field_8 = data.key_input;
             break;
         case 0x1000006:
             if (hovered_item == -1)
@@ -1870,15 +1873,15 @@ namespace dw {
                 hovered_item = items_count - 1;
             else
                 hovered_item += max_items_visible;
-            v12.field_8 = data.input[0];
+            v12.field_8 = data.key_input;
             break;
         case 0x1000007:
             hovered_item = 0;
-            v12.field_8 = data.input[0];
+            v12.field_8 = data.key_input;
             break;
         case 0x1000008:
             hovered_item = items_count - 1;
-            v12.field_8 = data.input[0];
+            v12.field_8 = data.key_input;
             break;
         }
 
@@ -1902,7 +1905,7 @@ namespace dw {
         if (!GetParentEnabled() || !CheckHitPos(data.pos))
             return 0;
 
-        if (!field_148 && (data.input & 0xF0) && !Field_60())
+        if (!field_148 && (data.input & MOUSE_INPUT_TAP_MASK) && !Field_60())
             Field_58();
 
         rectangle v27 = GetScrollableRectangle();
@@ -1911,7 +1914,7 @@ namespace dw {
             return Scrollable::MouseCallback(data);
 
         size_t hovered_item = this->hovered_item;
-        if (field_148 && (data.input & 0x40000000) || (data.input & 0x10)) {
+        if (field_148 && (data.input & MOUSE_INPUT_MOVE) || (data.input & MOUSE_INPUT_TAP_LEFT)) {
             float_t glyph_height = GetFontGlyphHeight();
             float_t v10 = (float_t)sub_1402EF570();
             if (v10 < 0.0f)
@@ -1932,8 +1935,8 @@ namespace dw {
         }
 
         if (hovered_item < this->items.size()) {
-            if (data.input & 0x10) {
-                if (data.modifier & 0x20000) {
+            if (data.input & MOUSE_INPUT_TAP_LEFT) {
+                if (data.state & INPUT_STATE_SHIFT) {
                     ResetSelectedItem();
                     size_t end = this->hovered_item;
                     size_t begin = hovered_item;
@@ -1944,7 +1947,7 @@ namespace dw {
 
                     SetSelectedItems(begin, end);
                 }
-                else if (data.modifier & 0x40000) {
+                else if (data.state & INPUT_STATE_CTRL) {
                     if (CheckItemSelected(hovered_item))
                         UnsetSelectedItem(hovered_item);
                     else
@@ -1960,14 +1963,14 @@ namespace dw {
                     i->Callback(&v26);
             }
 
-            if (data.input & 0x1000) {
+            if (data.input & MOUSE_INPUT_DBL_TAP_LEFT) {
                 SelectionListener::CallbackData v26 = parent;
                 for (SelectionListener*& i : selection_listeners)
                     i->Field_10(&v26);
             }
         }
 
-        if ((data.input & 0x100000) || (data.input & 0x200000))
+        if ((data.input & MOUSE_INPUT_100000) || (data.input & MOUSE_INPUT_200000))
             return Scrollable::MouseCallback(data);
         return 0;
     }
@@ -2233,7 +2236,7 @@ namespace dw {
             return 0;
 
         list->KeyCallback(data);
-        if (field_118 && data.input[0] == 0x0D)
+        if (field_118 && data.key_input == 0x0D)
             sub_1402E4F40();
         return 0;
     }
@@ -2242,19 +2245,19 @@ namespace dw {
         if (!GetParentEnabled())
             return 0;
 
-        if ((data.input & 0xF0) && !Field_60())
+        if ((data.input & MOUSE_INPUT_TAP_MASK) && !Field_60())
             Field_58();
 
         if (field_118) {
             list->MouseCallback(data);
 
-            if ((data.input & 0x10) && (!list->CheckHitPos(data.pos)
+            if ((data.input & MOUSE_INPUT_TAP_LEFT) && (!list->CheckHitPos(data.pos)
                 || ListBox::sub_1402EC8C0(list->GetScrollableRectangle(), data.pos))) {
                 sub_1402E4F40();
                 return 0;
             }
         }
-        else if (CheckHitPos(data.pos) && (data.input & 0x10))
+        else if (CheckHitPos(data.pos) && (data.input & MOUSE_INPUT_TAP_LEFT))
            sub_1402E4F90();
         return 0;
     }
@@ -2282,8 +2285,8 @@ namespace dw {
         vec2 size = list->GetSize();
 
         vec2 pos;
-        if (dw_gui_detail_display->init_data.field_0.pos.y
-            + dw_gui_detail_display->init_data.field_0.size.y > rect.pos.y + rect.size.y + size.y)
+        if (dw_gui_detail_display->field_F8.field_0.pos.y
+            + dw_gui_detail_display->field_F8.field_0.size.y > rect.pos.y + rect.size.y + size.y)
             pos.y = rect.size.y;
         else
             pos.y = -size.y;
@@ -2294,7 +2297,7 @@ namespace dw {
 
     void ListBox::sub_1402E4F40() {
         parent_shell->sub_1402E61F0(this);
-        dw_gui_detail_display_set_selected_widget(this, false);
+        dw_gui_detail_display_set_cap(this, false);
 
         list->hovered_item = list->selected_item;
         field_118 = false;
@@ -2307,7 +2310,7 @@ namespace dw {
         list->hovered_item = list->selected_item;
         list->sub_1402F9C90(list->selected_item);
 
-        dw_gui_detail_display_set_selected_widget(this, true);
+        dw_gui_detail_display_set_cap(this, true);
         parent_shell->sub_1402E43C0(this);
     }
 
@@ -2414,7 +2417,7 @@ namespace dw {
         bool v4 = field_A6;
         SelectionListener::CallbackData v8 = sub_1402E5380(data);
         if (v4 != field_A6)
-            dw_gui_detail_display_set_selected_widget(this, field_A6);
+            dw_gui_detail_display_set_cap(this, field_A6);
 
         if (v8.widget)
             for (SelectionListener*& i : selection_listeners)
@@ -2582,14 +2585,14 @@ namespace dw {
 
     SelectionListener::CallbackData ScrollBar::sub_1402E5140(const Widget::KeyCallbackData& key_callback_data) {
         SelectionListener::CallbackData callback_data;
-        switch (key_callback_data.input[0]) {
+        switch (key_callback_data.key_input) {
         case 0x1000001:
         case 0x1000002:
         case 0x1000005:
         case 0x1000006:
         case 0x1000007:
         case 0x1000008:
-            callback_data.field_8 = key_callback_data.input[0];
+            callback_data.field_8 = key_callback_data.key_input;
             break;
         case 0x1000003:
             callback_data.field_8 = 0x1000001;
@@ -2613,7 +2616,7 @@ namespace dw {
     SelectionListener::CallbackData ScrollBar::sub_1402E5380(const Widget::MouseCallbackData& mouse_callback_data) {
         if (field_A6) {
             SelectionListener::CallbackData callback_data;
-            if ((mouse_callback_data.input & 1) != 0) {
+            if (mouse_callback_data.input & MOUSE_INPUT_DOWN_LEFT) {
                 callback_data.field_8 = 1;
                 callback_data.mouse_pos = mouse_callback_data.pos;
             }
@@ -2631,9 +2634,9 @@ namespace dw {
         }
 
         SelectionListener::CallbackData callback_data;
-        if (mouse_callback_data.input & 0x100000)
+        if (mouse_callback_data.input & MOUSE_INPUT_100000)
             callback_data.field_8 = 0x1000071;
-        else if (mouse_callback_data.input & 0x200000)
+        else if (mouse_callback_data.input & MOUSE_INPUT_200000)
             callback_data.field_8 = 0x1000072;
 
         if (callback_data.field_8 == -1 && !CheckHitPos(mouse_callback_data.pos))
@@ -2659,7 +2662,7 @@ namespace dw {
             v11 = rect.size.y + rect.pos.y;
         }
 
-        if (mouse_callback_data.input & 0x1000000) {
+        if (mouse_callback_data.input & MOUSE_INPUT_INTERVAL_LEFT) {
             if (v9 < v10)
                 callback_data.field_8 = 0x1000001;
             else if (v11 - v8 < v9)
@@ -2673,7 +2676,9 @@ namespace dw {
             }
         }
 
-        if (callback_data.field_8 == -1 && (mouse_callback_data.input & 0x01) && (mouse_callback_data.input & 0x40000000)) {
+        if (callback_data.field_8 == -1
+            && (mouse_callback_data.input & MOUSE_INPUT_DOWN_LEFT)
+            && (mouse_callback_data.input & MOUSE_INPUT_MOVE)) {
             vec2 v23 = sub_1402E4790();
             rectangle rect = GetRectangle();
 
@@ -2882,13 +2887,13 @@ namespace dw {
         if (!GetParentEnabled())
             return 0;
 
-        if ((data.input & 0xF0) && !Field_60())
+        if ((data.input & MOUSE_INPUT_TAP_MASK) && !Field_60())
             Field_58();
 
         bool v5 = scroll_bar->field_A6;
         SelectionListener::CallbackData v9 = scroll_bar->sub_1402E5380(data);
         if (v5 != scroll_bar->field_A6)
-            dw_gui_detail_display_set_selected_widget(this, scroll_bar->field_A6);
+            dw_gui_detail_display_set_cap(this, scroll_bar->field_A6);
 
         if (v9.widget)
             for (SelectionListener*& i : selection_listeners)
@@ -2986,7 +2991,7 @@ namespace dw {
     void DropDownListScrollBarSelectionListener::Callback(SelectionListener::CallbackData* data) {
         ListBox* list_box = dynamic_cast<ListBox*>(data->widget);
         if (list_box && list_box->field_118 && !data->field_8)
-            dw_gui_detail_display_set_selected_widget(list_box, true);
+            dw_gui_detail_display_set_cap(list_box, true);
     }
 
     ScrollBarTestSelectionListener::ScrollBarTestSelectionListener() {
@@ -3088,8 +3093,8 @@ void dw_init(dw::init_data& init_data) {
     if (!dw_gui_detail_display)
         dw_gui_detail_display = new dw_gui_detail::Display(init_data);
 
-    if (!dw::text_buf)
-        dw::text_buf = new std::wstring;
+    if (!dw::clipboard)
+        dw::clipboard = new std::wstring;
 }
 
 void dw_free() {
@@ -3098,9 +3103,9 @@ void dw_free() {
         dw_gui_detail_display = 0;
     }
 
-    if (dw::text_buf) {
-        delete dw::text_buf;
-        dw::text_buf = 0;
+    if (dw::clipboard) {
+        delete dw::clipboard;
+        dw::clipboard = 0;
     }
 
     if (dw::print) {
@@ -3216,23 +3221,24 @@ namespace dw {
     }
 }
 
-struc_751::struc_751() : mouse_input(), modifier(), field_18(),
-field_1C(), field_1D(), field_20(), field_28(), key_input() {
+dw_gui_detail::Input::Input() : mouse_input(), state(), field_18(),
+field_1C(), field_1D(), field_20(), char_input(), key_input(), joy_input() {
 
 }
 
-void struc_751::sub_140300A10() {
+// 0x140300A10
+void dw_gui_detail::Input::Ctrl() {
     const InputState* input_state = input_state_get(0);
-    mouse_input = 0;
-    modifier = 0;
-    field_28 = false;
-    key_input[0] = 0;
-    key_input[1] = 0;
+    mouse_input = (dw::MouseInput)0;
+    state = (dw::InputState)0;
+    char_input = 0;
+    key_input = 0;
+    joy_input = 0;
 
     uint8_t key = input_state->GetKey();
 
-    field_28 = key;
-    key_input[0] = key;
+    char_input = key;
+    key_input = key;
 
     int32_t mouse_pos_x = input_state->sub_14018CCC0(8);
     int32_t mouse_pos_y = input_state->sub_14018CCC0(9);
@@ -3243,163 +3249,164 @@ void struc_751::sub_140300A10() {
     mouse_delta = mouse_pos - old_mouse_pos;
 
     if (mouse_delta != 0.0f)
-        mouse_input |= 0x40000000;
+        enum_or(mouse_input, dw::MOUSE_INPUT_MOVE);
 
     if (input_state->CheckDown(82))
-        modifier |= 0x40000;
+        enum_or(state, dw::INPUT_STATE_CTRL);
     if (input_state->CheckDown(81))
-        modifier |= 0x20000;
+        enum_or(state, dw::INPUT_STATE_SHIFT);
     if (input_state->CheckDown(83))
-        modifier |= 0x10000;
+        enum_or(state, dw::INPUT_STATE_ALT);
 
     if (input_state->CheckDown(96))
-        mouse_input |= 0x01;
+        enum_or(mouse_input, dw::MOUSE_INPUT_DOWN_LEFT);
     if (input_state->CheckDown(97))
-        mouse_input |= 0x02;
+        enum_or(mouse_input, dw::MOUSE_INPUT_DOWN_MIDDLE);
     if (input_state->CheckDown(98))
-        mouse_input |= 0x04;
+        enum_or(mouse_input, dw::MOUSE_INPUT_DOWN_RIGHT);
 
     if (input_state->CheckIntervalTapped(96))
-        mouse_input |= 0x1000000;
+        enum_or(mouse_input, dw::MOUSE_INPUT_INTERVAL_LEFT);
     if (input_state->CheckIntervalTapped(97))
-        mouse_input |= 0x2000000;
+        enum_or(mouse_input, dw::MOUSE_INPUT_INTERVAL_MIDDLE);
     if (input_state->CheckIntervalTapped(98))
-        mouse_input |= 0x4000000;
+        enum_or(mouse_input, dw::MOUSE_INPUT_INTERVAL_RIGHT);
 
     if (input_state->CheckTapped(96))
-        mouse_input |= 0x10;
+        enum_or(mouse_input, dw::MOUSE_INPUT_TAP_LEFT);
     if (input_state->CheckTapped(97))
-        mouse_input |= 0x20;
+        enum_or(mouse_input, dw::MOUSE_INPUT_TAP_MIDDLE);
     if (input_state->CheckTapped(98))
-        mouse_input |= 0x40;
-    if (input_state->CheckReleased(99))
-        mouse_input |= 0x100000;
-    if (input_state->CheckReleased(100))
-        mouse_input |= 0x200000;
+        enum_or(mouse_input, dw::MOUSE_INPUT_TAP_RIGHT);
 
+    if (input_state->CheckReleased(99))
+        enum_or(mouse_input, dw::MOUSE_INPUT_100000);
+    if (input_state->CheckReleased(100))
+        enum_or(mouse_input, dw::MOUSE_INPUT_200000);
     if (input_state->CheckReleased(96))
-        mouse_input |= 0x100;
+        enum_or(mouse_input, dw::MOUSE_INPUT_RELEASE_LEFT);
     if (input_state->CheckReleased(97))
-        mouse_input |= 0x200;
+        enum_or(mouse_input, dw::MOUSE_INPUT_RELEASE_MIDDLE);
     if (input_state->CheckReleased(98))
-        mouse_input |= 0x400;
+        enum_or(mouse_input, dw::MOUSE_INPUT_RELEASE_RIGHT);
 
     if (input_state->CheckDoubleTapped(96))
-        mouse_input |= 0x1000;
+        enum_or(mouse_input, dw::MOUSE_INPUT_DBL_TAP_LEFT);
     if (input_state->CheckDoubleTapped(97))
-        mouse_input |= 0x2000;
+        enum_or(mouse_input, dw::MOUSE_INPUT_DBL_TAP_MIDDLE);
     if (input_state->CheckDoubleTapped(98))
-        mouse_input |= 0x4000;
+        enum_or(mouse_input, dw::MOUSE_INPUT_DBL_TAP_RIGHT);
 
     if (input_state->CheckDown(28))
-        mouse_input |= 0x20000000;
+        enum_or(mouse_input, dw::MOUSE_INPUT_20000000);
 
     if (input_state->CheckIntervalTapped(91))
-        key_input[0] = 0x1000001;
+        key_input = 0x1000001;
     if (input_state->CheckIntervalTapped(93))
-        key_input[0] = 0x1000002;
+        key_input = 0x1000002;
     if (input_state->CheckIntervalTapped(92))
-        key_input[0] = 0x1000003;
+        key_input = 0x1000003;
     if (input_state->CheckIntervalTapped(94))
-        key_input[0] = 0x1000004;
+        key_input = 0x1000004;
     if (input_state->CheckIntervalTapped(86))
-        key_input[0] = 0x1000007;
+        key_input = 0x1000007;
     if (input_state->CheckIntervalTapped(89))
-        key_input[0] = 0x1000008;
+        key_input = 0x1000008;
     if (input_state->CheckIntervalTapped(87))
-        key_input[0] = 0x1000005;
+        key_input = 0x1000005;
     if (input_state->CheckIntervalTapped(90))
-        key_input[0] = 0x1000006;
+        key_input = 0x1000006;
     if (input_state->CheckIntervalTapped(66))
-        key_input[0] = 0x100000A;
+        key_input = 0x100000A;
     if (input_state->CheckIntervalTapped(67))
-        key_input[0] = 0x100000B;
+        key_input = 0x100000B;
     if (input_state->CheckIntervalTapped(68))
-        key_input[0] = 0x100000C;
+        key_input = 0x100000C;
     if (input_state->CheckIntervalTapped(69))
-        key_input[0] = 0x100000D;
+        key_input = 0x100000D;
     if (input_state->CheckIntervalTapped(70))
-        key_input[0] = 0x100000E;
+        key_input = 0x100000E;
     if (input_state->CheckIntervalTapped(71))
-        key_input[0] = 0x100000F;
+        key_input = 0x100000F;
     if (input_state->CheckIntervalTapped(72))
-        key_input[0] = 0x1000010;
+        key_input = 0x1000010;
     if (input_state->CheckIntervalTapped(73))
-        key_input[0] = 0x1000011;
+        key_input = 0x1000011;
     if (input_state->CheckIntervalTapped(74))
-        key_input[0] = 0x1000012;
+        key_input = 0x1000012;
     if (input_state->CheckIntervalTapped(75))
-        key_input[0] = 0x1000013;
+        key_input = 0x1000013;
     if (input_state->CheckIntervalTapped(76))
-        key_input[0] = 0x1000014;
+        key_input = 0x1000014;
     if (input_state->CheckIntervalTapped(77))
-        key_input[0] = 0x1000015;
+        key_input = 0x1000015;
 
     const InputState* v12[2];
     v12[0] = input_state_get(0);
     v12[1] = input_state_get(1);
     for (const InputState* i : v12) {
         if (i->CheckIntervalTapped(3))
-            key_input[1] |= 0x1000000;
+            joy_input |= 0x1000000;
         if (i->CheckIntervalTapped(4))
-            key_input[1] |= 0x2000000;
+            joy_input |= 0x2000000;
         if (i->CheckIntervalTapped(5))
-            key_input[1] |= 0x4000000;
+            joy_input |= 0x4000000;
         if (i->CheckIntervalTapped(6))
-            key_input[1] |= 0x8000000;
+            joy_input |= 0x8000000;
 
         if (i->CheckDown(7))
-            key_input[1] |= 0x01;
+            joy_input |= 0x01;
         if (i->CheckDown(8))
-            key_input[1] |= 0x02;
+            joy_input |= 0x02;
         if (i->CheckDown(9))
-            key_input[1] |= 0x04;
+            joy_input |= 0x04;
         if (i->CheckDown(2))
-            key_input[1] |= 0x08;
+            joy_input |= 0x08;
 
         if (i->CheckTapped(7))
-            key_input[1] |= 0x10;
+            joy_input |= 0x10;
         if (i->CheckTapped(8))
-            key_input[1] |= 0x20;
+            joy_input |= 0x20;
         if (i->CheckTapped(9))
-            key_input[1] |= 0x40;
+            joy_input |= 0x40;
         if (i->CheckTapped(2))
-            key_input[1] |= 0x80;
+            joy_input |= 0x80;
 
         if (i->CheckReleased(7))
-            key_input[1] |= 0x100;
+            joy_input |= 0x100;
         if (i->CheckReleased(8))
-            key_input[1] |= 0x200;
+            joy_input |= 0x200;
         if (i->CheckReleased(9))
-            key_input[1] |= 0x400;
+            joy_input |= 0x400;
         if (i->CheckReleased(2))
-            key_input[1] |= 0x800;
+            joy_input |= 0x800;
 
         if (i->CheckDoubleTapped(7))
-            key_input[1] |= 0x1000;
+            joy_input |= 0x1000;
         if (i->CheckDoubleTapped(8))
-            key_input[1] |= 0x2000;
+            joy_input |= 0x2000;
         if (i->CheckDoubleTapped(9))
-            key_input[1] |= 0x4000;
+            joy_input |= 0x4000;
         if (i->CheckDoubleTapped(2))
-            key_input[1] |= 0x8000;
+            joy_input |= 0x8000;
 
         if (i->CheckHold(7))
-            key_input[1] |= 0x10000;
+            joy_input |= 0x10000;
         if (i->CheckHold(8))
-            key_input[1] |= 0x20000;
+            joy_input |= 0x20000;
         if (i->CheckHold(9))
-            key_input[1] |= 0x40000;
+            joy_input |= 0x40000;
     }
 
-    if (key_input[1])
-        key_input[1] |= 0x40000000;
+    if (joy_input)
+        joy_input |= 0x40000000;
 
     if (get_pause())
-        key_input[1] |= 0x10000000;
+        joy_input |= 0x10000000;
 }
 
-void struc_751::sub_1403011A0() {
+// 0x1403011A0
+void dw_gui_detail::Input::Draw() {
     struct struc_752 {
         wchar_t field_0;
         int32_t field_4;
@@ -3479,18 +3486,18 @@ void dw_gui_detail::Display::RootKeySelection::Field_8(const dw::Widget::KeyCall
 
 }
 
-dw_gui_detail::Display::Display(dw::init_data& init_data) : selected_shell(),
-opened_menu(), howered_shell(), move_resize_shell(), howered_widget(),
-selected_widget(), focused_shell(), find_focus(), field_118() {
+dw_gui_detail::Display::Display(dw::init_data& init_data) : active_shell(),
+active_menu(), on(), move(), widget(),
+cap(), focused_shell(), find_focus(), field_118() {
     set_focus = true;
-    this->init_data = init_data;
+    field_F8 = init_data;
     field_128 = 1.0f;
     field_120 = (1.0f / field_128) * init_data.field_10.size;
     name.assign(L"Display");
 
     /*drag_bounds_control = new dw::DragBoundsControl;
-    drag_bounds_control->rect.pos = this->init_data.field_0.pos;
-    drag_bounds_control->SetSize(this->init_data.field_0.size);
+    drag_bounds_control->rect.pos = field_F8.field_0.pos;
+    drag_bounds_control->SetSize(field_F8.field_0.size);
     drag_bounds_control->AddKeyListener(&root_key_selection);
 
     v10 = new dw::Menu(drag_bounds_control);
@@ -3518,14 +3525,14 @@ void dw_gui_detail::Display::CheckShells() {
 }
 
 void dw_gui_detail::Display::Ctrl() {
-    field_C0.sub_140300A10();
-    mouse_callback_data.pos = field_C0.mouse_pos;
-    mouse_callback_data.input = field_C0.mouse_input;
-    mouse_callback_data.modifier = field_C0.modifier;
-    key_callback_data.modifier = field_C0.modifier;
-    key_callback_data.field_D = field_C0.field_28;
-    key_callback_data.input[0] = field_C0.key_input[0];
-    key_callback_data.input[1] = field_C0.key_input[1];
+    input.Ctrl();
+    mouse_callback_data.pos = input.mouse_pos;
+    mouse_callback_data.input = input.mouse_input;
+    mouse_callback_data.state = input.state;
+    key_callback_data.state = input.state;
+    key_callback_data.char_input = input.char_input;
+    key_callback_data.key_input = input.key_input;
+    key_callback_data.joy_input = input.joy_input;
 
     if (sub_1402E51F0())
         sub_1402E5630();
@@ -3546,16 +3553,16 @@ void dw_gui_detail::Display::Draw() {
         i->UpdateDraw();*/
 
     dw::print->SetColor(dw::colors_current.foreground);
-    field_C0.sub_1403011A0();
+    input.Draw();
 }
 
 void dw_gui_detail::Display::FreeWidgets() {
     for (auto& i : free_widgets) {
-        if (howered_widget == i)
-            howered_widget = 0;
+        if (widget == i)
+            widget = 0;
 
-        if (selected_widget == i)
-            selected_widget = 0;
+        if (cap == i)
+            cap = 0;
 
         delete i;
     }
@@ -3623,22 +3630,22 @@ void dw_gui_detail::Display::RemoveShell(dw::Shell* value) {
         else
             i++;
 
-    if (selected_shell == value) {
-        selected_shell = 0;
+    if (active_shell == value) {
+        active_shell = 0;
         find_focus = true;
     }
 
-    if (howered_shell == value)
-        howered_shell = 0;
+    if (on == value)
+        on = 0;
 
-    if (move_resize_shell == value)
-        move_resize_shell = 0;
+    if (move == value)
+        move = 0;
 }
 
 void dw_gui_detail::Display::sub_1402E6300(dw::Widget* widget) {
     rectangle rect = widget->GetRectangle();
 
-    float_t size_y = field_C0.mouse_pos.y - rect.pos.y;
+    float_t size_y = input.mouse_pos.y - rect.pos.y;
 
     vec2 size;
     size.x = widget->rect.size.x;
@@ -3649,7 +3656,7 @@ void dw_gui_detail::Display::sub_1402E6300(dw::Widget* widget) {
 void dw_gui_detail::Display::sub_1402E6440(dw::Widget* widget) {
     rectangle rect = widget->GetRectangle();
 
-    float_t size_x = field_C0.mouse_pos.x - rect.pos.x;
+    float_t size_x = input.mouse_pos.x - rect.pos.x;
 
     vec2 size;
     size.x = widget->rect.size.x + (max_def(size_x, 32.0f) - rect.size.x);
@@ -3664,14 +3671,14 @@ int32_t dw_gui_detail::Display::sub_1402E48A0(dw::Widget* widget) {
     rectangle rect = widget->GetRectangle();
     if (widget->flags & dw::RADIOBUTTON) {
         vec2 v7 = rect.pos + rect.size - 8.0f;
-        if (v7.x <= field_C0.mouse_pos.x && field_C0.mouse_pos.x < v7.x + 8.0f
-            && v7.y <= field_C0.mouse_pos.y && field_C0.mouse_pos.y < v7.y + 8.0f)
+        if (v7.x <= input.mouse_pos.x && input.mouse_pos.x < v7.x + 8.0f
+            && v7.y <= input.mouse_pos.y && input.mouse_pos.y < v7.y + 8.0f)
             return 6;
     }
 
     if (widget->flags & dw::CHECKBOX)
         return dw::current_font.GetFontGlyphHeight()
-            + (rect.pos.y + 2.0f) > field_C0.mouse_pos.y ? 10 : 9;
+            + (rect.pos.y + 2.0f) > input.mouse_pos.y ? 10 : 9;
     return 9;
 }
 
@@ -3681,113 +3688,114 @@ int32_t dw_gui_detail::Display::sub_1402E51F0() {
 }
 
 int32_t dw_gui_detail::Display::sub_1402E5630() {
-    if (move_resize_shell) {
-        if (mouse_callback_data.input & 0x01) {
-            if (field_C0.field_18 & 0x40000000)
-                move_resize_shell->rect.pos += field_C0.mouse_delta;
+    if (move) {
+        if (mouse_callback_data.input & dw::MOUSE_INPUT_DOWN_LEFT) {
+            if (input.field_18 & 0x40000000)
+                move->rect.pos += input.mouse_delta;
 
-            if ((field_C0.field_18 & 0x20000000) && field_C0.mouse_delta != 0.0f) {
-                sub_1402E6440(move_resize_shell);
-                sub_1402E6300(move_resize_shell);
+            if ((input.field_18 & 0x20000000) && input.mouse_delta != 0.0f) {
+                sub_1402E6440(move);
+                sub_1402E6300(move);
                 return 0;
             }
         }
         else {
-            *(uint16_t*)&field_C0.field_18 = 0;
-            move_resize_shell = 0;
+            *(uint16_t*)&input.field_18 = 0;
+            move = 0;
         }
         return 0;
     }
 
-    field_C0.field_18 = sub_1402E48A0(howered_shell);
+    input.field_18 = sub_1402E48A0(on);
 
     dw::Shell* hovered_shell = GetHoveredShell();
 
-    if (!selected_widget) {
+    if (!cap) {
         if (set_focus)
-            selected_shell = focused_shell;
+            active_shell = focused_shell;
         else if (find_focus) {
-            dw::Shell* selected_shell = 0;
+            dw::Shell* active_shell = 0;
 
             auto i_begin = shells.end();
             auto i_end = shells.begin();
             for (auto i = i_begin; i != i_end;) {
                 i--;
                 if ((*i)->GetDisp()) {
-                    selected_shell = *i;
+                    active_shell = *i;
                     break;
                 }
             }
 
-            this->selected_shell = selected_shell;
+            this->active_shell = active_shell;
         }
         else {
             int32_t v15;
             bool v15a = false;
-            if ((key_callback_data.modifier & 0x10000) && key_callback_data.field_D == 0x0D
-                || (key_callback_data.modifier & 0x10000) && key_callback_data.field_D == 0x09
-                || (key_callback_data.modifier & 0x40000) && key_callback_data.field_D == 0x09) {
+            if ((key_callback_data.state & dw::INPUT_STATE_ALT) && key_callback_data.char_input == '\r'
+                || (key_callback_data.state & dw::INPUT_STATE_ALT) && key_callback_data.char_input == '\t'
+                || (key_callback_data.state & dw::INPUT_STATE_CTRL) && key_callback_data.char_input == '\t') {
                 v15 = 1;
-                if (key_callback_data.modifier & 0x20000)
+                if (key_callback_data.state & dw::INPUT_STATE_SHIFT)
                     v15 = -1;
                 v15a = true;
             }
             else {
-                int32_t v16 = key_callback_data.input[1];
+                int32_t v16 = key_callback_data.joy_input;
                 if (v16 & 0x40000000)
                     if (v16 & 0x80) {
                         v15 = 0;
                         v15a = true;
                     }
-                    else if (!selected_shell && (v16 & 0x1000) && (v16 & 0x10000000)
-                        || selected_shell && (v16 & 0x100) && !(v16 & 0x10000) && (v16 & 0x10000000)) {
+                    else if (!active_shell && (v16 & 0x1000) && (v16 & 0x10000000)
+                        || active_shell && (v16 & 0x100) && !(v16 & 0x10000) && (v16 & 0x10000000)) {
                         v15 = 1;
                         v15a = true;
                     }
             }
 
             if (v15a) {
-                if (selected_shell)
-                    MakeShellLast(selected_shell);
+                if (active_shell)
+                    MakeShellLast(active_shell);
 
                 switch (v15) {
                 case 0:
-                    selected_shell = 0;
+                    active_shell = 0;
                     break;
                 case 1: {
-                    dw::Shell* selected_shell = 0;
+                    dw::Shell* active_shell = 0;
 
                     auto i_begin = shells.end();
                     auto i_end = shells.begin();
                     for (auto i = i_begin; i != i_end;) {
                         i--;
                         if ((*i)->GetDisp()) {
-                            selected_shell = *i;
+                            active_shell = *i;
                             break;
                         }
                     }
 
-                    this->selected_shell = selected_shell;
+                    this->active_shell = active_shell;
                 } break;
                 }
             }
             else {
-                if ((mouse_callback_data.input & 0xF0) && selected_shell != hovered_shell)
-                    selected_shell = hovered_shell;
+                if ((mouse_callback_data.input & dw::MOUSE_INPUT_TAP_MASK)
+                    && active_shell != hovered_shell)
+                    active_shell = hovered_shell;
             }
         }
     }
 
-    this->howered_shell = hovered_shell;
+    this->on = hovered_shell;
 
     set_focus = false;
     find_focus = false;
     focused_shell = 0;
 
-    dw::Widget* howered_widget = 0;
+    dw::Widget* widget = 0;
     if (hovered_shell)
-        howered_widget = hovered_shell->GetHitWidget(mouse_callback_data.pos);
-    this->howered_widget = howered_widget;
+        widget = hovered_shell->GetHitWidget(mouse_callback_data.pos);
+    this->widget = widget;
 
     for (dw::Shell*& i : shells)
         if (i->GetDisp()) {
@@ -3796,14 +3804,14 @@ int32_t dw_gui_detail::Display::sub_1402E5630() {
                 v19(i);
         }
 
-    if (selected_widget) {
-        dw::Widget* selected_widget = this->selected_widget;
-        selected_widget->MouseCallback(mouse_callback_data);
-        selected_widget->KeyCallback(key_callback_data);
+    if (cap) {
+        dw::Widget* cap = this->cap;
+        cap->MouseCallback(mouse_callback_data);
+        cap->KeyCallback(key_callback_data);
     }
-    else if (selected_shell) {
-        selected_shell->MouseCallback(mouse_callback_data);
-        selected_shell->KeyCallback(key_callback_data);
+    else if (active_shell) {
+        active_shell->MouseCallback(mouse_callback_data);
+        active_shell->KeyCallback(key_callback_data);
     }
     else {
 
@@ -3815,15 +3823,15 @@ int32_t dw_gui_detail::Display::sub_1402E5630() {
             }
 
         if (!found) {
-            if (!(mouse_callback_data.input & ~0x60000000))
-                field_C0.field_1C = 1;
+            if (!(mouse_callback_data.input & dw::MOUSE_INPUT_CLICK_MASK))
+                input.field_1C = 1;
         }
         else {
             if (!mouse_callback_data.input)
-                field_C0.field_1D = 1;
+                input.field_1D = 1;
         }
 
-        /*if (!(mouse_callback_data.input & 0x20000000))
+        /*if (!(mouse_callback_data.input & dw::MOUSE_INPUT_20000000))
             drag_bounds_control->MouseCallback(mouse_callback_data);
         drag_bounds_control->KeyCallback(key_callback_data);*/
     }
@@ -3840,8 +3848,8 @@ static bool dw_gui_get_disp() {
     return true;
 }
 
-static void dw_gui_detail_display_set_selected_widget(dw::Widget* widget, bool set) {
-    dw_gui_detail_display->selected_widget = set ? widget : 0;
+static void dw_gui_detail_display_set_cap(dw::Widget* widget, bool set) {
+    dw_gui_detail_display->cap = set ? widget : 0;
 }
 
 static void sub_1402EE3C0(rectangle rect, float_t border, int32_t type, color4u8* fill_color) {

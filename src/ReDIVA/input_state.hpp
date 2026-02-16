@@ -75,7 +75,7 @@ struct InputState {
     bool CheckReleased(int32_t index) const;
     bool CheckTapped(int32_t index) const;
     bool CheckToggle(int32_t index) const;
-    bool GetKey() const;
+    uint8_t GetKey() const;
     void Update(int32_t index, int32_t delta_frame);
 
     int32_t sub_14018CCC0(int32_t index) const;

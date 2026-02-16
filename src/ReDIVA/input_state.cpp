@@ -47,12 +47,30 @@ Bit / Name
  40   'B'
 ...
  64   'Z'
+ 
+ 66   ???
+ 67   ???
+ 68   ???
+ 69   ???
+ 70   ???
+ 71   ???
+ 72   ???
+ 73   ???
+ 74   ???
+ 75   ???
+ 76   ???
+ 77   ???
 
  80   VK_RETURN
  81   VK_SHIFT
  82   VK_CONTROL
  83   VK_MENU
  84   VK_PAUSE (guessed, unsure)
+
+ 86   ???
+ 87   ???
+ 89   ???
+ 90   ???
 
  91   VK_UP
  92   VK_LEFT
@@ -252,7 +270,7 @@ bool InputState::CheckToggle(int32_t index) const {
     return false;
 }
 
-bool InputState::GetKey() const {
+uint8_t InputState::GetKey() const {
     return key;
 }
 
@@ -266,9 +284,9 @@ void InputState::Update(int32_t index, int32_t delta_frame) {
     struc_794 v78;
     updated = sub_140190A30(&v78, index);
 
+    Down |= v78.down;
     Tapped |= v78.tapped;
     Released |= v78.released;
-    Down |= v78.down;
 
     if (updated) {
         field_80[0] = v78.field_30[0];
