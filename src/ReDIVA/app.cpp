@@ -9,6 +9,7 @@
 #include "../CRE/GL/uniform_buffer.hpp"
 #include "../CRE/Glitter/glitter.hpp"
 #include "../CRE/Vulkan/gl_wrap.hpp"
+#include "../CRE/Vulkan/DescriptorPool.hpp"
 #include "../CRE/Vulkan/Manager.hpp"
 #include "../CRE/Vulkan/RenderPass.hpp"
 #include "../CRE/Vulkan/Semaphore.hpp"
@@ -378,7 +379,7 @@ VmaAllocator vulkan_allocator;
 
 VkCommandPool vulkan_command_pool;
 
-VkDescriptorPool vulkan_descriptor_pool;
+Vulkan::DescriptorPool vulkan_descriptor_pool;
 
 std::vector<VkCommandBuffer> vulkan_command_buffers;
 
@@ -1803,10 +1804,7 @@ vulkan_destroy_swapchain:
     }
 
 vulkan_destroy_descriptor_pool:
-    if (vulkan_descriptor_pool) {
-        vkDestroyDescriptorPool(vulkan_device, vulkan_descriptor_pool, 0);
-        vulkan_descriptor_pool = 0;
-    }
+    vulkan_descriptor_pool.Destroy();
 
 vulkan_destroy_sync_objects:
     for (Vulkan::Semaphore& i : vulkan_render_finished_semaphores)
@@ -1993,10 +1991,7 @@ static void app_free_vulkan() {
     Vulkan::manager_free_samplers();
     Vulkan::manager_free_render_passes();
 
-    if (vulkan_descriptor_pool) {
-        vkDestroyDescriptorPool(vulkan_device, vulkan_descriptor_pool, 0);
-        vulkan_descriptor_pool = 0;
-    }
+    vulkan_descriptor_pool.Destroy();
 
     Vulkan::gl_wrap_manager_free();
     Vulkan::manager_free();
@@ -2413,21 +2408,8 @@ static int32_t app_create_sync_objects() {
 }
 
 static int32_t app_create_descriptor_pool() {
-    VkDescriptorPoolSize pool_sizes[2] = {};
-    pool_sizes[0].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    pool_sizes[0].descriptorCount = 16;
-
-    pool_sizes[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    pool_sizes[1].descriptorCount = 4;
-
-    VkDescriptorPoolCreateInfo pool_info = {};
-    pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-    pool_info.maxSets = 2000 * MAX_FRAMES_IN_FLIGHT;
-    pool_info.poolSizeCount = sizeof(pool_sizes) / sizeof(VkDescriptorPoolSize);
-    pool_info.pPoolSizes = pool_sizes;
-
-    if (vkCreateDescriptorPool(vulkan_device, &pool_info, 0, &vulkan_descriptor_pool) != VK_SUCCESS)
+    if (!vulkan_descriptor_pool.Create(vulkan_device,
+        VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT, 2000 * MAX_FRAMES_IN_FLIGHT, 16, 4, 4))
         return -21;
 
     Vulkan::current_descriptor_pool = vulkan_descriptor_pool;
