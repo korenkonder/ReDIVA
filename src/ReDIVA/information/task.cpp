@@ -40,7 +40,7 @@ static int32_t task_sort_by_name(void const* src1, void const* src2);
 void dw_task_init() {
     if (!dw_task) {
         dw_task = new DwTask();
-        dw_task->sub_1402F38B0();
+        dw_task->LimitPosDisp();
     }
     else
         dw_task->Disp();

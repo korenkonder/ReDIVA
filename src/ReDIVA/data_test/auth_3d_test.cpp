@@ -1809,14 +1809,14 @@ void SelectionButtonBool::Callback(CallbackData* data) {
 static void auth_3d_test_window_init() {
     if (!auth_3d_test_window) {
         Auth3dTestWindow* test_window = new Auth3dTestWindow;
-        test_window->sub_1402F38B0();
+        test_window->LimitPosDisp();
 
         Auth3dTestSubWindow* sub_window = new Auth3dTestSubWindow;
-        sub_window->sub_1402F38B0();
+        sub_window->LimitPosDisp();
         test_window->sub_window = sub_window;
 
         Auth3dTestRobWindow* rob_window = new Auth3dTestRobWindow;
-        rob_window->sub_1402F38B0();
+        rob_window->LimitPosDisp();
         test_window->rob_window = rob_window;
 
         auth_3d_test_window = test_window;

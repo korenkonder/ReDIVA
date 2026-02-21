@@ -139,7 +139,7 @@ void dw_post_process_init() {
     if (!dw_post_process) {
         dw_post_process = new dwPostProcess;
         dw_post_process->UpdateLayout();
-        dw_post_process->sub_1402F38B0();
+        dw_post_process->LimitPosDisp();
     }
     else
         dw_post_process->Disp();
@@ -889,7 +889,7 @@ static void dw_scene_fade_init() {
     if (!dw_scene_fade) {
         dw_scene_fade = new dwSceneFade;
         dw_scene_fade->UpdateLayout();
-        dw_scene_fade->sub_1402F38B0();
+        dw_scene_fade->LimitPosDisp();
     }
     else
         dw_scene_fade->Disp();
@@ -899,7 +899,7 @@ static void dw_tone_trans_init() {
     if (!dw_tone_trans) {
         dw_tone_trans = new dwToneTrans;
         dw_tone_trans->UpdateLayout();
-        dw_tone_trans->sub_1402F38B0();
+        dw_tone_trans->LimitPosDisp();
     }
     else
         dw_tone_trans->Disp();

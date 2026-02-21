@@ -136,7 +136,7 @@ namespace dw_gui_detail {
         dw::Widget::KeyCallbackData key_callback_data;
         std::vector<dw::Widget*> free_widgets;
         dw_gui_detail::Input input;
-        dw::init_data field_F8;
+        dw::DisplayData data;
         int64_t field_118;
         vec2 field_120;
         float_t field_128;
@@ -144,7 +144,7 @@ namespace dw_gui_detail {
         std::wstring name;
         RootKeySelection root_key_selection;
 
-        Display(dw::init_data& init_data);
+        Display(dw::DisplayData& data);
         virtual ~Display();
 
         void CheckShells();
@@ -441,12 +441,12 @@ namespace dw {
         Draw();
     }
 
-    void Widget::sub_1402F3770(Widget* widget) {
+    void Widget::LimitPos(Widget* widget) {
         if (!widget)
             return;
 
         rectangle v10 = widget->GetRectangle();
-        rectangle v11 = dw_gui_detail_display->field_F8.field_0;
+        rectangle v11 = dw_gui_detail_display->data.field_0;
         if (v11.pos.x > v10.pos.x || v10.pos.x + v10.size.x > v11.pos.x + v11.size.x
             || v11.pos.y > v10.pos.y || v10.pos.y + v10.size.y > v11.pos.y + v11.size.y) {
             vec2 v7 = v10.pos;
@@ -1095,6 +1095,11 @@ namespace dw {
         return disp;
     }
 
+    void Shell::LimitPosDisp() {
+        LimitPos(this);
+        Disp();
+    }
+
     void Shell::SetDisp(bool value) {
         if (disp == value)
             return;
@@ -1122,11 +1127,6 @@ namespace dw {
     void Shell::sub_1402E61F0(Widget* widget) {
         if (field_178 && field_178 == widget)
             field_178 = 0;
-    }
-
-    void Shell::sub_1402F38B0() {
-        sub_1402F3770(this);
-        Disp();
     }
 
     KeyListener::KeyListener() {
@@ -2285,8 +2285,8 @@ namespace dw {
         vec2 size = list->GetSize();
 
         vec2 pos;
-        if (dw_gui_detail_display->field_F8.field_0.pos.y
-            + dw_gui_detail_display->field_F8.field_0.size.y > rect.pos.y + rect.size.y + size.y)
+        if (dw_gui_detail_display->data.field_0.pos.y
+            + dw_gui_detail_display->data.field_0.size.y > rect.pos.y + rect.size.y + size.y)
             pos.y = rect.size.y;
         else
             pos.y = -size.y;
@@ -2976,7 +2976,7 @@ namespace dw {
         return slider;
     }
 
-    init_data::init_data() {
+    DisplayData::DisplayData() {
 
     }
 
@@ -3070,28 +3070,28 @@ namespace dw {
 }
 
 void dw_init() {
-    dw::init_data init_data;
+    dw::DisplayData data;
     resolution_struct* res_wind = res_window_get();
-    init_data.field_10.size.x = (float_t)res_wind->width;
-    init_data.field_10.size.y = (float_t)res_wind->height;
-    init_data.field_0.size = init_data.field_10.size;
-    dw_init(init_data);
+    data.field_10.size.x = (float_t)res_wind->width;
+    data.field_10.size.y = (float_t)res_wind->height;
+    data.field_0.size = data.field_10.size;
+    dw_init(data);
 }
 
-void dw_init(dw::init_data& init_data) {
+void dw_init(dw::DisplayData& data) {
     dw::colors_current = dw::colors_default;
 
     //dw::set_color_list(&dw::colors_current);
     dw::font_init();
 
     if (!dw::print)
-        dw::print = new dw::Print(init_data.field_0.size.x, init_data.field_0.size.y);
+        dw::print = new dw::Print(data.field_0.size.x, data.field_0.size.y);
 
     dw::print->SetColor(dw::colors_current.foreground);
     dw::print->SetFillColor(dw::colors_current.background);
 
     if (!dw_gui_detail_display)
-        dw_gui_detail_display = new dw_gui_detail::Display(init_data);
+        dw_gui_detail_display = new dw_gui_detail::Display(data);
 
     if (!dw::clipboard)
         dw::clipboard = new std::wstring;
@@ -3486,18 +3486,18 @@ void dw_gui_detail::Display::RootKeySelection::Field_8(const dw::Widget::KeyCall
 
 }
 
-dw_gui_detail::Display::Display(dw::init_data& init_data) : active_shell(),
+dw_gui_detail::Display::Display(dw::DisplayData& data) : active_shell(),
 active_menu(), on(), move(), widget(),
 cap(), focused_shell(), find_focus(), field_118() {
     set_focus = true;
-    field_F8 = init_data;
+    this->data = data;
     field_128 = 1.0f;
-    field_120 = (1.0f / field_128) * init_data.field_10.size;
+    field_120 = (1.0f / field_128) * this->data.field_10.size;
     name.assign(L"Display");
 
     /*drag_bounds_control = new dw::DragBoundsControl;
-    drag_bounds_control->rect.pos = field_F8.field_0.pos;
-    drag_bounds_control->SetSize(field_F8.field_0.size);
+    drag_bounds_control->rect.pos = this->data.field_0.pos;
+    drag_bounds_control->SetSize(this->data.field_0.size);
     drag_bounds_control->AddKeyListener(&root_key_selection);
 
     v10 = new dw::Menu(drag_bounds_control);

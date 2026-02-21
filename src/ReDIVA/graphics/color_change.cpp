@@ -121,7 +121,7 @@ void color_change_dw_init() {
     if (!color_change_dw) {
         color_change_dw = new ColorChangeDw;
         color_change_dw->UpdateLayout();
-        color_change_dw->sub_1402F38B0();
+        color_change_dw->LimitPosDisp();
     }
     else
         color_change_dw->Disp();

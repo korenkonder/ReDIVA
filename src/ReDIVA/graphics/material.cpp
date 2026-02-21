@@ -107,7 +107,7 @@ MaterialDw* material_dw;
 void material_dw_init() {
     if (!material_dw) {
         material_dw = new MaterialDw;
-        material_dw->sub_1402F38B0();
+        material_dw->LimitPosDisp();
         material_dw->UpdateLayout();
     }
     else

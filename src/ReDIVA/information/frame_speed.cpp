@@ -31,7 +31,7 @@ FrameSpeedWindow* frame_speed_window;
 void frame_speed_window_init() {
     if (!frame_speed_window) {
         frame_speed_window = new FrameSpeedWindow;
-        frame_speed_window->sub_1402F38B0();
+        frame_speed_window->LimitPosDisp();
         frame_speed_window->slider->SetValue(get_delta_frame());
     }
     else {

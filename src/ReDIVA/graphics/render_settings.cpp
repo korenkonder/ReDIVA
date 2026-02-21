@@ -35,7 +35,7 @@ static void render_settings_scale_to_string(char* str, size_t str_len);
 void render_settings_dw_init() {
     if (!render_settings_dw) {
         render_settings_dw = new RenderSettingsDw;
-        render_settings_dw->sub_1402F38B0();
+        render_settings_dw->LimitPosDisp();
     }
     else
         render_settings_dw->Disp();

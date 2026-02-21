@@ -125,7 +125,7 @@ static fog* fog_dw_get_fog();
 void fog_dw_init() {
     if (!fog_dw) {
         fog_dw = new FogDw;
-        fog_dw->sub_1402F38B0();
+        fog_dw->LimitPosDisp();
     }
     else
         fog_dw->Disp();

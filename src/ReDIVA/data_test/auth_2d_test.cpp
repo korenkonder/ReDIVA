@@ -394,7 +394,7 @@ void dtm_aet_load() {
 
     if (!dtw_aet) {
         dtw_aet = new DtwAet;
-        dtw_aet->sub_1402F38B0();
+        dtw_aet->LimitPosDisp();
     }
     else
         dtw_aet->Disp();

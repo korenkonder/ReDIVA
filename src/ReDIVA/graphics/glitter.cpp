@@ -26,7 +26,7 @@ GlitterDw* glitter_dw;
 void glitter_dw_init() {
     if (!glitter_dw) {
         glitter_dw = new GlitterDw;
-        glitter_dw->sub_1402F38B0();
+        glitter_dw->LimitPosDisp();
     }
     else
         glitter_dw->Disp();

@@ -841,7 +841,7 @@ void DataTestEquipDw::sub_140261C40(int32_t chara_id) {
 void data_test_equip_dw_init() {
     if (!data_test_equip_dw) {
         data_test_equip_dw = new DataTestEquipDw;
-        data_test_equip_dw->sub_1402F38B0();
+        data_test_equip_dw->LimitPosDisp();
     }
     else {
         data_test_item_equip_array_load();

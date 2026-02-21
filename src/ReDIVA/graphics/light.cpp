@@ -275,7 +275,7 @@ static light_data* light_dw_get_light();
 void light_dw_init() {
     if (!light_dw) {
         light_dw = new LightDw;
-        light_dw->sub_1402F38B0();
+        light_dw->LimitPosDisp();
     }
     else
         light_dw->Disp();

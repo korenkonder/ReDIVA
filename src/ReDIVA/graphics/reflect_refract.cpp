@@ -34,7 +34,7 @@ void reflect_refract_dw_init() {
     if (!reflect_refract_dw) {
         reflect_refract_dw = new ReflectRefractDw;
         reflect_refract_dw->UpdateLayout();
-        reflect_refract_dw->sub_1402F38B0();
+        reflect_refract_dw->LimitPosDisp();
     }
     else
         reflect_refract_dw->Disp();

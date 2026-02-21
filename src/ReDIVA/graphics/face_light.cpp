@@ -46,7 +46,7 @@ DwFaceLight::SliderSelectionListener dw_face_light_slider_selection_listener;
 void dw_face_light_init() {
     if (!dw_face_light) {
         dw_face_light = new DwFaceLight;
-        dw_face_light->sub_1402F38B0();
+        dw_face_light->LimitPosDisp();
     }
     else
         dw_face_light->Disp();

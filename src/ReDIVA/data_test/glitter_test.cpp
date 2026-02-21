@@ -76,7 +76,7 @@ bool TaskDataTestGlitterParticle::init() {
     hash = hash_fnv1a64m_empty;
     scene_counter = 0;
     dw = new DataTestGlitterParticleDw(this);
-    dw->sub_1402F38B0();
+    dw->LimitPosDisp();
     frame = 0;
     auto_and_repeat = false;
     reload = false;

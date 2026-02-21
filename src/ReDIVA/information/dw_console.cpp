@@ -77,7 +77,7 @@ static const char* dw_console_c_buff_array_get_buf(int32_t index);
 void dw_console_init() {
     if (!dw_console) {
         dw_console = new DwConsole;
-        dw_console->sub_1402F38B0();
+        dw_console->LimitPosDisp();
     }
     else
         dw_console->Disp();

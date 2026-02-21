@@ -47,7 +47,7 @@ void shadow_dw_init() {
     if (!shadow_dw) {
         shadow_dw = new ShadowDw;
         shadow_dw->UpdateLayout();
-        shadow_dw->sub_1402F38B0();
+        shadow_dw->LimitPosDisp();
     }
     else
         shadow_dw->Disp();

@@ -517,7 +517,7 @@ void DataTestObjDw::StageDisplayCallback(dw::Widget* data) {
 static void data_test_obj_dw_init() {
     if (!data_test_obj_dw) {
         data_test_obj_dw = new DataTestObjDw;
-        data_test_obj_dw->sub_1402F38B0();
+        data_test_obj_dw->LimitPosDisp();
     }
     else
         data_test_obj_dw->Disp();

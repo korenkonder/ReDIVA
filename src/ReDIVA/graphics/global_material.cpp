@@ -32,7 +32,7 @@ GlobalMaterialDw* global_material_dw;
 void global_material_dw_init() {
     if (!global_material_dw) {
         global_material_dw = new GlobalMaterialDw;
-        global_material_dw->sub_1402F38B0();
+        global_material_dw->LimitPosDisp();
         global_material_dw->UpdateLayout();
     }
     else

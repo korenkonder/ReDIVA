@@ -2944,7 +2944,7 @@ static void data_test_mot_dw_array_init(int32_t chara_id, DtmMot* dtm_mot) {
     DataTestMotDw* test_mot_dw = new DataTestMotDw(chara_id, dtm_mot);
     data_test_mot_dw_array[chara_id] = test_mot_dw;
 
-    test_mot_dw->sub_1402F38B0();
+    test_mot_dw->LimitPosDisp();
 
     switch (chara_id) {
     case 0: {
@@ -2966,7 +2966,7 @@ static void data_test_mot_a3d_dw_init() {
     data_test_mot_a3d_add_task();
     if (!data_test_mot_a3d_dw) {
         data_test_mot_a3d_dw = new DataTestMotA3dDw;
-        data_test_mot_a3d_dw->sub_1402F38B0();
+        data_test_mot_a3d_dw->LimitPosDisp();
     }
     else
         data_test_mot_a3d_dw->Disp();
@@ -2979,7 +2979,7 @@ static DataTestMotA3dDw* data_test_mot_a3d_dw_get() {
 static void data_test_mot_ctrl_dw_init() {
     if (!data_test_mot_ctrl_dw) {
         data_test_mot_ctrl_dw = new DataTestMotCtrlDw;
-        data_test_mot_ctrl_dw->sub_1402F38B0();
+        data_test_mot_ctrl_dw->LimitPosDisp();
     }
     else
         data_test_mot_ctrl_dw->Disp();
@@ -2995,7 +2995,7 @@ static void data_test_face_mot_dw_array_init(int32_t chara_id) {
 
     if (!data_test_face_mot_dw_array[chara_id]) {
         data_test_face_mot_dw_array[chara_id] = new DataTestFaceMotDw(chara_id);
-        data_test_face_mot_dw_array[chara_id]->sub_1402F38B0();
+        data_test_face_mot_dw_array[chara_id]->LimitPosDisp();
     }
     else
         data_test_face_mot_dw_array[chara_id]->Disp();

@@ -250,7 +250,7 @@ namespace dw {
             SetText(str);
         }
 
-        static void sub_1402F3770(Widget* widget);
+        static void LimitPos(Widget* widget);
     };
 
     class KeyListener;
@@ -395,11 +395,11 @@ namespace dw {
 
         void Disp();
         bool GetDisp();
+        void LimitPosDisp();
         void SetDisp(bool value = false);
 
         void sub_1402E43C0(Widget* widget);
         void sub_1402E61F0(Widget* widget);
-        void sub_1402F38B0();
     };
 
     class KeyListener {
@@ -855,11 +855,11 @@ namespace dw {
         }
     };
 
-    struct init_data {
+    struct DisplayData {
         rectangle field_0;
         rectangle field_10;
 
-        init_data();
+        DisplayData();
     };
 
     class DropDownListScrollBarSelectionListener : public SelectionAdapter {
@@ -896,7 +896,7 @@ namespace dw {
 }
 
 extern void dw_init();
-extern void dw_init(dw::init_data& init_data);
+extern void dw_init(dw::DisplayData& data);
 extern void dw_free();
 
 extern void dw_gui_ctrl_disp();
