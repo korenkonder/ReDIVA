@@ -1847,7 +1847,7 @@ namespace dw {
                 hovered_item--;
 
             if (sub_1402F1F20(hovered_item) && !sub_1402F1F20(hovered_item))
-                v12.field_8 = data.key_input;
+                v12.key = data.key_input;
             break;
         case 0x1000002:
             if (hovered_item == -1)
@@ -1856,14 +1856,14 @@ namespace dw {
                 hovered_item++;
 
             if (sub_1402F1F20(hovered_item) && !sub_1402F1F20(hovered_item))
-                v12.field_8 = data.key_input;
+                v12.key = data.key_input;
             break;
         case 0x1000005:
             if (hovered_item == -1 || hovered_item < max_items_visible)
                 hovered_item = 0;
             else
                 hovered_item -= max_items_visible;
-            v12.field_8 = data.key_input;
+            v12.key = data.key_input;
             break;
         case 0x1000006:
             if (hovered_item == -1)
@@ -1873,15 +1873,15 @@ namespace dw {
                 hovered_item = items_count - 1;
             else
                 hovered_item += max_items_visible;
-            v12.field_8 = data.key_input;
+            v12.key = data.key_input;
             break;
         case 0x1000007:
             hovered_item = 0;
-            v12.field_8 = data.key_input;
+            v12.key = data.key_input;
             break;
         case 0x1000008:
             hovered_item = items_count - 1;
-            v12.field_8 = data.key_input;
+            v12.key = data.key_input;
             break;
         }
 
@@ -1892,7 +1892,7 @@ namespace dw {
             for (SelectionListener*& i : selection_listeners)
                 i->Callback(&callback_data);
 
-            if (v12.field_8 && v_bar)
+            if (v12.key && v_bar)
                 ScrollBar::sub_1402E6CC0(v12);
 
             sub_1402F9C90(hovered_item);
@@ -2592,19 +2592,19 @@ namespace dw {
         case 0x1000006:
         case 0x1000007:
         case 0x1000008:
-            callback_data.field_8 = key_callback_data.key_input;
+            callback_data.key = key_callback_data.key_input;
             break;
         case 0x1000003:
-            callback_data.field_8 = 0x1000001;
+            callback_data.key = 0x1000001;
             break;
         case 0x1000004:
-            callback_data.field_8 = 0x1000002;
+            callback_data.key = 0x1000002;
             break;
         default:
             break;
         }
 
-        if (callback_data.field_8 != -1) {
+        if (callback_data.key != -1) {
             callback_data.widget = this;
             ScrollBar::sub_1402E6CC0(callback_data);
             callback_data.widget = parent;
@@ -2617,15 +2617,15 @@ namespace dw {
         if (field_A6) {
             SelectionListener::CallbackData callback_data;
             if (mouse_callback_data.input & MOUSE_INPUT_DOWN_LEFT) {
-                callback_data.field_8 = 1;
+                callback_data.key = 1;
                 callback_data.mouse_pos = mouse_callback_data.pos;
             }
             else {
-                callback_data.field_8 = 0;
+                callback_data.key = 0;
                 field_A6 = false;
             }
 
-            if (callback_data.field_8 != -1) {
+            if (callback_data.key != -1) {
                 callback_data.widget = this;
                 ScrollBar::sub_1402E6CC0(callback_data);
                 callback_data.widget = this->parent;
@@ -2635,11 +2635,11 @@ namespace dw {
 
         SelectionListener::CallbackData callback_data;
         if (mouse_callback_data.input & MOUSE_INPUT_100000)
-            callback_data.field_8 = 0x1000071;
+            callback_data.key = 0x1000071;
         else if (mouse_callback_data.input & MOUSE_INPUT_200000)
-            callback_data.field_8 = 0x1000072;
+            callback_data.key = 0x1000072;
 
-        if (callback_data.field_8 == -1 && !CheckHitPos(mouse_callback_data.pos))
+        if (callback_data.key == -1 && !CheckHitPos(mouse_callback_data.pos))
             return callback_data;
 
         vec2 glyph_size = font.GetFontGlyphSize();
@@ -2664,19 +2664,19 @@ namespace dw {
 
         if (mouse_callback_data.input & MOUSE_INPUT_INTERVAL_LEFT) {
             if (v9 < v10)
-                callback_data.field_8 = 0x1000001;
+                callback_data.key = 0x1000001;
             else if (v11 - v8 < v9)
-                callback_data.field_8 = 0x1000002;
+                callback_data.key = 0x1000002;
             else {
                 vec2 v23 = sub_1402E4790();
                 if (v23.x + v10 > v9)
-                    callback_data.field_8 = 0x1000005;
+                    callback_data.key = 0x1000005;
                 else if (v9 > v23.x + v10 + v23.y)
-                    callback_data.field_8 = 0x1000006;
+                    callback_data.key = 0x1000006;
             }
         }
 
-        if (callback_data.field_8 == -1
+        if (callback_data.key == -1
             && (mouse_callback_data.input & MOUSE_INPUT_DOWN_LEFT)
             && (mouse_callback_data.input & MOUSE_INPUT_MOVE)) {
             vec2 v23 = sub_1402E4790();
@@ -2706,12 +2706,12 @@ namespace dw {
                     field_A0 = mouse_callback_data.pos.x - (v17 * 0.5f + v14);
                 else
                     field_A0 = mouse_callback_data.pos.y - (v18 * 0.5f + v15);
-                callback_data.field_8 = 1;
+                callback_data.key = 1;
                 callback_data.mouse_pos = mouse_callback_data.pos;
             }
         }
 
-        if (callback_data.field_8 != -1) {
+        if (callback_data.key != -1) {
             callback_data.widget = this;
             ScrollBar::sub_1402E6CC0(callback_data);
             callback_data.widget = parent;
@@ -2720,7 +2720,7 @@ namespace dw {
     }
 
     void ScrollBar::sub_1402E6CC0(SelectionListener::CallbackData data) {
-        if (!data.field_8)
+        if (!data.key)
             return;
 
         ScrollBar* scroll_bar = dynamic_cast<ScrollBar*>(data.widget);
@@ -2728,7 +2728,7 @@ namespace dw {
             return;
 
         float_t value = scroll_bar->value;
-        switch (data.field_8) {
+        switch (data.key) {
         case 1: {
             vec2 glyph_size = scroll_bar->font.GetFontGlyphSize();
             rectangle v14 = scroll_bar->GetRectangle();
@@ -2990,7 +2990,7 @@ namespace dw {
 
     void DropDownListScrollBarSelectionListener::Callback(SelectionListener::CallbackData* data) {
         ListBox* list_box = dynamic_cast<ListBox*>(data->widget);
-        if (list_box && list_box->field_118 && !data->field_8)
+        if (list_box && list_box->field_118 && !data->key)
             dw_gui_detail_display_set_cap(list_box, true);
     }
 

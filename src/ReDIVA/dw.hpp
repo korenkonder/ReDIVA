@@ -128,17 +128,17 @@ namespace dw {
     public:
         struct CallbackData {
             int64_t field_0;
-            int32_t field_8;
+            int32_t key;
             int8_t field_C;
             vec2 mouse_pos;
             int32_t field_18;
             Widget* widget;
 
-            inline CallbackData() : field_0(), field_8(), field_C(), field_18(), widget() {
-                field_8 = -1;
+            inline CallbackData() : field_0(), key(), field_C(), field_18(), widget() {
+                key = -1;
             }
 
-            inline CallbackData(Widget* widget) : field_0(), field_8(), field_C(), field_18() {
+            inline CallbackData(Widget* widget) : field_0(), key(), field_C(), field_18() {
                 this->widget = widget;
             }
         };
