@@ -1039,9 +1039,9 @@ void process_edit_dsc() {
                 break;
 
             if (i->compare(L"server"))
-                stru_140EDA5B0.field_1C = 0;
+                stru_140EDA5B0.start_up_mode = 0;
             else
-                stru_140EDA5B0.field_1C = 1;
+                stru_140EDA5B0.start_up_mode = 1;
         }
         else if (!i->compare(L"-ve"))
             stru_140EDA5B0.vsync_emulation = 1;

@@ -82,6 +82,7 @@ struct InputState {
 };
 
 extern void input_state_init();
+extern void input_state_am_ctrl();
 extern void input_state_ctrl();
 extern const InputState* input_state_get(int32_t index);
 extern void input_state_free();

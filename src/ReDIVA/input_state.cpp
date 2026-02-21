@@ -26,56 +26,67 @@ Bit / Name
 
   2   JVS_START
 
-  3   JVS_UP    (guessed, unsure)
-  4   JVS_DOWN  (guessed, unsure)
-  5   JVS_LEFT  (guessed, unsure)
-  6   JVS_RIGHT (guessed, unsure)
+  3   JVS_UP
+  4   JVS_DOWN
+  5   JVS_LEFT
+  6   JVS_RIGHT
 
   7   JVS_TRIANGLE
   8   JVS_SQUARE
   9   JVS_CROSS
  10   JVS_CIRCLE
- 11   JVS_L       (also triggered by pressing L on Slider Panel)
- 12   JVS_R       (also triggered by pressing R on Slider Panel)
+ 11   JVS_L        (also triggered by pressing L on Slider Panel)
+ 12   JVS_R        (also triggered by pressing R on Slider Panel)
 
  18   JVS_SW1
  19   JVS_SW2
 
- 29   VK_SPACE
+ 29   '0'
+ 30   '1'
+...
+ 38   '9'
 
  39   'A'
  40   'B'
 ...
  64   'Z'
  
- 66   ???
- 67   ???
- 68   ???
- 69   ???
- 70   ???
- 71   ???
- 72   ???
- 73   ???
- 74   ???
- 75   ???
- 76   ???
- 77   ???
+ 66   VK_F1
+ 67   VK_F2
+ 68   VK_F3
+ 69   VK_F4
+ 70   VK_F5
+ 71   VK_F6
+ 72   VK_F7
+ 73   VK_F8
+ 74   VK_F9
+ 75   VK_F10
+ 76   VK_F11
+ 77   VK_F12
 
+ 78   VK_BACK
+ 79   VK_TAB
  80   VK_RETURN
+
  81   VK_SHIFT
  82   VK_CONTROL
  83   VK_MENU
- 84   VK_PAUSE (guessed, unsure)
 
- 86   ???
- 87   ???
- 89   ???
- 90   ???
+ 84   VK_SPACE
+
+ 85   VK_INSERT
+ 86   VK_HOME
+ 87   VK_NEXT
+ 88   VK_DELETE
+ 89   VK_END
+ 90   VK_PRIOR
 
  91   VK_UP
  92   VK_LEFT
  93   VK_DOWN
  94   VK_RIGHT
+
+ 95   MOUSE_PRESS (any of mouse buttons or scroll)
 
  96   VK_LBUTTON
  97   VK_MBUTTON
@@ -84,24 +95,46 @@ Bit / Name
  99   MOUSE_SCROLL_UP
 100   MOUSE_SCROLL_DOWN*/
 
-struct struc_794 {
+struct amInputState {
     ButtonState tapped;
     ButtonState released;
     ButtonState down;
     int32_t field_30[18];
     int32_t field_78;
-    int64_t field_80;
+    uint8_t* key_ptr;
 
-    struc_794();
-    ~struc_794();
+    amInputState();
 
-    void Reset();
+    void reset();
 };
+
+struct amOutputState {
+    int32_t data;
+
+    amOutputState();
+};
+
+struct amInputOutputState {
+    amInputState input[2];
+    amOutputState output[2];
+
+    amInputOutputState();
+
+    void ctrl();
+};
+
+static void am_input_output_ctrl();
+static void am_input_output_ctrl_parent();
+static bool am_input_output_get_input(amInputState* data, int32_t index);
+static bool am_input_output_set_output(const amOutputState value, int32_t index);
+
+// Own stuff
+static void am_input_output_pc_ctrl(amInputState& input);
 
 static void input_state_ctrl(InputState* input_state);
 static int32_t input_state_get_delta_frame();
 
-static bool sub_140190A30(struc_794* a1, int32_t index);
+amInputOutputState am_input_output;
 
 InputState* input_state;
 
@@ -281,63 +314,63 @@ void InputState::Update(int32_t index, int32_t delta_frame) {
     Released.reset();
     Down.reset();
 
-    struc_794 v78;
-    updated = sub_140190A30(&v78, index);
+    amInputState am_input;
+    updated = am_input_output_get_input(&am_input, index);
 
-    Down |= v78.down;
-    Tapped |= v78.tapped;
-    Released |= v78.released;
+    Down |= am_input.down;
+    Tapped |= am_input.tapped;
+    Released |= am_input.released;
 
     if (updated) {
-        field_80[0] = v78.field_30[0];
-        field_80[1] = v78.field_30[1];
-        field_80[2] = v78.field_30[2];
-        field_80[3] = v78.field_30[3];
-        field_80[4] = v78.field_30[4];
-        field_80[5] = v78.field_30[5];
-        field_80[6] = v78.field_30[6];
-        field_80[7] = v78.field_30[7];
+        field_80[0] = am_input.field_30[0];
+        field_80[1] = am_input.field_30[1];
+        field_80[2] = am_input.field_30[2];
+        field_80[3] = am_input.field_30[3];
+        field_80[4] = am_input.field_30[4];
+        field_80[5] = am_input.field_30[5];
+        field_80[6] = am_input.field_30[6];
+        field_80[7] = am_input.field_30[7];
 
         //Added
-        field_80[8] = v78.field_30[8];
-        field_80[9] = v78.field_30[9];
-        field_80[10] = v78.field_30[10];
-        field_80[11] = v78.field_30[11];
+        field_80[8] = am_input.field_30[8];
+        field_80[9] = am_input.field_30[9];
+        field_80[10] = am_input.field_30[10];
+        field_80[11] = am_input.field_30[11];
     }
 
     /*if (task_slider_control_get()->sub_140618C60(36))
-        v78.tapped[11] = true;
+        am_input.tapped[11] = true;
     else
-        v78.tapped[11] = false;
+        am_input.tapped[11] = false;
 
     if (task_slider_control_get()->sub_140618C40(36))
-        v78.released[11] = true;
+        am_input.released[11] = true;
     else
-        v78.released[11] = false;
+        am_input.released[11] = false;
 
     if (task_slider_control_get()->sub_140618C20(36))
-        v78.down[11] = true;
+        am_input.down[11] = true;
     else
-        v78.down[11] = false;
+        am_input.down[11] = false;
 
     if (task_slider_control_get()->sub_140618C60(37))
-        v78.tapped[12] = true;
+        am_input.tapped[12] = true;
     else
-        v78.tapped[12] = false;
+        am_input.tapped[12] = false;
 
     if (task_slider_control_get()->sub_140618C40(37))
-        v78.released[12] = true;
+        am_input.released[12] = true;
     else
-        v78.released[12] = false;
+        am_input.released[12] = false;
 
     if (task_slider_control_get()->sub_140618C20(37))
-        v78.down[12] = true;
+        am_input.down[12] = true;
     else
-        v78.down[12] = false;*/
+        am_input.down[12] = false;*/
 
-    Tapped |= v78.tapped;
-    Released |= v78.released;
-    Down |= v78.down;
+    Tapped |= am_input.tapped;
+    Released |= am_input.released;
+    Down |= am_input.down;
 
     Released &= ~Down;
 
@@ -417,6 +450,11 @@ void input_state_init() {
         input_state = new InputState[2];
 }
 
+void input_state_am_ctrl() {
+    if (input_state)
+        am_input_output_ctrl();
+}
+
 void input_state_ctrl() {
     if (input_state)
         input_state_ctrl(input_state);
@@ -435,15 +473,11 @@ void input_state_free() {
     }
 }
 
-struc_794::struc_794() : field_30(), field_78(), field_80() {
-    Reset();
+amInputState::amInputState() : field_30(), field_78(), key_ptr() {
+    reset();
 }
 
-struc_794::~struc_794() {
-
-}
-
-void struc_794::Reset() {
+void amInputState::reset() {
     tapped.reset();
     released.reset();
     down.reset();
@@ -452,23 +486,202 @@ void struc_794::Reset() {
     memset(field_30, 0, sizeof(field_30));
     field_30[2] = 0x80000000;
     field_30[3] = 0x80000000;
-    field_80 = 0;
+    key_ptr = 0;
 }
 
-static void input_state_ctrl(InputState* input_state) {
-    int32_t delta_frame = input_state_get_delta_frame();
-    for (int32_t i = 0; i < 2; i++)
-        input_state[i].Update(i, delta_frame);
+amOutputState::amOutputState() : data() {
+
 }
 
-static int32_t input_state_get_delta_frame() {
-    return 1;
+amInputOutputState::amInputOutputState() {
+
+}
+
+void amInputOutputState::ctrl() {
+    /*struct struc_938 {
+        uint8_t field_0[4];
+        uint16_t field_4[2];
+        uint16_t field_8;
+        uint16_t field_A;
+        uint16_t field_C;
+        uint8_t field_E[2];
+        uint64_t field_10;
+        uint64_t field_18;
+        uint64_t field_20;
+    };*/
+
+    /*struct struc_807 {
+        uint8_t field_0[2];
+    };*/
+
+    ButtonState prev_down[2];
+    for (size_t i = 0; i < 2; i++) {
+        amInputState& input = this->input[i];
+        prev_down[i] = input.down;
+
+        //struc_938* v11 = sub_14066CA30(sub_14066CE80() == 1 ? 0 : i);
+
+        input.down = 0;
+        memset(input.field_30, 0, sizeof(input.field_30));
+
+        /*if (v11) {
+            if (v11->field_0[0] & 0x80)
+                input.down[0] = true;
+            if (v11->field_0[1] & 0x80)
+                input.down[2] = true;
+            if (v11->field_0[1] & 0x40)
+                input.down[1] = true;
+            if (v11->field_0[1] & 0x20)
+                input.down[3] = true;
+            if (v11->field_0[1] & 0x10)
+                input.down[4] = true;
+            if (v11->field_0[1] & 0x08)
+                input.down[5] = true;
+            if (v11->field_0[1] & 0x04)
+                input.down[6] = true;
+            if (v11->field_0[1] & 0x02)
+                input.down[7] = true;
+            if (v11->field_0[1] & 0x01)
+                input.down[8] = true;
+            if (v11->field_0[2] & 0x80)
+                input.down[9] = true;
+            if (v11->field_0[2] & 0x40)
+                input.down[10] = true;
+            if (v11->field_0[2] & 0x20)
+                input.down[11] = true;
+            if (v11->field_0[2] & 0x10)
+                input.down[12] = true;
+            if (v11->field_0[2] & 0x08)
+                input.down[13] = true;
+            if (v11->field_0[2] & 0x04)
+                input.down[14] = true;
+            if (v11->field_0[2] & 0x02)
+                input.down[15] = true;
+            if (v11->field_0[2] & 0x01)
+                input.down[16] = true;
+
+            uint16_t* v15 = v11->field_4;
+            for (size_t j = 0; j < 18; j++, v15++)
+                if (j < 2)
+                    input.field_30[j] = *v15;
+        }*/
+
+        am_input_output_pc_ctrl(input);
+
+        if (input.down[0])
+            this->input[0].down[0] = true;
+        if (input.down[1])
+            this->input[0].down[1] = true;
+    }
+
+    /*struc_807* v16 = sub_14066CA20();
+    if (v16->field_0[1] & 0x01) {
+        input[0].down[0] = true;
+        input[0].down[18] = true;
+    }
+
+    if (v16->field_0[1] & 0x02) {
+        input[0].down[1] = true;
+        input[0].down[19] = true;
+    }
+
+    if (v16->field_0[0] & 0x01)
+        input[0].down[20] = true;
+    if (v16->field_0[0] & 0x02)
+        input[0].down[21] = true;
+    if (v16->field_0[0] & 0x04)
+        input[0].down[22] = true;
+    if (v16->field_0[0] & 0x08)
+        input[0].down[23] = true;
+    if (v16->field_0[0] & 0x10)
+        input[0].down[24] = true;
+    if (v16->field_0[0] & 0x20)
+        input[0].down[25] = true;
+    if (v16->field_0[0] & 0x40)
+        input[0].down[26] = true;
+    if (v16->field_0[0] & 0x80)
+        input[0].down[27] = true;*/
+
+    for (size_t i = 0; i < 2; i++) {
+        input[i].tapped = input[i].down & ~prev_down[i];
+        input[i].released = prev_down[i] & ~input[i].down;
+    }
+
+    /*for (size_t i = 0; i < 2; i++) {
+        int32_t v34 = output[i].data;
+        int32_t v35 = 0x00;
+        if (v34 & 0x04)
+            v35 |= 0x01;
+        if (v34 & 0x08)
+            v35 |= 0x02;
+        if (v34 & 0x10)
+            v35 |= 0x04;
+        if (v34 & 0x20)
+            v35 |= 0x08;
+        if (v34 & 0x40)
+            v35 |= 0x10;
+        if (v34 & 0x80)
+            v35 |= 0x20;
+        if (v34 & 0x100)
+            v35 |= 0x40;
+        if (v34 & 0x200)
+            v35 |= 0x80;
+        if (v34 & 0x400)
+            v35 |= 0x100;
+        if (v34 & 0x800)
+            v35 |= 0x200;
+        if (v34 & 0x1000)
+            v35 |= 0x400;
+        if (v34 & 0x2000)
+            v35 |= 0x800;
+        if (v34 & 0x4000)
+            v35 |= 0x1000;
+        if (v34 & 0x8000)
+            v35 |= 0x2000;
+        if (v34 & 0x10000)
+            v35 |= 0x4000;
+        if (v34 & 0x20000)
+            v35 |= 0x8000;
+        if (v34 & 0x40000)
+            v35 |= 0x10000;
+        if (v34 & 0x80000)
+            v35 |= 0x20000;
+        if (v34 & 0x100000)
+            v35 |= 0x40000;
+        if (v34 & 0x200000)
+            v35 |= 0x80000;
+        sub_14066FF20(i, v35);
+    }*/
+
+    /*amOutputState* v31 = output;
+    uint8_t v4 = 0x00;
+    if (v31->data & 0x01)
+        v4 |= 0x01;
+    if (v31->data & 0x02)
+        v4 |= 0x02;
+    sub_14066FEF0(v4);*/
+}
+
+static void am_input_output_ctrl() {
+    am_input_output.ctrl();
+}
+
+static void am_input_output_ctrl_parent() {
+    am_input_output_ctrl();
+}
+
+static bool am_input_output_get_input(amInputState* data, int32_t index) {
+    if (!data || index < 0 || index >= 2)
+        return false;
+
+    *data = am_input_output.input[index];
+    return true;
 }
 
 // Own stuff
-static bool sub_140190A30(struc_794* a1, int32_t index) {
-    if (!a1 || index < 0 || index >= 2)
-        return false;
+static void am_input_output_pc_ctrl(amInputState& input) {
+    if (disable_input_state_update)
+        return;
 
     struct key_map {
         int32_t index;
@@ -518,9 +731,17 @@ static bool sub_140190A30(struc_794* a1, int32_t index) {
 
         { 18, GLFW_KEY_F11, /*JVS_SW1,*/ },
         { 19, GLFW_KEY_F12, /*JVS_SW2,*/ },
-        { 20, GLFW_KEY_C, /*JVS_COIN,*/ },
 
-        { 29, GLFW_KEY_SPACE, },
+        { 29, GLFW_KEY_0, },
+        { 30, GLFW_KEY_1, },
+        { 31, GLFW_KEY_2, },
+        { 32, GLFW_KEY_3, },
+        { 33, GLFW_KEY_4, },
+        { 34, GLFW_KEY_5, },
+        { 35, GLFW_KEY_6, },
+        { 36, GLFW_KEY_7, },
+        { 37, GLFW_KEY_8, },
+        { 38, GLFW_KEY_9, },
 
         { 39, GLFW_KEY_A, },
         { 40, GLFW_KEY_B, },
@@ -549,11 +770,35 @@ static bool sub_140190A30(struc_794* a1, int32_t index) {
         { 63, GLFW_KEY_Y, },
         { 64, GLFW_KEY_Z, },
 
+        { 66, GLFW_KEY_F1, },
+        { 67, GLFW_KEY_F2, },
+        { 68, GLFW_KEY_F3, },
+        { 69, GLFW_KEY_F4, },
+        { 70, GLFW_KEY_F5, },
+        { 71, GLFW_KEY_F6, },
+        { 72, GLFW_KEY_F7, },
+        { 73, GLFW_KEY_F8, },
+        { 74, GLFW_KEY_F9, },
+        { 75, GLFW_KEY_F10, },
+        { 76, GLFW_KEY_F11, },
+        { 77, GLFW_KEY_F12, },
+
+        { 78, GLFW_KEY_BACKSPACE, },
+        { 79, GLFW_KEY_TAB, },
         { 80, GLFW_KEY_ENTER, },
+
         { 81, GLFW_KEY_LEFT_SHIFT, GLFW_KEY_RIGHT_SHIFT, },
         { 82, GLFW_KEY_LEFT_CONTROL, GLFW_KEY_RIGHT_CONTROL, },
         { 83, GLFW_KEY_LEFT_ALT, GLFW_KEY_RIGHT_ALT, },
-        { 84, GLFW_KEY_PAUSE, },
+
+        { 84, GLFW_KEY_SPACE, },
+
+        { 85, GLFW_KEY_INSERT, },
+        { 86, GLFW_KEY_HOME, },
+        { 87, GLFW_KEY_PAGE_UP, },
+        { 88, GLFW_KEY_DELETE, },
+        { 89, GLFW_KEY_END, },
+        { 90, GLFW_KEY_PAGE_DOWN, },
 
         { 91, GLFW_KEY_UP, },
         { 92, GLFW_KEY_LEFT, },
@@ -567,98 +812,47 @@ static bool sub_140190A30(struc_794* a1, int32_t index) {
         { 98, GLFW_MOUSE_BUTTON_RIGHT, },
     };
 
-    if (!disable_input_state_update) {
-        for (const key_map& i : key_map_array) {
-            bool tapped = false;
-            bool released = false;
-            bool down = false;
+    for (const key_map& i : key_map_array) {
+        bool down = false;
 
-            for (const int32_t& j : i.keys) {
-                if (j == -1)
-                    break;
+        for (const int32_t& j : i.keys) {
+            if (j == -1)
+                break;
 
-                if (!tapped)
-                    if (Input::IsKeyTapped(j, -1))
-                        tapped = true;
-
-                if (!released)
-                    if (Input::IsKeyReleased(j, -1))
-                        released = true;
-
-                if (!down)
-                    if (Input::IsKeyDown(j, -1))
-                        down = true;
-            }
-
-            a1->tapped[i.index] = tapped;
-            a1->released[i.index] = released;
-            a1->down[i.index] = down;
+            if (!down)
+                if (Input::IsKeyDown(j, -1))
+                    down = true;
         }
 
-        for (const key_map& i : mouse_button_array) {
-            bool tapped = false;
-            bool released = false;
-            bool down = false;
+        input.down[i.index] = down;
+    }
 
-            for (const int32_t& j : i.keys) {
-                if (j == -1)
-                    break;
+    for (const key_map& i : mouse_button_array) {
+        bool down = false;
 
-                if (!tapped)
-                    if (Input::IsMouseButtonTapped(j))
-                        tapped = true;
+        for (const int32_t& j : i.keys) {
+            if (j == -1)
+                break;
 
-                if (!released)
-                    if (Input::IsMouseButtonReleased(j))
-                        released = true;
-
-                if (!down)
-                    if (Input::IsMouseButtonDown(j))
-                        down = true;
-            }
-
-            a1->tapped[i.index] = tapped;
-            a1->released[i.index] = released;
-            a1->down[i.index] = down;
-        }
-
-        {
-            bool tapped = false;
-            bool released = false;
-            bool down = false;
-
-            if (Input::scroll > 0.0 && Input::scroll_prev > 0.0)
+            if (Input::IsMouseButtonDown(j)) {
                 down = true;
-            else if (Input::scroll > 0.0)
-                tapped = true;
-            else if (Input::scroll_prev > 0.0)
-                released = true;
-
-            const int32_t index = 99;
-
-            a1->tapped[index] = tapped;
-            a1->released[index] = released;
-            a1->down[index] = down;
+                break;
+            }
         }
 
-        {
-            bool tapped = false;
-            bool released = false;
-            bool down = false;
+        input.down[i.index] = down;
+    }
 
-            if (Input::scroll < 0.0 && Input::scroll_prev < 0.0)
-                down = true;
-            else if (Input::scroll < 0.0)
-                tapped = true;
-            else if (Input::scroll_prev < 0.0)
-                released = true;
+    {
+        const int32_t index = 99;
 
-            const int32_t index = 100;
+        input.down[index] = Input::scroll > 0.0;
+    }
 
-            a1->tapped[index] = tapped;
-            a1->released[index] = released;
-            a1->down[index] = down;
-        }
+    {
+        const int32_t index = 100;
+
+        input.down[index] = Input::scroll < 0.0;
     }
 
 #if BAKE_PNG || BAKE_VIDEO
@@ -673,9 +867,26 @@ static bool sub_140190A30(struc_794* a1, int32_t index) {
     float_t y_scale = 720.0f / (float_t)rctx_ptr->sprite_height;
 #endif
 
-    a1->field_30[8] = (int32_t)((float_t)(Input::pos.x - x_offset) * x_scale);
-    a1->field_30[9] = (int32_t)((float_t)(Input::pos.y - y_offset) * y_scale);
-    a1->field_30[10] = (int32_t)((float_t)(Input::pos_prev.x - Input::pos.x - x_offset) * x_scale);
-    a1->field_30[11] = (int32_t)((float_t)(Input::pos_prev.y - Input::pos.y - y_offset) * y_scale);
+    input.field_30[8] = (int32_t)((float_t)(Input::pos.x - x_offset) * x_scale);
+    input.field_30[9] = (int32_t)((float_t)(Input::pos.y - y_offset) * y_scale);
+    input.field_30[10] = (int32_t)((float_t)(Input::pos_prev.x - Input::pos.x - x_offset) * x_scale);
+    input.field_30[11] = (int32_t)((float_t)(Input::pos_prev.y - Input::pos.y - y_offset) * y_scale);
+}
+
+static bool am_input_output_set_output(const amOutputState data, int32_t index) {
+    if (index < 0 || index >= 2)
+        return false;
+
+    am_input_output.output[index] = data;
     return true;
+}
+
+static void input_state_ctrl(InputState* input_state) {
+    int32_t delta_frame = input_state_get_delta_frame();
+    for (int32_t i = 0; i < 2; i++)
+        input_state[i].Update(i, delta_frame);
+}
+
+static int32_t input_state_get_delta_frame() {
+    return 1;
 }

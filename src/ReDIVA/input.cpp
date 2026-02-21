@@ -191,18 +191,16 @@ namespace Input {
     void EndFrame() {
         keys_prev.assign(keys.begin(), keys.end());
         mouse_buttons_prev.assign(mouse_buttons.begin(), mouse_buttons.end());
+        pos_prev = pos;
+        scroll_prev = scroll;
+        scroll = 0.0;
     }
 
     void NewFrame() {
-        pos_prev = pos;
-        scroll_prev = scroll;
-
         if (window_handle) {
             GetCursorPos(&pos);
             ScreenToClient(window_handle, &pos);
         }
-
-        scroll = 0.0f;
 
         input_move_x = 0.0;
         input_move_y = 0.0;
