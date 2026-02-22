@@ -1981,7 +1981,7 @@ namespace dw {
             }
         }
 
-        if ((data.input & MOUSE_INPUT_100000) || (data.input & MOUSE_INPUT_200000))
+        if ((data.input & MOUSE_INPUT_SCROLL_UP) || (data.input & MOUSE_INPUT_SCROLL_DOWN))
             return Scrollable::MouseCallback(data);
         return 0;
     }
@@ -2645,9 +2645,9 @@ namespace dw {
         }
 
         SelectionListener::CallbackData callback_data;
-        if (mouse_callback_data.input & MOUSE_INPUT_100000)
+        if (mouse_callback_data.input & MOUSE_INPUT_SCROLL_UP)
             callback_data.key = 0x1000071;
-        else if (mouse_callback_data.input & MOUSE_INPUT_200000)
+        else if (mouse_callback_data.input & MOUSE_INPUT_SCROLL_DOWN)
             callback_data.key = 0x1000072;
 
         if (callback_data.key == -1 && !CheckHitPos(mouse_callback_data.pos))
@@ -3276,150 +3276,150 @@ void dw_gui_detail::Input::Ctrl() {
     if (mouse_delta != 0.0f)
         enum_or(mouse_input, dw::MOUSE_INPUT_MOVE);
 
-    if (input_state->CheckDown(82))
+    if (input_state->CheckDown(INPUT_BUTTON_CONTROL))
         enum_or(state, dw::INPUT_STATE_CTRL);
-    if (input_state->CheckDown(81))
+    if (input_state->CheckDown(INPUT_BUTTON_SHIFT))
         enum_or(state, dw::INPUT_STATE_SHIFT);
-    if (input_state->CheckDown(83))
+    if (input_state->CheckDown(INPUT_BUTTON_ALT))
         enum_or(state, dw::INPUT_STATE_ALT);
 
-    if (input_state->CheckDown(96))
+    if (input_state->CheckDown(INPUT_BUTTON_MOUSE_BUTTON_LEFT))
         enum_or(mouse_input, dw::MOUSE_INPUT_DOWN_LEFT);
-    if (input_state->CheckDown(97))
+    if (input_state->CheckDown(INPUT_BUTTON_MOUSE_BUTTON_MIDDLE))
         enum_or(mouse_input, dw::MOUSE_INPUT_DOWN_MIDDLE);
-    if (input_state->CheckDown(98))
+    if (input_state->CheckDown(INPUT_BUTTON_MOUSE_BUTTON_RIGHT))
         enum_or(mouse_input, dw::MOUSE_INPUT_DOWN_RIGHT);
 
-    if (input_state->CheckIntervalTapped(96))
+    if (input_state->CheckIntervalTapped(INPUT_BUTTON_MOUSE_BUTTON_LEFT))
         enum_or(mouse_input, dw::MOUSE_INPUT_INTERVAL_LEFT);
-    if (input_state->CheckIntervalTapped(97))
+    if (input_state->CheckIntervalTapped(INPUT_BUTTON_MOUSE_BUTTON_MIDDLE))
         enum_or(mouse_input, dw::MOUSE_INPUT_INTERVAL_MIDDLE);
-    if (input_state->CheckIntervalTapped(98))
+    if (input_state->CheckIntervalTapped(INPUT_BUTTON_MOUSE_BUTTON_RIGHT))
         enum_or(mouse_input, dw::MOUSE_INPUT_INTERVAL_RIGHT);
 
-    if (input_state->CheckTapped(96))
+    if (input_state->CheckTapped(INPUT_BUTTON_MOUSE_BUTTON_LEFT))
         enum_or(mouse_input, dw::MOUSE_INPUT_TAP_LEFT);
-    if (input_state->CheckTapped(97))
+    if (input_state->CheckTapped(INPUT_BUTTON_MOUSE_BUTTON_MIDDLE))
         enum_or(mouse_input, dw::MOUSE_INPUT_TAP_MIDDLE);
-    if (input_state->CheckTapped(98))
+    if (input_state->CheckTapped(INPUT_BUTTON_MOUSE_BUTTON_RIGHT))
         enum_or(mouse_input, dw::MOUSE_INPUT_TAP_RIGHT);
 
-    if (input_state->CheckReleased(99))
-        enum_or(mouse_input, dw::MOUSE_INPUT_100000);
-    if (input_state->CheckReleased(100))
-        enum_or(mouse_input, dw::MOUSE_INPUT_200000);
-    if (input_state->CheckReleased(96))
+    if (input_state->CheckReleased(INPUT_BUTTON_MOUSE_SCROLL_UP))
+        enum_or(mouse_input, dw::MOUSE_INPUT_SCROLL_UP);
+    if (input_state->CheckReleased(INPUT_BUTTON_MOUSE_SCROLL_DOWN))
+        enum_or(mouse_input, dw::MOUSE_INPUT_SCROLL_DOWN);
+    if (input_state->CheckReleased(INPUT_BUTTON_MOUSE_BUTTON_LEFT))
         enum_or(mouse_input, dw::MOUSE_INPUT_RELEASE_LEFT);
-    if (input_state->CheckReleased(97))
+    if (input_state->CheckReleased(INPUT_BUTTON_MOUSE_BUTTON_MIDDLE))
         enum_or(mouse_input, dw::MOUSE_INPUT_RELEASE_MIDDLE);
-    if (input_state->CheckReleased(98))
+    if (input_state->CheckReleased(INPUT_BUTTON_MOUSE_BUTTON_RIGHT))
         enum_or(mouse_input, dw::MOUSE_INPUT_RELEASE_RIGHT);
 
-    if (input_state->CheckDoubleTapped(96))
+    if (input_state->CheckDoubleTapped(INPUT_BUTTON_MOUSE_BUTTON_LEFT))
         enum_or(mouse_input, dw::MOUSE_INPUT_DBL_TAP_LEFT);
-    if (input_state->CheckDoubleTapped(97))
+    if (input_state->CheckDoubleTapped(INPUT_BUTTON_MOUSE_BUTTON_MIDDLE))
         enum_or(mouse_input, dw::MOUSE_INPUT_DBL_TAP_MIDDLE);
-    if (input_state->CheckDoubleTapped(98))
+    if (input_state->CheckDoubleTapped(INPUT_BUTTON_MOUSE_BUTTON_RIGHT))
         enum_or(mouse_input, dw::MOUSE_INPUT_DBL_TAP_RIGHT);
 
-    if (input_state->CheckDown(28))
-        enum_or(mouse_input, dw::MOUSE_INPUT_20000000);
+    if (input_state->CheckDown(INPUT_BUTTON_KEYBOARD_PRESS))
+        enum_or(mouse_input, dw::MOUSE_INPUT_KEYBOARD_PRESS);
 
-    if (input_state->CheckIntervalTapped(91))
+    if (input_state->CheckIntervalTapped(INPUT_BUTTON_UP))
         key_input = 0x1000001;
-    if (input_state->CheckIntervalTapped(93))
+    if (input_state->CheckIntervalTapped(INPUT_BUTTON_DOWN))
         key_input = 0x1000002;
-    if (input_state->CheckIntervalTapped(92))
+    if (input_state->CheckIntervalTapped(INPUT_BUTTON_LEFT))
         key_input = 0x1000003;
-    if (input_state->CheckIntervalTapped(94))
+    if (input_state->CheckIntervalTapped(INPUT_BUTTON_RIGHT))
         key_input = 0x1000004;
-    if (input_state->CheckIntervalTapped(86))
+    if (input_state->CheckIntervalTapped(INPUT_BUTTON_HOME))
         key_input = 0x1000007;
-    if (input_state->CheckIntervalTapped(89))
+    if (input_state->CheckIntervalTapped(INPUT_BUTTON_END))
         key_input = 0x1000008;
-    if (input_state->CheckIntervalTapped(87))
+    if (input_state->CheckIntervalTapped(INPUT_BUTTON_PAGE_UP))
         key_input = 0x1000005;
-    if (input_state->CheckIntervalTapped(90))
+    if (input_state->CheckIntervalTapped(INPUT_BUTTON_PAGE_DOWN))
         key_input = 0x1000006;
-    if (input_state->CheckIntervalTapped(66))
+    if (input_state->CheckIntervalTapped(INPUT_BUTTON_F1))
         key_input = 0x100000A;
-    if (input_state->CheckIntervalTapped(67))
+    if (input_state->CheckIntervalTapped(INPUT_BUTTON_F2))
         key_input = 0x100000B;
-    if (input_state->CheckIntervalTapped(68))
+    if (input_state->CheckIntervalTapped(INPUT_BUTTON_F3))
         key_input = 0x100000C;
-    if (input_state->CheckIntervalTapped(69))
+    if (input_state->CheckIntervalTapped(INPUT_BUTTON_F4))
         key_input = 0x100000D;
-    if (input_state->CheckIntervalTapped(70))
+    if (input_state->CheckIntervalTapped(INPUT_BUTTON_F5))
         key_input = 0x100000E;
-    if (input_state->CheckIntervalTapped(71))
+    if (input_state->CheckIntervalTapped(INPUT_BUTTON_F6))
         key_input = 0x100000F;
-    if (input_state->CheckIntervalTapped(72))
+    if (input_state->CheckIntervalTapped(INPUT_BUTTON_F7))
         key_input = 0x1000010;
-    if (input_state->CheckIntervalTapped(73))
+    if (input_state->CheckIntervalTapped(INPUT_BUTTON_F8))
         key_input = 0x1000011;
-    if (input_state->CheckIntervalTapped(74))
+    if (input_state->CheckIntervalTapped(INPUT_BUTTON_F9))
         key_input = 0x1000012;
-    if (input_state->CheckIntervalTapped(75))
+    if (input_state->CheckIntervalTapped(INPUT_BUTTON_F10))
         key_input = 0x1000013;
-    if (input_state->CheckIntervalTapped(76))
+    if (input_state->CheckIntervalTapped(INPUT_BUTTON_F11))
         key_input = 0x1000014;
-    if (input_state->CheckIntervalTapped(77))
+    if (input_state->CheckIntervalTapped(INPUT_BUTTON_F12))
         key_input = 0x1000015;
 
     const InputState* v12[2];
     v12[0] = input_state_get(0);
     v12[1] = input_state_get(1);
     for (const InputState* i : v12) {
-        if (i->CheckIntervalTapped(3))
+        if (i->CheckIntervalTapped(INPUT_BUTTON_JVS_UP))
             joy_input |= 0x1000000;
-        if (i->CheckIntervalTapped(4))
+        if (i->CheckIntervalTapped(INPUT_BUTTON_JVS_DOWN))
             joy_input |= 0x2000000;
-        if (i->CheckIntervalTapped(5))
+        if (i->CheckIntervalTapped(INPUT_BUTTON_JVS_LEFT))
             joy_input |= 0x4000000;
-        if (i->CheckIntervalTapped(6))
+        if (i->CheckIntervalTapped(INPUT_BUTTON_JVS_RIGHT))
             joy_input |= 0x8000000;
 
-        if (i->CheckDown(7))
+        if (i->CheckDown(INPUT_BUTTON_JVS_TRIANGLE))
             joy_input |= 0x01;
-        if (i->CheckDown(8))
+        if (i->CheckDown(INPUT_BUTTON_JVS_SQUARE))
             joy_input |= 0x02;
-        if (i->CheckDown(9))
+        if (i->CheckDown(INPUT_BUTTON_JVS_CROSS))
             joy_input |= 0x04;
-        if (i->CheckDown(2))
+        if (i->CheckDown(INPUT_BUTTON_JVS_START))
             joy_input |= 0x08;
 
-        if (i->CheckTapped(7))
+        if (i->CheckTapped(INPUT_BUTTON_JVS_TRIANGLE))
             joy_input |= 0x10;
-        if (i->CheckTapped(8))
+        if (i->CheckTapped(INPUT_BUTTON_JVS_SQUARE))
             joy_input |= 0x20;
-        if (i->CheckTapped(9))
+        if (i->CheckTapped(INPUT_BUTTON_JVS_CROSS))
             joy_input |= 0x40;
-        if (i->CheckTapped(2))
+        if (i->CheckTapped(INPUT_BUTTON_JVS_START))
             joy_input |= 0x80;
 
-        if (i->CheckReleased(7))
+        if (i->CheckReleased(INPUT_BUTTON_JVS_TRIANGLE))
             joy_input |= 0x100;
-        if (i->CheckReleased(8))
+        if (i->CheckReleased(INPUT_BUTTON_JVS_SQUARE))
             joy_input |= 0x200;
-        if (i->CheckReleased(9))
+        if (i->CheckReleased(INPUT_BUTTON_JVS_CROSS))
             joy_input |= 0x400;
-        if (i->CheckReleased(2))
+        if (i->CheckReleased(INPUT_BUTTON_JVS_START))
             joy_input |= 0x800;
 
-        if (i->CheckDoubleTapped(7))
+        if (i->CheckDoubleTapped(INPUT_BUTTON_JVS_TRIANGLE))
             joy_input |= 0x1000;
-        if (i->CheckDoubleTapped(8))
+        if (i->CheckDoubleTapped(INPUT_BUTTON_JVS_SQUARE))
             joy_input |= 0x2000;
-        if (i->CheckDoubleTapped(9))
+        if (i->CheckDoubleTapped(INPUT_BUTTON_JVS_CROSS))
             joy_input |= 0x4000;
-        if (i->CheckDoubleTapped(2))
+        if (i->CheckDoubleTapped(INPUT_BUTTON_JVS_START))
             joy_input |= 0x8000;
 
-        if (i->CheckHold(7))
+        if (i->CheckHold(INPUT_BUTTON_JVS_TRIANGLE))
             joy_input |= 0x10000;
-        if (i->CheckHold(8))
+        if (i->CheckHold(INPUT_BUTTON_JVS_SQUARE))
             joy_input |= 0x20000;
-        if (i->CheckHold(9))
+        if (i->CheckHold(INPUT_BUTTON_JVS_CROSS))
             joy_input |= 0x40000;
     }
 
@@ -3856,7 +3856,7 @@ int32_t dw_gui_detail::Display::sub_1402E5630() {
                 input.field_1D = 1;
         }
 
-        /*if (!(mouse_callback_data.input & dw::MOUSE_INPUT_20000000))
+        /*if (!(mouse_callback_data.input & dw::MOUSE_INPUT_KEYBOARD_PRESS))
             drag_bounds_control->MouseCallback(mouse_callback_data);
         drag_bounds_control->KeyCallback(key_callback_data);*/
     }

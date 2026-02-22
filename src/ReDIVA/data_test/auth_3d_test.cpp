@@ -622,7 +622,7 @@ bool Auth3dTestTask::init() {
 
 bool Auth3dTestTask::ctrl() {
     const InputState* input_state = input_state_get(0);
-    if (auth_3d_test_task->auth_3d_id.check_not_empty() && input_state->CheckTapped(29))
+    if (auth_3d_test_task->auth_3d_id.check_not_empty() && input_state->CheckTapped(INPUT_BUTTON_0))
         auth_3d_test_task->auth_3d_id.set_paused(
             !auth_3d_test_task->auth_3d_id.get_paused());
 

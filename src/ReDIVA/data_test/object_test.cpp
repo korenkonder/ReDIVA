@@ -173,18 +173,18 @@ bool TaskDataTestObj::ctrl() {
     }
 
     const InputState* input_state = input_state_get(0);
-    if (input_state->CheckDown(39)) {
-        if (input_state->CheckDown(96))
+    if (input_state->CheckDown(INPUT_BUTTON_A)) {
+        if (input_state->CheckDown(INPUT_BUTTON_MOUSE_BUTTON_LEFT))
             data.rotation.y += (float_t)input_state->sub_14018CCC0(10);
-        if (input_state->CheckDown(97))
+        if (input_state->CheckDown(INPUT_BUTTON_MOUSE_BUTTON_MIDDLE))
             data.rotation.x += (float_t)input_state->sub_14018CCC0(10);
-        if (input_state->CheckDown(98))
+        if (input_state->CheckDown(INPUT_BUTTON_MOUSE_BUTTON_RIGHT))
             data.rotation.z += (float_t)input_state->sub_14018CCC0(10);
 
         data_test_object_manager->set_rotation(data.rotation);
     }
 
-    if (input_state->CheckDoubleTapped(39))
+    if (input_state->CheckDoubleTapped(INPUT_BUTTON_A))
         data.rotation = 0.0f;
     return false;
 }

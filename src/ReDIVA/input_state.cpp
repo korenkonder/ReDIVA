@@ -41,6 +41,8 @@ Bit / Name
  18   JVS_SW1
  19   JVS_SW2
 
+ 28   KEYBOARD_PRESS (any of keyboard keys)
+
  29   '0'
  30   '1'
 ...
@@ -50,7 +52,9 @@ Bit / Name
  40   'B'
 ...
  64   'Z'
- 
+
+ 65   VK_ESCAPE
+
  66   VK_F1
  67   VK_F2
  68   VK_F3
@@ -76,10 +80,10 @@ Bit / Name
 
  85   VK_INSERT
  86   VK_HOME
- 87   VK_NEXT
+ 87   VK_PRIOR
  88   VK_DELETE
  89   VK_END
- 90   VK_PRIOR
+ 90   VK_NEXT
 
  91   VK_UP
  92   VK_LEFT
@@ -93,7 +97,9 @@ Bit / Name
  98   VK_RBUTTON
 
  99   MOUSE_SCROLL_UP
-100   MOUSE_SCROLL_DOWN*/
+100   MOUSE_SCROLL_DOWN
+
+110   ADV_SKIP*/
 
 struct amInputState {
     ButtonState tapped;
@@ -255,51 +261,51 @@ InputState::~InputState() {
 
 }
 
-bool InputState::CheckDown(int32_t index) const {
-    if (index >= 0 && index < INPUT_BUTTON_COUNT)
-        return !!Down[index];
+bool InputState::CheckDown(InputButton button) const {
+    if (button >= 0 && button < INPUT_BUTTON_MAX)
+        return Down[button];
     return false;
 }
 
-bool InputState::CheckDownPrev(int32_t index) const {
-    if (index >= 0 && index < INPUT_BUTTON_COUNT)
-        return !!DownPrev[index];
+bool InputState::CheckDownPrev(InputButton button) const {
+    if (button >= 0 && button < INPUT_BUTTON_MAX)
+        return DownPrev[button];
     return false;
 }
 
-bool InputState::CheckDoubleTapped(int32_t index) const {
-    if (index >= 0 && index < INPUT_BUTTON_COUNT)
-        return !!DoubleTapped[index];
+bool InputState::CheckDoubleTapped(InputButton button) const {
+    if (button >= 0 && button < INPUT_BUTTON_MAX)
+        return DoubleTapped[button];
     return false;
 }
 
-bool InputState::CheckHold(int32_t index) const {
-    if (index >= 0 && index < INPUT_BUTTON_COUNT)
-        return !!Hold[index];
+bool InputState::CheckHold(InputButton button) const {
+    if (button >= 0 && button < INPUT_BUTTON_MAX)
+        return Hold[button];
     return false;
 }
 
-bool InputState::CheckIntervalTapped(int32_t index) const {
-    if (index >= 0 && index < INPUT_BUTTON_COUNT)
-        return !!IntervalTapped[index];
+bool InputState::CheckIntervalTapped(InputButton button) const {
+    if (button >= 0 && button < INPUT_BUTTON_MAX)
+        return IntervalTapped[button];
     return false;
 }
 
-bool InputState::CheckReleased(int32_t index) const {
-    if (index >= 0 && index < INPUT_BUTTON_COUNT)
-        return !!Released[index];
+bool InputState::CheckReleased(InputButton button) const {
+    if (button >= 0 && button < INPUT_BUTTON_MAX)
+        return Released[button];
     return false;
 }
 
-bool InputState::CheckTapped(int32_t index) const {
-    if (index >= 0 && index < INPUT_BUTTON_COUNT)
-        return !!Tapped[index];
+bool InputState::CheckTapped(InputButton button) const {
+    if (button >= 0 && button < INPUT_BUTTON_MAX)
+        return Tapped[button];
     return false;
 }
 
-bool InputState::CheckToggle(int32_t index) const {
-    if (index >= 0 && index < INPUT_BUTTON_COUNT)
-        return !!Toggle[index];
+bool InputState::CheckToggle(InputButton button) const {
+    if (button >= 0 && button < INPUT_BUTTON_MAX)
+        return Toggle[button];
     return false;
 }
 
@@ -339,34 +345,34 @@ void InputState::Update(int32_t index, int32_t delta_frame) {
     }
 
     /*if (task_slider_control_get()->sub_140618C60(36))
-        am_input.tapped[11] = true;
+        am_input.tapped[INPUT_BUTTON_JVS_L] = true;
     else
-        am_input.tapped[11] = false;
+        am_input.tapped[INPUT_BUTTON_JVS_L] = false;
 
     if (task_slider_control_get()->sub_140618C40(36))
-        am_input.released[11] = true;
+        am_input.released[INPUT_BUTTON_JVS_L] = true;
     else
-        am_input.released[11] = false;
+        am_input.released[INPUT_BUTTON_JVS_L] = false;
 
     if (task_slider_control_get()->sub_140618C20(36))
-        am_input.down[11] = true;
+        am_input.down[INPUT_BUTTON_JVS_L] = true;
     else
-        am_input.down[11] = false;
+        am_input.down[INPUT_BUTTON_JVS_L] = false;
 
     if (task_slider_control_get()->sub_140618C60(37))
-        am_input.tapped[12] = true;
+        am_input.tapped[INPUT_BUTTON_JVS_R] = true;
     else
-        am_input.tapped[12] = false;
+        am_input.tapped[INPUT_BUTTON_JVS_R] = false;
 
     if (task_slider_control_get()->sub_140618C40(37))
-        am_input.released[12] = true;
+        am_input.released[INPUT_BUTTON_JVS_R] = true;
     else
-        am_input.released[12] = false;
+        am_input.released[INPUT_BUTTON_JVS_R] = false;
 
     if (task_slider_control_get()->sub_140618C20(37))
-        am_input.down[12] = true;
+        am_input.down[INPUT_BUTTON_JVS_R] = true;
     else
-        am_input.down[12] = false;*/
+        am_input.down[INPUT_BUTTON_JVS_R] = false;*/
 
     Tapped |= am_input.tapped;
     Released |= am_input.released;
@@ -374,39 +380,39 @@ void InputState::Update(int32_t index, int32_t delta_frame) {
 
     Released &= ~Down;
 
-    if (!Down[11] && !Down[12]) {
-        if (Tapped[2])
-            Tapped[110] = true;
-        if (Tapped[7])
-            Tapped[110] = true;
-        if (Tapped[8])
-            Tapped[110] = true;
-        if (Tapped[9])
-            Tapped[110] = true;
-        if (Tapped[10])
-            Tapped[110] = true;
+    if (!Down[INPUT_BUTTON_JVS_L] && !Down[INPUT_BUTTON_JVS_R]) {
+        if (Tapped[INPUT_BUTTON_JVS_START])
+            Tapped[INPUT_BUTTON_MOUSE_ADV_SKIP] = true;
+        if (Tapped[INPUT_BUTTON_JVS_TRIANGLE])
+            Tapped[INPUT_BUTTON_MOUSE_ADV_SKIP] = true;
+        if (Tapped[INPUT_BUTTON_JVS_SQUARE])
+            Tapped[INPUT_BUTTON_MOUSE_ADV_SKIP] = true;
+        if (Tapped[INPUT_BUTTON_JVS_CROSS])
+            Tapped[INPUT_BUTTON_MOUSE_ADV_SKIP] = true;
+        if (Tapped[INPUT_BUTTON_JVS_CIRCLE])
+            Tapped[INPUT_BUTTON_MOUSE_ADV_SKIP] = true;
 
-        if (Released[2])
-            Released[110] = true;
-        if (Released[7])
-            Released[110] = true;
-        if (Released[8])
-            Released[110] = true;
-        if (Released[9])
-            Released[110] = true;
-        if (Released[10])
-            Released[110] = true;
+        if (Released[INPUT_BUTTON_JVS_START])
+            Released[INPUT_BUTTON_MOUSE_ADV_SKIP] = true;
+        if (Released[INPUT_BUTTON_JVS_TRIANGLE])
+            Released[INPUT_BUTTON_MOUSE_ADV_SKIP] = true;
+        if (Released[INPUT_BUTTON_JVS_SQUARE])
+            Released[INPUT_BUTTON_MOUSE_ADV_SKIP] = true;
+        if (Released[INPUT_BUTTON_JVS_CROSS])
+            Released[INPUT_BUTTON_MOUSE_ADV_SKIP] = true;
+        if (Released[INPUT_BUTTON_JVS_CIRCLE])
+            Released[INPUT_BUTTON_MOUSE_ADV_SKIP] = true;
 
-        if (Down[2])
-            Down[110] = true;
-        if (Down[7])
-            Down[110] = true;
-        if (Down[8])
-            Down[110] = true;
-        if (Down[9])
-            Down[110] = true;
-        if (Down[10])
-            Down[110] = true;
+        if (Down[INPUT_BUTTON_JVS_START])
+            Down[INPUT_BUTTON_MOUSE_ADV_SKIP] = true;
+        if (Down[INPUT_BUTTON_JVS_TRIANGLE])
+            Down[INPUT_BUTTON_MOUSE_ADV_SKIP] = true;
+        if (Down[INPUT_BUTTON_JVS_SQUARE])
+            Down[INPUT_BUTTON_MOUSE_ADV_SKIP] = true;
+        if (Down[INPUT_BUTTON_JVS_CROSS])
+            Down[INPUT_BUTTON_MOUSE_ADV_SKIP] = true;
+        if (Down[INPUT_BUTTON_JVS_CIRCLE])
+            Down[INPUT_BUTTON_MOUSE_ADV_SKIP] = true;
     }
 
     Toggle ^= Down;
@@ -415,7 +421,7 @@ void InputState::Update(int32_t index, int32_t delta_frame) {
     ButtonState Up = ~this->Down;
 
     ButtonState DoubleTapped;
-    for (int32_t i = 0; i < INPUT_BUTTON_COUNT; i++)
+    for (int32_t i = 0; i < INPUT_BUTTON_MAX; i++)
         if (DoubleTapData[i].Ctrl(delta_frame, Down[i], Up[i]))
             DoubleTapped[i] = true;
         else
@@ -423,7 +429,7 @@ void InputState::Update(int32_t index, int32_t delta_frame) {
     this->DoubleTapped = DoubleTapped;
 
     ButtonState Hold;
-    for (int32_t i = 0; i < INPUT_BUTTON_COUNT; i++)
+    for (int32_t i = 0; i < INPUT_BUTTON_MAX; i++)
         if (HoldTapData[i].Ctrl(delta_frame, Down[i], Up[i]))
             Hold[i] = true;
         else
@@ -431,7 +437,7 @@ void InputState::Update(int32_t index, int32_t delta_frame) {
     this->Hold = Hold;
 
     ButtonState IntervalTapped;
-    for (int32_t i = 0; i < INPUT_BUTTON_COUNT; i++)
+    for (int32_t i = 0; i < INPUT_BUTTON_MAX; i++)
         if (IntervalTapData[i].Ctrl(delta_frame, Down[i]))
             IntervalTapped[i] = true;
         else
@@ -712,104 +718,109 @@ static void am_input_output_pc_ctrl(amInputState& input) {
     };
 
     static const key_map key_map_array[] = {
-        {  0, GLFW_KEY_F1, /*JVS_TEST,*/ },
-        {  1, GLFW_KEY_F2, /*JVS_SERVICE,*/ },
+        { INPUT_BUTTON_0, GLFW_KEY_0, },
+        { INPUT_BUTTON_1, GLFW_KEY_1, },
+        { INPUT_BUTTON_2, GLFW_KEY_2, },
+        { INPUT_BUTTON_3, GLFW_KEY_3, },
+        { INPUT_BUTTON_4, GLFW_KEY_4, },
+        { INPUT_BUTTON_5, GLFW_KEY_5, },
+        { INPUT_BUTTON_6, GLFW_KEY_6, },
+        { INPUT_BUTTON_7, GLFW_KEY_7, },
+        { INPUT_BUTTON_8, GLFW_KEY_8, },
+        { INPUT_BUTTON_9, GLFW_KEY_9, },
 
-        {  2, GLFW_KEY_ENTER, /*JVS_START,*/ },
+        { INPUT_BUTTON_A, GLFW_KEY_A, },
+        { INPUT_BUTTON_B, GLFW_KEY_B, },
+        { INPUT_BUTTON_C, GLFW_KEY_C, },
+        { INPUT_BUTTON_D, GLFW_KEY_D, },
+        { INPUT_BUTTON_E, GLFW_KEY_E, },
+        { INPUT_BUTTON_F, GLFW_KEY_F, },
+        { INPUT_BUTTON_G, GLFW_KEY_G, },
+        { INPUT_BUTTON_H, GLFW_KEY_H, },
+        { INPUT_BUTTON_I, GLFW_KEY_I, },
+        { INPUT_BUTTON_J, GLFW_KEY_J, },
+        { INPUT_BUTTON_K, GLFW_KEY_K, },
+        { INPUT_BUTTON_L, GLFW_KEY_L, },
+        { INPUT_BUTTON_M, GLFW_KEY_M, },
+        { INPUT_BUTTON_N, GLFW_KEY_N, },
+        { INPUT_BUTTON_O, GLFW_KEY_O, },
+        { INPUT_BUTTON_P, GLFW_KEY_P, },
+        { INPUT_BUTTON_Q, GLFW_KEY_Q, },
+        { INPUT_BUTTON_R, GLFW_KEY_R, },
+        { INPUT_BUTTON_S, GLFW_KEY_S, },
+        { INPUT_BUTTON_T, GLFW_KEY_T, },
+        { INPUT_BUTTON_U, GLFW_KEY_U, },
+        { INPUT_BUTTON_V, GLFW_KEY_V, },
+        { INPUT_BUTTON_W, GLFW_KEY_W, },
+        { INPUT_BUTTON_X, GLFW_KEY_X, },
+        { INPUT_BUTTON_Y, GLFW_KEY_Y, },
+        { INPUT_BUTTON_Z, GLFW_KEY_Z, },
 
-        {  3, GLFW_KEY_UP,  /*JVS_UP,*/ },
-        {  4, GLFW_KEY_DOWN, /*JVS_DOWN,*/ },
-        {  5, GLFW_KEY_LEFT, /*JVS_LEFT,*/ },
-        {  6, GLFW_KEY_RIGHT, /*JVS_RIGHT,*/ },
+        { INPUT_BUTTON_ESCAPE, GLFW_KEY_ESCAPE, },
 
-        {  7, GLFW_KEY_W, GLFW_KEY_I, /*JVS_TRIANGLE,*/ },
-        {  8, GLFW_KEY_A, GLFW_KEY_J, /*JVS_SQUARE,*/ },
-        {  9, GLFW_KEY_S, GLFW_KEY_K, /*JVS_CROSS,*/ },
-        { 10, GLFW_KEY_D, GLFW_KEY_L, /*JVS_CIRCLE,*/ },
-        { 11, GLFW_KEY_Q, GLFW_KEY_U, /*JVS_L,*/ },
-        { 12, GLFW_KEY_E, GLFW_KEY_O, /*JVS_R,*/ },
+        { INPUT_BUTTON_F1 , GLFW_KEY_F1, },
+        { INPUT_BUTTON_F2 , GLFW_KEY_F2, },
+        { INPUT_BUTTON_F3 , GLFW_KEY_F3, },
+        { INPUT_BUTTON_F4 , GLFW_KEY_F4, },
+        { INPUT_BUTTON_F5 , GLFW_KEY_F5, },
+        { INPUT_BUTTON_F6 , GLFW_KEY_F6, },
+        { INPUT_BUTTON_F7 , GLFW_KEY_F7, },
+        { INPUT_BUTTON_F8 , GLFW_KEY_F8, },
+        { INPUT_BUTTON_F9 , GLFW_KEY_F9, },
+        { INPUT_BUTTON_F10, GLFW_KEY_F10, },
+        { INPUT_BUTTON_F11, GLFW_KEY_F11, },
+        { INPUT_BUTTON_F12, GLFW_KEY_F12, },
 
-        { 18, GLFW_KEY_F11, /*JVS_SW1,*/ },
-        { 19, GLFW_KEY_F12, /*JVS_SW2,*/ },
+        { INPUT_BUTTON_BACKSPACE, GLFW_KEY_BACKSPACE, },
+        { INPUT_BUTTON_TAB      , GLFW_KEY_TAB, },
+        { INPUT_BUTTON_ENTER    , GLFW_KEY_ENTER, },
 
-        { 29, GLFW_KEY_0, },
-        { 30, GLFW_KEY_1, },
-        { 31, GLFW_KEY_2, },
-        { 32, GLFW_KEY_3, },
-        { 33, GLFW_KEY_4, },
-        { 34, GLFW_KEY_5, },
-        { 35, GLFW_KEY_6, },
-        { 36, GLFW_KEY_7, },
-        { 37, GLFW_KEY_8, },
-        { 38, GLFW_KEY_9, },
+        { INPUT_BUTTON_SHIFT  , GLFW_KEY_LEFT_SHIFT, GLFW_KEY_RIGHT_SHIFT, },
+        { INPUT_BUTTON_CONTROL, GLFW_KEY_LEFT_CONTROL, GLFW_KEY_RIGHT_CONTROL, },
+        { INPUT_BUTTON_ALT    , GLFW_KEY_LEFT_ALT, GLFW_KEY_RIGHT_ALT, },
 
-        { 39, GLFW_KEY_A, },
-        { 40, GLFW_KEY_B, },
-        { 41, GLFW_KEY_C, },
-        { 42, GLFW_KEY_D, },
-        { 43, GLFW_KEY_E, },
-        { 44, GLFW_KEY_F, },
-        { 45, GLFW_KEY_G, },
-        { 46, GLFW_KEY_H, },
-        { 47, GLFW_KEY_I, },
-        { 48, GLFW_KEY_J, },
-        { 49, GLFW_KEY_K, },
-        { 50, GLFW_KEY_L, },
-        { 51, GLFW_KEY_M, },
-        { 52, GLFW_KEY_N, },
-        { 53, GLFW_KEY_O, },
-        { 54, GLFW_KEY_P, },
-        { 55, GLFW_KEY_Q, },
-        { 56, GLFW_KEY_R, },
-        { 57, GLFW_KEY_S, },
-        { 58, GLFW_KEY_T, },
-        { 59, GLFW_KEY_U, },
-        { 60, GLFW_KEY_V, },
-        { 61, GLFW_KEY_W, },
-        { 62, GLFW_KEY_X, },
-        { 63, GLFW_KEY_Y, },
-        { 64, GLFW_KEY_Z, },
+        { INPUT_BUTTON_SPACE, GLFW_KEY_SPACE, },
 
-        { 66, GLFW_KEY_F1, },
-        { 67, GLFW_KEY_F2, },
-        { 68, GLFW_KEY_F3, },
-        { 69, GLFW_KEY_F4, },
-        { 70, GLFW_KEY_F5, },
-        { 71, GLFW_KEY_F6, },
-        { 72, GLFW_KEY_F7, },
-        { 73, GLFW_KEY_F8, },
-        { 74, GLFW_KEY_F9, },
-        { 75, GLFW_KEY_F10, },
-        { 76, GLFW_KEY_F11, },
-        { 77, GLFW_KEY_F12, },
+        { INPUT_BUTTON_INSERT   , GLFW_KEY_INSERT, },
+        { INPUT_BUTTON_HOME     , GLFW_KEY_HOME, },
+        { INPUT_BUTTON_PAGE_UP  , GLFW_KEY_PAGE_UP, },
+        { INPUT_BUTTON_DELETE   , GLFW_KEY_DELETE, },
+        { INPUT_BUTTON_END      , GLFW_KEY_END, },
+        { INPUT_BUTTON_PAGE_DOWN, GLFW_KEY_PAGE_DOWN, },
 
-        { 78, GLFW_KEY_BACKSPACE, },
-        { 79, GLFW_KEY_TAB, },
-        { 80, GLFW_KEY_ENTER, },
-
-        { 81, GLFW_KEY_LEFT_SHIFT, GLFW_KEY_RIGHT_SHIFT, },
-        { 82, GLFW_KEY_LEFT_CONTROL, GLFW_KEY_RIGHT_CONTROL, },
-        { 83, GLFW_KEY_LEFT_ALT, GLFW_KEY_RIGHT_ALT, },
-
-        { 84, GLFW_KEY_SPACE, },
-
-        { 85, GLFW_KEY_INSERT, },
-        { 86, GLFW_KEY_HOME, },
-        { 87, GLFW_KEY_PAGE_UP, },
-        { 88, GLFW_KEY_DELETE, },
-        { 89, GLFW_KEY_END, },
-        { 90, GLFW_KEY_PAGE_DOWN, },
-
-        { 91, GLFW_KEY_UP, },
-        { 92, GLFW_KEY_LEFT, },
-        { 93, GLFW_KEY_DOWN, },
-        { 94, GLFW_KEY_RIGHT, },
+        { INPUT_BUTTON_UP   , GLFW_KEY_UP, },
+        { INPUT_BUTTON_LEFT , GLFW_KEY_LEFT, },
+        { INPUT_BUTTON_DOWN , GLFW_KEY_DOWN, },
+        { INPUT_BUTTON_RIGHT, GLFW_KEY_RIGHT, },
     };
 
     static const key_map mouse_button_array[] = {
-        { 96, GLFW_MOUSE_BUTTON_LEFT, },
-        { 97, GLFW_MOUSE_BUTTON_MIDDLE, },
-        { 98, GLFW_MOUSE_BUTTON_RIGHT, },
+        { INPUT_BUTTON_MOUSE_BUTTON_LEFT  , GLFW_MOUSE_BUTTON_LEFT, },
+        { INPUT_BUTTON_MOUSE_BUTTON_MIDDLE, GLFW_MOUSE_BUTTON_MIDDLE, },
+        { INPUT_BUTTON_MOUSE_BUTTON_RIGHT , GLFW_MOUSE_BUTTON_RIGHT, },
+    };
+
+    static const key_map copy_map_array[] = {
+        { INPUT_BUTTON_JVS_TEST   , INPUT_BUTTON_F1, },
+        { INPUT_BUTTON_JVS_SERVICE, INPUT_BUTTON_F2, },
+
+        { INPUT_BUTTON_JVS_START  , INPUT_BUTTON_ENTER, },
+
+        { INPUT_BUTTON_JVS_UP   , INPUT_BUTTON_UP, },
+        { INPUT_BUTTON_JVS_DOWN , INPUT_BUTTON_DOWN, },
+        { INPUT_BUTTON_JVS_LEFT , INPUT_BUTTON_LEFT, },
+        { INPUT_BUTTON_JVS_RIGHT, INPUT_BUTTON_RIGHT, },
+
+        { INPUT_BUTTON_JVS_TRIANGLE, INPUT_BUTTON_W, INPUT_BUTTON_I, },
+        { INPUT_BUTTON_JVS_SQUARE  , INPUT_BUTTON_A, INPUT_BUTTON_J, },
+        { INPUT_BUTTON_JVS_CROSS   , INPUT_BUTTON_S, INPUT_BUTTON_K, },
+        { INPUT_BUTTON_JVS_CIRCLE  , INPUT_BUTTON_D, INPUT_BUTTON_L, },
+
+        { INPUT_BUTTON_JVS_L, INPUT_BUTTON_Q, INPUT_BUTTON_U, },
+        { INPUT_BUTTON_JVS_R, INPUT_BUTTON_E, INPUT_BUTTON_O, },
+
+        { INPUT_BUTTON_JVS_SW1, INPUT_BUTTON_F11, },
+        { INPUT_BUTTON_JVS_SW2, INPUT_BUTTON_F12, },
     };
 
     for (const key_map& i : key_map_array) {
@@ -844,15 +855,28 @@ static void am_input_output_pc_ctrl(amInputState& input) {
     }
 
     {
-        const int32_t index = 99;
+        const int32_t index = INPUT_BUTTON_MOUSE_SCROLL_UP;
 
         input.down[index] = Input::scroll > 0.0;
     }
 
     {
-        const int32_t index = 100;
+        const int32_t index = INPUT_BUTTON_MOUSE_SCROLL_DOWN;
 
         input.down[index] = Input::scroll < 0.0;
+    }
+
+    for (const key_map& i : copy_map_array) {
+        bool down = false;
+
+        for (const int32_t& j : i.keys) {
+            if (j == -1)
+                break;
+
+            down |= input.down[j];
+        }
+
+        input.down[i.index] = down;
     }
 
 #if BAKE_PNG || BAKE_VIDEO

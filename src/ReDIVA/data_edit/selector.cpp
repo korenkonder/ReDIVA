@@ -41,9 +41,9 @@ bool DataEditSel::init() {
 
 bool DataEditSel::ctrl() {
     const InputState* input_state = input_state_get(0);
-    if (input_state->CheckTapped(91))
+    if (input_state->CheckTapped(INPUT_BUTTON_UP))
         item_index--;
-    if (input_state->CheckTapped(93))
+    if (input_state->CheckTapped(INPUT_BUTTON_DOWN))
         item_index++;
 
     if (item_index >= data_edit_sel_data_count)
@@ -51,7 +51,7 @@ bool DataEditSel::ctrl() {
     else if (item_index < 0)
         item_index = data_edit_sel_data_count - 1;
 
-    if (input_state->CheckTapped(80))
+    if (input_state->CheckTapped(INPUT_BUTTON_ENTER))
         selected_index = data_edit_sel_data[item_index].index;
 
     return false;

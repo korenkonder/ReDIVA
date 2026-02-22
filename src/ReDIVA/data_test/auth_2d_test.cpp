@@ -285,7 +285,7 @@ void DtmAet::disp() {
         print_work.set_color(color_red);
         print_work.printf_align_left("%s\n", i.first.c_str());
 
-        if (input_state_get(0)->CheckDown(64)) {
+        if (input_state_get(0)->CheckDown(INPUT_BUTTON_Z)) {
             print_work.set_color(color_white);
             print_work.printf_align_left("p(%.2f,%.2f)\n", pos.x, pos.y);
             print_work.printf_align_left("o(%f)\n", i.second.opacity);

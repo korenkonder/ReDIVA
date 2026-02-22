@@ -1047,7 +1047,7 @@ bool GameState::Advertise::Ctrl() {
 
     const InputState* input_state = input_state_get(0);
     bool v2 = false;//sub_1403F49C0();
-    if (input_state->CheckTapped(2) && v2) {
+    if (input_state->CheckTapped(INPUT_BUTTON_JVS_START) && v2) {
         game_state_set_game_state_next(GAME_STATE_GAME);
         sound_work_play_se(0, "se_sy_01", 1.0);
     }
@@ -1066,7 +1066,7 @@ bool GameState::Advertise::Ctrl() {
     if (game_state_get()->sub_game_state == SUB_GAME_STATE_PHOTO_MODE_DEMO && !check_photo_mode_demo_movie_exists())
         adv_touch_get()->sub_14014EC20(false);
 
-    if (input_state->CheckDown(11) || input_state->CheckDown(12))
+    if (input_state->CheckDown(INPUT_BUTTON_JVS_L) || input_state->CheckDown(INPUT_BUTTON_JVS_R))
         adv_touch_get()->sub_14014ED60(false);
 
     if (adv_touch_get()->field_70) {
@@ -1328,7 +1328,7 @@ bool SubGameState::SystemStartupError::Ctrl() {
         return false;
 
     const InputState* input_state = input_state_get(0);
-    return input_state->CheckDown(2) && input_state->CheckTapped(0);
+    return input_state->CheckDown(INPUT_BUTTON_JVS_START) && input_state->CheckTapped(INPUT_BUTTON_JVS_TEST);
 }
 
 bool SubGameState::SystemStartupError::Dest() {
@@ -1483,13 +1483,13 @@ bool SubGameState::Demo::Ctrl() {
     }
 
     const InputState* input_state = input_state_get(0);
-    if (input_state->CheckTapped(10))
+    if (input_state->CheckTapped(INPUT_BUTTON_JVS_CIRCLE))
         v1 = true;
-    if (input_state->CheckTapped(9))
+    if (input_state->CheckTapped(INPUT_BUTTON_JVS_CROSS))
         v1 = true;
-    if (input_state->CheckTapped(7))
+    if (input_state->CheckTapped(INPUT_BUTTON_JVS_TRIANGLE))
         v1 = true;
-    if (input_state->CheckTapped(8))
+    if (input_state->CheckTapped(INPUT_BUTTON_JVS_SQUARE))
         v1 = true;
 
     if (v1 && task_wait_screen_check_index_none())
@@ -1595,13 +1595,13 @@ bool SubGameState::CM::Ctrl() {
     /*bool v0 = false;
     bool v1 = false;//adv_cm_get()->field_68 == 3;
     const InputState* input_state = input_state_get(0);
-    if (input_state->CheckTapped(10))
+    if (input_state->CheckTapped(INPUT_BUTTON_JVS_CIRCLE))
         v0 = true;
-    if (input_state->CheckTapped(9))
+    if (input_state->CheckTapped(INPUT_BUTTON_JVS_CROSS))
         v0 = true;
-    if (input_state->CheckTapped(7))
+    if (input_state->CheckTapped(INPUT_BUTTON_JVS_TRIANGLE))
         v0 = true;
-    if (input_state->CheckTapped(8))
+    if (input_state->CheckTapped(INPUT_BUTTON_JVS_SQUARE))
         v0 = true;
     return v0 ? v0 : v1;*/
 }
@@ -1652,13 +1652,13 @@ bool SubGameState::PhotoModeDemo::Ctrl() {
 
     bool v4 = false;
     const InputState* input_state = input_state_get(0);
-    if (input_state->CheckTapped(10))
+    if (input_state->CheckTapped(INPUT_BUTTON_JVS_CIRCLE))
         v4 = true;
-    if (input_state->CheckTapped(9))
+    if (input_state->CheckTapped(INPUT_BUTTON_JVS_CROSS))
         v4 = true;
-    if (input_state->CheckTapped(7))
+    if (input_state->CheckTapped(INPUT_BUTTON_JVS_TRIANGLE))
         v4 = true;
-    if (input_state->CheckTapped(8))
+    if (input_state->CheckTapped(INPUT_BUTTON_JVS_SQUARE))
         v4 = true;
     if (v4 && task_wait_screen_check_index_none())
         v2 = true;

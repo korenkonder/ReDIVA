@@ -89,9 +89,9 @@ bool TaskDataTestGlitterParticle::init() {
 bool TaskDataTestGlitterParticle::ctrl() {
     const InputState* input_state = input_state_get(0);
     if (input_state) {
-        if (input_state->CheckTapped(43))
+        if (input_state->CheckTapped(INPUT_BUTTON_E))
             SetReload();
-        else if (input_state->CheckTapped(42))
+        else if (input_state->CheckTapped(INPUT_BUTTON_D))
             SceneFree();
     }
 

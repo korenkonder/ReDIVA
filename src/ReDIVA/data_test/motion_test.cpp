@@ -574,7 +574,7 @@ bool DataTestMot::ctrl() {
         dtm_mot_array[0].SetLoop(true);
         dtm_mot_array[1].SetLoop(true);
 
-        bool play = input_state_get(0)->CheckIntervalTapped(84);
+        bool play = input_state_get(0)->CheckIntervalTapped(INPUT_BUTTON_SPACE);
         dtm_mot_array[0].SetPlay(play);
         dtm_mot_array[1].SetPlay(play);
     } break;
@@ -2543,9 +2543,9 @@ void DataTestMotDw::sub_14028D8B0() {
     const InputState* input_state = input_state_get(0);
 
     int32_t chara_list_dir = 0;
-    if (input_state->CheckTapped(70))
+    if (input_state->CheckTapped(INPUT_BUTTON_F5))
         chara_list_dir--;
-    if (input_state->CheckTapped(71))
+    if (input_state->CheckTapped(INPUT_BUTTON_F6))
         chara_list_dir++;
 
     if (chara_list_dir) {
@@ -2564,9 +2564,9 @@ void DataTestMotDw::sub_14028D8B0() {
     }
 
     int32_t set_list_dir = 0;
-    if (input_state->CheckTapped(72))
+    if (input_state->CheckTapped(INPUT_BUTTON_F7))
         set_list_dir--;
-    if (input_state->CheckTapped(73))
+    if (input_state->CheckTapped(INPUT_BUTTON_F8))
         set_list_dir++;
 
     if (set_list_dir) {
@@ -2845,12 +2845,12 @@ void DataTestMotCtrlDw::Draw() {
 
     DataTestMot::Data* test_mot_data = data_test_mot_data_get();
     const InputState* input_state = input_state_get(0);
-    if (input_state->CheckTapped(60))
+    if (input_state->CheckTapped(INPUT_BUTTON_V))
         test_mot_data->reset_mot = true;
-    else if (input_state->CheckTapped(50))
+    else if (input_state->CheckTapped(INPUT_BUTTON_L))
         test_mot_data->reload_data = true;
 
-    if (input_state->CheckTapped(51))
+    if (input_state->CheckTapped(INPUT_BUTTON_M))
         switch (test_mot_data->type) {
         case 0:
         case 1:

@@ -179,11 +179,11 @@ namespace system_startup_detail {
             if (!system_startup->field_10)
                 system_startup->time--;
 
-            bool v1 = false;
-            if (test_mode_get() && input_state_get(0)->CheckTapped(1))
-                v1 = true;
+            bool service = false;
+            if (test_mode_get() && input_state_get(0)->CheckTapped(INPUT_BUTTON_JVS_SERVICE))
+                service = true;
 
-            if (system_startup->time >= 0 && !v1)
+            if (system_startup->time >= 0 && !service)
                 break;
 
             system_startup_pv_information_dest();
