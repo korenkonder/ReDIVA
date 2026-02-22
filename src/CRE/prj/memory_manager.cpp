@@ -53,7 +53,7 @@ namespace prj {
             heap_interface->show_heap(a2);
     }
 
-    HeapInterface* MemoryManager::get(MemCType type) {
+    inline HeapInterface* MemoryManager::get(MemCType type) {
         if ((memory_manager_init || (MemoryManager::init(), memory_manager_init))
             && type >= 0 && type < MemCMax)
             return memory_manager.arr[type];

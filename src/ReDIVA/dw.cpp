@@ -4,6 +4,7 @@
 */
 
 #include "dw.hpp"
+#include "../CRE/prj/memory_manager.hpp"
 #include "../CRE/app_system_detail.hpp"
 #include "../CRE/data.hpp"
 #include "input_state.hpp"
