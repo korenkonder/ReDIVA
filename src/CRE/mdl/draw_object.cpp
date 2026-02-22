@@ -127,9 +127,7 @@ namespace mdl {
     void draw_sub_mesh(render_data_context& rend_data_ctx, const ObjSubMeshArgs* args,
         const mat4* mat, void(*func)(render_data_context& rend_data_ctx,
             const ObjSubMeshArgs* args, const cam_data& cam, const mat4* mat), const cam_data& cam) {
-        GLuint vao = rctx_ptr->disp_manager->get_vertex_array(args->mesh,
-            args->sub_mesh, args->material, args->vertex_buffer, args->vertex_buffer_offset,
-            args->index_buffer, args->morph_vertex_buffer, args->morph_vertex_buffer_offset);
+        GLuint vao = rctx_ptr->disp_manager->get_vertex_array(args);
         if (!vao)
             return;
 
@@ -1016,7 +1014,7 @@ static void draw_object_vertex_attrib_set_cheap(
 
     rend_data_ctx.set_batch_texcoord_transforms(mats);
 
-    if (vertex_format & OBJ_VERTEX_BONE_DATA)
+    if ((vertex_format & OBJ_VERTEX_BONE_DATA) && args->mats)
         rend_data_ctx.shader_flags.arr[U_SKINNING] = 1;
     else
         rend_data_ctx.shader_flags.arr[U_SKINNING] = 0;
@@ -1079,7 +1077,7 @@ static void draw_object_vertex_attrib_set_default(
 
     rend_data_ctx.set_batch_texcoord_transforms(mats);
 
-    if (vertex_format & OBJ_VERTEX_BONE_DATA)
+    if ((vertex_format & OBJ_VERTEX_BONE_DATA) && args->mats)
         rend_data_ctx.shader_flags.arr[U_SKINNING] = 1;
     else
         rend_data_ctx.shader_flags.arr[U_SKINNING] = 0;

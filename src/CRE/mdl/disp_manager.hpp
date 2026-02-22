@@ -571,9 +571,6 @@ namespace mdl {
         void entry_obj_etc(const mat4& mat, const EtcObj& etc);
         void entry_obj_etc_screen(const mat4& mat, const EtcObj& etc);
         void entry_obj_user(const mat4& mat, UserArgsFunc func, void* data, ObjType type);
-        GLuint get_vertex_array(const obj_mesh* mesh, const obj_sub_mesh* sub_mesh,
-            const obj_material_data* material, GLuint vertex_buffer, size_t vertex_buffer_offset,
-            GLuint index_buffer, GLuint morph_vertex_buffer, size_t morph_vertex_buffer_offset);
         bool get_chara_color();
         void get_material_list(int32_t& count, material_list_struct*& value);
         void get_morph(object_info& object, float_t& weight);
@@ -589,6 +586,7 @@ namespace mdl {
         void get_texture_specular_coeff(vec4& value);
         void get_texture_specular_offset(vec4& value);
         void get_texture_transform(int32_t& count, texture_transform_struct*& value);
+        GLuint get_vertex_array(const ObjSubMeshArgs* args);
         float_t get_wet_param();
         void obj_sort(render_data_context& rend_data_ctx,
             ObjType type, int32_t compare_func, const cam_data& cam, bool a3 = false);
