@@ -251,6 +251,9 @@ namespace dw {
         }
 
         static void LimitPos(Widget* widget);
+
+        static void* operator new(std::size_t size);
+        static void operator delete(void* data) noexcept;
     };
 
     class KeyListener;
@@ -893,6 +896,9 @@ namespace dw {
     extern void font_init();
     extern int32_t font_get_index(std::string& name);
     extern void font_free();
+
+    void* alloc(size_t size);
+    void free(void* data);
 }
 
 extern void dw_init();

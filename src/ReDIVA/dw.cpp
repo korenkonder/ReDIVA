@@ -463,6 +463,17 @@ namespace dw {
         }
     }
 
+    void* Widget::operator new(std::size_t size) {
+        void* data = alloc(size);
+        if (!data)
+            throw std::bad_alloc{};
+        return data;
+    }
+
+    void Widget::operator delete(void* data) noexcept {
+        free(data);
+    }
+
     Control::Control(Composite* parent, Flags flags) : Widget(parent, flags),
         disabled(), parent_comp(), parent_shell(), parent_menu() {
         parent_comp = parent;
@@ -3004,6 +3015,20 @@ namespace dw {
 
     void ScrollBarTestSelectionListener::Callback(SelectionListener::CallbackData* data) {
 
+    }
+
+    void* alloc(size_t size) {
+        void* data = prj::MemoryManager::alloc(prj::MemCDebug, size, "dw_gui");;
+        if (data) {
+            memset(data, 0, size);
+            return data;
+        }
+        return 0;
+    }
+
+    void free(void* data) {
+        if (data)
+            prj::MemoryManager::free(prj::MemCDebug, data);
     }
 
     void font_init() {
