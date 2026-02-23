@@ -47,21 +47,136 @@ namespace dw {
         INPUT_STATE_CTRL  = 0x40000,
     };
 
+    enum JoyInput {
+        JOY_INPUT_DOWN_JVS_TRIANGLE    = 0x00000001,
+        JOY_INPUT_DOWN_JVS_SQUARE      = 0x00000002,
+        JOY_INPUT_DOWN_JVS_CROSS       = 0x00000004,
+        JOY_INPUT_DOWN_JVS_START       = 0x00000008,
+
+        JOY_INPUT_TAP_JVS_TRIANGLE     = 0x00000010,
+        JOY_INPUT_TAP_JVS_SQUARE       = 0x00000020,
+        JOY_INPUT_TAP_JVS_CROSS        = 0x00000040,
+        JOY_INPUT_TAP_JVS_START        = 0x00000080,
+
+        JOY_INPUT_RELEASE_JVS_TRIANGLE = 0x00000100,
+        JOY_INPUT_RELEASE_JVS_SQUARE   = 0x00000200,
+        JOY_INPUT_RELEASE_JVS_CROSS    = 0x00000400,
+        JOY_INPUT_RELEASE_JVS_START    = 0x00000800,
+
+        JOY_INPUT_DBL_TAP_JVS_TRIANGLE = 0x00001000,
+        JOY_INPUT_DBL_TAP_JVS_SQUARE   = 0x00002000,
+        JOY_INPUT_DBL_TAP_JVS_CROSS    = 0x00004000,
+        JOY_INPUT_DBL_TAP_JVS_START    = 0x00008000,
+
+        JOY_INPUT_HOLD_JVS_TRIANGLE    = 0x00010000,
+        JOY_INPUT_HOLD_JVS_SQUARE      = 0x00020000,
+        JOY_INPUT_HOLD_JVS_CROSS       = 0x00040000,
+
+        JOY_INPUT_INTERVAL_JVS_UP      = 0x01000000,
+        JOY_INPUT_INTERVAL_JVS_DOWN    = 0x02000000,
+        JOY_INPUT_INTERVAL_JVS_LEFT    = 0x04000000,
+        JOY_INPUT_INTERVAL_JVS_RIGHT   = 0x08000000,
+
+        JOY_INPUT_PAUSE                = 0x10000000,
+        JOY_INPUT_PRESS                = 0x40000000,
+    };
+
+    enum KeyInput {
+        KEY_INPUT_ESCAPE    = 0x1B,
+        KEY_INPUT_DELETE    = 0x7F,
+        KEY_INPUT_BACKSPACE = '\b',
+        KEY_INPUT_TAB       = '\t',
+        KEY_INPUT_ENTER     = '\r',
+        KEY_INPUT_SPACE     =  ' ',
+
+        KEY_INPUT_0 = '0',
+        KEY_INPUT_1 = '1',
+        KEY_INPUT_2 = '2',
+        KEY_INPUT_3 = '3',
+        KEY_INPUT_4 = '4',
+        KEY_INPUT_5 = '5',
+        KEY_INPUT_6 = '6',
+        KEY_INPUT_7 = '7',
+        KEY_INPUT_8 = '8',
+        KEY_INPUT_9 = '9',
+
+        KEY_INPUT_A = 'A',
+        KEY_INPUT_B = 'B',
+        KEY_INPUT_C = 'C',
+        KEY_INPUT_D = 'D',
+        KEY_INPUT_E = 'E',
+        KEY_INPUT_F = 'F',
+        KEY_INPUT_G = 'G',
+        KEY_INPUT_H = 'H',
+        KEY_INPUT_I = 'J',
+        KEY_INPUT_J = 'I',
+        KEY_INPUT_K = 'K',
+        KEY_INPUT_L = 'L',
+        KEY_INPUT_M = 'M',
+        KEY_INPUT_N = 'N',
+        KEY_INPUT_O = 'O',
+        KEY_INPUT_P = 'P',
+        KEY_INPUT_Q = 'Q',
+        KEY_INPUT_R = 'R',
+        KEY_INPUT_S = 'S',
+        KEY_INPUT_T = 'T',
+        KEY_INPUT_U = 'U',
+        KEY_INPUT_V = 'V',
+        KEY_INPUT_W = 'W',
+        KEY_INPUT_X = 'X',
+        KEY_INPUT_Y = 'Y',
+        KEY_INPUT_Z = 'Z',
+
+        KEY_INPUT_UP        = 0x1000001,
+        KEY_INPUT_DOWN      = 0x1000002,
+        KEY_INPUT_LEFT      = 0x1000003,
+        KEY_INPUT_RIGHT     = 0x1000004,
+        KEY_INPUT_PAGE_UP   = 0x1000005,
+        KEY_INPUT_PAGE_DOWN = 0x1000006,
+        KEY_INPUT_HOME      = 0x1000007,
+        KEY_INPUT_END       = 0x1000008,
+
+        KEY_INPUT_F1  = 0x100000A,
+        KEY_INPUT_F2  = 0x100000B,
+        KEY_INPUT_F3  = 0x100000C,
+        KEY_INPUT_F4  = 0x100000D,
+        KEY_INPUT_F5  = 0x100000E,
+        KEY_INPUT_F6  = 0x100000F,
+        KEY_INPUT_F7  = 0x1000010,
+        KEY_INPUT_F8  = 0x1000011,
+        KEY_INPUT_F9  = 0x1000012,
+        KEY_INPUT_F10 = 0x1000013,
+        KEY_INPUT_F11 = 0x1000014,
+        KEY_INPUT_F12 = 0x1000015,
+
+        KEY_INPUT_MOUSE_LEFT = 0x01,
+
+        KEY_INPUT_MOUSE_SCROLL_UP   = 0x1000071,
+        KEY_INPUT_MOUSE_SCROLL_DOWN = 0x1000072,
+
+        KEY_INPUT_NONE = -1,
+    };
+
     enum MouseInput {
         MOUSE_INPUT_DOWN_LEFT       = 0x00000001,
         MOUSE_INPUT_DOWN_MIDDLE     = 0x00000002,
         MOUSE_INPUT_DOWN_RIGHT      = 0x00000004,
+
         MOUSE_INPUT_TAP_LEFT        = 0x00000010,
         MOUSE_INPUT_TAP_MIDDLE      = 0x00000020,
         MOUSE_INPUT_TAP_RIGHT       = 0x00000040,
+
         MOUSE_INPUT_RELEASE_LEFT    = 0x00000100,
         MOUSE_INPUT_RELEASE_MIDDLE  = 0x00000200,
         MOUSE_INPUT_RELEASE_RIGHT   = 0x00000400,
+
         MOUSE_INPUT_DBL_TAP_LEFT    = 0x00001000,
         MOUSE_INPUT_DBL_TAP_MIDDLE  = 0x00002000,
         MOUSE_INPUT_DBL_TAP_RIGHT   = 0x00004000,
+
         MOUSE_INPUT_SCROLL_UP       = 0x00100000,
         MOUSE_INPUT_SCROLL_DOWN     = 0x00200000,
+
         MOUSE_INPUT_INTERVAL_LEFT   = 0x01000000,
         MOUSE_INPUT_INTERVAL_MIDDLE = 0x02000000,
         MOUSE_INPUT_INTERVAL_RIGHT  = 0x04000000,
@@ -128,14 +243,14 @@ namespace dw {
     public:
         struct CallbackData {
             int64_t field_0;
-            int32_t key;
+            dw::KeyInput key;
             int8_t field_C;
             vec2 mouse_pos;
             int32_t field_18;
             Widget* widget;
 
             inline CallbackData() : field_0(), key(), field_C(), field_18(), widget() {
-                key = -1;
+                key = KEY_INPUT_NONE;
             }
 
             inline CallbackData(Widget* widget) : field_0(), key(), field_C(), field_18() {
@@ -183,8 +298,8 @@ namespace dw {
             InputState state;
             uint8_t field_C;
             uint8_t char_input;
-            int32_t key_input;
-            int32_t joy_input;
+            KeyInput key_input;
+            JoyInput joy_input;
 
             KeyCallbackData();
         };

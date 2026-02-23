@@ -104,8 +104,8 @@ namespace dw_gui_detail {
         int8_t field_1D;
         int64_t field_20;
         uint8_t char_input;
-        int32_t key_input;
-        int32_t joy_input;
+        dw::KeyInput key_input;
+        dw::JoyInput joy_input;
 
         Input();
 
@@ -504,11 +504,11 @@ namespace dw {
         if (!GetParentEnabled())
             return 0;
 
-        /*if ((data.state & INPUT_STATE_SHIFT) && data.key_input == 0x1000013)
+        /*if ((data.state & INPUT_STATE_SHIFT) && data.key_input == KEY_INPUT_F10)
             if (parent_menu)
                 parent_menu->sub_1402F35E0();*/
 
-        if (data.key_input || (data.joy_input & 0x01)) {
+        if (data.key_input || (data.joy_input & JOY_INPUT_DOWN_JVS_TRIANGLE)) {
             Widget::KeyCallbackData v8 = data;
             v8.widget = parent;
             for (KeyListener*& i : key_listener)
@@ -972,7 +972,7 @@ namespace dw {
         if (!GetDisp())
             return 0;
 
-        if ((data.state & INPUT_STATE_ALT) && data.key_input == 0x100000D
+        if ((data.state & INPUT_STATE_ALT) && data.key_input == KEY_INPUT_F4
             || (data.key_input & MOUSE_INPUT_DBL_TAP_MIDDLE)) {
             Hide();
             return 0;
@@ -1637,7 +1637,7 @@ namespace dw {
         if (!GetParentEnabled())
             return 0;
 
-        if (data.key_input != 0x0D && data.key_input != 0x20)
+        if (data.key_input != KEY_INPUT_ENTER && data.key_input != KEY_INPUT_SPACE)
             return Control::KeyCallback(data);
 
         if (flags & CHECKBOX)
@@ -1852,7 +1852,7 @@ namespace dw {
 
         size_t max_items_visible = GetMaxItemsVisible();
         switch (data.key_input) {
-        case 0x1000001:
+        case KEY_INPUT_UP:
             if (hovered_item == -1)
                 hovered_item = 0;
             else if (hovered_item)
@@ -1861,7 +1861,7 @@ namespace dw {
             if (sub_1402F1F20(hovered_item) && !sub_1402F1F20(hovered_item))
                 v12.key = data.key_input;
             break;
-        case 0x1000002:
+        case KEY_INPUT_DOWN:
             if (hovered_item == -1)
                 hovered_item = 0;
             else if (hovered_item < items_count - 1)
@@ -1870,14 +1870,14 @@ namespace dw {
             if (sub_1402F1F20(hovered_item) && !sub_1402F1F20(hovered_item))
                 v12.key = data.key_input;
             break;
-        case 0x1000005:
+        case KEY_INPUT_PAGE_UP:
             if (hovered_item == -1 || hovered_item < max_items_visible)
                 hovered_item = 0;
             else
                 hovered_item -= max_items_visible;
             v12.key = data.key_input;
             break;
-        case 0x1000006:
+        case KEY_INPUT_PAGE_DOWN:
             if (hovered_item == -1)
                 hovered_item = 0;
             else if (max_items_visible >= items_count
@@ -1887,11 +1887,11 @@ namespace dw {
                 hovered_item += max_items_visible;
             v12.key = data.key_input;
             break;
-        case 0x1000007:
+        case KEY_INPUT_HOME:
             hovered_item = 0;
             v12.key = data.key_input;
             break;
-        case 0x1000008:
+        case KEY_INPUT_END:
             hovered_item = items_count - 1;
             v12.key = data.key_input;
             break;
@@ -2248,7 +2248,7 @@ namespace dw {
             return 0;
 
         list->KeyCallback(data);
-        if (field_118 && data.key_input == 0x0D)
+        if (field_118 && data.key_input == KEY_INPUT_ENTER)
             sub_1402E4F40();
         return 0;
     }
@@ -2598,25 +2598,25 @@ namespace dw {
     SelectionListener::CallbackData ScrollBar::sub_1402E5140(const Widget::KeyCallbackData& key_callback_data) {
         SelectionListener::CallbackData callback_data;
         switch (key_callback_data.key_input) {
-        case 0x1000001:
-        case 0x1000002:
-        case 0x1000005:
-        case 0x1000006:
-        case 0x1000007:
-        case 0x1000008:
+        case KEY_INPUT_UP:
+        case KEY_INPUT_DOWN:
+        case KEY_INPUT_PAGE_UP:
+        case KEY_INPUT_PAGE_DOWN:
+        case KEY_INPUT_HOME:
+        case KEY_INPUT_END:
             callback_data.key = key_callback_data.key_input;
             break;
-        case 0x1000003:
-            callback_data.key = 0x1000001;
+        case KEY_INPUT_LEFT:
+            callback_data.key = KEY_INPUT_UP;
             break;
-        case 0x1000004:
-            callback_data.key = 0x1000002;
+        case KEY_INPUT_RIGHT:
+            callback_data.key = KEY_INPUT_DOWN;
             break;
         default:
             break;
         }
 
-        if (callback_data.key != -1) {
+        if (callback_data.key != KEY_INPUT_NONE) {
             callback_data.widget = this;
             ScrollBar::sub_1402E6CC0(callback_data);
             callback_data.widget = parent;
@@ -2629,15 +2629,15 @@ namespace dw {
         if (field_A6) {
             SelectionListener::CallbackData callback_data;
             if (mouse_callback_data.input & MOUSE_INPUT_DOWN_LEFT) {
-                callback_data.key = 1;
+                callback_data.key = KEY_INPUT_MOUSE_LEFT;
                 callback_data.mouse_pos = mouse_callback_data.pos;
             }
             else {
-                callback_data.key = 0;
+                callback_data.key = (KeyInput)0;
                 field_A6 = false;
             }
 
-            if (callback_data.key != -1) {
+            if (callback_data.key != KEY_INPUT_NONE) {
                 callback_data.widget = this;
                 ScrollBar::sub_1402E6CC0(callback_data);
                 callback_data.widget = this->parent;
@@ -2647,11 +2647,11 @@ namespace dw {
 
         SelectionListener::CallbackData callback_data;
         if (mouse_callback_data.input & MOUSE_INPUT_SCROLL_UP)
-            callback_data.key = 0x1000071;
+            callback_data.key = KEY_INPUT_MOUSE_SCROLL_UP;
         else if (mouse_callback_data.input & MOUSE_INPUT_SCROLL_DOWN)
-            callback_data.key = 0x1000072;
+            callback_data.key = KEY_INPUT_MOUSE_SCROLL_DOWN;
 
-        if (callback_data.key == -1 && !CheckHitPos(mouse_callback_data.pos))
+        if (callback_data.key == KEY_INPUT_NONE && !CheckHitPos(mouse_callback_data.pos))
             return callback_data;
 
         vec2 glyph_size = font.GetFontGlyphSize();
@@ -2676,19 +2676,19 @@ namespace dw {
 
         if (mouse_callback_data.input & MOUSE_INPUT_INTERVAL_LEFT) {
             if (v9 < v10)
-                callback_data.key = 0x1000001;
+                callback_data.key = KEY_INPUT_UP;
             else if (v11 - v8 < v9)
-                callback_data.key = 0x1000002;
+                callback_data.key = KEY_INPUT_DOWN;
             else {
                 vec2 v23 = sub_1402E4790();
                 if (v23.x + v10 > v9)
-                    callback_data.key = 0x1000005;
+                    callback_data.key = KEY_INPUT_PAGE_UP;
                 else if (v9 > v23.x + v10 + v23.y)
-                    callback_data.key = 0x1000006;
+                    callback_data.key = KEY_INPUT_PAGE_DOWN;
             }
         }
 
-        if (callback_data.key == -1
+        if (callback_data.key == KEY_INPUT_NONE
             && (mouse_callback_data.input & MOUSE_INPUT_DOWN_LEFT)
             && (mouse_callback_data.input & MOUSE_INPUT_MOVE)) {
             vec2 v23 = sub_1402E4790();
@@ -2718,12 +2718,12 @@ namespace dw {
                     field_A0 = mouse_callback_data.pos.x - (v17 * 0.5f + v14);
                 else
                     field_A0 = mouse_callback_data.pos.y - (v18 * 0.5f + v15);
-                callback_data.key = 1;
+                callback_data.key = KEY_INPUT_MOUSE_LEFT;
                 callback_data.mouse_pos = mouse_callback_data.pos;
             }
         }
 
-        if (callback_data.key != -1) {
+        if (callback_data.key != KEY_INPUT_NONE) {
             callback_data.widget = this;
             ScrollBar::sub_1402E6CC0(callback_data);
             callback_data.widget = parent;
@@ -2741,7 +2741,7 @@ namespace dw {
 
         float_t value = scroll_bar->value;
         switch (data.key) {
-        case 1: {
+        case KEY_INPUT_MOUSE_LEFT: {
             vec2 glyph_size = scroll_bar->font.GetFontGlyphSize();
             rectangle v14 = scroll_bar->GetRectangle();
             float_t v6;
@@ -2772,29 +2772,29 @@ namespace dw {
             else
                 value = scroll_bar->min + (v10 - v8 - size.y * 0.5f) / v11 * (scroll_bar->max - scroll_bar->min);
         } break;
-        case 0x1000001:
+        case KEY_INPUT_UP:
             value -= scroll_bar->step;
             break;
-        case 0x1000002:
+        case KEY_INPUT_DOWN:
             value += scroll_bar->step;
             break;
-        case 0x1000005:
+        case KEY_INPUT_PAGE_UP:
             value -= scroll_bar->step_fast;
             break;
-        case 0x1000006:
+        case KEY_INPUT_PAGE_DOWN:
             value += scroll_bar->step_fast;
             break;
-        case 0x1000007:
+        case KEY_INPUT_HOME:
             value = scroll_bar->min;
             break;
-        case 0x1000008:
+        case KEY_INPUT_END:
             value = scroll_bar->max;
             break;
-        case 0x1000071:
+        case KEY_INPUT_MOUSE_SCROLL_UP:
             if (scroll_bar->flags & VERTICAL)
                 value += scroll_bar->step * -3.0f;
             break;
-        case 0x1000072:
+        case KEY_INPUT_MOUSE_SCROLL_DOWN:
             if (scroll_bar->flags & VERTICAL)
                 value += scroll_bar->step * 3.0f;
             break;
@@ -3258,13 +3258,13 @@ void dw_gui_detail::Input::Ctrl() {
     mouse_input = (dw::MouseInput)0;
     state = (dw::InputState)0;
     char_input = 0;
-    key_input = 0;
-    joy_input = 0;
+    key_input = (dw::KeyInput)0;
+    joy_input = (dw::JoyInput)0;
 
     uint8_t key = input_state->GetKey();
 
     char_input = key;
-    key_input = key;
+    key_input = (dw::KeyInput)key;
 
     int32_t mouse_pos_x = input_state->sub_14018CCC0(8);
     int32_t mouse_pos_y = input_state->sub_14018CCC0(9);
@@ -3331,108 +3331,108 @@ void dw_gui_detail::Input::Ctrl() {
         enum_or(mouse_input, dw::MOUSE_INPUT_KEYBOARD_PRESS);
 
     if (input_state->CheckIntervalTapped(INPUT_BUTTON_UP))
-        key_input = 0x1000001;
+        key_input = dw::KEY_INPUT_UP;
     if (input_state->CheckIntervalTapped(INPUT_BUTTON_DOWN))
-        key_input = 0x1000002;
+        key_input = dw::KEY_INPUT_DOWN;
     if (input_state->CheckIntervalTapped(INPUT_BUTTON_LEFT))
-        key_input = 0x1000003;
+        key_input = dw::KEY_INPUT_LEFT;
     if (input_state->CheckIntervalTapped(INPUT_BUTTON_RIGHT))
-        key_input = 0x1000004;
+        key_input = dw::KEY_INPUT_RIGHT;
     if (input_state->CheckIntervalTapped(INPUT_BUTTON_HOME))
-        key_input = 0x1000007;
+        key_input = dw::KEY_INPUT_HOME;
     if (input_state->CheckIntervalTapped(INPUT_BUTTON_END))
-        key_input = 0x1000008;
+        key_input = dw::KEY_INPUT_END;
     if (input_state->CheckIntervalTapped(INPUT_BUTTON_PAGE_UP))
-        key_input = 0x1000005;
+        key_input = dw::KEY_INPUT_PAGE_UP;
     if (input_state->CheckIntervalTapped(INPUT_BUTTON_PAGE_DOWN))
-        key_input = 0x1000006;
+        key_input = dw::KEY_INPUT_PAGE_DOWN;
     if (input_state->CheckIntervalTapped(INPUT_BUTTON_F1))
-        key_input = 0x100000A;
+        key_input = dw::KEY_INPUT_F1;
     if (input_state->CheckIntervalTapped(INPUT_BUTTON_F2))
-        key_input = 0x100000B;
+        key_input = dw::KEY_INPUT_F2;
     if (input_state->CheckIntervalTapped(INPUT_BUTTON_F3))
-        key_input = 0x100000C;
+        key_input = dw::KEY_INPUT_F3;
     if (input_state->CheckIntervalTapped(INPUT_BUTTON_F4))
-        key_input = 0x100000D;
+        key_input = dw::KEY_INPUT_F4;
     if (input_state->CheckIntervalTapped(INPUT_BUTTON_F5))
-        key_input = 0x100000E;
+        key_input = dw::KEY_INPUT_F5;
     if (input_state->CheckIntervalTapped(INPUT_BUTTON_F6))
-        key_input = 0x100000F;
+        key_input = dw::KEY_INPUT_F6;
     if (input_state->CheckIntervalTapped(INPUT_BUTTON_F7))
-        key_input = 0x1000010;
+        key_input = dw::KEY_INPUT_F7;
     if (input_state->CheckIntervalTapped(INPUT_BUTTON_F8))
-        key_input = 0x1000011;
+        key_input = dw::KEY_INPUT_F8;
     if (input_state->CheckIntervalTapped(INPUT_BUTTON_F9))
-        key_input = 0x1000012;
+        key_input = dw::KEY_INPUT_F9;
     if (input_state->CheckIntervalTapped(INPUT_BUTTON_F10))
-        key_input = 0x1000013;
+        key_input = dw::KEY_INPUT_F10;
     if (input_state->CheckIntervalTapped(INPUT_BUTTON_F11))
-        key_input = 0x1000014;
+        key_input = dw::KEY_INPUT_F11;
     if (input_state->CheckIntervalTapped(INPUT_BUTTON_F12))
-        key_input = 0x1000015;
+        key_input = dw::KEY_INPUT_F12;
 
     const InputState* v12[2];
     v12[0] = input_state_get(0);
     v12[1] = input_state_get(1);
     for (const InputState* i : v12) {
         if (i->CheckIntervalTapped(INPUT_BUTTON_JVS_UP))
-            joy_input |= 0x1000000;
+            enum_or(joy_input, dw::JOY_INPUT_INTERVAL_JVS_UP);
         if (i->CheckIntervalTapped(INPUT_BUTTON_JVS_DOWN))
-            joy_input |= 0x2000000;
+            enum_or(joy_input, dw::JOY_INPUT_INTERVAL_JVS_DOWN);
         if (i->CheckIntervalTapped(INPUT_BUTTON_JVS_LEFT))
-            joy_input |= 0x4000000;
+            enum_or(joy_input, dw::JOY_INPUT_INTERVAL_JVS_LEFT);
         if (i->CheckIntervalTapped(INPUT_BUTTON_JVS_RIGHT))
-            joy_input |= 0x8000000;
+            enum_or(joy_input, dw::JOY_INPUT_INTERVAL_JVS_RIGHT);
 
         if (i->CheckDown(INPUT_BUTTON_JVS_TRIANGLE))
-            joy_input |= 0x01;
+            enum_or(joy_input, dw::JOY_INPUT_DOWN_JVS_TRIANGLE);
         if (i->CheckDown(INPUT_BUTTON_JVS_SQUARE))
-            joy_input |= 0x02;
+            enum_or(joy_input, dw::JOY_INPUT_DOWN_JVS_SQUARE);
         if (i->CheckDown(INPUT_BUTTON_JVS_CROSS))
-            joy_input |= 0x04;
+            enum_or(joy_input, dw::JOY_INPUT_DOWN_JVS_CROSS);
         if (i->CheckDown(INPUT_BUTTON_JVS_START))
-            joy_input |= 0x08;
+            enum_or(joy_input, dw::JOY_INPUT_DOWN_JVS_START);
 
         if (i->CheckTapped(INPUT_BUTTON_JVS_TRIANGLE))
-            joy_input |= 0x10;
+            enum_or(joy_input, dw::JOY_INPUT_TAP_JVS_TRIANGLE);
         if (i->CheckTapped(INPUT_BUTTON_JVS_SQUARE))
-            joy_input |= 0x20;
+            enum_or(joy_input, dw::JOY_INPUT_TAP_JVS_SQUARE);
         if (i->CheckTapped(INPUT_BUTTON_JVS_CROSS))
-            joy_input |= 0x40;
+            enum_or(joy_input, dw::JOY_INPUT_TAP_JVS_CROSS);
         if (i->CheckTapped(INPUT_BUTTON_JVS_START))
-            joy_input |= 0x80;
+            enum_or(joy_input, dw::JOY_INPUT_TAP_JVS_START);
 
         if (i->CheckReleased(INPUT_BUTTON_JVS_TRIANGLE))
-            joy_input |= 0x100;
+            enum_or(joy_input, dw::JOY_INPUT_RELEASE_JVS_TRIANGLE);
         if (i->CheckReleased(INPUT_BUTTON_JVS_SQUARE))
-            joy_input |= 0x200;
+            enum_or(joy_input, dw::JOY_INPUT_RELEASE_JVS_SQUARE);
         if (i->CheckReleased(INPUT_BUTTON_JVS_CROSS))
-            joy_input |= 0x400;
+            enum_or(joy_input, dw::JOY_INPUT_RELEASE_JVS_CROSS);
         if (i->CheckReleased(INPUT_BUTTON_JVS_START))
-            joy_input |= 0x800;
+            enum_or(joy_input, dw::JOY_INPUT_RELEASE_JVS_START);
 
         if (i->CheckDoubleTapped(INPUT_BUTTON_JVS_TRIANGLE))
-            joy_input |= 0x1000;
+            enum_or(joy_input, dw::JOY_INPUT_DBL_TAP_JVS_TRIANGLE);
         if (i->CheckDoubleTapped(INPUT_BUTTON_JVS_SQUARE))
-            joy_input |= 0x2000;
+            enum_or(joy_input, dw::JOY_INPUT_DBL_TAP_JVS_SQUARE);
         if (i->CheckDoubleTapped(INPUT_BUTTON_JVS_CROSS))
-            joy_input |= 0x4000;
+            enum_or(joy_input, dw::JOY_INPUT_DBL_TAP_JVS_CROSS);
         if (i->CheckDoubleTapped(INPUT_BUTTON_JVS_START))
-            joy_input |= 0x8000;
+            enum_or(joy_input, dw::JOY_INPUT_DBL_TAP_JVS_START);
 
         if (i->CheckHold(INPUT_BUTTON_JVS_TRIANGLE))
-            joy_input |= 0x10000;
+            enum_or(joy_input, dw::JOY_INPUT_HOLD_JVS_TRIANGLE);
         if (i->CheckHold(INPUT_BUTTON_JVS_SQUARE))
-            joy_input |= 0x20000;
+            enum_or(joy_input, dw::JOY_INPUT_HOLD_JVS_SQUARE);
         if (i->CheckHold(INPUT_BUTTON_JVS_CROSS))
-            joy_input |= 0x40000;
+            enum_or(joy_input, dw::JOY_INPUT_HOLD_JVS_CROSS);
     }
 
     if (joy_input)
-        joy_input |= 0x40000000;
+        enum_or(joy_input, dw::JOY_INPUT_PRESS);
 
     if (get_pause())
-        joy_input |= 0x10000000;
+        enum_or(joy_input, dw::JOY_INPUT_PAUSE);
 }
 
 // 0x1403011A0
