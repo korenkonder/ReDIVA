@@ -1018,6 +1018,7 @@ namespace Vulkan {
             switch (format) {
             case VK_FORMAT_D24_UNORM_S8_UINT:
             case VK_FORMAT_D32_SFLOAT:
+            case VK_FORMAT_D32_SFLOAT_S8_UINT:
                 if (vk_tex->flags & Vulkan::GL_TEXTURE_ATTACHMENT)
                     usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
                 break;
@@ -1135,6 +1136,7 @@ namespace Vulkan {
             switch (format) {
             case VK_FORMAT_D24_UNORM_S8_UINT:
             case VK_FORMAT_D32_SFLOAT:
+            case VK_FORMAT_D32_SFLOAT_S8_UINT:
                 layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
                 break;
             default:
@@ -1562,6 +1564,7 @@ namespace Vulkan {
     VkImageAspectFlags get_aspect_mask(GLenum internal_format) {
         switch (Vulkan::get_format(internal_format)) {
         case VK_FORMAT_D24_UNORM_S8_UINT:
+        case VK_FORMAT_D32_SFLOAT_S8_UINT:
             return VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
         case VK_FORMAT_D32_SFLOAT:
             return VK_IMAGE_ASPECT_DEPTH_BIT;
@@ -1715,7 +1718,8 @@ namespace Vulkan {
         case GL_DEPTH_COMPONENT16:
             return VK_FORMAT_D16_UNORM;
         case GL_DEPTH_COMPONENT24:
-            return VK_FORMAT_D24_UNORM_S8_UINT;
+            return sv_gpu_vendor == GPU_VENDOR_AMD
+                ? VK_FORMAT_D32_SFLOAT : VK_FORMAT_D24_UNORM_S8_UINT;
         case GL_DEPTH_COMPONENT32:
             return VK_FORMAT_D32_SFLOAT;
         case GL_R8:
@@ -1748,6 +1752,8 @@ namespace Vulkan {
             return VK_FORMAT_E5B9G9R9_UFLOAT_PACK32;
         case GL_DEPTH_COMPONENT32F:
             return VK_FORMAT_D32_SFLOAT;
+        case GL_DEPTH32F_STENCIL8:
+            return VK_FORMAT_D32_SFLOAT_S8_UINT;
         case GL_COMPRESSED_RED_RGTC1:
             return VK_FORMAT_BC4_UNORM_BLOCK;
         case GL_COMPRESSED_RG_RGTC2:
@@ -2696,6 +2702,7 @@ namespace Vulkan {
                     switch (format) {
                     case VK_FORMAT_D24_UNORM_S8_UINT:
                     case VK_FORMAT_D32_SFLOAT:
+                    case VK_FORMAT_D32_SFLOAT_S8_UINT:
                         layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
                         break;
                     default:
@@ -4155,6 +4162,7 @@ namespace Vulkan {
                 case GL_DEPTH_COMPONENT24:
                 case GL_DEPTH24_STENCIL8:
                 case GL_DEPTH_COMPONENT32F:
+                case GL_DEPTH32F_STENCIL8:
                     break;
                 default:
                     return GL_FRAMEBUFFER_UNSUPPORTED;
@@ -6571,6 +6579,7 @@ namespace Vulkan {
         case GL_UNSIGNED_SHORT_1_5_5_5_REV:
         case GL_UNSIGNED_INT_24_8:
         case GL_UNSIGNED_INT_10F_11F_11F_REV:
+        case GL_FLOAT_32_UNSIGNED_INT_24_8_REV:
             break;
         default:
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
@@ -6596,6 +6605,7 @@ namespace Vulkan {
         case GL_R11F_G11F_B10F:
         case GL_RGB9_E5:
         case GL_DEPTH_COMPONENT32F:
+        case GL_DEPTH32F_STENCIL8:
             break;
         default:
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
@@ -6609,7 +6619,7 @@ namespace Vulkan {
                 && (internal_format == GL_DEPTH_COMPONENT16 || internal_format == GL_DEPTH_COMPONENT24
                     || internal_format == GL_DEPTH_COMPONENT32 || internal_format == GL_DEPTH_COMPONENT32F))
             || ((target != GL_TEXTURE_2D || format != GL_DEPTH_STENCIL || pixels)
-                && (internal_format == GL_DEPTH24_STENCIL8))) {
+                && (internal_format == GL_DEPTH24_STENCIL8 || internal_format == GL_DEPTH32F_STENCIL8))) {
             gl_wrap_manager_ptr->push_error(GL_INVALID_OPERATION);
             return;
         }

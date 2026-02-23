@@ -117,7 +117,7 @@ int32_t RenderTexture::Init(int32_t width, int32_t height,
 
         render_texture_counter++;
         depth_texture = this->GetDepthTex();
-        stencil = depth_format == GL_DEPTH24_STENCIL8;
+        stencil = depth_format == GL_DEPTH24_STENCIL8 || depth_format == GL_DEPTH32F_STENCIL8;
     }
     else {
         this->depth_texture = 0;
