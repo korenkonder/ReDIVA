@@ -875,6 +875,7 @@ void glut_input_ctrl() {
 
     glut_pc_input[0].key_ptr = &glut_input.key_last;
 
+    // Custom mapping based on that used in TLAC with a few tweaks
     glut_pc_input_copy_button(INPUT_BUTTON_F1, INPUT_BUTTON_JVS_TEST   );
     glut_pc_input_copy_button(INPUT_BUTTON_F2, INPUT_BUTTON_JVS_SERVICE);
 
