@@ -21,7 +21,7 @@
 #include "../am_data.hpp"
 #include "../game_state.hpp"
 #include "../imgui_helper.hpp"
-#include "../input.hpp"
+#include "../input_state.hpp"
 #include "../mask_screen.hpp"
 #include "../task_movie.hpp"
 #include "../wait_screen.hpp"
@@ -4991,22 +4991,23 @@ void pv_game::sub_140104FB0() {
 }
 
 bool pv_game::sub_14010EF00() {
-    //InputState* input_state = input_state_get(0);
+    //const InputState* input_state = input_state_get(0);
     if (!wrap_collection_get()->give_up.get_value())
         return false;
 
     /*bool v5 = task_slider_control_get()->sub_140618C20(38)
-        && input_state->sub_14018D480(10) && input_state->sub_14018D480(7);
+        && input_state->CheckDown(INPUT_BUTTON_JVS_CIRCLE)
+        && input_state->CheckDown(INPUT_BUTTON_JVS_TRIANGLE);
     switch (data.field_2DB34) {
     case 0:
-        if (v5 && input_state->sub_14018D510(2)) {
+        if (v5 && input_state->CheckTapped(INPUT_BUTTON_JVS_START)) {
             data.field_2DB34 = 1;
             data.field_2DB38.get_timestamp();
             data.field_2D0AC = sub_14010F930();
         }
         break;
     case 1:
-        if (!v5 || !input_state->sub_14018D480(2)) {
+        if (!v5 || !input_state->CheckDown(INPUT_BUTTON_JVS_START)) {
             sub_14010F030();
             data.field_2DB34 = 0;
             data.field_2D0AC = 0;
@@ -5315,12 +5316,13 @@ void TaskPvGame::window() {
     if (data.type != 2 || pv_game_parent_data.outer_state != 1)
         return;
 
-    if (Input::IsKeyTapped(GLFW_KEY_K, GLFW_MOD_CONTROL))
+    const InputState* input_state = input_state_get(0);
+    if (input_state->CheckTapped(INPUT_BUTTON_K) && input_state->CheckDown(INPUT_BUTTON_CONTROL))
         pv_game_ptr->end_pv = true;
-    else if (Input::IsKeyTapped(GLFW_KEY_K))
+    else if (input_state->CheckTapped(INPUT_BUTTON_K))
         pause ^= true;
 
-    if (Input::IsKeyTapped(GLFW_KEY_L)) {
+    if (input_state->CheckTapped(INPUT_BUTTON_L)) {
         pause = true;
         step_frame = true;
     }

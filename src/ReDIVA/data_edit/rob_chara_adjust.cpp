@@ -12,7 +12,7 @@
 #include "../data_test/motion_test.hpp"
 #include "../dw.hpp"
 #include "../imgui_helper.hpp"
-#include "../input.hpp"
+#include "../input_state.hpp"
 
 static const char* chara_name[] = {
     "1P",
@@ -128,7 +128,10 @@ bool RobCharaAdjust::dest() {
 }
 
 void RobCharaAdjust::window() {
-    if (Input::IsKeyTapped(GLFW_KEY_A, GLFW_MOD_CONTROL | GLFW_MOD_SHIFT))
+    const InputState* input_state = input_state_get(0);
+    if (input_state->CheckTapped(INPUT_BUTTON_A)
+        && input_state->CheckDown(INPUT_BUTTON_CONTROL)
+        && input_state->CheckDown(INPUT_BUTTON_SHIFT))
         visible ^= true;
 
     if (!visible)

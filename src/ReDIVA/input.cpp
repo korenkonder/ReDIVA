@@ -8,11 +8,8 @@
 #include "input.hpp"
 #include "../KKdLib/timer.hpp"
 #include "../KKdLib/vec.hpp"
-#include <map>
-#include <vector>
-#define CIMGUI_DEFINE_ENUMS_AND_STRUCTS
-#include <imgui/imgui.h>
-#include <timeapi.h>
+#include "input_state.hpp"
+#include <GLFW/glfw3.h>
 
 double_t input_movement_speed = 0.1;
 double_t input_rotation_sensitivity = 0.5;
@@ -26,41 +23,34 @@ bool input_reset;
 bool input_reset_mouse_position;
 bool input_locked;
 
+uint8_t disable_dw_input_update = false;
+bool disable_cursor = false;
+
 extern bool close;
 extern timer* render_timer;
 extern HWND window_handle;
-extern ImGuiContext* imgui_context;
 
-extern uint8_t disable_input_state_update;
-extern bool disable_cursor;
+extern void glut_get_modifiers();
+extern void glut_reset_modifiers();
+
+extern void glut_keydown_cb(uint8_t key, int32_t x, int32_t y);
+extern void glut_keyup_cb(uint8_t key, int32_t x, int32_t y);
+extern void glut_skeydown_cb(int32_t key, int32_t x, int32_t y);
+extern void glut_skeyup_cb(int32_t key, int32_t x, int32_t y);
+extern void glut_mouse_cb(int32_t bn, int32_t state, int32_t x, int32_t y);
+extern void glut_motion_cb(int32_t x, int32_t y);
 
 namespace Input {
-    struct Key {
-        int32_t key;
-        int32_t scancode;
-        int32_t action;
-        int32_t mods;
-    };
-
-    struct MouseButton {
-        int32_t button;
-        int32_t action;
-        int32_t mods;
-    };
-
-    std::vector<Key> keys;
-    std::vector<MouseButton> mouse_buttons;
-    POINT pos;
-    double_t scroll;
-
-    std::vector<Key> keys_prev;
-    std::vector<MouseButton> mouse_buttons_prev;
-    POINT pos_prev;
-    double_t scroll_prev;
+    static vec2i pos;
 
     static bool is_key_mod(int32_t key);
     static bool is_key_numpad(int32_t key);
 
+    inline static void process_button(const InputState* input_state, double_t& value, InputButton button,
+        const double_t speed, const double_t speed_fast, const double_t speed_slow);
+
+    static void CursorPosCallback(GLFWwindow* window,
+        double_t xpos, double_t ypos);
     static void KeyboardCallback(GLFWwindow* window,
         int32_t key, int32_t scancode, int32_t action, int32_t mods);
     static void MouseButtonCallback(GLFWwindow* window,
@@ -68,157 +58,25 @@ namespace Input {
     static void ScrollCallback(GLFWwindow* window,
         double_t x_offset, double_t y_offset);
 
-    static Key* vector_Key_find(std::vector<Key>& keys, int32_t key);
-    static MouseButton* vector_MouseButton_find(
-        std::vector<MouseButton>& mouse_buttons, int32_t button);
-
-    bool IsKeyDown(int32_t key, int32_t mods) {
-        Key* k = vector_Key_find(keys, key);
-        if (k && (mods == -1 || k->mods == mods))
-            return k->action != GLFW_RELEASE;
-        return false;
-    }
-
-    bool IsKeyUp(int32_t key, int32_t mods) {
-        Key* k = vector_Key_find(keys, key);
-        if (k && (mods == -1 || k->mods == mods))
-            return k->action == GLFW_RELEASE;
-        return false;
-    }
-
-    bool IsKeyTapped(int32_t key, int32_t mods) {
-        Key* k = vector_Key_find(keys, key);
-        Key* k_prev = vector_Key_find(keys_prev, key);
-        if (k)
-            if (k_prev) {
-                if (mods == -1 || (k->mods == mods && k_prev->mods == mods))
-                    return k->action != GLFW_RELEASE && k_prev->action == GLFW_RELEASE;
-            }
-            else {
-                if (mods == -1 || k->mods == mods)
-                    return k->action != GLFW_RELEASE;
-            }
-        return false;
-    }
-
-    bool IsKeyReleased(int32_t key, int32_t mods) {
-        Key* k = vector_Key_find(keys, key);
-        Key* k_prev = vector_Key_find(keys_prev, key);
-        if (k)
-            if (k_prev) {
-                if ((k->mods == mods && k_prev->mods == mods))
-                    return k->action == GLFW_RELEASE && k_prev->action != GLFW_RELEASE;
-            }
-            else {
-                if (mods == -1 || k->mods == mods)
-                    return k->action == GLFW_RELEASE;
-            }
-        return false;
-    }
-
-    bool IsMouseButtonDown(int32_t button, int32_t mods) {
-        MouseButton* mb = vector_MouseButton_find(mouse_buttons, button);
-        if (mb && (mods == -1 || mb->mods == mods))
-            return mb->action != GLFW_RELEASE;
-        return false;
-    }
-
-    bool IsMouseButtonUp(int32_t button, int32_t mods) {
-        MouseButton* mb = vector_MouseButton_find(mouse_buttons, button);
-        if (mb && (mods == -1 || mb->mods == mods))
-            return mb->action == GLFW_RELEASE;
-        return false;
-    }
-
-    bool IsMouseButtonTapped(int32_t button, int32_t mods) {
-        MouseButton* mb = vector_MouseButton_find(mouse_buttons, button);
-        MouseButton* mb_prev = vector_MouseButton_find(mouse_buttons_prev, button);
-        if (mb)
-            if (mb_prev) {
-                if ((mods == -1 || mb->mods == mods && mb_prev->mods == mods))
-                    return mb->action != GLFW_RELEASE && mb_prev->action == GLFW_RELEASE;
-            }
-            else {
-                if (mods == -1 || mb->mods == mods)
-                    return mb->action != GLFW_RELEASE;
-            }
-        return false;
-    }
-
-    bool IsMouseButtonReleased(int32_t button, int32_t mods) {
-        MouseButton* mb = vector_MouseButton_find(mouse_buttons, button);
-        MouseButton* mb_prev = vector_MouseButton_find(mouse_buttons_prev, button);
-        if (mb)
-            if (mb_prev) {
-                if ((mods == -1 || mb->mods == mods && mb_prev->mods == mods))
-                    return mb->action == GLFW_RELEASE && mb_prev->action != GLFW_RELEASE;
-            }
-            else {
-                if (mods == -1 || mb->mods == mods)
-                    return mb->action == GLFW_RELEASE;
-            }
-        return true;
-    }
-
-    bool WasKeyDown(int32_t key, int32_t mods) {
-        Key* k_prev = vector_Key_find(keys_prev, key);
-        if (k_prev && (mods == -1 || k_prev->mods == mods))
-            return k_prev->action != GLFW_RELEASE;
-        return false;
-    }
-
-    bool WasKeyUp(int32_t key, int32_t mods) {
-        Key* k_prev = vector_Key_find(keys_prev, key);
-        if (k_prev && (mods == -1 || k_prev->mods == mods))
-                return k_prev->action == GLFW_RELEASE;
-        return true;
-    }
-
-    bool WasMouseButtonDown(int32_t button, int32_t mods) {
-        MouseButton* mb_prev = vector_MouseButton_find(mouse_buttons_prev, button);
-        if (mb_prev && (mods == -1 || mb_prev->mods == mods))
-            return mb_prev->action != GLFW_RELEASE;
-        return true;
-    }
-
-    bool WasMouseButtonUp(int32_t button, int32_t mods) {
-        MouseButton* mb_prev = vector_MouseButton_find(mouse_buttons_prev, button);
-        if (mb_prev && (mods == -1 || mb_prev->mods == mods))
-            return mb_prev->action == GLFW_RELEASE;
-        return true;
-    }
-
-    void EndFrame() {
-        keys_prev.assign(keys.begin(), keys.end());
-        mouse_buttons_prev.assign(mouse_buttons.begin(), mouse_buttons.end());
-        pos_prev = pos;
-        scroll_prev = scroll;
-        scroll = 0.0;
-    }
-
     void NewFrame() {
-        if (window_handle) {
-            GetCursorPos(&pos);
-            ScreenToClient(window_handle, &pos);
-        }
-
         input_move_x = 0.0;
         input_move_y = 0.0;
         input_rotate_x = 0.0;
         input_rotate_y = 0.0;
         input_roll = 0.0;
 
-        if (IsKeyTapped(GLFW_KEY_F3))
-            disable_input_state_update ^= 0x01;
-        else if (IsKeyTapped(GLFW_KEY_F3, GLFW_MOD_CONTROL))
+        const InputState* input_state = input_state_get(0);
+        if (input_state->CheckTapped(INPUT_BUTTON_F3))
+            disable_dw_input_update ^= 0x01;
+        else if (input_state->CheckTapped(INPUT_BUTTON_F3) && input_state->CheckDown(INPUT_BUTTON_CONTROL))
             disable_cursor ^= true;
 
         if (input_locked)
-            disable_input_state_update |= 0x02;
+            disable_dw_input_update |= 0x02;
         else
-            disable_input_state_update &= ~0x02;
+            disable_dw_input_update &= ~0x02;
 
-        if (!window_handle || window_handle != GetForegroundWindow() || !disable_input_state_update)
+        if (!window_handle || window_handle != GetForegroundWindow() || !disable_dw_input_update)
             return;
 
         double_t freq = render_timer->get_freq();
@@ -238,41 +96,10 @@ namespace Input {
         speed_fast *= frame_speed;
         speed_slow *= frame_speed;
 
-        if (IsKeyDown(GLFW_KEY_W) || IsKeyDown(GLFW_KEY_W, GLFW_MOD_CONTROL | GLFW_MOD_SHIFT))
-            input_move_x += speed;
-        else if (IsKeyDown(GLFW_KEY_W, GLFW_MOD_SHIFT))
-            input_move_x += speed_fast;
-        else if (IsKeyDown(GLFW_KEY_W, GLFW_MOD_CONTROL))
-            input_move_x += speed_slow;
-        else if (IsKeyDown(GLFW_KEY_W, -1))
-            input_move_x += speed;
-
-        if (IsKeyDown(GLFW_KEY_S) || IsKeyDown(GLFW_KEY_S, GLFW_MOD_CONTROL | GLFW_MOD_SHIFT))
-            input_move_x -= speed;
-        else if (IsKeyDown(GLFW_KEY_S, GLFW_MOD_SHIFT))
-            input_move_x -= speed_fast;
-        else if (IsKeyDown(GLFW_KEY_S, GLFW_MOD_CONTROL))
-            input_move_x -= speed_slow;
-        else if (IsKeyDown(GLFW_KEY_S, -1))
-            input_move_x -= speed;
-
-        if (IsKeyDown(GLFW_KEY_A) || IsKeyDown(GLFW_KEY_A, GLFW_MOD_CONTROL | GLFW_MOD_SHIFT))
-            input_move_y -= speed;
-        else if (IsKeyDown(GLFW_KEY_A, GLFW_MOD_SHIFT))
-            input_move_y -= speed_fast;
-        else if (IsKeyDown(GLFW_KEY_A, GLFW_MOD_CONTROL))
-            input_move_y -= speed_slow;
-        else if (IsKeyDown(GLFW_KEY_A, -1))
-            input_move_y -= speed;
-
-        if (IsKeyDown(GLFW_KEY_D) || IsKeyDown(GLFW_KEY_D, GLFW_MOD_CONTROL | GLFW_MOD_SHIFT))
-            input_move_y += speed;
-        else if (IsKeyDown(GLFW_KEY_D, GLFW_MOD_SHIFT))
-            input_move_y += speed_fast;
-        else if (IsKeyDown(GLFW_KEY_D, GLFW_MOD_CONTROL))
-            input_move_y += speed_slow;
-        else if (IsKeyDown(GLFW_KEY_D, -1))
-            input_move_y += speed;
+        process_button(input_state, input_move_x, INPUT_BUTTON_W,  speed,  speed_fast,  speed_slow);
+        process_button(input_state, input_move_x, INPUT_BUTTON_S, -speed, -speed_fast, -speed_slow);
+        process_button(input_state, input_move_y, INPUT_BUTTON_A, -speed, -speed_fast, -speed_slow);
+        process_button(input_state, input_move_y, INPUT_BUTTON_D,  speed,  speed_fast,  speed_slow);
 
         speed = input_movement_speed;
         speed_fast = input_movement_speed * 2.0;
@@ -284,67 +111,21 @@ namespace Input {
         speed_fast *= 10.0;
         speed_slow *= 10.0;
 
-        if (IsKeyDown(GLFW_KEY_UP) || IsKeyDown(GLFW_KEY_UP, GLFW_MOD_CONTROL | GLFW_MOD_SHIFT))
-            input_rotate_y += speed;
-        else if (IsKeyDown(GLFW_KEY_UP, GLFW_MOD_SHIFT))
-            input_rotate_y += speed_fast;
-        else if (IsKeyDown(GLFW_KEY_UP, GLFW_MOD_CONTROL))
-            input_rotate_y += speed_slow;
-        else if (IsKeyDown(GLFW_KEY_UP, -1))
-            input_rotate_y += speed;
+        process_button(input_state, input_rotate_y, INPUT_BUTTON_UP   ,  speed,  speed_fast,  speed_slow);
+        process_button(input_state, input_rotate_y, INPUT_BUTTON_DOWN , -speed, -speed_fast, -speed_slow);
+        process_button(input_state, input_rotate_x, INPUT_BUTTON_LEFT , -speed, -speed_fast, -speed_slow);
+        process_button(input_state, input_rotate_x, INPUT_BUTTON_RIGHT,  speed,  speed_fast,  speed_slow);
 
-        if (IsKeyDown(GLFW_KEY_DOWN) || IsKeyDown(GLFW_KEY_DOWN, GLFW_MOD_CONTROL | GLFW_MOD_SHIFT))
-            input_rotate_y -= speed;
-        else if (IsKeyDown(GLFW_KEY_DOWN, GLFW_MOD_SHIFT))
-            input_rotate_y -= speed_fast;
-        else if (IsKeyDown(GLFW_KEY_DOWN, GLFW_MOD_CONTROL))
-            input_rotate_y -= speed_slow;
-        else if (IsKeyDown(GLFW_KEY_DOWN, -1))
-            input_rotate_y -= speed;
+        process_button(input_state, input_roll, INPUT_BUTTON_Q,  speed,  speed_fast,  speed_slow);
+        process_button(input_state, input_roll, INPUT_BUTTON_E, -speed, -speed_fast, -speed_slow);
 
-        if (IsKeyDown(GLFW_KEY_LEFT) || IsKeyDown(GLFW_KEY_LEFT, GLFW_MOD_CONTROL | GLFW_MOD_SHIFT))
-            input_rotate_x -= speed;
-        else if (IsKeyDown(GLFW_KEY_LEFT, GLFW_MOD_SHIFT))
-            input_rotate_x -= speed_fast;
-        else if (IsKeyDown(GLFW_KEY_LEFT, GLFW_MOD_CONTROL))
-            input_rotate_x -= speed_slow;
-        else if (IsKeyDown(GLFW_KEY_LEFT, -1))
-            input_rotate_x -= speed;
-
-        if (IsKeyDown(GLFW_KEY_RIGHT) || IsKeyDown(GLFW_KEY_RIGHT, GLFW_MOD_CONTROL | GLFW_MOD_SHIFT))
-            input_rotate_x += speed;
-        else if (IsKeyDown(GLFW_KEY_RIGHT, GLFW_MOD_SHIFT))
-            input_rotate_x += speed_fast;
-        else if (IsKeyDown(GLFW_KEY_RIGHT, GLFW_MOD_CONTROL))
-            input_rotate_x += speed_slow;
-        else if (IsKeyDown(GLFW_KEY_RIGHT, -1))
-            input_rotate_x += speed;
-
-        if (IsKeyDown(GLFW_KEY_Q) || IsKeyDown(GLFW_KEY_Q, GLFW_MOD_CONTROL | GLFW_MOD_SHIFT))
-            input_roll += speed;
-        else if (IsKeyDown(GLFW_KEY_Q, GLFW_MOD_SHIFT))
-            input_roll += speed_fast;
-        else if (IsKeyDown(GLFW_KEY_Q, GLFW_MOD_CONTROL))
-            input_roll += speed_slow;
-        else if (IsKeyDown(GLFW_KEY_Q, -1))
-            input_roll += speed;
-
-        if (IsKeyDown(GLFW_KEY_E) || IsKeyDown(GLFW_KEY_E, GLFW_MOD_CONTROL | GLFW_MOD_SHIFT))
-            input_roll -= speed;
-        else if (IsKeyDown(GLFW_KEY_E, GLFW_MOD_SHIFT))
-            input_roll -= speed_fast;
-        else if (IsKeyDown(GLFW_KEY_E, GLFW_MOD_CONTROL))
-            input_roll -= speed_slow;
-        else if (IsKeyDown(GLFW_KEY_E, -1))
-            input_roll -= speed;
-
-        if (IsKeyDown(GLFW_KEY_R))
+        if (input_state->CheckDown(INPUT_BUTTON_R))
             input_reset = true;
 
-        if (IsMouseButtonDown(GLFW_MOUSE_BUTTON_MIDDLE, -1)) {
+        if (input_state->CheckDown(INPUT_BUTTON_MOUSE_BUTTON_MIDDLE)) {
             if (!input_reset_mouse_position) {
-                input_rotate_y += ((double_t)pos_prev.y - (double_t)pos.y) * input_rotation_sensitivity;
-                input_rotate_x += ((double_t)pos.x - (double_t)pos_prev.x) * input_rotation_sensitivity;
+                input_rotate_y += -input_state->sub_14018CCC0(11) * input_rotation_sensitivity;
+                input_rotate_x += input_state->sub_14018CCC0(10) * input_rotation_sensitivity;
             }
             input_reset_mouse_position = false;
         }
@@ -353,7 +134,8 @@ namespace Input {
         input_locked = false;
     }
 
-    void SetInputs(GLFWwindow* window) {
+    void SetCallbacks(GLFWwindow* window) {
+        glfwSetCursorPosCallback(window, (GLFWcursorposfun)CursorPosCallback);
         glfwSetKeyCallback(window, (GLFWkeyfun)KeyboardCallback);
         glfwSetMouseButtonCallback(window, (GLFWmousebuttonfun)MouseButtonCallback);
         glfwSetScrollCallback(window, (GLFWscrollfun)ScrollCallback);
@@ -391,6 +173,29 @@ namespace Input {
         default:
             return false;
         }
+    }
+
+    inline static void process_button(const InputState* input_state, double_t& value, InputButton button,
+        const double_t speed, const double_t speed_fast, const double_t speed_slow) {
+        if (input_state->CheckDown(button)
+            && input_state->CheckDown(INPUT_BUTTON_CONTROL) && input_state->CheckDown(INPUT_BUTTON_SHIFT))
+            value += speed;
+        else if (input_state->CheckDown(button) && input_state->CheckDown(INPUT_BUTTON_SHIFT))
+            value += speed_fast;
+        else if (input_state->CheckDown(button) && input_state->CheckDown(INPUT_BUTTON_CONTROL))
+            value += speed_slow;
+        else if (input_state->CheckDown(button))
+            value += speed;
+    }
+
+    static void CursorPosCallback(GLFWwindow* window,
+        double_t xpos, double_t ypos) {
+        pos.x = (int32_t)xpos;
+        pos.y = (int32_t)ypos;
+
+        glut_get_modifiers();
+        glut_motion_cb(pos.x, pos.y);
+        glut_reset_modifiers();
     }
 
     static void KeyboardCallback(GLFWwindow* window,
@@ -431,60 +236,112 @@ namespace Input {
             break;
         }
 
-        if (is_mod) {
-            if (action != GLFW_RELEASE) {
-                for (Key& i : keys)
-                    if (!is_key_mod(i.key))
-                        i.mods |= mods;
+        if (is_mod)
+            return;
 
-                for (MouseButton& i : mouse_buttons)
-                    i.mods |= mods;
-            }
-            else {
-                mods = ~mods;
-                for (Key& i : keys)
-                    if (!is_key_mod(i.key))
-                        i.mods &= mods;
+        static const std::pair<int32_t, int32_t> glut_key_table[] = {
+            { GLFW_KEY_ESCAPE   , 0x1B },
+            { GLFW_KEY_BACKSPACE, '\b' },
+            { GLFW_KEY_TAB      , '\t' },
+            { GLFW_KEY_ENTER    , '\r' },
+            { GLFW_KEY_SPACE    ,  ' ' },
+            { GLFW_KEY_DELETE   , 0x7F },
+        };
 
-                for (MouseButton& i : mouse_buttons)
-                    i.mods &= mods;
+        static const std::pair<int32_t, int32_t> glut_skey_table[] = {
+            { GLFW_KEY_F1       ,   1, },
+            { GLFW_KEY_F2       ,   2, },
+            { GLFW_KEY_F3       ,   3, },
+            { GLFW_KEY_F4       ,   4, },
+            { GLFW_KEY_F5       ,   5, },
+            { GLFW_KEY_F6       ,   6, },
+            { GLFW_KEY_F7       ,   7, },
+            { GLFW_KEY_F8       ,   8, },
+            { GLFW_KEY_F9       ,   9, },
+            { GLFW_KEY_F10      ,  10, },
+            { GLFW_KEY_F11      ,  11, },
+            { GLFW_KEY_F12      ,  12, },
+            { GLFW_KEY_LEFT     , 100, },
+            { GLFW_KEY_UP       , 101, },
+            { GLFW_KEY_RIGHT    , 102, },
+            { GLFW_KEY_DOWN     , 103, },
+            { GLFW_KEY_PAGE_UP  , 104, },
+            { GLFW_KEY_PAGE_DOWN, 105, },
+            { GLFW_KEY_HOME     , 106, },
+            { GLFW_KEY_END      , 107, },
+            { GLFW_KEY_INSERT   , 108, },
+        };
+
+        glut_get_modifiers();
+
+        int32_t glut_key = -1;
+
+        bool is_skey = false;
+        for (const auto& i : glut_skey_table)
+            if (i.first == key) {
+                glut_key = i.second;
+                is_skey = true;
+                break;
             }
-            mods = 0;
+
+        if (is_skey) {
+            switch (action) {
+            case GLFW_RELEASE:
+                glut_skeyup_cb(glut_key, pos.x, pos.y);
+                break;
+            case GLFW_PRESS:
+                glut_skeydown_cb(glut_key, pos.x, pos.y);
+                break;
+            }
+        }
+        else {
+            for (const auto& i : glut_key_table)
+                if (i.first == key) {
+                    glut_key = i.second;
+                    break;
+                }
+
+            if (glut_key == -1
+                && ((key >= '0' && key <= '9')
+                    || (key >= 'A' && key <= 'Z')
+                    || (key >= 'a' && key <= 'z')))
+                glut_key = key;
+
+            if (glut_key != -1)
+                switch (action) {
+                case GLFW_RELEASE:
+                    glut_keyup_cb(glut_key, pos.x, pos.y);
+                    break;
+                case GLFW_PRESS:
+                    glut_keydown_cb(glut_key, pos.x, pos.y);
+                    break;
+                }
         }
 
-        Key* k = vector_Key_find(keys, key);
-        if (k)
-            *k = { key, scancode, action, mods };
-        else
-            keys.push_back({ key, scancode, action, mods });
+        glut_reset_modifiers();
     }
 
     static void MouseButtonCallback(GLFWwindow* window,
         int32_t button, int32_t action, int32_t mods) {
-        MouseButton* mb = vector_MouseButton_find(mouse_buttons, button);
-        if (mb)
-            *mb = { button, action, mods };
-        else
-            mouse_buttons.push_back({ button, action, mods });
+        int32_t bn = -1;
+        if (button == GLFW_MOUSE_BUTTON_LEFT)
+            bn = 0;
+        else if (button == GLFW_MOUSE_BUTTON_MIDDLE)
+            bn = 1;
+        else if (button == GLFW_MOUSE_BUTTON_RIGHT)
+            bn = 2;
+
+        int32_t state = action == GLFW_PRESS ? 0 : 1;
+
+        glut_get_modifiers();
+        glut_mouse_cb(bn, state, pos.x, pos.y);
+        glut_reset_modifiers();
     }
 
     static void ScrollCallback(GLFWwindow* window,
         double_t x_offset, double_t y_offset) {
-        scroll += y_offset;
-    }
-
-    static Key* vector_Key_find(std::vector<Key>& keys, int32_t key) {
-        for (Key& i : keys)
-            if (i.key == key)
-                return &i;
-        return 0;
-    }
-
-    static MouseButton* vector_MouseButton_find(
-        std::vector<MouseButton>& mouse_buttons, int32_t button) {
-        for (MouseButton& i : mouse_buttons)
-            if (i.button == button)
-                return &i;
-        return 0;
+        glut_get_modifiers();
+        glut_mouse_cb(y_offset < 0.0f ? 4 : 3, 0, pos.x, pos.y);
+        glut_reset_modifiers();
     }
 };

@@ -5,8 +5,8 @@
 
 #include "input_state.hpp"
 #include "../CRE/render_context.hpp"
+#include "../CRE/resolution_mode.hpp"
 #include "config.hpp"
-#include "input.hpp"
 
 #ifndef USE_OPENGL
 #if BAKE_PNG
@@ -38,8 +38,22 @@ Bit / Name
  11   JVS_L        (also triggered by pressing L on Slider Panel)
  12   JVS_R        (also triggered by pressing R on Slider Panel)
 
+ 13   JVS_BUTTON_7
+ 14   JVS_BUTTON_8
+ 15   JVS_BUTTON_9
+ 16   JVS_BUTTON_10
+
  18   JVS_SW1
  19   JVS_SW2
+
+ 20   DIP_SW1
+ 21   DIP_SW2
+ 22   DIP_SW3
+ 23   DIP_SW4
+ 24   DIP_SW5
+ 25   DIP_SW6
+ 26   DIP_SW7
+ 27   DIP_SW8
 
  28   KEYBOARD_PRESS (any of keyboard keys)
 
@@ -112,6 +126,7 @@ struct amInputState {
     amInputState();
 
     void reset();
+    void update_modifiers(bool get);
 };
 
 struct amOutputState {
@@ -137,15 +152,14 @@ static bool am_input_output_set_output(const amOutputState value, int32_t index)
 // Own stuff
 static void am_input_output_pc_ctrl(amInputState& input);
 
+static int32_t get_modifiers();
+
 static void input_state_ctrl(InputState* input_state);
 static int32_t input_state_get_delta_frame();
 
 amInputOutputState am_input_output;
 
 InputState* input_state;
-
-uint8_t disable_input_state_update = 0;
-bool disable_cursor = false;
 
 extern render_context* rctx_ptr;
 
@@ -328,55 +342,30 @@ void InputState::Update(int32_t index, int32_t delta_frame) {
     Released |= am_input.released;
 
     if (updated) {
-        field_80[0] = am_input.field_30[0];
-        field_80[1] = am_input.field_30[1];
-        field_80[2] = am_input.field_30[2];
-        field_80[3] = am_input.field_30[3];
-        field_80[4] = am_input.field_30[4];
-        field_80[5] = am_input.field_30[5];
-        field_80[6] = am_input.field_30[6];
-        field_80[7] = am_input.field_30[7];
+        for (int32_t i = 0; i < 8; i++)
+            field_80[i] = am_input.field_30[i];
 
         //Added
-        field_80[8] = am_input.field_30[8];
-        field_80[9] = am_input.field_30[9];
-        field_80[10] = am_input.field_30[10];
-        field_80[11] = am_input.field_30[11];
+        for (int32_t i = 8; i < 12; i++)
+            field_80[i] = am_input.field_30[i];
     }
 
-    /*if (task_slider_control_get()->sub_140618C60(36))
-        am_input.tapped[INPUT_BUTTON_JVS_L] = true;
-    else
-        am_input.tapped[INPUT_BUTTON_JVS_L] = false;
+    /*am_input.tapped[INPUT_BUTTON_JVS_L] = task_slider_control_get()->sub_140618C60(36);
+    am_input.released[INPUT_BUTTON_JVS_L] = task_slider_control_get()->sub_140618C40(36);
+    am_input.down[INPUT_BUTTON_JVS_L] = task_slider_control_get()->sub_140618C20(36);
 
-    if (task_slider_control_get()->sub_140618C40(36))
-        am_input.released[INPUT_BUTTON_JVS_L] = true;
-    else
-        am_input.released[INPUT_BUTTON_JVS_L] = false;
+    am_input.tapped[INPUT_BUTTON_JVS_R] = task_slider_control_get()->sub_140618C60(37);
+    am_input.released[INPUT_BUTTON_JVS_R] = task_slider_control_get()->sub_140618C40(37);
+    am_input.down[INPUT_BUTTON_JVS_R] = task_slider_control_get()->sub_140618C20(37);*/
 
-    if (task_slider_control_get()->sub_140618C20(36))
-        am_input.down[INPUT_BUTTON_JVS_L] = true;
-    else
-        am_input.down[INPUT_BUTTON_JVS_L] = false;
-
-    if (task_slider_control_get()->sub_140618C60(37))
-        am_input.tapped[INPUT_BUTTON_JVS_R] = true;
-    else
-        am_input.tapped[INPUT_BUTTON_JVS_R] = false;
-
-    if (task_slider_control_get()->sub_140618C40(37))
-        am_input.released[INPUT_BUTTON_JVS_R] = true;
-    else
-        am_input.released[INPUT_BUTTON_JVS_R] = false;
-
-    if (task_slider_control_get()->sub_140618C20(37))
-        am_input.down[INPUT_BUTTON_JVS_R] = true;
-    else
-        am_input.down[INPUT_BUTTON_JVS_R] = false;*/
-
-    Tapped |= am_input.tapped;
+    Tapped   |= am_input.tapped;
     Released |= am_input.released;
-    Down |= am_input.down;
+    Down     |= am_input.down;
+
+    // Added
+    key = 0;
+    if (am_input.key_ptr)
+        key = *am_input.key_ptr;
 
     Released &= ~Down;
 
@@ -418,31 +407,29 @@ void InputState::Update(int32_t index, int32_t delta_frame) {
     Toggle ^= Down;
 
     ButtonState Down = this->Down;
-    ButtonState Up = ~this->Down;
+    ButtonState DownNew = this->Down & ~DownPrev;
+    ButtonState UpNew = ~this->Down & DownPrev;
 
-    ButtonState DoubleTapped;
-    for (int32_t i = 0; i < INPUT_BUTTON_MAX; i++)
-        if (DoubleTapData[i].Ctrl(delta_frame, Down[i], Up[i]))
-            DoubleTapped[i] = true;
-        else
-            DoubleTapped[i] = false;
-    this->DoubleTapped = DoubleTapped;
+    {
+        ButtonState DoubleTapped;
+        for (int32_t i = 0; i < INPUT_BUTTON_MAX; i++)
+            DoubleTapped[i] = DoubleTapData[i].Ctrl(delta_frame, DownNew[i], UpNew[i]);
+        this->DoubleTapped = DoubleTapped;
+    }
 
-    ButtonState Hold;
-    for (int32_t i = 0; i < INPUT_BUTTON_MAX; i++)
-        if (HoldTapData[i].Ctrl(delta_frame, Down[i], Up[i]))
-            Hold[i] = true;
-        else
-            Hold[i] = false;
-    this->Hold = Hold;
+    {
+        ButtonState Hold;
+        for (int32_t i = 0; i < INPUT_BUTTON_MAX; i++)
+            Hold[i] = HoldTapData[i].Ctrl(delta_frame, Down[i], UpNew[i]);
+        this->Hold = Hold;
+    }
 
-    ButtonState IntervalTapped;
-    for (int32_t i = 0; i < INPUT_BUTTON_MAX; i++)
-        if (IntervalTapData[i].Ctrl(delta_frame, Down[i]))
-            IntervalTapped[i] = true;
-        else
-            IntervalTapped[i] = false;
-    this->IntervalTapped = IntervalTapped;
+    {
+        ButtonState IntervalTapped;
+        for (int32_t i = 0; i < INPUT_BUTTON_MAX; i++)
+            IntervalTapped[i] = IntervalTapData[i].Ctrl(delta_frame, Down[i]);
+        this->IntervalTapped = IntervalTapped;
+    }
 }
 
 int32_t InputState::sub_14018CCC0(int32_t index) const {
@@ -459,6 +446,12 @@ void input_state_init() {
 void input_state_am_ctrl() {
     if (input_state)
         am_input_output_ctrl();
+}
+
+// Own stuff
+void input_state_pc_ctrl() {
+    if (input_state)
+        am_input_output_pc_ctrl(am_input_output.input[0]);
 }
 
 void input_state_ctrl() {
@@ -493,6 +486,45 @@ void amInputState::reset() {
     field_30[2] = 0x80000000;
     field_30[3] = 0x80000000;
     key_ptr = 0;
+}
+
+void amInputState::update_modifiers(bool get) {
+    int32_t modifiers = 0x00;
+    if (get)
+        modifiers = get_modifiers();
+
+    if (modifiers & 0x01) {
+        if (!down[INPUT_BUTTON_SHIFT])
+            tapped[INPUT_BUTTON_SHIFT] = true;
+        down[INPUT_BUTTON_SHIFT] = true;
+    }
+    else {
+        if (down[INPUT_BUTTON_SHIFT])
+            released[INPUT_BUTTON_SHIFT] = true;
+        down[INPUT_BUTTON_SHIFT] = false;
+    }
+
+    if (modifiers & 0x02) {
+        if (!down[INPUT_BUTTON_CONTROL])
+            tapped[INPUT_BUTTON_CONTROL] = true;
+        down[INPUT_BUTTON_CONTROL] = true;
+    }
+    else {
+        if (down[INPUT_BUTTON_CONTROL])
+            released[INPUT_BUTTON_CONTROL] = true;
+        down[INPUT_BUTTON_CONTROL] = false;
+    }
+
+    if (modifiers & 0x04) {
+        if (!down[INPUT_BUTTON_ALT])
+            tapped[INPUT_BUTTON_ALT] = true;
+        down[INPUT_BUTTON_ALT] = true;
+    }
+    else {
+        if (down[INPUT_BUTTON_ALT])
+            released[INPUT_BUTTON_ALT] = true;
+        down[INPUT_BUTTON_ALT] = false;
+    }
 }
 
 amOutputState::amOutputState() : data() {
@@ -532,81 +564,78 @@ void amInputOutputState::ctrl() {
 
         /*if (v11) {
             if (v11->field_0[0] & 0x80)
-                input.down[0] = true;
+                input.down[INPUT_BUTTON_JVS_TEST] = true;
             if (v11->field_0[1] & 0x80)
-                input.down[2] = true;
+                input.down[JVS_SERVICE] = true;
             if (v11->field_0[1] & 0x40)
-                input.down[1] = true;
+                input.down[JVS_START] = true;
             if (v11->field_0[1] & 0x20)
-                input.down[3] = true;
+                input.down[JVS_UP] = true;
             if (v11->field_0[1] & 0x10)
-                input.down[4] = true;
+                input.down[JVS_DOWN] = true;
             if (v11->field_0[1] & 0x08)
-                input.down[5] = true;
+                input.down[JVS_LEFT] = true;
             if (v11->field_0[1] & 0x04)
-                input.down[6] = true;
+                input.down[JVS_RIGHT] = true;
             if (v11->field_0[1] & 0x02)
-                input.down[7] = true;
+                input.down[JVS_TRIANGLE] = true;
             if (v11->field_0[1] & 0x01)
-                input.down[8] = true;
+                input.down[JVS_SQUARE] = true;
             if (v11->field_0[2] & 0x80)
-                input.down[9] = true;
+                input.down[JVS_CROSS] = true;
             if (v11->field_0[2] & 0x40)
-                input.down[10] = true;
+                input.down[JVS_CIRCLE] = true;
             if (v11->field_0[2] & 0x20)
-                input.down[11] = true;
+                input.down[JVS_L] = true;
             if (v11->field_0[2] & 0x10)
-                input.down[12] = true;
+                input.down[JVS_R] = true;
             if (v11->field_0[2] & 0x08)
-                input.down[13] = true;
+                input.down[JVS_BUTTON_7] = true;
             if (v11->field_0[2] & 0x04)
-                input.down[14] = true;
+                input.down[JVS_BUTTON_8] = true;
             if (v11->field_0[2] & 0x02)
-                input.down[15] = true;
+                input.down[JVS_BUTTON_9] = true;
             if (v11->field_0[2] & 0x01)
-                input.down[16] = true;
+                input.down[JVS_BUTTON_10] = true;
 
-            uint16_t* v15 = v11->field_4;
-            for (size_t j = 0; j < 18; j++, v15++)
+            for (size_t j = 0; j < 18; j++)
                 if (j < 2)
-                    input.field_30[j] = *v15;
+                    input.field_30[j] = v11->field_4[j];
         }*/
 
-        am_input_output_pc_ctrl(input);
-
-        if (input.down[0])
-            this->input[0].down[0] = true;
-        if (input.down[1])
-            this->input[0].down[1] = true;
+        if (input.down[INPUT_BUTTON_JVS_TEST])
+            this->input[0].down[INPUT_BUTTON_JVS_TEST] = true;
+        if (input.down[INPUT_BUTTON_JVS_SERVICE])
+            this->input[0].down[INPUT_BUTTON_JVS_SERVICE] = true;
     }
 
     /*struc_807* v16 = sub_14066CA20();
     if (v16->field_0[1] & 0x01) {
-        input[0].down[0] = true;
-        input[0].down[18] = true;
+        input[0].down[INPUT_BUTTON_JVS_TEST] = true;
+        input[0].down[INPUT_BUTTON_JVS_SW1] = true;
     }
 
     if (v16->field_0[1] & 0x02) {
-        input[0].down[1] = true;
-        input[0].down[19] = true;
+        input[0].down[INPUT_BUTTON_JVS_SERVICE] = true;
+        input[0].down[INPUT_BUTTON_JVS_SW2] = true;
     }
 
     if (v16->field_0[0] & 0x01)
-        input[0].down[20] = true;
+        input[0].down[INPUT_BUTTON_DIP_SW1] = true;
     if (v16->field_0[0] & 0x02)
-        input[0].down[21] = true;
+        input[0].down[INPUT_BUTTON_DIP_SW2] = true;
     if (v16->field_0[0] & 0x04)
-        input[0].down[22] = true;
+        input[0].down[INPUT_BUTTON_DIP_SW3] = true;
     if (v16->field_0[0] & 0x08)
-        input[0].down[23] = true;
+        input[0].down[INPUT_BUTTON_DIP_SW4] = true;
     if (v16->field_0[0] & 0x10)
-        input[0].down[24] = true;
+        input[0].down[INPUT_BUTTON_DIP_SW5] = true;
     if (v16->field_0[0] & 0x20)
-        input[0].down[25] = true;
+        input[0].down[INPUT_BUTTON_DIP_SW6] = true;
     if (v16->field_0[0] & 0x40)
-        input[0].down[26] = true;
+        input[0].down[INPUT_BUTTON_DIP_SW7] = true;
     if (v16->field_0[0] & 0x80)
-        input[0].down[27] = true;*/
+        input[0].down[INPUT_BUTTON_DIP_SW8] = true;*/
 
     for (size_t i = 0; i < 2; i++) {
         input[i].tapped = input[i].down & ~prev_down[i];
@@ -684,200 +713,38 @@ static bool am_input_output_get_input(amInputState* data, int32_t index) {
     return true;
 }
 
+struct glut_input_struct {
+    uint8_t key;
+    uint8_t key_last;
+    int32_t motion_x;
+    int32_t motion_y;
+    int32_t scroll_up;
+    int32_t scroll_down;
+};
+
+int32_t glut_modifiers;
+amInputState glut_pc_input[2];
+amInputState glut_key_input;
+amInputState glut_mouse_input;
+glut_input_struct glut_input;
+
 // Own stuff
 static void am_input_output_pc_ctrl(amInputState& input) {
-    if (disable_input_state_update)
-        return;
+    void glut_input_ctrl();
+    glut_input_ctrl();
 
-    struct key_map {
-        int32_t index;
-        int32_t keys[3];
+    input.tapped   = glut_pc_input[0].tapped;
+    input.released = glut_pc_input[0].released;
+    input.down     = glut_pc_input[0].down;
 
-        inline key_map() : index(), keys() {
-            for (int32_t& i : keys)
-                i = -1;
-        }
-
-        inline key_map(int32_t index, int32_t key) : key_map() {
-            this->index = index;
-            this->keys[0] = key;
-        }
-
-        inline key_map(int32_t index, int32_t key1, int32_t key2) : key_map() {
-            this->index = index;
-            this->keys[0] = key1;
-            this->keys[1] = key2;
-        }
-
-        inline key_map(int32_t index, int32_t key1, int32_t key2, int32_t key3) : key_map() {
-            this->index = index;
-            this->keys[0] = key1;
-            this->keys[1] = key2;
-            this->keys[2] = key3;
-        }
-    };
-
-    static const key_map key_map_array[] = {
-        { INPUT_BUTTON_0, GLFW_KEY_0, },
-        { INPUT_BUTTON_1, GLFW_KEY_1, },
-        { INPUT_BUTTON_2, GLFW_KEY_2, },
-        { INPUT_BUTTON_3, GLFW_KEY_3, },
-        { INPUT_BUTTON_4, GLFW_KEY_4, },
-        { INPUT_BUTTON_5, GLFW_KEY_5, },
-        { INPUT_BUTTON_6, GLFW_KEY_6, },
-        { INPUT_BUTTON_7, GLFW_KEY_7, },
-        { INPUT_BUTTON_8, GLFW_KEY_8, },
-        { INPUT_BUTTON_9, GLFW_KEY_9, },
-
-        { INPUT_BUTTON_A, GLFW_KEY_A, },
-        { INPUT_BUTTON_B, GLFW_KEY_B, },
-        { INPUT_BUTTON_C, GLFW_KEY_C, },
-        { INPUT_BUTTON_D, GLFW_KEY_D, },
-        { INPUT_BUTTON_E, GLFW_KEY_E, },
-        { INPUT_BUTTON_F, GLFW_KEY_F, },
-        { INPUT_BUTTON_G, GLFW_KEY_G, },
-        { INPUT_BUTTON_H, GLFW_KEY_H, },
-        { INPUT_BUTTON_I, GLFW_KEY_I, },
-        { INPUT_BUTTON_J, GLFW_KEY_J, },
-        { INPUT_BUTTON_K, GLFW_KEY_K, },
-        { INPUT_BUTTON_L, GLFW_KEY_L, },
-        { INPUT_BUTTON_M, GLFW_KEY_M, },
-        { INPUT_BUTTON_N, GLFW_KEY_N, },
-        { INPUT_BUTTON_O, GLFW_KEY_O, },
-        { INPUT_BUTTON_P, GLFW_KEY_P, },
-        { INPUT_BUTTON_Q, GLFW_KEY_Q, },
-        { INPUT_BUTTON_R, GLFW_KEY_R, },
-        { INPUT_BUTTON_S, GLFW_KEY_S, },
-        { INPUT_BUTTON_T, GLFW_KEY_T, },
-        { INPUT_BUTTON_U, GLFW_KEY_U, },
-        { INPUT_BUTTON_V, GLFW_KEY_V, },
-        { INPUT_BUTTON_W, GLFW_KEY_W, },
-        { INPUT_BUTTON_X, GLFW_KEY_X, },
-        { INPUT_BUTTON_Y, GLFW_KEY_Y, },
-        { INPUT_BUTTON_Z, GLFW_KEY_Z, },
-
-        { INPUT_BUTTON_ESCAPE, GLFW_KEY_ESCAPE, },
-
-        { INPUT_BUTTON_F1 , GLFW_KEY_F1, },
-        { INPUT_BUTTON_F2 , GLFW_KEY_F2, },
-        { INPUT_BUTTON_F3 , GLFW_KEY_F3, },
-        { INPUT_BUTTON_F4 , GLFW_KEY_F4, },
-        { INPUT_BUTTON_F5 , GLFW_KEY_F5, },
-        { INPUT_BUTTON_F6 , GLFW_KEY_F6, },
-        { INPUT_BUTTON_F7 , GLFW_KEY_F7, },
-        { INPUT_BUTTON_F8 , GLFW_KEY_F8, },
-        { INPUT_BUTTON_F9 , GLFW_KEY_F9, },
-        { INPUT_BUTTON_F10, GLFW_KEY_F10, },
-        { INPUT_BUTTON_F11, GLFW_KEY_F11, },
-        { INPUT_BUTTON_F12, GLFW_KEY_F12, },
-
-        { INPUT_BUTTON_BACKSPACE, GLFW_KEY_BACKSPACE, },
-        { INPUT_BUTTON_TAB      , GLFW_KEY_TAB, },
-        { INPUT_BUTTON_ENTER    , GLFW_KEY_ENTER, },
-
-        { INPUT_BUTTON_SHIFT  , GLFW_KEY_LEFT_SHIFT, GLFW_KEY_RIGHT_SHIFT, },
-        { INPUT_BUTTON_CONTROL, GLFW_KEY_LEFT_CONTROL, GLFW_KEY_RIGHT_CONTROL, },
-        { INPUT_BUTTON_ALT    , GLFW_KEY_LEFT_ALT, GLFW_KEY_RIGHT_ALT, },
-
-        { INPUT_BUTTON_SPACE, GLFW_KEY_SPACE, },
-
-        { INPUT_BUTTON_INSERT   , GLFW_KEY_INSERT, },
-        { INPUT_BUTTON_HOME     , GLFW_KEY_HOME, },
-        { INPUT_BUTTON_PAGE_UP  , GLFW_KEY_PAGE_UP, },
-        { INPUT_BUTTON_DELETE   , GLFW_KEY_DELETE, },
-        { INPUT_BUTTON_END      , GLFW_KEY_END, },
-        { INPUT_BUTTON_PAGE_DOWN, GLFW_KEY_PAGE_DOWN, },
-
-        { INPUT_BUTTON_UP   , GLFW_KEY_UP, },
-        { INPUT_BUTTON_LEFT , GLFW_KEY_LEFT, },
-        { INPUT_BUTTON_DOWN , GLFW_KEY_DOWN, },
-        { INPUT_BUTTON_RIGHT, GLFW_KEY_RIGHT, },
-    };
-
-    static const key_map mouse_button_array[] = {
-        { INPUT_BUTTON_MOUSE_BUTTON_LEFT  , GLFW_MOUSE_BUTTON_LEFT, },
-        { INPUT_BUTTON_MOUSE_BUTTON_MIDDLE, GLFW_MOUSE_BUTTON_MIDDLE, },
-        { INPUT_BUTTON_MOUSE_BUTTON_RIGHT , GLFW_MOUSE_BUTTON_RIGHT, },
-    };
-
-    static const key_map copy_map_array[] = {
-        { INPUT_BUTTON_JVS_TEST   , INPUT_BUTTON_F1, },
-        { INPUT_BUTTON_JVS_SERVICE, INPUT_BUTTON_F2, },
-
-        { INPUT_BUTTON_JVS_START  , INPUT_BUTTON_ENTER, },
-
-        { INPUT_BUTTON_JVS_UP   , INPUT_BUTTON_UP, },
-        { INPUT_BUTTON_JVS_DOWN , INPUT_BUTTON_DOWN, },
-        { INPUT_BUTTON_JVS_LEFT , INPUT_BUTTON_LEFT, },
-        { INPUT_BUTTON_JVS_RIGHT, INPUT_BUTTON_RIGHT, },
-
-        { INPUT_BUTTON_JVS_TRIANGLE, INPUT_BUTTON_W, INPUT_BUTTON_I, },
-        { INPUT_BUTTON_JVS_SQUARE  , INPUT_BUTTON_A, INPUT_BUTTON_J, },
-        { INPUT_BUTTON_JVS_CROSS   , INPUT_BUTTON_S, INPUT_BUTTON_K, },
-        { INPUT_BUTTON_JVS_CIRCLE  , INPUT_BUTTON_D, INPUT_BUTTON_L, },
-
-        { INPUT_BUTTON_JVS_L, INPUT_BUTTON_Q, INPUT_BUTTON_U, },
-        { INPUT_BUTTON_JVS_R, INPUT_BUTTON_E, INPUT_BUTTON_O, },
-
-        { INPUT_BUTTON_JVS_SW1, INPUT_BUTTON_F11, },
-        { INPUT_BUTTON_JVS_SW2, INPUT_BUTTON_F12, },
-    };
-
-    for (const key_map& i : key_map_array) {
-        bool down = false;
-
-        for (const int32_t& j : i.keys) {
-            if (j == -1)
-                break;
-
-            if (!down)
-                if (Input::IsKeyDown(j, -1))
-                    down = true;
-        }
-
-        input.down[i.index] = down;
-    }
-
-    for (const key_map& i : mouse_button_array) {
-        bool down = false;
-
-        for (const int32_t& j : i.keys) {
-            if (j == -1)
-                break;
-
-            if (Input::IsMouseButtonDown(j)) {
-                down = true;
-                break;
-            }
-        }
-
-        input.down[i.index] = down;
-    }
-
-    {
-        const int32_t index = INPUT_BUTTON_MOUSE_SCROLL_UP;
-
-        input.down[index] = Input::scroll > 0.0;
-    }
-
-    {
-        const int32_t index = INPUT_BUTTON_MOUSE_SCROLL_DOWN;
-
-        input.down[index] = Input::scroll < 0.0;
-    }
-
-    for (const key_map& i : copy_map_array) {
-        bool down = false;
-
-        for (const int32_t& j : i.keys) {
-            if (j == -1)
-                break;
-
-            down |= input.down[j];
-        }
-
-        input.down[i.index] = down;
-    }
+    input.field_30[0] = glut_pc_input[0].field_30[0];
+    input.field_30[1] = glut_pc_input[0].field_30[1];
+    input.field_30[2] = glut_pc_input[0].field_30[2];
+    input.field_30[3] = glut_pc_input[0].field_30[3];
+    input.field_30[4] = glut_pc_input[0].field_30[4];
+    input.field_30[5] = glut_pc_input[0].field_30[5];
+    input.field_30[6] = glut_pc_input[0].field_30[6];
+    input.field_30[7] = glut_pc_input[0].field_30[7];
 
 #if BAKE_PNG || BAKE_VIDEO
     int32_t x_offset = 0;
@@ -891,10 +758,22 @@ static void am_input_output_pc_ctrl(amInputState& input) {
     float_t y_scale = 720.0f / (float_t)rctx_ptr->sprite_height;
 #endif
 
-    input.field_30[8] = (int32_t)((float_t)(Input::pos.x - x_offset) * x_scale);
-    input.field_30[9] = (int32_t)((float_t)(Input::pos.y - y_offset) * y_scale);
-    input.field_30[10] = (int32_t)((float_t)(Input::pos_prev.x - Input::pos.x - x_offset) * x_scale);
-    input.field_30[11] = (int32_t)((float_t)(Input::pos_prev.y - Input::pos.y - y_offset) * y_scale);
+    input.field_30[8] = (int32_t)(((float_t)glut_pc_input[0].field_30[8] - x_offset) * x_scale);
+    input.field_30[9] = (int32_t)(((float_t)glut_pc_input[0].field_30[9] - y_offset) * y_scale);
+    input.field_30[10] = (int32_t)(((float_t)glut_pc_input[0].field_30[10] - x_offset) * x_scale);
+    input.field_30[11] = (int32_t)(((float_t)glut_pc_input[0].field_30[11] - y_offset) * y_scale);
+
+    input.field_30[12] = glut_pc_input[0].field_30[12];
+    input.field_30[13] = glut_pc_input[0].field_30[12];
+
+    input.key_ptr = glut_pc_input[0].key_ptr;
+}
+
+static int32_t get_modifiers() {
+    if (glut_modifiers == -1)
+        return 0x00;
+
+    return glut_modifiers;
 }
 
 static bool am_input_output_set_output(const amOutputState data, int32_t index) {
@@ -913,4 +792,333 @@ static void input_state_ctrl(InputState* input_state) {
 
 static int32_t input_state_get_delta_frame() {
     return 1;
+}
+
+static void glut_pc_input_copy_button(InputButton src, InputButton dst);
+
+void glut_mouse_input_check_mouse_click() {
+    bool prev_down = glut_mouse_input.down[INPUT_BUTTON_MOUSE_PRESS];
+
+    glut_mouse_input.released[INPUT_BUTTON_MOUSE_PRESS] = false;
+    glut_mouse_input.tapped[INPUT_BUTTON_MOUSE_PRESS] = false;
+    glut_mouse_input.down[INPUT_BUTTON_MOUSE_PRESS] = false;
+
+    if (glut_mouse_input.down[INPUT_BUTTON_MOUSE_BUTTON_LEFT]
+        || glut_mouse_input.down[INPUT_BUTTON_MOUSE_BUTTON_MIDDLE]
+        || glut_mouse_input.down[INPUT_BUTTON_MOUSE_BUTTON_RIGHT]
+        || glut_mouse_input.down[INPUT_BUTTON_MOUSE_SCROLL_UP]
+        || glut_mouse_input.down[INPUT_BUTTON_MOUSE_SCROLL_DOWN])
+        glut_mouse_input.down[INPUT_BUTTON_MOUSE_PRESS] = true;
+
+    if (prev_down) {
+        if (!glut_mouse_input.down[INPUT_BUTTON_MOUSE_PRESS])
+            glut_mouse_input.released[INPUT_BUTTON_MOUSE_PRESS] = true;
+    }
+    else {
+        if (glut_mouse_input.down[INPUT_BUTTON_MOUSE_PRESS])
+            glut_mouse_input.tapped[INPUT_BUTTON_MOUSE_PRESS] = true;
+    }
+}
+
+void glut_input_ctrl() {
+    int32_t scroll_up = glut_input.scroll_up;
+    glut_input.scroll_up = 0;
+
+    int32_t motion_x_delta = glut_input.motion_x - glut_mouse_input.field_30[8];
+    glut_mouse_input.field_30[8] = glut_input.motion_x;
+    glut_mouse_input.field_30[10] = motion_x_delta;
+
+    int32_t scroll_down = glut_input.scroll_down;
+    glut_input.scroll_down = 0;
+
+    int32_t motion_y_delta = glut_input.motion_y - glut_mouse_input.field_30[9];
+    glut_mouse_input.field_30[9] = glut_input.motion_y;
+    glut_mouse_input.field_30[11] = motion_y_delta;
+
+    glut_mouse_input.field_30[12] = scroll_up + (scroll_up == 0 ? 0 : glut_mouse_input.field_30[12]);
+    glut_mouse_input.field_30[13] = scroll_down + (scroll_down == 0 ? 0 : glut_mouse_input.field_30[13]);
+
+    if ((int32_t)glut_mouse_input.field_30[12] > 0) {
+        glut_mouse_input.tapped[INPUT_BUTTON_MOUSE_SCROLL_UP] = true;
+        glut_mouse_input.released[INPUT_BUTTON_MOUSE_SCROLL_UP] = true;
+        glut_mouse_input.down[INPUT_BUTTON_MOUSE_SCROLL_UP] = false;
+    }
+
+    if ((int32_t)glut_mouse_input.field_30[13] > 0) {
+        glut_mouse_input.tapped[INPUT_BUTTON_MOUSE_SCROLL_DOWN] = true;
+        glut_mouse_input.released[INPUT_BUTTON_MOUSE_SCROLL_DOWN] = true;
+        glut_mouse_input.down[INPUT_BUTTON_MOUSE_SCROLL_DOWN] = false;
+    }
+
+    glut_mouse_input_check_mouse_click();
+
+    if (!glut_key_input.down[INPUT_BUTTON_KEYBOARD_PRESS])
+        glut_key_input.update_modifiers(false);
+
+    if (!glut_mouse_input.down[INPUT_BUTTON_MOUSE_PRESS])
+        glut_mouse_input.update_modifiers(false);
+
+    glut_pc_input[0].down = glut_key_input.down | glut_mouse_input.down;
+    glut_pc_input[0].tapped = glut_key_input.tapped | glut_mouse_input.tapped;
+    glut_pc_input[0].released = glut_key_input.released | glut_mouse_input.released;
+
+    glut_pc_input[0].tapped &= glut_pc_input[0].down;
+    glut_pc_input[0].released &= ~glut_pc_input[0].down;
+
+    if (glut_mouse_input.tapped[INPUT_BUTTON_MOUSE_SCROLL_UP])
+        glut_pc_input[0].tapped[INPUT_BUTTON_MOUSE_SCROLL_UP] = true;
+    if (glut_mouse_input.tapped[INPUT_BUTTON_MOUSE_SCROLL_DOWN])
+        glut_pc_input[0].tapped[INPUT_BUTTON_MOUSE_SCROLL_DOWN] = true;
+
+    for (int32_t i = 0; i < 14; i++)
+        glut_pc_input[0].field_30[i] = glut_mouse_input.field_30[i];
+
+    glut_pc_input[0].key_ptr = &glut_input.key_last;
+
+    glut_pc_input_copy_button(INPUT_BUTTON_F1, INPUT_BUTTON_JVS_TEST   );
+    glut_pc_input_copy_button(INPUT_BUTTON_F2, INPUT_BUTTON_JVS_SERVICE);
+
+    glut_pc_input_copy_button(INPUT_BUTTON_SPACE, INPUT_BUTTON_JVS_START);
+
+    glut_pc_input_copy_button(INPUT_BUTTON_UP   , INPUT_BUTTON_JVS_UP   );
+    glut_pc_input_copy_button(INPUT_BUTTON_DOWN , INPUT_BUTTON_JVS_DOWN );
+    glut_pc_input_copy_button(INPUT_BUTTON_LEFT , INPUT_BUTTON_JVS_LEFT );
+    glut_pc_input_copy_button(INPUT_BUTTON_RIGHT, INPUT_BUTTON_JVS_RIGHT);
+
+    glut_pc_input_copy_button(INPUT_BUTTON_W, INPUT_BUTTON_JVS_TRIANGLE);
+    glut_pc_input_copy_button(INPUT_BUTTON_A, INPUT_BUTTON_JVS_SQUARE  );
+    glut_pc_input_copy_button(INPUT_BUTTON_S, INPUT_BUTTON_JVS_CROSS   );
+    glut_pc_input_copy_button(INPUT_BUTTON_D, INPUT_BUTTON_JVS_CIRCLE  );
+
+    glut_pc_input_copy_button(INPUT_BUTTON_I, INPUT_BUTTON_JVS_TRIANGLE);
+    glut_pc_input_copy_button(INPUT_BUTTON_J, INPUT_BUTTON_JVS_SQUARE  );
+    glut_pc_input_copy_button(INPUT_BUTTON_K, INPUT_BUTTON_JVS_CROSS   );
+    glut_pc_input_copy_button(INPUT_BUTTON_L, INPUT_BUTTON_JVS_CIRCLE  );
+
+    glut_pc_input_copy_button(INPUT_BUTTON_Q, INPUT_BUTTON_JVS_L);
+    glut_pc_input_copy_button(INPUT_BUTTON_E, INPUT_BUTTON_JVS_R);
+
+    glut_pc_input_copy_button(INPUT_BUTTON_U, INPUT_BUTTON_JVS_L);
+    glut_pc_input_copy_button(INPUT_BUTTON_O, INPUT_BUTTON_JVS_R);
+
+    glut_pc_input_copy_button(INPUT_BUTTON_F11, INPUT_BUTTON_JVS_SW1);
+    glut_pc_input_copy_button(INPUT_BUTTON_F12, INPUT_BUTTON_JVS_SW2);
+
+    glut_input.key_last = glut_input.key;
+    glut_input.key = 0;
+
+    glut_key_input.tapped = 0;
+    glut_key_input.released = 0;
+    glut_mouse_input.tapped = 0;
+    glut_mouse_input.released = 0;
+}
+
+static void glut_pc_input_copy_button(InputButton src, InputButton dst) {
+    glut_pc_input[0].down[dst] = glut_pc_input[0].down[dst] | glut_pc_input[0].down[src];
+    glut_pc_input[0].tapped[dst] = glut_pc_input[0].tapped[dst] | glut_pc_input[0].tapped[src];
+    glut_pc_input[0].released[dst] = glut_pc_input[0].released[dst] | glut_pc_input[0].released[src];
+
+    glut_pc_input[0].tapped[dst] = glut_pc_input[0].tapped[dst] & glut_pc_input[0].down[dst];
+    glut_pc_input[0].released[dst] = glut_pc_input[0].released[dst] & ~glut_pc_input[0].down[dst];
+}
+
+struct glut_table {
+    int32_t src;
+    InputButton dst;
+};
+
+const glut_table glut_key_table[] = {
+    { 0x1B, INPUT_BUTTON_ESCAPE    },
+    { '\b', INPUT_BUTTON_BACKSPACE },
+    { '\t', INPUT_BUTTON_TAB       },
+    { '\r', INPUT_BUTTON_ENTER     },
+    {  ' ', INPUT_BUTTON_SPACE     },
+    { 0x7F, INPUT_BUTTON_DELETE    },
+    {   -1, INPUT_BUTTON_MAX       },
+};
+
+const glut_table glut_skey_table[] = {
+    {   1, INPUT_BUTTON_F1        },
+    {   2, INPUT_BUTTON_F2        },
+    {   3, INPUT_BUTTON_F3        },
+    {   4, INPUT_BUTTON_F4        },
+    {   5, INPUT_BUTTON_F5        },
+    {   6, INPUT_BUTTON_F6        },
+    {   7, INPUT_BUTTON_F7        },
+    {   8, INPUT_BUTTON_F8        },
+    {   9, INPUT_BUTTON_F9        },
+    {  10, INPUT_BUTTON_F10       },
+    {  11, INPUT_BUTTON_F11       },
+    {  12, INPUT_BUTTON_F12       },
+    { 100, INPUT_BUTTON_LEFT      },
+    { 101, INPUT_BUTTON_UP        },
+    { 102, INPUT_BUTTON_RIGHT     },
+    { 103, INPUT_BUTTON_DOWN      },
+    { 104, INPUT_BUTTON_PAGE_UP   },
+    { 105, INPUT_BUTTON_PAGE_DOWN },
+    { 106, INPUT_BUTTON_HOME      },
+    { 107, INPUT_BUTTON_END       },
+    { 108, INPUT_BUTTON_INSERT    },
+    {  -1, INPUT_BUTTON_MAX       },
+};
+
+void glut_motion_cb(int32_t x, int32_t y);
+
+static void glut_key_down(int32_t key, const glut_table* table);
+static void glut_key_up(int32_t key, const glut_table* table);
+
+static void glut_mouse_input_down(InputButton button);
+static void glut_mouse_input_up(InputButton button);
+
+static InputButton glut_translate_key(const glut_table* table, int32_t key);
+
+void glut_get_modifiers() {
+    int32_t modifiers = 0x00;
+    if (GetKeyState(VK_SHIFT) & 0xFF00)
+        modifiers |= 0x01;
+    if (GetKeyState(VK_CONTROL) & 0xFF00)
+        modifiers |= 0x02;
+    if (GetKeyState(VK_MENU) & 0xFF00)
+        modifiers |= 0x04;
+    glut_modifiers = modifiers;
+}
+
+void glut_reset_modifiers() {
+    glut_modifiers = -1;
+}
+
+void glut_keydown_cb(uint8_t key, int32_t x, int32_t y) {
+    glut_key_down(key, glut_key_table);
+    glut_input.key = key;
+}
+
+void glut_keyup_cb(uint8_t key, int32_t x, int32_t y) {
+    glut_key_up(key, glut_key_table);
+}
+
+void glut_skeydown_cb(int32_t key, int32_t x, int32_t y) {
+    glut_key_down(key, glut_skey_table);
+}
+
+void glut_skeyup_cb(int32_t key, int32_t x, int32_t y) {
+    glut_key_up(key, glut_skey_table);
+}
+
+void glut_mouse_cb(int32_t bn, int32_t state, int32_t x, int32_t y) {
+    InputButton button = INPUT_BUTTON_MAX;
+
+    switch (bn) {
+    case 0:
+        button = INPUT_BUTTON_MOUSE_BUTTON_LEFT;
+        break;
+    case 1:
+        button = INPUT_BUTTON_MOUSE_BUTTON_MIDDLE;
+        break;
+    case 2:
+        button = INPUT_BUTTON_MOUSE_BUTTON_RIGHT;
+        break;
+    case 3:
+        glut_input.scroll_up++;
+        break;
+    case 4:
+        glut_input.scroll_down++;
+        break;
+    }
+
+    if (button != INPUT_BUTTON_MAX) {
+        switch (state) {
+        case 0:
+            glut_mouse_input_down(button);
+            break;
+        case 1:
+            glut_mouse_input_up(button);
+            break;
+        }
+    }
+
+    glut_mouse_input.update_modifiers(true);
+
+    glut_motion_cb(x, y);
+}
+
+void glut_motion_cb(int32_t x, int32_t y) {
+    resolution_struct res =  *res_window_get();
+
+    glut_input.motion_x = x;
+    glut_input.motion_y = y;
+
+    glut_input.motion_x = clamp_def(glut_input.motion_x, 0, res.width - 1);
+    glut_input.motion_y = clamp_def(glut_input.motion_y, 0, res.height - 1);
+}
+
+static void glut_key_down(int32_t key, const glut_table* table) {
+    InputButton button = glut_translate_key(table, key);
+    if (button != INPUT_BUTTON_MAX) {
+        glut_key_input.tapped[button] = true;
+        glut_key_input.released[button] = false;
+        glut_key_input.down[button] = true;
+
+        if (!glut_key_input.down[INPUT_BUTTON_KEYBOARD_PRESS]) {
+            glut_key_input.tapped[INPUT_BUTTON_KEYBOARD_PRESS] = true;
+            glut_key_input.released[INPUT_BUTTON_KEYBOARD_PRESS] = false;
+        }
+
+        glut_key_input.down[INPUT_BUTTON_KEYBOARD_PRESS] = true;
+    }
+
+    glut_key_input.update_modifiers(true);
+}
+
+static void glut_key_up(int32_t key, const glut_table* table) {
+    InputButton button = glut_translate_key(table, key);
+    if (button != INPUT_BUTTON_MAX) {
+        glut_key_input.tapped[button] = false;
+        glut_key_input.released[button] = true;
+        glut_key_input.down[button] = false;
+
+        if (glut_key_input.down[INPUT_BUTTON_KEYBOARD_PRESS]) {
+            glut_key_input.tapped[INPUT_BUTTON_KEYBOARD_PRESS] = false;
+            glut_key_input.released[INPUT_BUTTON_KEYBOARD_PRESS] = true;
+        }
+
+        glut_key_input.down[INPUT_BUTTON_KEYBOARD_PRESS] = false;
+    }
+
+    glut_key_input.update_modifiers(true);
+}
+
+static void glut_mouse_input_down(InputButton button) {
+    glut_mouse_input.released[button] = false;
+    if (!glut_mouse_input.down[button])
+        glut_mouse_input.tapped[button] = true;
+    glut_mouse_input.down[button] = true;
+}
+
+static void glut_mouse_input_up(InputButton button) {
+    glut_mouse_input.tapped[button] = false;
+    if (glut_mouse_input.down[button])
+        glut_mouse_input.released[button] = true;
+    glut_mouse_input.down[button] = false;
+}
+
+static InputButton glut_translate_key(const glut_table* table, int32_t key) {
+    InputButton button = INPUT_BUTTON_MAX;
+    if (table == glut_key_table) {
+        if ((key - 'a') >= 0 && (key - 'a') <= ('z' - 'a'))
+            return (InputButton)(INPUT_BUTTON_A + (key - 'a')); // A - Z
+        else if ((key - 'A') >= 0 && (key - 'A') <= ('Z' - 'A'))
+            return (InputButton)(INPUT_BUTTON_A + (key - 'A')); // A - Z
+        else if ((key - '0') >= 0 && (key - '0') <= ('9' - '0'))
+            return (InputButton)(INPUT_BUTTON_0 + (key - '0')); // 0 - 9
+    }
+
+    while (table->src >= 0) {
+        if (table->src == key) {
+            button = table->dst;
+            break;
+        }
+        table++;
+    }
+
+    return button;
 }

@@ -7,4 +7,3 @@
 
 #include "../KKdLib/default.hpp"
 #include "app.hpp"
-#include "input.hpp"

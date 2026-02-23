@@ -7,7 +7,6 @@
 #include "../../../KKdLib/database/item_table.hpp"
 #include "../../../CRE/auth_3d.hpp"
 #include "../../imgui_helper.hpp"
-#include "../../input.hpp"
 
 static const char* auth_3d_fog_name[] = {
     "Depth",

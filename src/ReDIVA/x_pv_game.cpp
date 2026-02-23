@@ -55,7 +55,7 @@
 #endif
 #include "information/dw_console.hpp"
 #include "imgui_helper.hpp"
-#include "input.hpp"
+#include "input_state.hpp"
 #include "print_work.hpp"
 #include <atomic>
 
@@ -8359,12 +8359,13 @@ void x_pv_game::window() {
     if (state_old != 20)
         return;
 
-    if (Input::IsKeyTapped(GLFW_KEY_K, GLFW_MOD_CONTROL))
+    const InputState* input_state = input_state_get(0);
+    if (input_state->CheckTapped(INPUT_BUTTON_K) && input_state->CheckDown(INPUT_BUTTON_CONTROL))
         state_old = 21;
-    else if (Input::IsKeyTapped(GLFW_KEY_K))
+    else if (input_state->CheckTapped(INPUT_BUTTON_K))
         pause ^= true;
 
-    if (Input::IsKeyTapped(GLFW_KEY_L)) {
+    if (input_state->CheckTapped(INPUT_BUTTON_L)) {
         pause = true;
         step_frame = true;
     }

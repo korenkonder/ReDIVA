@@ -22,7 +22,7 @@
 #include "../../CRE/static_var.hpp"
 #include "../data_test/stage_test.hpp"
 #include "../imgui_helper.hpp"
-#include "../input.hpp"
+#include "../input_state.hpp"
 #include <windows.h>
 #include <commdlg.h>
 #include <shobjidl.h>
@@ -1104,23 +1104,24 @@ void GlitterEditor::disp() {
 }
 
 void GlitterEditor::window() {
-    if (Input::IsKeyTapped(GLFW_KEY_O, GLFW_MOD_CONTROL))
+    const InputState* input_state = input_state_get(0);
+    if (input_state->CheckTapped(INPUT_BUTTON_O) && input_state->CheckDown(INPUT_BUTTON_CONTROL))
         glitter_editor_open_window(this);
-    else if (Input::IsKeyTapped(GLFW_KEY_F4, GLFW_MOD_CONTROL))
+    else if (input_state->CheckTapped(INPUT_BUTTON_F4) && input_state->CheckDown(INPUT_BUTTON_CONTROL))
         close = true;
-    else if (Input::IsKeyTapped(GLFW_KEY_F3, GLFW_MOD_CONTROL))
+    else if (input_state->CheckTapped(INPUT_BUTTON_F4) && input_state->CheckDown(INPUT_BUTTON_CONTROL))
         close_editor = true;
-    else if (Input::IsKeyTapped(GLFW_KEY_Q, GLFW_MOD_CONTROL))
+    else if (input_state->CheckTapped(INPUT_BUTTON_Q) && input_state->CheckDown(INPUT_BUTTON_CONTROL))
         close = true;
-    else if (Input::IsKeyTapped(GLFW_KEY_P))
+    else if (input_state->CheckTapped(INPUT_BUTTON_P))
         test ^= true;
-    else if (Input::IsKeyTapped(GLFW_KEY_T))
+    else if (input_state->CheckTapped(INPUT_BUTTON_T))
         input_play = true;
-    else if (Input::IsKeyTapped(GLFW_KEY_Y))
+    else if (input_state->CheckTapped(INPUT_BUTTON_Y))
         input_reload = true;
-    else if (Input::IsKeyTapped(GLFW_KEY_F))
+    else if (input_state->CheckTapped(INPUT_BUTTON_F))
         input_pause = true;
-    else if (Input::IsKeyTapped(GLFW_KEY_G))
+    else if (input_state->CheckTapped(INPUT_BUTTON_G))
         input_reset = true;
 
     if (test)
@@ -1130,9 +1131,12 @@ void GlitterEditor::window() {
     glitter_editor_popups(this);
 
     if (input_locked) {
-        if (Input::IsKeyTapped(GLFW_KEY_S, GLFW_MOD_CONTROL | GLFW_MOD_SHIFT))
+        if (input_state->CheckTapped(INPUT_BUTTON_S)
+            && input_state->CheckDown(INPUT_BUTTON_CONTROL)
+            && input_state->CheckDown(INPUT_BUTTON_SHIFT))
             glitter_editor_save_as_window(this);
-        else if (Input::IsKeyTapped(GLFW_KEY_S, GLFW_MOD_CONTROL))
+        else if (input_state->CheckTapped(INPUT_BUTTON_S)
+            && input_state->CheckDown(INPUT_BUTTON_CONTROL))
             glitter_editor_save_window(this);
     }
 }
@@ -5546,7 +5550,8 @@ static void glitter_editor_curve_editor_selector_list_box_multi_selectable(Glitt
     if (!ImGui::Selectable(buf, crv_edt->type == type))
         return;
 
-    if (Input::IsKeyDown(GLFW_KEY_LEFT_CONTROL) || Input::IsKeyDown(GLFW_KEY_RIGHT_CONTROL))
+    const InputState* input_state = input_state_get(0);
+    if (input_state->CheckDown(INPUT_BUTTON_CONTROL))
         glt_edt->curve_editor.SetFlag((Glitter::CurveTypeFlags)(1 << type));
     else if (crv_edt->type != type) {
         glt_edt->curve_editor.ResetState(type);

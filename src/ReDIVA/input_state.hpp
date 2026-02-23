@@ -29,10 +29,24 @@ enum InputButton : int32_t {
     INPUT_BUTTON_JVS_L,
     INPUT_BUTTON_JVS_R,
 
+    INPUT_BUTTON_JVS_BUTTON_7,
+    INPUT_BUTTON_JVS_BUTTON_8,
+    INPUT_BUTTON_JVS_BUTTON_9,
+    INPUT_BUTTON_JVS_BUTTON_10,
+
     INPUT_BUTTON_JVS_SW1 = 18,
     INPUT_BUTTON_JVS_SW2,
 
-    INPUT_BUTTON_KEYBOARD_PRESS = 28,
+    INPUT_BUTTON_DIP_SW1,
+    INPUT_BUTTON_DIP_SW2,
+    INPUT_BUTTON_DIP_SW3,
+    INPUT_BUTTON_DIP_SW4,
+    INPUT_BUTTON_DIP_SW5,
+    INPUT_BUTTON_DIP_SW6,
+    INPUT_BUTTON_DIP_SW7,
+    INPUT_BUTTON_DIP_SW8,
+
+    INPUT_BUTTON_KEYBOARD_PRESS,
 
     INPUT_BUTTON_0,
     INPUT_BUTTON_1,
@@ -196,6 +210,7 @@ struct InputState {
 
 extern void input_state_init();
 extern void input_state_am_ctrl();
+extern void input_state_pc_ctrl();
 extern void input_state_ctrl();
 extern const InputState* input_state_get(int32_t index);
 extern void input_state_free();

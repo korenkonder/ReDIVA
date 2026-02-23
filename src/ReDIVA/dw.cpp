@@ -3274,6 +3274,10 @@ void dw_gui_detail::Input::Ctrl() {
     mouse_pos.y = (float_t)mouse_pos_y;
     mouse_delta = mouse_pos - old_mouse_pos;
 
+    extern uint8_t disable_dw_input_update;
+    if (disable_dw_input_update)
+        return;
+
     if (mouse_delta != 0.0f)
         enum_or(mouse_input, dw::MOUSE_INPUT_MOVE);
 

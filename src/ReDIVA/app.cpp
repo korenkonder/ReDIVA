@@ -443,7 +443,7 @@ int32_t app_main(const app_init_struct& ais) {
         glfwSetWindowPos(window, 8, 31);
 #endif
 
-        Input::SetInputs(window);
+        Input::SetCallbacks(window);
 
         RECT window_rect;
         GetClientRect(window_handle, &window_rect);
@@ -740,8 +740,6 @@ static void app_main_loop(render_context* rctx) {
         render_context_disp(rctx);
 
         close |= !!glfwWindowShouldClose(window);
-
-        Input::EndFrame();
 
         app_swap_buffers();
         render_timer->end_of_cycle();
@@ -1095,71 +1093,72 @@ static void render_context_ctrl(render_context* rctx) {
         }
     }
 
-    if (Input::IsKeyTapped(GLFW_KEY_F4))
+    const InputState* input_state = input_state_get(0);
+    if (input_state->CheckTapped(INPUT_BUTTON_F4))
         game_state_set_game_state_next(GAME_STATE_ADVERTISE);
 #if PV_DEBUG
-    else if (Input::IsKeyTapped(GLFW_KEY_F5, GLFW_MOD_CONTROL)) {
+    else if (input_state->CheckTapped(INPUT_BUTTON_F5) && input_state->CheckDown(INPUT_BUTTON_CONTROL)) {
         pv_x = false;
         game_state_set_game_state_next(GAME_STATE_GAME);
     }
 #if BAKE_X_PACK
-    else if (Input::IsKeyTapped(GLFW_KEY_F5, GLFW_MOD_SHIFT)) {
+    else if (input_state->CheckTapped(INPUT_BUTTON_F5) && input_state->CheckDown(INPUT_BUTTON_SHIFT)) {
         pv_x = true;
         pv_x_bake = true;
         game_state_set_game_state_next(GAME_STATE_GAME);
     }
-    else if (Input::IsKeyTapped(GLFW_KEY_F5)) {
+    else if (input_state->CheckTapped(INPUT_BUTTON_F5)) {
         pv_x = true;
         pv_x_bake = false;
         game_state_set_game_state_next(GAME_STATE_GAME);
     }
 #else
-    else if (Input::IsKeyTapped(GLFW_KEY_F5)) {
+    else if (input_state->CheckTapped(INPUT_BUTTON_F5)) {
         pv_x = true;
         game_state_set_game_state_next(GAME_STATE_GAME);
     }
 #endif
 #else
 #if BAKE_X_PACK
-    else if (Input::IsKeyTapped(GLFW_KEY_F5, GLFW_MOD_SHIFT)) {
+    else if (input_state->CheckTapped(INPUT_BUTTON_F5) && input_state->CheckDown(INPUT_BUTTON_SHIFT)) {
         pv_x_bake = true;
         game_state_set_game_state_next(GAME_STATE_GAME);
     }
-    else if (Input::IsKeyTapped(GLFW_KEY_F5)) {
+    else if (input_state->CheckTapped(INPUT_BUTTON_F5)) {
         pv_x_bake = false;
         game_state_set_game_state_next(GAME_STATE_GAME);
     }
 #else
-    else if (Input::IsKeyTapped(GLFW_KEY_F5))
+    else if (input_state->CheckTapped(INPUT_BUTTON_F5))
         game_state_set_game_state_next(GAME_STATE_GAME);
 #endif
 #endif
-    else if (Input::IsKeyTapped(GLFW_KEY_F6))
+    else if (input_state->CheckTapped(INPUT_BUTTON_F6))
         game_state_set_game_state_next(GAME_STATE_DATA_TEST);
-    else if (Input::IsKeyTapped(GLFW_KEY_F7))
+    else if (input_state->CheckTapped(INPUT_BUTTON_F7))
         game_state_set_game_state_next(GAME_STATE_TEST_MODE);
-    else if (Input::IsKeyTapped(GLFW_KEY_F8))
+    else if (input_state->CheckTapped(INPUT_BUTTON_F8))
         game_state_set_game_state_next(GAME_STATE_APP_ERROR);
-    else if (Input::IsKeyTapped(GLFW_KEY_F9)) // Added
+    else if (input_state->CheckTapped(INPUT_BUTTON_F9)) // Added
         game_state_set_game_state_next(GAME_STATE_DATA_EDIT); // Added
 #if DISPLAY_IBL
-    else if (Input::IsKeyTapped(GLFW_KEY_L))
+    else if (input_state->CheckTapped(INPUT_BUTTON_L))
         display_ibl ^= true;
-    else if (Input::IsKeyTapped(GLFW_KEY_1))
+    else if (input_state->CheckTapped(INPUT_BUTTON_1))
         ibl_index = 0;
-    else if (Input::IsKeyTapped(GLFW_KEY_2))
+    else if (input_state->CheckTapped(INPUT_BUTTON_2))
         ibl_index = 1;
-    else if (Input::IsKeyTapped(GLFW_KEY_3))
+    else if (input_state->CheckTapped(INPUT_BUTTON_3))
         ibl_index = 2;
-    else if (Input::IsKeyTapped(GLFW_KEY_4))
+    else if (input_state->CheckTapped(INPUT_BUTTON_4))
         ibl_index = 3;
-    else if (Input::IsKeyTapped(GLFW_KEY_5))
+    else if (input_state->CheckTapped(INPUT_BUTTON_5))
         ibl_index = 4;
-    else if (Input::IsKeyTapped(GLFW_KEY_6))
+    else if (input_state->CheckTapped(INPUT_BUTTON_6))
         ibl_index = 5;
-    else if (Input::IsKeyTapped(GLFW_KEY_7))
+    else if (input_state->CheckTapped(INPUT_BUTTON_7))
         ibl_scale = max_def(ibl_scale - 1, 1);
-    else if (Input::IsKeyTapped(GLFW_KEY_8))
+    else if (input_state->CheckTapped(INPUT_BUTTON_8))
         ibl_scale = min_def(ibl_scale + 1, 64);
 #endif
 
@@ -1167,6 +1166,7 @@ static void render_context_ctrl(render_context* rctx) {
 
     rctx_ptr = rctx;
     input_state_am_ctrl();
+    input_state_pc_ctrl();
     input_state_ctrl();
     if (!get_pause() || !game_state_get_pause())
         game_state_ctrl();
@@ -1176,6 +1176,7 @@ static void render_context_ctrl(render_context* rctx) {
         for (int32_t i = 1; i < fast_loader_speed; i++) {
             rctx_ptr = rctx;
             input_state_am_ctrl();
+            input_state_pc_ctrl();
             input_state_ctrl();
             if (!get_pause() || !game_state_get_pause())
                 game_state_ctrl();
