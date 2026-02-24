@@ -119,7 +119,7 @@ namespace dw_gui_detail {
             RootKeySelection();
             virtual ~RootKeySelection() override;
 
-            virtual void Field_8(const dw::Widget::KeyCallbackData& data) override;
+            virtual void OnDown(const dw::Widget::KeyCallbackData& data) override;
         };
 
         dw::Shell* active_shell;
@@ -148,20 +148,24 @@ namespace dw_gui_detail {
         Display(dw::DisplayData& data);
         virtual ~Display();
 
+        void AddMenu(dw::Menu* value);
         void CheckShells();
         void Ctrl();
         void Draw();
         void FreeWidgets();
+        int32_t GetActiveMenu();
+        int32_t GetActiveShell();
         dw::Shell* GetHoveredShell();
+        void HideMenus();
         void MakeShellFirst(dw::Shell* value);
         void MakeShellLast(dw::Shell* value);
+        void RemoveMenu(dw::Menu* value);
         void RemoveShell(dw::Shell* value);
+        void RemoveSubsequentMenus(dw::Menu* value);
 
         void sub_1402E6300(dw::Widget* widget);
         void sub_1402E6440(dw::Widget* widget);
         int32_t sub_1402E48A0(dw::Widget* widget);
-        int32_t sub_1402E51F0();
-        int32_t sub_1402E5630();
     };
 }
 
@@ -172,7 +176,7 @@ static bool dw_gui_get_disp();
 
 static void dw_gui_detail_display_set_cap(dw::Widget* widget, bool set);
 
-static void sub_1402EE3C0(rectangle rect, float_t border, int32_t type, color4u8* fill_color);
+static void sub_1402EE3C0(rectangle rect, float_t border, int32_t type, const color4u8* fill_color);
 
 namespace dw {
     static const Colors colors_default = {
@@ -504,15 +508,15 @@ namespace dw {
         if (!GetParentEnabled())
             return 0;
 
-        /*if ((data.state & INPUT_STATE_SHIFT) && data.key_input == KEY_INPUT_F10)
+        if ((data.state & INPUT_STATE_SHIFT) && data.key_input == KEY_INPUT_F10)
             if (parent_menu)
-                parent_menu->sub_1402F35E0();*/
+                parent_menu->Disp();
 
         if (data.key_input || (data.joy_input & JOY_INPUT_DOWN_JVS_TRIANGLE)) {
             Widget::KeyCallbackData v8 = data;
             v8.widget = parent;
             for (KeyListener*& i : key_listener)
-                i->Field_8(v8);
+                i->OnDown(v8);
         }
         return 0;
     }
@@ -521,10 +525,10 @@ namespace dw {
         if (!GetParentEnabled())
             return 0;
 
-        /*if (dw_gui_detail_display->input.field_18 == 9
+        if (dw_gui_detail_display->input.field_18 == 9
             && (data.input & MOUSE_INPUT_TAP_RIGHT) && !data.state)
             if (parent_menu)
-                parent_menu->sub_1402F35E0();*/
+                parent_menu->Disp();
 
         if (!data.input)
             return 0;
@@ -648,7 +652,7 @@ namespace dw {
 
     void Control::SetParentMenu(Menu* menu) {
         if (menu) {
-            //menu->Field_60();
+            menu->Field_60();
             parent_menu = menu;
         }
         else
@@ -942,7 +946,7 @@ namespace dw {
             i->Free();
 
         for (Menu* i : menus)
-            ;//i->Free();
+            i->Free();
         menus.clear();
 
         if (close_button) {
@@ -1157,7 +1161,7 @@ namespace dw {
 
     }
 
-    void KeyAdapter::Field_8(const Widget::KeyCallbackData& data) {
+    void KeyAdapter::OnDown(const Widget::KeyCallbackData& data) {
 
     }
 
@@ -1793,7 +1797,7 @@ namespace dw {
 
             color4u8 color;
             if (!field_148) {
-                if ((flags & MULTISELECT) && selected_item == i || (flags & FLAG_2) && selections[i])
+                if ((flags & MULTISELECT) && selected_item == i || (flags & SEPARATOR) && selections[i])
                     selected = true;
 
                 if (Field_60())
@@ -2329,6 +2333,476 @@ namespace dw {
     bool ListBox::sub_1402EC8C0(rectangle rect, vec2 pos) {
         return (rect.pos.x <= pos.x && pos.x < rect.pos.x + rect.size.x)
             && (rect.pos.y <= pos.y && pos.y < rect.pos.y + rect.size.y);
+    }
+
+    MenuItem::MenuItem(Menu* parent, Flags flags) : Widget(parent, flags),
+        field_68(), field_69(), value(), parent_menu() {
+        menu = parent;
+
+        if (parent)
+            parent->menu_items.push_back(this);
+    }
+
+    MenuItem::~MenuItem() {
+
+    }
+
+    void MenuItem::Draw() {
+        rectangle v16 = GetRectangle();
+        if (flags & SEPARATOR) {
+            rectangle v17;
+            v17.pos.x = v16.pos.x;
+            v17.pos.y = v16.pos.y + v16.size.y * 0.5f;
+            v17.size = vec2(v16.size.x, 1.0f);
+            print->SetFillColor(colors_current.menu_foreground);
+            print->FillRectangle(v17);
+            return;
+        }
+
+        if (GetMenu()->GetCurrentMenuItem() == this) {
+            print->SetFillColor(colors_current.menu_selection_background);
+            print->FillRectangle(v16);
+        }
+
+        if (Field_58()) {
+            if (GetMenu()->GetCurrentMenuItem() == this)
+                print->SetColor(colors_current.menu_selection_foreground);
+            else
+                print->SetColor(colors_current.menu_foreground);
+        }
+        else
+            print->SetColor(colors_current.disable_foreground);
+
+        print->SetFont(&font);
+
+        vec2 v19 = print->GetTextSize(L"[X]");
+
+        if (flags & CHECKBOX) {
+            if (value) {
+                print->SetClipData(v16);
+                print->PrintText(L"[X]", v16.pos.x, v16.pos.y);
+            }
+            else {
+                print->SetClipData(v16);
+                print->PrintText(L"[ ]", v16.pos.x, v16.pos.y);
+            }
+        }
+        else if (flags & RADIOBUTTON) {
+            if (value) {
+                print->SetClipData(v16);
+                print->PrintText(L"(*)", v16.pos.x, v16.pos.y);
+            }
+            else {
+                print->SetClipData(v16);
+                print->PrintText(L"( )", v16.pos.x, v16.pos.y);
+            }
+        }
+
+        v16.pos.x += v19.x;
+        v16.size.x -= v19.x;
+
+        print->SetFont(&font);
+        print->SetClipData(v16);
+        print->PrintText(GetText(), v16.pos.x, v16.pos.y);
+
+        if (flags & 0x40) {
+            print->SetFont(&font);
+            vec2 v18 = print->GetTextSize(L">");
+            v16.pos.x = (float)(v16.pos.x + v16.size.x) - v18.x;
+            v16.size.x = v18.x;
+            print->PrintText(swprintf_s_string(L"%c", '>'), v16.pos.x, v16.pos.y);
+        }
+    }
+
+    vec2 MenuItem::GetPos() {
+        return rect.pos + (GetMenu()->GetPos() + 2.0f);
+    }
+
+    Menu* MenuItem::GetMenu() {
+        return menu;
+    }
+
+    bool MenuItem::Field_50() {
+        return !field_68;
+    }
+
+    bool MenuItem::Field_58() {
+        return GetMenu()->Field_50() && Field_50();
+    }
+
+    void MenuItem::Field_60(bool value) {
+        field_68 = !value;
+    }
+
+    void MenuItem::AddSelectionListener(SelectionListener* value) {
+        selection_listeners.push_back(value);
+    }
+
+    vec2 MenuItem::GetTextSize() {
+        print->SetFont(&font);
+        vec2 size = 0.0f;
+        if (flags & SEPARATOR) {
+            size.x = 0.0f;
+            size.y = font.GetFontGlyphHeight() * 0.5f;
+        }
+        else {
+            vec2 v11 = print->GetTextSize(L"[X]");
+            vec2 v12 = print->GetTextSize(GetText());
+            vec2 v10 = print->GetTextSize(L" >");
+            size.x = v12.x + v11.x + v10.x;
+            size.y = max_def(max_def(v12.y, v11.y), v10.y);
+        }
+        return size;
+    }
+
+    void MenuItem::SetParentMenu(Menu* menu) {
+        menu->Field_60();
+        parent_menu = menu;
+
+        menu->current_menu_item = this;
+    }
+
+    void MenuItem::sub_1402E6810() {
+        if (!Field_58())
+            return;
+
+        if (flags & CLOSE_BUTTON) {
+            if (parent_menu)
+                parent_menu->Disp();
+        }
+        else if (flags & CHECKBOX)
+            value = !value;
+        else if (flags & RADIOBUTTON)
+            value = true;
+
+        SelectionListener::CallbackData data = this;
+        for (SelectionListener*& i : selection_listeners)
+            i->Callback(&data);
+
+        dw_gui_detail_display->HideMenus();
+    }
+
+    Menu::Menu(Control* parent) : Widget(parent, (Flags)(FLAG_800 | MULTISELECT)),
+        field_68(), disp(), current_menu_item(), parent_shell() {
+        current_menu_item_index = -1;
+
+        if (!parent)
+            return;
+
+        Shell* parent_shell = parent->parent_shell;
+        this->parent_shell = parent_shell;
+        if (parent_shell)
+            parent_shell->menus.push_back(this);
+    }
+
+    Menu::Menu(MenuItem* parent) : Widget(parent, (Flags)(FLAG_800 | MULTISELECT)),
+        field_68(), disp(), parent_shell() {
+        current_menu_item = parent;
+        current_menu_item_index = -1;
+
+        if (!parent)
+            return;
+
+        Shell* parent_shell = parent->GetMenu()->parent_shell;
+        this->parent_shell = parent_shell;
+        if (parent_shell)
+            parent_shell->menus.push_back(this);
+
+        Field_60();
+
+        parent->parent_menu = this;
+        current_menu_item = parent;
+    }
+
+    Menu::Menu(Shell* parent) : Widget(parent, (Flags)(FLAG_800 | MULTISELECT)),
+        field_68(), disp(), current_menu_item() {
+        parent_shell = parent;
+        current_menu_item_index = -1;
+
+        if (parent)
+            parent->menus.push_back(this);
+    }
+
+    Menu::~Menu() {
+
+    }
+
+    void Menu::Draw() {
+        if (!disp)
+            return;
+
+        sub_1402EE3C0(rect, 1.0f, 2, &colors_current.menu_background);
+
+        for (MenuItem*& i : menu_items)
+            i->UpdateDraw();
+    }
+
+    void Menu::Reset() {
+        for (MenuItem*& i : menu_items)
+            i->Free();
+        menu_items.clear();
+
+        Widget::Reset();
+    }
+
+    int32_t Menu::KeyCallback(const Widget::KeyCallbackData& data) {
+        if (!get_disp())
+            return 0;
+
+        if (!menu_items.size())
+            return 0;
+
+        dw::KeyInput key_input = data.key_input;
+        if (key_input == KEY_INPUT_ENTER) {
+            if (current_menu_item_index != -1)
+                sub_1402E6750();
+        }
+        else if (key_input == KEY_INPUT_ESCAPE)
+            dw_gui_detail_display->HideMenus();
+        else if (key_input == KEY_INPUT_UP) {
+            const size_t item_count = menu_items.size();
+
+            size_t v8 = current_menu_item_index;
+            size_t index = v8;
+
+            index--;
+            if (index >= item_count)
+                index = item_count - 1;
+
+            while (index != v8) {
+                if (!(GetMenuItem(index)->flags & SEPARATOR))
+                    break;
+
+                index--;
+                if (index >= item_count)
+                    index = item_count - 1;
+            }
+
+            if (index != -1) {
+                if (index != v8 && v8 != -1) {
+                    Menu* menu = GetMenuItem(v8)->parent_menu;
+                    if (menu)
+                        menu->Hide();
+                }
+
+                SetCurrentMenuItemIndex(index);
+            }
+        }
+        else if (key_input == KEY_INPUT_DOWN) {
+            const size_t item_count = menu_items.size();
+
+            size_t v8 = current_menu_item_index;
+            size_t index = v8;
+
+            index++;
+            if (index >= item_count)
+                index = 0;
+
+            while (index != v8) {
+                if (!(GetMenuItem(index)->flags & SEPARATOR))
+                    break;
+
+                index++;
+                if (index >= item_count)
+                    index = 0;
+            }
+
+            if (index != -1) {
+                if (index != v8 && v8 != -1) {
+                    Menu* menu = GetMenuItem(v8)->parent_menu;
+                    if (menu)
+                        menu->Hide();
+                }
+
+                SetCurrentMenuItemIndex(index);
+            }
+        }
+        else if (key_input == KEY_INPUT_LEFT) {
+            if (dw_gui_detail_display->menus.size() > 1)
+                Hide();
+        }
+        else if (key_input == KEY_INPUT_RIGHT) {
+            if (current_menu_item_index < menu_items.size()) {
+                MenuItem* menu_item = menu_items.data()[current_menu_item_index];
+                if (menu_item) {
+                    Menu* menu = menu_item->parent_menu;
+                    if (menu) {
+                        menu->Disp();
+                        if (menu->menu_items.size())
+                            menu->SetCurrentMenuItemIndex(0);
+                    }
+                }
+            }
+        }
+        else if (key_input == KEY_INPUT_F10)
+            dw_gui_detail_display->HideMenus();
+
+        return 0;
+    }
+
+    int32_t Menu::MouseCallback(const Widget::MouseCallbackData& data) {
+        if (!get_disp())
+            return 0;
+
+        Menu* active_menu = dw_gui_detail_display->active_menu;
+        if (active_menu && active_menu != this) {
+            current_menu_item_index = -1;
+            return 0;
+        }
+
+        if (data.input & MOUSE_INPUT_MOVE) {
+            size_t index = 0;
+            for (MenuItem*& i : menu_items)
+                if (i->CheckHitPos(data.pos))
+                    index = &i - menu_items.data();
+
+            if (index != -1) {
+                SetCurrentMenuItemIndex(index);
+
+                Menu* menu = GetCurrentMenuItem()->parent_menu;
+                if (menu)
+                    menu->Disp();
+            }
+        }
+
+        if ((data.input & (MOUSE_INPUT_RELEASE_RIGHT | MOUSE_INPUT_RELEASE_LEFT))
+            && current_menu_item_index != -1)
+            sub_1402E6750();
+        return 0;
+    }
+
+    vec2 Menu::GetPos() {
+        return rect.pos;
+    }
+
+    bool Menu::Field_48() {
+        return !field_68;
+    }
+
+    bool Menu::Field_50() {
+        if (parent_shell)
+            return parent_shell->GetParentEnabled() && Field_48();
+        return Field_48();
+    }
+
+    void Menu::Field_58(bool value) {
+        field_68 = !value;
+    }
+
+    void Menu::Field_60() {
+        vec2 v14 = 0.0f;
+        for (MenuItem*& i : menu_items) {
+            vec2 v15 = i->GetTextSize();
+            i->SetSize(v15);
+
+            v14.x = max_def(v14.x, v15.x);
+            v14.y = v14.y + v15.y;
+        }
+
+        v14 += 2.0f * 2.0f;
+        SetSize(v14);
+
+        float_t v2 = 0.0f;
+        for (MenuItem*& i : menu_items) {
+            vec2 v13 = i->GetTextSize();
+            i->rect.pos = { 0.0f, v2 };
+            i->SetSize({ v14.x, v13.y });
+            v2 += v13.y;
+        }
+    }
+
+    bool Menu::get_disp() {
+        return disp;
+    }
+
+    void Menu::set_disp(bool value) {
+        disp = value;
+    }
+
+    // 0x1402F35E0
+    void Menu::Disp() {
+        if (get_disp())
+            return;
+
+        float_t pos_x;
+        float_t pos_y;
+        if (current_menu_item) {
+            rectangle rect = current_menu_item->GetRectangle();
+            pos_x = rect.pos.x + rect.size.x;
+            pos_y = rect.pos.y;
+        }
+        else {
+            pos_x = dw_gui_detail_display->mouse_callback_data.pos.x;
+            pos_y = dw_gui_detail_display->mouse_callback_data.pos.y;
+        }
+
+        SetPos(pos_x, pos_y);
+
+        current_menu_item_index = -1;
+
+        set_disp(true);
+
+        dw_gui_detail_display->AddMenu(this);
+    }
+
+    // 0x1402F35A0
+    void Menu::Hide() {
+        if (get_disp()) {
+            set_disp(false);
+            dw_gui_detail_display->RemoveMenu(this);
+        }
+    }
+
+    // 0x1402E6630
+    void Menu::SetCurrentMenuItemIndex(size_t index) {
+        if (current_menu_item_index == index)
+            return;
+
+        if (current_menu_item_index != -1) {
+            Menu* menu = GetCurrentMenuItem()->parent_menu;
+            if (menu)
+                dw_gui_detail_display->RemoveSubsequentMenus(menu);
+        }
+
+        current_menu_item_index = index;
+    }
+
+    // 0x1402E4530
+    void Menu::SetPos(float_t pos_x, float_t pos_y) {
+        rectangle v22 = dw_gui_detail_display->data.field_0;
+
+        rectangle v12;
+        v12.pos = vec2::max(v22.pos, { pos_x, pos_y });
+        v12.size = rect.size;
+
+        if ((v12.pos.y + v12.size.y) > (v22.pos.y + v22.size.y))
+            v12.pos.y = v22.size.y - v12.size.y;
+
+        if ((v12.pos.x + v12.size.x) > (v22.pos.x + v22.size.x)) {
+            float_t v18;
+            if (current_menu_item)
+                v18 = current_menu_item->GetPos().x;
+            else
+                v18 = v22.size.x;
+            v12.pos.x = v18 - v12.size.x;
+        }
+
+        rect.pos = v12.pos;
+
+        SetSize({ v12.size });
+    }
+
+    void Menu::sub_1402E6750() {
+        MenuItem* menu_item = GetCurrentMenuItem();
+        if (!menu_item->Field_58())
+            return;
+
+        if (menu_item->flags & RADIOBUTTON)
+            for (MenuItem* i : menu_items)
+                if (i && menu_item != i && (i->flags & 0x10) != 0)
+                    i->value = false;
+
+        menu_item->sub_1402E6810();
     }
 
     ScrollBar::ScrollBar(Control* parent, Flags flags) : Widget(parent, flags),
@@ -3512,7 +3986,7 @@ dw_gui_detail::Display::RootKeySelection::~RootKeySelection() {
 
 }
 
-void dw_gui_detail::Display::RootKeySelection::Field_8(const dw::Widget::KeyCallbackData& data) {
+void dw_gui_detail::Display::RootKeySelection::OnDown(const dw::Widget::KeyCallbackData& data) {
 
 }
 
@@ -3530,14 +4004,18 @@ cap(), focused_shell(), find_focus(), field_118() {
     drag_bounds_control->SetSize(this->data.field_0.size);
     drag_bounds_control->AddKeyListener(&root_key_selection);
 
-    v10 = new dw::Menu(drag_bounds_control);
-    v10->SetText(L"RootMenu");
-    v10->sub_140306E90();
-    drag_bounds_control->>SetParentMenu(v10);*/
+    dw::Menu* root_menu = new dw::Menu(drag_bounds_control);
+    root_menu->SetText(L"RootMenu");
+    dw_root_menu_init(root_menu);
+    drag_bounds_control->SetParentMenu(root_menu);*/
 }
 
 dw_gui_detail::Display::~Display() {
 
+}
+
+void dw_gui_detail::Display::AddMenu(dw::Menu* value) {
+    menus.push_back(value);
 }
 
 void dw_gui_detail::Display::CheckShells() {
@@ -3564,8 +4042,8 @@ void dw_gui_detail::Display::Ctrl() {
     key_callback_data.key_input = input.key_input;
     key_callback_data.joy_input = input.joy_input;
 
-    if (sub_1402E51F0())
-        sub_1402E5630();
+    if (GetActiveMenu())
+        GetActiveShell();
 
     CheckShells();
     FreeWidgets();
@@ -3573,14 +4051,14 @@ void dw_gui_detail::Display::Ctrl() {
 
 void dw_gui_detail::Display::Draw() {
     dw::print->SetColor(dw::colors_current.foreground);
-    //drag_bounds_control->UpdateDraw();
+    drag_bounds_control->UpdateDraw();
 
     for (dw::Shell*& i : shells)
         if (i->GetDisp())
             i->UpdateDraw();
 
-    /*for (dw::Menu*& i : menus)
-        i->UpdateDraw();*/
+    for (dw::Menu*& i : menus)
+        i->UpdateDraw();
 
     dw::print->SetColor(dw::colors_current.foreground);
     input.Draw();
@@ -3600,124 +4078,58 @@ void dw_gui_detail::Display::FreeWidgets() {
     free_widgets.clear();
 }
 
-dw::Shell* dw_gui_detail::Display::GetHoveredShell() {
-    auto i_begin = shells.end();
-    auto i_end = shells.begin();
-    for (auto i = i_begin; i != i_end;) {
-        i--;
+// 0x1402E51F0
+int32_t dw_gui_detail::Display::GetActiveMenu() {
+    if (!menus.size())
+        return 1;
 
-        if (!(*i)->freed && (*i)->GetDisp()) {
-            rectangle rect = (*i)->GetRectangle();
-            if (rect.pos.x <= mouse_callback_data.pos.x && mouse_callback_data.pos.x < rect.pos.x + rect.size.x
-                && rect.pos.y <= mouse_callback_data.pos.y && mouse_callback_data.pos.y < rect.pos.y + rect.size.y)
-                return *i;
+    dw::Widget::MouseCallbackData mouse_callback_data = this->mouse_callback_data;
+    dw::Widget::KeyCallbackData  key_callback_data = this->key_callback_data;
+
+    dw::Menu* active_menu = 0;
+    auto i = menus.rbegin();
+    auto i_end = menus.rend();
+    while (i != i_end) {
+        dw::Menu* menu = *i;
+        if (!menu->freed && menu->disp && menu->CheckHitPos(mouse_callback_data.pos)) {
+            active_menu = menu;
+            break;
+        }
+        i++;
+    }
+
+    dw::Menu* prev_active_menu = this->active_menu;
+    this->active_menu = active_menu;
+
+    if (prev_active_menu != active_menu && active_menu) {
+        auto i = menus.rbegin();
+        auto i_end = menus.rend();
+        while (i != i_end) {
+            dw::Menu* menu = *i;
+            if (menu == active_menu)
+                break;
+
+            dw::MenuItem* menu_item = menu->current_menu_item;
+            if (menu_item && menu_item->GetMenu() == active_menu)
+                break;
+
+            menu->Hide();
+            i++;
         }
     }
 
+    if (active_menu)
+        active_menu->MouseCallback(mouse_callback_data);
+    else if (mouse_callback_data.input & dw::MOUSE_INPUT_TAP_MASK)
+        HideMenus();
+
+    if (menus.size())
+        menus.back()->KeyCallback(key_callback_data);
     return 0;
 }
 
-void dw_gui_detail::Display::MakeShellFirst(dw::Shell* value) {
-    if (!value)
-        return;
-
-    auto i = shells.begin();
-    auto i_end = shells.end();
-    while (i != i_end)
-        if (*i == value) {
-            shells.erase(i);
-            shells.push_back(value);
-            break;
-        }
-        else
-            i++;
-}
-
-void dw_gui_detail::Display::MakeShellLast(dw::Shell* value) {
-    if (!value)
-        return;
-
-    auto i = shells.begin();
-    auto i_end = shells.end();
-    while (i != i_end)
-        if (*i == value) {
-            shells.erase(i);
-            shells.insert(shells.begin(), value);
-            break;
-        }
-        else
-            i++;
-}
-
-void dw_gui_detail::Display::RemoveShell(dw::Shell* value) {
-    auto i = shells.begin();
-    auto i_end = shells.end();
-    while (i != i_end)
-        if (*i == value) {
-            shells.erase(i);
-            break;
-        }
-        else
-            i++;
-
-    if (active_shell == value) {
-        active_shell = 0;
-        find_focus = true;
-    }
-
-    if (on == value)
-        on = 0;
-
-    if (move == value)
-        move = 0;
-}
-
-void dw_gui_detail::Display::sub_1402E6300(dw::Widget* widget) {
-    rectangle rect = widget->GetRectangle();
-
-    float_t size_y = input.mouse_pos.y - rect.pos.y;
-
-    vec2 size;
-    size.x = widget->rect.size.x;
-    size.y = widget->rect.size.y + (max_def(size_y, 10.0f) - rect.size.y);
-    widget->SetSize(size);
-}
-
-void dw_gui_detail::Display::sub_1402E6440(dw::Widget* widget) {
-    rectangle rect = widget->GetRectangle();
-
-    float_t size_x = input.mouse_pos.x - rect.pos.x;
-
-    vec2 size;
-    size.x = widget->rect.size.x + (max_def(size_x, 32.0f) - rect.size.x);
-    size.y = widget->rect.size.y;
-    widget->SetSize(size);
-}
-
-int32_t dw_gui_detail::Display::sub_1402E48A0(dw::Widget* widget) {
-    if (!widget)
-        return 9;
-
-    rectangle rect = widget->GetRectangle();
-    if (widget->flags & dw::RADIOBUTTON) {
-        vec2 v7 = rect.pos + rect.size - 8.0f;
-        if (v7.x <= input.mouse_pos.x && input.mouse_pos.x < v7.x + 8.0f
-            && v7.y <= input.mouse_pos.y && input.mouse_pos.y < v7.y + 8.0f)
-            return 6;
-    }
-
-    if (widget->flags & dw::CHECKBOX)
-        return dw::current_font.GetFontGlyphHeight()
-            + (rect.pos.y + 2.0f) > input.mouse_pos.y ? 10 : 9;
-    return 9;
-}
-
-int32_t dw_gui_detail::Display::sub_1402E51F0() {
-    // temp
-    return 1;
-}
-
-int32_t dw_gui_detail::Display::sub_1402E5630() {
+// 0x1402E5630
+int32_t dw_gui_detail::Display::GetActiveShell() {
     if (move) {
         if (mouse_callback_data.input & dw::MOUSE_INPUT_DOWN_LEFT) {
             if (input.field_18 & 0x40000000)
@@ -3861,11 +4273,187 @@ int32_t dw_gui_detail::Display::sub_1402E5630() {
                 input.field_1D = 1;
         }
 
-        /*if (!(mouse_callback_data.input & dw::MOUSE_INPUT_KEYBOARD_PRESS))
+        if (!(mouse_callback_data.input & dw::MOUSE_INPUT_KEYBOARD_PRESS))
             drag_bounds_control->MouseCallback(mouse_callback_data);
-        drag_bounds_control->KeyCallback(key_callback_data);*/
+        drag_bounds_control->KeyCallback(key_callback_data);
     }
     return 1;
+}
+
+dw::Shell* dw_gui_detail::Display::GetHoveredShell() {
+    auto i = shells.rbegin();
+    auto i_end = shells.rend();
+    while (i != i_end) {
+        if (!(*i)->freed && (*i)->GetDisp()) {
+            rectangle rect = (*i)->GetRectangle();
+            if (rect.pos.x <= mouse_callback_data.pos.x && mouse_callback_data.pos.x < rect.pos.x + rect.size.x
+                && rect.pos.y <= mouse_callback_data.pos.y && mouse_callback_data.pos.y < rect.pos.y + rect.size.y)
+                return *i;
+        }
+        i++;
+    }
+
+    return 0;
+}
+
+void dw_gui_detail::Display::HideMenus() {
+    auto i = menus.rbegin();
+    auto i_end = menus.rend();
+    while (i != i_end) {
+        (*i)->set_disp(false);
+        i++;
+    }
+
+    menus.clear();
+    active_menu = 0;
+}
+
+void dw_gui_detail::Display::MakeShellFirst(dw::Shell* value) {
+    if (!value)
+        return;
+
+    auto i = shells.begin();
+    auto i_end = shells.end();
+    while (i != i_end)
+        if (*i == value) {
+            shells.erase(i);
+            shells.push_back(value);
+            break;
+        }
+        else
+            i++;
+}
+
+void dw_gui_detail::Display::MakeShellLast(dw::Shell* value) {
+    if (!value)
+        return;
+
+    auto i = shells.begin();
+    auto i_end = shells.end();
+    while (i != i_end)
+        if (*i == value) {
+            shells.erase(i);
+            shells.insert(shells.begin(), value);
+            break;
+        }
+        else
+            i++;
+}
+
+void dw_gui_detail::Display::RemoveMenu(dw::Menu* value) {
+    auto i = menus.begin();
+    auto i_end = menus.end();
+    while (i != i_end)
+        if (*i == value) {
+            menus.erase(i);
+            break;
+        }
+        else
+            i++;
+
+    if (active_menu == value)
+        active_menu = 0;
+}
+
+void dw_gui_detail::Display::RemoveShell(dw::Shell* value) {
+    auto i = shells.begin();
+    auto i_end = shells.end();
+    while (i != i_end)
+        if (*i == value) {
+            shells.erase(i);
+            break;
+        }
+        else
+            i++;
+
+    if (active_shell == value) {
+        active_shell = 0;
+        find_focus = true;
+    }
+
+    if (on == value)
+        on = 0;
+
+    if (move == value)
+        move = 0;
+}
+
+void dw_gui_detail::Display::RemoveSubsequentMenus(dw::Menu* value) {
+    auto i_begin = menus.rbegin();
+    auto i_end = menus.rend();
+    auto i = i_begin;
+    while (i != i_end) {
+        if (*i == value)
+            break;
+        i++;
+    }
+
+    if (i != i_end) {
+        auto j = i_begin;
+        auto j_end = i;
+        while (j != j_end) {
+            (*j)->Hide();
+            j++;
+        }
+        (*i)->Hide();
+    }
+}
+
+void dw_gui_detail::Display::sub_1402E6300(dw::Widget* widget) {
+    rectangle rect = widget->GetRectangle();
+
+    float_t size_y = input.mouse_pos.y - rect.pos.y;
+
+    vec2 size;
+    size.x = widget->rect.size.x;
+    size.y = widget->rect.size.y + (max_def(size_y, 10.0f) - rect.size.y);
+    widget->SetSize(size);
+}
+
+void dw_gui_detail::Display::sub_1402E6440(dw::Widget* widget) {
+    rectangle rect = widget->GetRectangle();
+
+    float_t size_x = input.mouse_pos.x - rect.pos.x;
+
+    vec2 size;
+    size.x = widget->rect.size.x + (max_def(size_x, 32.0f) - rect.size.x);
+    size.y = widget->rect.size.y;
+    widget->SetSize(size);
+}
+
+int32_t dw_gui_detail::Display::sub_1402E48A0(dw::Widget* widget) {
+    if (!widget)
+        return 9;
+
+    rectangle rect = widget->GetRectangle();
+    if (widget->flags & dw::RADIOBUTTON) {
+        vec2 v7 = rect.pos + rect.size - 8.0f;
+        if (v7.x <= input.mouse_pos.x && input.mouse_pos.x < v7.x + 8.0f
+            && v7.y <= input.mouse_pos.y && input.mouse_pos.y < v7.y + 8.0f)
+            return 6;
+    }
+
+    if (widget->flags & dw::CHECKBOX)
+        return dw::current_font.GetFontGlyphHeight()
+            + (rect.pos.y + 2.0f) > input.mouse_pos.y ? 10 : 9;
+    return 9;
+}
+
+dw_gui_detail::SysMenuSelectionListener::SysMenuSelectionListener() {
+
+}
+
+dw_gui_detail::SysMenuSelectionListener::~SysMenuSelectionListener() {
+
+}
+
+void dw_gui_detail::SysMenuSelectionListener::Callback(dw::SelectionListener::CallbackData* data) {
+    dw::MenuItem* menu_item = dynamic_cast<dw::MenuItem*>(data->widget);
+    if (menu_item) {
+        dw::Shell* parent_shell = menu_item->GetMenu()->parent_shell;
+        if (!menu_item->callback_data.v64)
+            parent_shell->Hide();
+    }
 }
 
 static bool dw_gui_get_ctrl() {
@@ -3882,7 +4470,7 @@ static void dw_gui_detail_display_set_cap(dw::Widget* widget, bool set) {
     dw_gui_detail_display->cap = set ? widget : 0;
 }
 
-static void sub_1402EE3C0(rectangle rect, float_t border, int32_t type, color4u8* fill_color) {
+static void sub_1402EE3C0(rectangle rect, float_t border, int32_t type, const color4u8* fill_color) {
     if (type != 2 && type != 4)
         return;
 

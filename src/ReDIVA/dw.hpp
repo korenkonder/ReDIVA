@@ -15,7 +15,7 @@
 namespace dw {
     enum Flags {
         FLAG_1       = 0x0000001,
-        FLAG_2       = 0x0000002,
+        SEPARATOR    = 0x0000002,
         MULTISELECT  = 0x0000004,
         FLAG_8       = 0x0000008,
         RADIOBUTTON  = 0x0000010,
@@ -525,7 +525,7 @@ namespace dw {
         KeyListener();
         virtual ~KeyListener();
 
-        virtual void Field_8(const Widget::KeyCallbackData& data) = 0;
+        virtual void OnDown(const Widget::KeyCallbackData& data) = 0;
         virtual void Field_10(const Widget::KeyCallbackData& data) = 0;
         virtual void Field_18(const Widget::KeyCallbackData& data) = 0;
     };
@@ -535,7 +535,7 @@ namespace dw {
         KeyAdapter();
         virtual ~KeyAdapter() override;
 
-        virtual void Field_8(const Widget::KeyCallbackData& data) override;
+        virtual void OnDown(const Widget::KeyCallbackData& data) override;
         virtual void Field_10(const Widget::KeyCallbackData& data) override;
         virtual void Field_18(const Widget::KeyCallbackData& data) override;
     };
@@ -843,6 +843,137 @@ namespace dw {
         void sub_1402E4F90();
 
         static bool sub_1402EC8C0(rectangle rect, vec2 pos);
+    };
+
+    class MenuItem : public Widget {
+    public:
+        bool field_68;
+        bool field_69;
+        std::vector<SelectionListener*> selection_listeners;
+        bool value;
+        Menu* parent_menu;
+        Menu* menu;
+
+        MenuItem(Menu* parent, Flags flags);
+        virtual ~MenuItem() override;
+
+        virtual void Draw() override;
+        virtual vec2 GetPos() override;
+
+        virtual Menu* GetMenu();
+        virtual bool Field_50();
+        virtual bool Field_58();
+        virtual void Field_60(bool value);
+
+        void AddSelectionListener(SelectionListener* value);
+        vec2 GetTextSize();
+        void SetParentMenu(Menu* menu);
+
+        void sub_1402E6810();
+
+        inline static MenuItem* Create(dw::Menu* parent, dw::Flags flags, const char* text) {
+            dw::MenuItem* menu_item = new dw::MenuItem(parent, flags);
+            menu_item->SetText(text);
+            return menu_item;
+        }
+
+        inline static MenuItem* Create(dw::Menu* parent, dw::Flags flags, const wchar_t* text) {
+            dw::MenuItem* menu_item = new dw::MenuItem(parent, flags);
+            menu_item->SetText(text);
+            return menu_item;
+        }
+
+        inline static MenuItem* Create(dw::Menu* parent, dw::Flags flags, const char* text,
+            SelectionListenerOnHook* listener) {
+            dw::MenuItem* menu_item = new dw::MenuItem(parent, flags);
+            menu_item->SetText(text);
+            menu_item->AddSelectionListener(listener);
+            return menu_item;
+        }
+
+        inline static MenuItem* Create(dw::Menu* parent, dw::Flags flags, const wchar_t* text,
+            SelectionListenerOnHook* listener) {
+            dw::MenuItem* menu_item = new dw::MenuItem(parent, flags);
+            menu_item->SetText(text);
+            menu_item->AddSelectionListener(listener);
+            return menu_item;
+        }
+
+        inline static MenuItem* Create(dw::Menu* parent, dw::Flags flags, const char* text,
+            SelectionListenerOnHook::CallbackFunc callback) {
+            dw::MenuItem* menu_item = new dw::MenuItem(parent, flags);
+            menu_item->SetText(text);
+            menu_item->AddSelectionListener(new dw::SelectionListenerOnHook(callback));
+            return menu_item;
+        }
+
+        inline static MenuItem* Create(dw::Menu* parent, dw::Flags flags, const wchar_t* text,
+            SelectionListenerOnHook::CallbackFunc callback) {
+            dw::MenuItem* menu_item = new dw::MenuItem(parent, flags);
+            menu_item->SetText(text);
+            menu_item->AddSelectionListener(new dw::SelectionListenerOnHook(callback));
+            return menu_item;
+        }
+    };
+
+    class Menu : public Widget {
+    public:
+        bool field_68;
+        bool disp;
+        MenuItem* current_menu_item;
+        Shell* parent_shell;
+        size_t current_menu_item_index;
+        std::vector<MenuItem*> menu_items;
+
+        Menu(Control* parent);
+        Menu(MenuItem* parent);
+        Menu(Shell* parent);
+        virtual ~Menu() override;
+
+        virtual void Draw() override;
+        virtual void Reset() override;
+        virtual int32_t KeyCallback(const Widget::KeyCallbackData& data) override;
+        virtual int32_t MouseCallback(const Widget::MouseCallbackData& data) override;
+        virtual vec2 GetPos() override;
+
+        virtual bool Field_48();
+        virtual bool Field_50();
+        virtual void Field_58(bool value);
+        virtual void Field_60();
+
+        bool get_disp();
+        void set_disp(bool value);
+
+        void Disp();
+        void Hide();
+        void SetCurrentMenuItemIndex(size_t index);
+        void SetPos(float_t pos_x, float_t pos_y);
+
+        void sub_1402E6750();
+
+        inline static Menu* Create(dw::MenuItem* parent, const char* text) {
+            dw::Menu* menu = new dw::Menu(parent);
+            menu->SetText(text);
+            return menu;
+        }
+
+        inline static Menu* Create(dw::MenuItem* parent, const wchar_t* text) {
+            dw::Menu* menu = new dw::Menu(parent);
+            menu->SetText(text);
+            return menu;
+        }
+
+        inline MenuItem* GetCurrentMenuItem() {
+            if (current_menu_item_index < menu_items.size())
+                return menu_items.data()[current_menu_item_index];
+            return 0;
+        }
+
+        inline MenuItem* GetMenuItem(size_t index) {
+            if (index < menu_items.size())
+                return menu_items.data()[index];
+            return 0;
+        }
     };
 
     class ScrollBar : public Widget {
