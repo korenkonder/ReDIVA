@@ -3018,20 +3018,6 @@ namespace dw {
 
     }
 
-    void* alloc(size_t size) {
-        void* data = prj::MemoryManager::alloc(prj::MemCDebug, size, "dw_gui");;
-        if (data) {
-            memset(data, 0, size);
-            return data;
-        }
-        return 0;
-    }
-
-    void free(void* data) {
-        if (data)
-            prj::MemoryManager::free(prj::MemCDebug, data);
-    }
-
     void font_init() {
         font_type_6x12 = new Font(16, "FONT_TYPE_6x12", true);
         font_type_6x12->SetGlyphSize(6.0f, 12.0f);
@@ -3092,6 +3078,20 @@ namespace dw {
         delete font_type_8x16;
         delete font_type_8x12;
         delete font_type_6x12;
+    }
+
+    void* alloc(size_t size) {
+        void* data = prj::MemoryManager::alloc(prj::MemCDebug, size, "dw_gui");;
+        if (data) {
+            memset(data, 0, size);
+            return data;
+        }
+        return 0;
+    }
+
+    void free(void* data) {
+        if (data)
+            prj::MemoryManager::free(prj::MemCDebug, data);
     }
 }
 

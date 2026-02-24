@@ -1012,8 +1012,8 @@ namespace dw {
     extern int32_t font_get_index(std::string& name);
     extern void font_free();
 
-    void* alloc(size_t size);
-    void free(void* data);
+    extern void* alloc(size_t size);
+    extern void free(void* data);
 }
 
 extern void dw_init();
