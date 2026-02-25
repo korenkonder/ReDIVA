@@ -725,7 +725,7 @@ namespace dw {
 
     void Control::SetParentMenu(Menu* menu) {
         if (menu) {
-            menu->Field_60();
+            menu->UpdateLayout();
             parent_menu = menu;
         }
         else
@@ -2421,20 +2421,21 @@ namespace dw {
     }
 
     void MenuItem::Draw() {
-        rectangle v16 = GetRectangle();
+        rectangle rect = GetRectangle();
         if (flags & SEPARATOR) {
-            rectangle v17;
-            v17.pos.x = v16.pos.x;
-            v17.pos.y = v16.pos.y + v16.size.y * 0.5f;
-            v17.size = vec2(v16.size.x, 1.0f);
+            rectangle sep_rect;
+            sep_rect.pos.x = rect.pos.x;
+            sep_rect.pos.y = rect.pos.y + rect.size.y * 0.5f;
+            sep_rect.size.x = rect.size.x;
+            sep_rect.size.y = 1.0f;
             print->SetFillColor(colors_current.menu_foreground);
-            print->FillRectangle(v17);
+            print->FillRectangle(sep_rect);
             return;
         }
 
         if (GetMenu()->GetCurrentMenuItem() == this) {
             print->SetFillColor(colors_current.menu_selection_background);
-            print->FillRectangle(v16);
+            print->FillRectangle(rect);
         }
 
         if (Field_58()) {
@@ -2448,42 +2449,42 @@ namespace dw {
 
         print->SetFont(&font);
 
-        vec2 v19 = print->GetTextSize(L"[X]");
+        vec2 checkbox_size = print->GetTextSize(L"[X]");
 
         if (flags & CHECKBOX) {
             if (value) {
-                print->SetClipData(v16);
-                print->PrintText(L"[X]", v16.pos.x, v16.pos.y);
+                print->SetClipData(rect);
+                print->PrintText(L"[X]", rect.pos.x, rect.pos.y);
             }
             else {
-                print->SetClipData(v16);
-                print->PrintText(L"[ ]", v16.pos.x, v16.pos.y);
+                print->SetClipData(rect);
+                print->PrintText(L"[ ]", rect.pos.x, rect.pos.y);
             }
         }
         else if (flags & RADIOBUTTON) {
             if (value) {
-                print->SetClipData(v16);
-                print->PrintText(L"(*)", v16.pos.x, v16.pos.y);
+                print->SetClipData(rect);
+                print->PrintText(L"(*)", rect.pos.x, rect.pos.y);
             }
             else {
-                print->SetClipData(v16);
-                print->PrintText(L"( )", v16.pos.x, v16.pos.y);
+                print->SetClipData(rect);
+                print->PrintText(L"( )", rect.pos.x, rect.pos.y);
             }
         }
 
-        v16.pos.x += v19.x;
-        v16.size.x -= v19.x;
+        rect.pos.x += checkbox_size.x;
+        rect.size.x -= checkbox_size.x;
 
         print->SetFont(&font);
-        print->SetClipData(v16);
-        print->PrintText(GetText(), v16.pos.x, v16.pos.y);
+        print->SetClipData(rect);
+        print->PrintText(GetText(), rect.pos.x, rect.pos.y);
 
-        if (flags & 0x40) {
+        if (flags & CLOSE_BUTTON) {
             print->SetFont(&font);
-            vec2 v18 = print->GetTextSize(L">");
-            v16.pos.x = (float)(v16.pos.x + v16.size.x) - v18.x;
-            v16.size.x = v18.x;
-            print->PrintText(swprintf_s_string(L"%c", '>'), v16.pos.x, v16.pos.y);
+            vec2 sub_marker_size = print->GetTextSize(L">");
+            rect.pos.x = rect.pos.x + rect.size.x - sub_marker_size.x;
+            rect.size.x = sub_marker_size.x;
+            print->PrintText(swprintf_s_string(L"%c", '>'), rect.pos.x, rect.pos.y);
         }
     }
 
@@ -2519,17 +2520,17 @@ namespace dw {
             size.y = font.GetFontGlyphHeight() * 0.5f;
         }
         else {
-            vec2 v11 = print->GetTextSize(L"[X]");
-            vec2 v12 = print->GetTextSize(GetText());
-            vec2 v10 = print->GetTextSize(L" >");
-            size.x = v12.x + v11.x + v10.x;
-            size.y = max_def(max_def(v12.y, v11.y), v10.y);
+            vec2 checkbox_size = print->GetTextSize(L"[X]");
+            vec2 text_size = print->GetTextSize(GetText());
+            vec2 sub_marker_size = print->GetTextSize(L" >");
+            size.x = checkbox_size.x + text_size.x + sub_marker_size.x;
+            size.y = max_def(max_def(checkbox_size.y, text_size.y), sub_marker_size.y);
         }
         return size;
     }
 
     void MenuItem::SetParentMenu(Menu* menu) {
-        menu->Field_60();
+        menu->UpdateLayout();
         parent_menu = menu;
 
         menu->current_menu_item = this;
@@ -2581,7 +2582,7 @@ namespace dw {
         if (parent_shell)
             parent_shell->menus.push_back(this);
 
-        Field_60();
+        UpdateLayout();
 
         parent->parent_menu = this;
         current_menu_item = parent;
@@ -2762,25 +2763,24 @@ namespace dw {
         field_68 = !value;
     }
 
-    void Menu::Field_60() {
-        vec2 v14 = 0.0f;
+    void Menu::UpdateLayout() {
+        vec2 menu_size = 0.0f;
         for (MenuItem*& i : menu_items) {
-            vec2 v15 = i->GetTextSize();
-            i->SetSize(v15);
+            vec2 text_size = i->GetTextSize();
+            i->SetSize(text_size);
 
-            v14.x = max_def(v14.x, v15.x);
-            v14.y = v14.y + v15.y;
+            menu_size.x = max_def(menu_size.x, text_size.x);
+            menu_size.y = menu_size.y + text_size.y;
         }
 
-        v14 += 2.0f * 2.0f;
-        SetSize(v14);
+        SetSize(menu_size + 2.0f * 2.0f);
 
-        float_t v2 = 0.0f;
+        float_t item_y_offset = 0.0f;
         for (MenuItem*& i : menu_items) {
-            vec2 v13 = i->GetTextSize();
-            i->rect.pos = { 0.0f, v2 };
-            i->SetSize({ v14.x, v13.y });
-            v2 += v13.y;
+            vec2 text_size = i->GetTextSize();
+            i->rect.pos = { 0.0f, item_y_offset };
+            i->SetSize({ menu_size.x, text_size.y });
+            item_y_offset += text_size.y;
         }
     }
 
@@ -3472,12 +3472,12 @@ namespace dw {
     }
 
     vec2 Slider::GetSize() {
-        vec2 v10 = Slider::GetTextSize();
-        vec2 v11 = scroll_bar->rect.size;
+        vec2 text_size = Slider::GetTextSize();
+        vec2 scrollbar_size = scroll_bar->rect.size;
 
         vec2 size;
-        size.x = v11.x + v10.x;
-        size.y = max_def(v11.y, v10.y);
+        size.x = scrollbar_size.x + text_size.x;
+        size.y = max_def(scrollbar_size.y, text_size.y);
         return size;
     }
 
@@ -3517,18 +3517,18 @@ namespace dw {
         print->SetFont(&slider->font);
         vec2 size;
         if (flags & HORIZONTAL) {
-            vec2 v21 = print->GetTextSize(slider->text);
-            vec2 v22 = print->GetTextSize(L"0000");
-            scroll_bar->rect.pos.x = v21.x + v22.x;
+            vec2 slider_text = print->GetTextSize(slider->text);
+            vec2 value_text = print->GetTextSize(L"0000");
+            scroll_bar->rect.pos.x = slider_text.x + value_text.x;
             scroll_bar->rect.pos.y = 0.0f;
-            size.x = v21.x + v22.x + scroll_bar->rect.size.x;
+            size.x = slider_text.x + value_text.x + scroll_bar->rect.size.x;
             size.y = slider->font.GetFontGlyphHeight();
         }
         else {
-            vec2 v21 = print->GetTextSize(slider->text);
-            vec2 v22 = print->GetTextSize(L"0000");
+            vec2 slider_text = print->GetTextSize(slider->text);
+            vec2 value_text = print->GetTextSize(L"0000");
             size.x = slider->font.GetFontGlyphWidth();
-            size.y = v21.x + v22.x + scroll_bar->rect.size.y;
+            size.y = slider_text.x + value_text.x + scroll_bar->rect.size.y;
         }
         slider->rect.pos = { pos_x, pos_y };
         slider->SetSize(size);

@@ -958,7 +958,7 @@ namespace dw {
         virtual bool Field_48();
         virtual bool Field_50();
         virtual void Field_58(bool value);
-        virtual void Field_60();
+        virtual void UpdateLayout();
 
         bool get_disp();
         void set_disp(bool value);
