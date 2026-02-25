@@ -293,6 +293,14 @@ namespace dw {
     public:
         typedef void(*Callback)(Widget* data);
 
+        struct DragBoundsCallbackData {
+            Widget* widget;
+            bool field_8;
+            rectangle rect;
+
+            DragBoundsCallbackData();
+        };
+
         struct KeyCallbackData {
             Widget* widget;
             InputState state;
@@ -371,6 +379,7 @@ namespace dw {
         static void operator delete(void* data) noexcept;
     };
 
+    class DragBoundsListener;
     class KeyListener;
     class MouseListener;
     class MouseMoveListener;
@@ -518,6 +527,16 @@ namespace dw {
 
         void sub_1402E43C0(Widget* widget);
         void sub_1402E61F0(Widget* widget);
+    };
+
+    class DragBoundsListener {
+    public:
+        DragBoundsListener();
+        virtual ~DragBoundsListener();
+
+        virtual void Field_8(const Widget::DragBoundsCallbackData& data) = 0;
+        virtual void Field_10(const Widget::DragBoundsCallbackData& data) = 0;
+        virtual void Field_18(const Widget::DragBoundsCallbackData& data) = 0;
     };
 
     class KeyListener {
@@ -1152,3 +1171,7 @@ extern void dw_init(dw::DisplayData& data);
 extern void dw_free();
 
 extern void dw_gui_ctrl_disp();
+
+extern void dw_info_window_init();
+
+extern void dw_sys_menu_init(dw::Shell* shell);

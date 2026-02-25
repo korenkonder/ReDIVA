@@ -4,24 +4,58 @@
 */
 
 #include "background_color.hpp"
-#include "../../../KKdLib/vec.hpp"
-#include "../../../CRE/clear_color.hpp"
-#include "../../imgui_helper.hpp"
+#include "../../CRE/gl.hpp"
+#include "../../CRE/clear_color.hpp"
+#include "../imgui_helper.hpp"
+#include "../task_window.hpp"
 
-extern int32_t width;
-extern int32_t height;
+class GraphicsBackColor : public app::TaskWindow {
+public:
+    bool exit;
 
-static const char* graphics_background_color_window_title = "Background Color##Graphics";
+    GraphicsBackColor();
+    virtual ~GraphicsBackColor() override;
 
-bool graphics_background_color_init(class_data* data, render_context* rctx) {
-    graphics_background_color_dispose(data);
+    virtual bool init() override;
+    virtual bool ctrl() override;
+    virtual bool dest() override;
+    virtual void window() override;
+};
+
+GraphicsBackColor graphics_back_color;
+
+void graphics_background_color_init() {
+    app::TaskWork::add_task(&graphics_back_color, "GRAPHICS_BACK_COLOR");
+}
+
+GraphicsBackColor::GraphicsBackColor() : exit() {
+
+}
+
+GraphicsBackColor::~GraphicsBackColor() {
+
+}
+
+bool GraphicsBackColor::init() {
+    exit = false;
     return true;
 }
 
-void graphics_background_color_imgui(class_data* data) {
+bool GraphicsBackColor::ctrl() {
+    return exit;
+}
+
+bool GraphicsBackColor::dest() {
+    return true;
+}
+
+void GraphicsBackColor::window() {
     ImGuiIO& io = ImGui::GetIO();
     ImGuiStyle& style = ImGui::GetStyle();
     ImFont* font = ImGui::GetFont();
+
+    extern int32_t width;
+    extern int32_t height;
 
     float_t w = min_def((float_t)width, 360.0f);
     float_t h = min_def((float_t)height, 100.0f);
@@ -32,15 +66,14 @@ void graphics_background_color_imgui(class_data* data) {
     ImGuiWindowFlags window_flags = 0;
     window_flags |= ImGuiWindowFlags_NoResize;
 
-    data->imgui_focus = false;
-    bool open = data->flags & CLASS_HIDDEN ? false : true;
-    bool collapsed = !ImGui::Begin(graphics_background_color_window_title, &open, window_flags);
-    if (!open) {
-        enum_or(data->flags, CLASS_HIDE);
+    focus = false;
+    bool open = true;
+    if (!ImGui::Begin("Background Color##Graphics", &open, 0)) {
         ImGui::End();
         return;
     }
-    else if (collapsed) {
+    else if (!open) {
+        exit = true;
         ImGui::End();
         return;
     }
@@ -61,10 +94,6 @@ void graphics_background_color_imgui(class_data* data) {
         set_clear_color = true;
     }
 
-    data->imgui_focus |= ImGui::IsWindowFocused();
+    focus |= ImGui::IsWindowFocused();
     ImGui::End();
-}
-
-bool graphics_background_color_dispose(class_data* data) {
-    return true;
 }

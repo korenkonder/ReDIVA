@@ -74,13 +74,11 @@
 #include "information/dw_console.hpp"
 #include "pv_game/pv_game.hpp"
 #include "am_data.hpp"
-#include "classes.hpp"
 #include "game_state.hpp"
 #include "font_info.hpp"
 #include "imgui_helper.hpp"
 #include "input.hpp"
 #include "input_state.hpp"
-#include "shared.hpp"
 #include "task_movie.hpp"
 #include "task_window.hpp"
 #include "x_pv_game.hpp"
@@ -275,9 +273,6 @@ static bool app_load_dev_shaders(void* data, const char* path, const char* file,
 static void app_drop_glfw(GLFWwindow* window, int32_t count, char** paths);
 static void app_resize_fb_glfw(GLFWwindow* window, int32_t w, int32_t h);
 static void app_resize_fb(render_context* rctx, bool change_fb);
-
-static void render_imgui_context_menu(classes_data* classes,
-    const size_t classes_count, render_context* rctx);
 
 #if RENDER_DEBUG
 static void APIENTRY render_debug_output(GLenum source, GLenum type, uint32_t id,
@@ -1010,8 +1005,6 @@ static render_context* render_context_load(const wchar_t* config_path) {
 
     clear_color = 0xFF000000;
     set_clear_color = true;
-
-    classes_process_init(classes, classes_count, rctx);
     return rctx;
 }
 
@@ -1052,23 +1045,12 @@ static void render_context_ctrl(render_context* rctx) {
     global_context_menu = true;
     ImGui::SetCurrentContext(imgui_context);
     app::TaskWork_window();
-    classes_process_imgui(classes, classes_count);
 
     if (old_width != width || old_height != height || old_scale_index != scale_index)
         app_resize_fb(rctx, true);
     old_width = width;
     old_height = height;
     old_scale_index = scale_index;
-
-    ImGui::SetCurrentContext(imgui_context);
-    if (global_context_menu && ImGui::IsMouseReleased(ImGuiMouseButton_Right)
-        && !ImGui::IsItemHovered(0) && imgui_context->OpenPopupStack.Size < 1)
-        ImGui::OpenPopup("Classes init context menu", 0);
-
-    if (ImGui::BeginPopupContextItem("Classes init context menu", 0)) {
-        render_imgui_context_menu(classes, classes_count, rctx);
-        ImGui::EndPopup();
-    }
 
     if (window_handle == GetForegroundWindow()) {
         if (input_reset) {
@@ -1161,8 +1143,6 @@ static void render_context_ctrl(render_context* rctx) {
     else if (input_state->CheckTapped(INPUT_BUTTON_8))
         ibl_scale = min_def(ibl_scale + 1, 64);
 #endif
-
-    classes_process_ctrl(classes, classes_count);
 
     rctx_ptr = rctx;
     input_state_am_ctrl();
@@ -1338,8 +1318,6 @@ static void render_context_dispose(render_context* rctx) {
         vkQueueWaitIdle(vulkan_graphics_queue);
         vkQueueWaitIdle(vulkan_present_queue);
     }
-
-    classes_process_dispose(classes, classes_count);
 
     if (Vulkan::use)
         ImGui_ImplVulkan_Shutdown();
@@ -1605,43 +1583,6 @@ static void app_resize_fb(render_context* rctx, bool change_fb) {
     if (fb_changed && change_fb)
         rctx->resize(internal_3d_res.x, internal_3d_res.y,
             internal_2d_res.x, internal_2d_res.y, width, height);
-}
-
-static void render_imgui_context_menu(classes_data* classes,
-    const size_t classes_count, render_context* rctx) {
-#pragma warning(disable:26115)
-#pragma warning(disable:26117)
-    for (size_t i = 0; i < classes_count; i++) {
-        classes_data* c = &classes[i];
-        if (!c->name || !(c->flags & CLASSES_IN_CONTEXT_MENU))
-            continue;
-
-        if (c->sub_classes && c->sub_classes_count) {
-            if (ImGui::BeginMenu(c->name, !(c->data.flags & CLASS_HIDDEN))) {
-                render_imgui_context_menu(c->sub_classes, c->sub_classes_count, rctx);
-                ImGui::EndMenu();
-            }
-        }
-        else if (c->data.flags & CLASS_DW) {
-            if (ImGui::MenuItem(c->name, 0))
-                if (c->init)
-                    c->init(0, 0);
-        }
-        else if (!(c->data.flags & CLASS_HIDDEN))
-            ImGui::MenuItem(c->name, 0, false, false);
-        else if (ImGui::MenuItem(c->name, 0)) {
-            if (!(c->data.flags & CLASS_INIT)) {
-                if (c->init) {
-                    if (c->init(&c->data, rctx))
-                        c->data.flags = CLASS_INIT;
-                    else
-                        c->data.flags = (class_flags)(CLASS_DISPOSED | CLASS_HIDDEN);
-                }
-            }
-
-            if (c->data.flags & CLASS_INIT)
-                enum_and(c->data.flags, ~(CLASS_HIDE | CLASS_HIDDEN | CLASS_HIDE_WINDOW));        }
-    }
 }
 
 #if RENDER_DEBUG

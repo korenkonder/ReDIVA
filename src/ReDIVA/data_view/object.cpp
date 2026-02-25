@@ -4,25 +4,59 @@
 */
 
 #include "object.hpp"
-#include "../../../CRE/object.hpp"
-#include "../../../CRE/render_context.hpp"
-#include "../../imgui_helper.hpp"
+#include "../../CRE/object.hpp"
+#include "../../CRE/render_context.hpp"
+#include "../imgui_helper.hpp"
+#include "../task_window.hpp"
 #include <map>
 
-extern int32_t width;
-extern int32_t height;
+class DataViewObject : public app::TaskWindow {
+public:
+    bool exit;
 
-const char* data_view_object_window_title = "Object##Data Viewer";
+    DataViewObject();
+    virtual ~DataViewObject() override;
 
-bool data_view_object_init(class_data* data, render_context* rctx) {
-    data->data = rctx;
+    virtual bool init() override;
+    virtual bool ctrl() override;
+    virtual bool dest() override;
+    virtual void window() override;
+};
+
+DataViewObject data_view_object;
+
+void data_view_object_init() {
+    app::TaskWork::add_task(&data_view_object, "DATA_VIEW_AUTH_3D", 2);
+}
+
+DataViewObject::DataViewObject() : exit() {
+
+}
+
+DataViewObject::~DataViewObject() {
+
+}
+
+bool DataViewObject::init() {
+    exit = false;
     return true;
 }
 
-void data_view_object_imgui(class_data* data) {
+bool DataViewObject::ctrl() {
+    return exit;
+}
+
+bool DataViewObject::dest() {
+    return true;
+}
+
+void DataViewObject::window() {
     ImGuiIO& io = ImGui::GetIO();
     ImGuiStyle& style = ImGui::GetStyle();
     ImFont* font = ImGui::GetFont();
+
+    extern int32_t width;
+    extern int32_t height;
 
     float_t w = min_def((float_t)width, 420.0f);
     float_t h = min_def((float_t)height, 480.0f);
@@ -30,21 +64,14 @@ void data_view_object_imgui(class_data* data) {
     ImGui::SetNextWindowPos({ 0, 0 }, ImGuiCond_Appearing);
     ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Appearing);
 
-    data->imgui_focus = false;
-    bool open = data->flags & CLASS_HIDDEN ? false : true;
-    bool collapsed = !ImGui::Begin(data_view_object_window_title, &open, 0);
-    if (!open) {
-        enum_or(data->flags, CLASS_HIDE);
+    focus = false;
+    bool open = true;
+    if (!ImGui::Begin("Object##Data Viewer", &open, 0)) {
         ImGui::End();
         return;
     }
-    else if (collapsed) {
-        ImGui::End();
-        return;
-    }
-
-    render_context* rctx = (render_context*)data->data;
-    if (!rctx) {
+    else if (!open) {
+        exit = true;
         ImGui::End();
         return;
     }
@@ -80,11 +107,6 @@ void data_view_object_imgui(class_data* data) {
         ImGui::PopID();
     }
 
-    data->imgui_focus |= ImGui::IsWindowFocused();
+    focus |= ImGui::IsWindowFocused();
     ImGui::End();
-}
-
-bool data_view_object_dispose(class_data* data) {
-    data->data = 0;
-    return true;
 }

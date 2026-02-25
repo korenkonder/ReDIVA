@@ -13,7 +13,6 @@
 #include "../CRE/shader_dev.hpp"
 #include "../CRE/shader_ft.hpp"
 #include "main.hpp"
-#include "shared.hpp"
 #include <intrin.h>
 #include <processthreadsapi.h>
 #include <timeapi.h>

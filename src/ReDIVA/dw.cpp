@@ -7,6 +7,7 @@
 #include "../CRE/prj/memory_manager.hpp"
 #include "../CRE/app_system_detail.hpp"
 #include "../CRE/data.hpp"
+#include "dw_root_menu.hpp"
 #include "input_state.hpp"
 #include "print_work.hpp"
 
@@ -16,6 +17,54 @@ public:
 };
 
 namespace dw {
+    class DragBoundsData : public MouseAdapter, public MouseMoveListener, public KeyAdapter {
+    public:
+        int32_t state;
+        vec2 start_pos;
+        vec2 end_pos;
+        int32_t field_2C;
+        std::vector<DragBoundsListener*> drag_bounds_listeners;
+
+        DragBoundsData();
+        virtual ~DragBoundsData() override;
+
+        virtual void OnDoubleTap(const Widget::MouseCallbackData& data) override;
+        virtual void OnTap(const Widget::MouseCallbackData& data) override;
+        virtual void OnRelease(const Widget::MouseCallbackData& data) override;
+        virtual void OnMove(const Widget::MouseCallbackData& data) override;
+        virtual void OnDown(const Widget::KeyCallbackData& data) override;
+
+        void AddDragBoundsListener(DragBoundsListener* value);
+        void RemoveDragBoundsListener(DragBoundsListener* value);
+
+        void sub_1402E5020(Widget* widget, bool a3);
+        void sub_1402E5EA0(Widget* widget);
+        void sub_1402E68E0(Widget* widget);
+    };
+
+    class DragBoundsControl : public Control {
+    public:
+        DragBoundsData data;
+
+        DragBoundsControl(Composite* parent = 0, Flags flags = (Flags)0);
+        virtual ~DragBoundsControl() override;
+
+        virtual void Draw() override;
+
+        void AddKeyListener(KeyListener* value);
+        void AddMouseListener(MouseListener* value);
+        void AddMouseMoveListener(MouseMoveListener* value);
+    };
+
+    class InfoWindow : public Shell {
+    public:
+        InfoWindow();
+        virtual ~InfoWindow() override;
+
+        virtual void Draw() override;
+        virtual void Hide() override;
+    };
+
     struct Print {
         p_Font* font;
         PrintWorkDebug* print_work;
@@ -141,7 +190,7 @@ namespace dw_gui_detail {
         int64_t field_118;
         vec2 field_120;
         float_t field_128;
-        //dw::DragBoundsControl* drag_bounds_control;
+        dw::DragBoundsControl* drag_bounds_control;
         std::wstring name;
         RootKeySelection root_key_selection;
 
@@ -167,9 +216,19 @@ namespace dw_gui_detail {
         void sub_1402E6440(dw::Widget* widget);
         int32_t sub_1402E48A0(dw::Widget* widget);
     };
+
+    class SysMenuSelectionListener : public dw::SelectionAdapter {
+    public:
+        SysMenuSelectionListener();
+        virtual ~SysMenuSelectionListener();
+
+        virtual void Callback(dw::SelectionListener::CallbackData* data) override;
+    };
 }
 
 dw_gui_detail::Display* dw_gui_detail_display;
+
+dw_gui_detail::SysMenuSelectionListener dw_gui_detail_sys_menu_selection_listener;
 
 static bool dw_gui_get_ctrl();
 static bool dw_gui_get_disp();
@@ -245,6 +304,8 @@ namespace dw {
 
     std::map<int32_t, p_Font*> font_collection;
 
+    InfoWindow* info_window_ptr;
+
     Font::Font(int32_t font_handler_index, std::string& name, bool half_width) {
         font = font_info(font_handler_index);
         this->name.assign(name);
@@ -317,6 +378,14 @@ namespace dw {
         ptr->SetGlyphSize(glyph_width, glyph_height);
     }
 
+    DragBoundsListener::DragBoundsListener() {
+
+    }
+
+    DragBoundsListener::~DragBoundsListener() {
+
+    }
+
     SelectionListener::SelectionListener() {
 
     }
@@ -355,6 +424,10 @@ namespace dw {
 
     void SelectionListenerOnHook::Callback(SelectionListener::CallbackData* data) {
         callback(data->widget);
+    }
+
+    Widget::DragBoundsCallbackData::DragBoundsCallbackData() : widget(), field_8() {
+
     }
 
     Widget::KeyCallbackData::KeyCallbackData() : widget(),
@@ -3623,12 +3696,311 @@ void dw_gui_ctrl_disp() {
         dw_gui_detail_display->Draw();
 };
 
+void dw_info_window_init() {
+    if (dw::info_window_ptr)
+        dw::info_window_ptr->Disp();
+    else {
+        dw::info_window_ptr = new dw::InfoWindow();
+        dw::info_window_ptr->LimitPosDisp();
+    }
+}
+
+void dw_sys_menu_init(dw::Shell* shell) {
+    dw::Menu* sys_menu = new dw::Menu(shell);
+    sys_menu->SetText(L"sysMenu");
+
+    dw::MenuItem* close = new dw::MenuItem(sys_menu, dw::FLAG_8);
+    close->SetText(L"Close");
+
+    close->AddSelectionListener(&dw_gui_detail_sys_menu_selection_listener);
+    close->callback_data.v64 = 0;
+
+    dw::MenuItem* separator = new dw::MenuItem(sys_menu, dw::SEPARATOR);
+    separator->SetText(L"separator");
+
+    shell->SetParentMenu(sys_menu);
+}
+
 PrintWorkDebug::PrintWorkDebug() {
     prio = spr::SPR_PRIO_29;
     set_resolution_mode(RESOLUTION_MODE_MAX);
 }
 
 namespace dw {
+    DragBoundsData::DragBoundsData() : state(), field_2C() {
+
+    }
+
+    DragBoundsData::~DragBoundsData() {
+
+    }
+
+    void DragBoundsData::OnDoubleTap(const Widget::MouseCallbackData& data) {
+
+    }
+
+    void DragBoundsData::OnTap(const Widget::MouseCallbackData& data) {
+        if ((data.state & dw::INPUT_STATE_ALT) || !(data.input & MOUSE_INPUT_TAP_LEFT) || state)
+            return;
+
+        state = 1;
+        start_pos = data.pos;
+        end_pos = data.pos;
+        sub_1402E68E0(data.widget);
+    }
+
+    void DragBoundsData::OnRelease(const Widget::MouseCallbackData& data) {
+        if (!(data.input & MOUSE_INPUT_RELEASE_LEFT) || !state)
+            return;
+
+        state = 0;
+        sub_1402E5020(data.widget, true);
+    }
+
+    void DragBoundsData::OnMove(const Widget::MouseCallbackData& data) {
+        if (state != 1)
+            return;
+
+        if (data.state & dw::INPUT_STATE_ALT) {
+            state = 0;
+            sub_1402E5020(data.widget, false);
+        }
+        else {
+            end_pos = data.pos;
+            sub_1402E5EA0(data.widget);
+        }
+    }
+
+    void DragBoundsData::OnDown(const Widget::KeyCallbackData& data) {
+        if (!state)
+            return;
+
+        state = 0;
+        sub_1402E5020(data.widget, false);
+    }
+
+    void DragBoundsData::AddDragBoundsListener(DragBoundsListener* value) {
+        drag_bounds_listeners.push_back(value);
+    }
+
+    void DragBoundsData::RemoveDragBoundsListener(DragBoundsListener* value) {
+        if (!value)
+            return;
+
+        auto i = drag_bounds_listeners.begin();
+        auto i_end = drag_bounds_listeners.end();
+        while (i != i_end)
+            if (*i == value) {
+                drag_bounds_listeners.erase(i);
+                break;
+            }
+            else
+                i++;
+    }
+
+    void DragBoundsData::sub_1402E5020(Widget* widget, bool a3) {
+        Widget::DragBoundsCallbackData v8;
+        v8.widget = widget;
+        v8.field_8 = a3;
+        v8.rect.pos = start_pos;
+        v8.rect.size = end_pos - start_pos;
+
+        for (DragBoundsListener*& i : drag_bounds_listeners)
+            i->Field_10(v8);
+    }
+
+    void DragBoundsData::sub_1402E5EA0(Widget* widget) {
+        Widget::DragBoundsCallbackData v7;
+        v7.widget = widget;
+        v7.field_8 = true;
+        v7.rect.pos = start_pos;
+        v7.rect.size = end_pos - start_pos;
+
+        for (DragBoundsListener*& i : drag_bounds_listeners)
+            i->Field_18(v7);
+    }
+
+    void DragBoundsData::sub_1402E68E0(Widget* widget) {
+        Widget::DragBoundsCallbackData v7;
+        v7.widget = widget;
+        v7.field_8 = true;
+        v7.rect.pos = start_pos;
+        v7.rect.size = end_pos - start_pos;
+
+        for (DragBoundsListener*& i : drag_bounds_listeners)
+            i->Field_8(v7);
+    }
+
+    DragBoundsControl::DragBoundsControl(Composite* parent, Flags flags) : Control(parent, flags) {
+        SetSize(200.0f);
+
+        AddMouseListener(&data);
+        AddMouseMoveListener(&data);
+        AddKeyListener(&data);
+    }
+
+    DragBoundsControl::~DragBoundsControl() {
+
+    }
+
+    void DragBoundsControl::Draw() {
+        if (!GetParentEnabled() || data.state != 1)
+            return;
+
+        rectangle rect;
+        rect.pos = data.start_pos;
+        rect.size = data.end_pos - data.start_pos;
+
+        if (rect.size.x < 0.0f) {
+            rect.pos.x = data.start_pos.x + rect.size.x;
+            rect.size.x = -rect.size.x;
+        }
+
+        if (rect.size.y < 0.0f) {
+            rect.pos.y = data.start_pos.y + rect.size.y;
+            rect.size.y = -rect.size.y;
+        }
+
+        print->SetColor(color_blue);
+        print->sub_140301390(rect, 1.0f);
+    }
+
+    void DragBoundsControl::AddKeyListener(KeyListener* value) {
+        key_listener.push_back(value);
+    }
+
+    void DragBoundsControl::AddMouseListener(MouseListener* value) {
+        mouse_listener.push_back(value);
+    }
+
+    void DragBoundsControl::AddMouseMoveListener(MouseMoveListener* value) {
+        mouse_move_listener.push_back(value);
+    }
+
+    InfoWindow::InfoWindow() {
+        text.assign(L"InfoWindow");
+
+        rect.pos = { 6.0f, 38.0f };
+        SetSize({ 350.0f, 200.0f });
+
+        dw_sys_menu_init(this);
+    }
+    
+    InfoWindow::~InfoWindow() {
+
+    }
+
+    void InfoWindow::Draw() {
+        if (!GetDisp())
+            return;
+
+        Shell::Draw();
+
+        std::wstring active_name(L"DeskTop");
+        std::wstring active_parent_name(L"NONE");
+
+        rectangle v8;
+        if (dw_gui_detail_display->active_menu) {
+            dw::Menu* active_menu = dw_gui_detail_display->active_menu;
+            active_name.assign(active_menu->GetText());
+
+            dw::Composite* parent = active_menu->parent_shell;
+            if (parent)
+                active_parent_name.assign(parent->GetText());
+
+            v8 = active_menu->rect;
+        }
+        else if (dw_gui_detail_display->active_shell) {
+            dw::Control* active_shell = dw_gui_detail_display->active_shell;
+            active_name.assign(active_shell->GetText());
+
+            dw::Composite* parent = active_shell->parent_comp;
+            if (parent)
+                active_parent_name.assign(parent->GetText());
+
+            v8 = active_shell->rect;
+        }
+        else
+            v8 = dw_gui_detail_display->data.field_0;
+
+        vec2 glyph_size = font.GetFontGlyphSize();
+
+        rectangle v68 = GetScrollableRectangle();
+
+        print->SetFont(&font);
+        print->SetClipData(v68);
+
+        float_t offset_y = 0.0f;
+
+        dw::Widget* on = dw_gui_detail_display->on;
+        print->PrintText(swprintf_s_string(L"on    : %ls\n",
+            on ? on->GetText().c_str() : L"G_Desktop"), v68.pos.x, v68.pos.y + offset_y);
+        offset_y += glyph_size.y;
+
+        dw::Widget* move = dw_gui_detail_display->move;
+        print->PrintText(swprintf_s_string(L"move  : %ls\n",
+            move ? move->GetText().c_str() : L"NONE"), v68.pos.x, v68.pos.y + offset_y);
+        offset_y += glyph_size.y;
+
+        dw::Widget* cap = dw_gui_detail_display->cap;
+        if (cap)
+            print->PrintText(swprintf_s_string(L"cap   : %ls(%dx%d+%d+%d) :%hs\n", cap->GetText().c_str(),
+                (int32_t)cap->rect.size.x, (int32_t)cap->rect.size.y,
+                (int32_t)cap->rect.pos.x, (int32_t)cap->rect.pos.y,
+                typeid(*cap).name()), v68.pos.x, v68.pos.y + offset_y);
+        else
+            print->PrintText(L"cap   : NONE\n", v68.pos.x, v68.pos.y + offset_y);
+        offset_y += glyph_size.y;
+
+        dw::Widget* widget = dw_gui_detail_display->widget;
+        if (widget)
+            print->PrintText(swprintf_s_string(L"widget: %ls(%dx%d+%d+%d) :%hs\n", widget->GetText().c_str(),
+                (int32_t)widget->rect.size.x, (int32_t)widget->rect.size.y,
+                (int32_t)widget->rect.pos.x, (int32_t)widget->rect.pos.y,
+                typeid(*widget).name()), v68.pos.x, v68.pos.y + offset_y);
+        else
+            print->PrintText(L"widget: DeskTop\n", v68.pos.x, v68.pos.y + offset_y);
+        offset_y += glyph_size.y;
+
+        print->PrintText(swprintf_s_string(L"active: %ls(%dx%d+%d+%d)\n",
+            active_name.c_str(), (int32_t)v8.size.x, (int32_t)v8.size.y,
+            (int32_t)v8.pos.x, (int32_t)v8.pos.y), v68.pos.x, v68.pos.y + offset_y);
+        offset_y += glyph_size.y;
+
+        print->PrintText(swprintf_s_string(L"char:  0x%02x\n",
+            dw_gui_detail_display->input.char_input), v68.pos.x, v68.pos.y + offset_y);
+        offset_y += glyph_size.y;
+
+        print->PrintText(swprintf_s_string(L"key:   0x%08x\n",
+            dw_gui_detail_display->input.key_input), v68.pos.x, v68.pos.y + offset_y);
+        offset_y += glyph_size.y;
+
+        print->PrintText(swprintf_s_string(L"state:   0x%08x\n",
+            dw_gui_detail_display->input.state), v68.pos.x, v68.pos.y + offset_y);
+        offset_y += glyph_size.y;
+
+        print->PrintText(swprintf_s_string(L"joy:   0x%08x\n",
+            dw_gui_detail_display->input.joy_input), v68.pos.x, v68.pos.y + offset_y);
+        offset_y += glyph_size.y;
+
+        print->PrintText(swprintf_s_string(L"mouse: 0x%08x\n",
+            dw_gui_detail_display->input.mouse_input), v68.pos.x, v68.pos.y + offset_y);
+        offset_y += glyph_size.y;
+
+        print->PrintText(swprintf_s_string(L"(%+3d%+3d)",
+            (int32_t)dw_gui_detail_display->input.mouse_pos.x,
+            (int32_t)dw_gui_detail_display->input.mouse_pos.y), v68.pos.x, v68.pos.y + offset_y);
+        offset_y += glyph_size.y;
+
+        print->PrintText(swprintf_s_string(L"clipboard:[%.20s]",
+            std::wstring(*dw::clipboard).c_str()), v68.pos.x, v68.pos.y + offset_y);
+        offset_y += glyph_size.y;
+    }
+
+    void InfoWindow::Hide() {
+        SetDisp(false);
+    }
+
     Print::Print(float_t width, float_t height) {
         font = &current_font;
         print_work = new PrintWorkDebug;
@@ -3999,7 +4371,7 @@ cap(), focused_shell(), find_focus(), field_118() {
     field_120 = (1.0f / field_128) * this->data.field_10.size;
     name.assign(L"Display");
 
-    /*drag_bounds_control = new dw::DragBoundsControl;
+    drag_bounds_control = new dw::DragBoundsControl;
     drag_bounds_control->rect.pos = this->data.field_0.pos;
     drag_bounds_control->SetSize(this->data.field_0.size);
     drag_bounds_control->AddKeyListener(&root_key_selection);
@@ -4007,7 +4379,7 @@ cap(), focused_shell(), find_focus(), field_118() {
     dw::Menu* root_menu = new dw::Menu(drag_bounds_control);
     root_menu->SetText(L"RootMenu");
     dw_root_menu_init(root_menu);
-    drag_bounds_control->SetParentMenu(root_menu);*/
+    drag_bounds_control->SetParentMenu(root_menu);
 }
 
 dw_gui_detail::Display::~Display() {

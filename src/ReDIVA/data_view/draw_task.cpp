@@ -4,10 +4,24 @@
 */
 
 #include "draw_task.hpp"
-#include "../../../CRE/render_context.hpp"
-#include "../../../KKdLib/hash.hpp"
-#include "../../../KKdLib/sort.hpp"
-#include "../../imgui_helper.hpp"
+#include "../../CRE/render_context.hpp"
+#include "../../KKdLib/hash.hpp"
+#include "../../KKdLib/sort.hpp"
+#include "../imgui_helper.hpp"
+#include "../task_window.hpp"
+
+class DataViewDrawTask : public app::TaskWindow {
+public:
+    bool exit;
+
+    DataViewDrawTask();
+    virtual ~DataViewDrawTask() override;
+
+    virtual bool init() override;
+    virtual bool ctrl() override;
+    virtual bool dest() override;
+    virtual void window() override;
+};
 
 static const char* draw_object_type_name[] = {
     "Opaque",
@@ -55,33 +69,42 @@ static const char* mdl_obj_kind_name[] = {
     "User",
 };
 
-struct data_view_draw_task {
-    render_context* rctx;
-    prj::vector_pair<mdl::ObjData*, uint32_t> obj_data;
+DataViewDrawTask data_view_draw_task;
 
-    data_view_draw_task();
-    ~data_view_draw_task();
-};
+static void data_view_draw_task_window_sub_mesh_args(mdl::ObjSubMeshArgs* args);
 
-extern int32_t width;
-extern int32_t height;
+void data_view_draw_task_init() {
+    app::TaskWork::add_task(&data_view_draw_task, "DATA_VIEW_DRAW_TASK", 2);
+}
 
-const char* data_view_draw_task_window_title = "Draw Task##Data Viewer";
+DataViewDrawTask::DataViewDrawTask() : exit() {
 
-static void data_view_draw_task_imgui_sub_mesh_args(mdl::ObjSubMeshArgs* args);
+}
 
-bool data_view_draw_task_init(class_data* data, render_context* rctx) {
-    data_view_draw_task* data_view = new data_view_draw_task;
-    if (data_view)
-        data_view->rctx = rctx;
-    data->data = data_view;
+DataViewDrawTask::~DataViewDrawTask() {
+
+}
+
+bool DataViewDrawTask::init() {
+    exit = false;
     return true;
 }
 
-void data_view_draw_task_imgui(class_data* data) {
+bool DataViewDrawTask::ctrl() {
+    return exit;
+}
+
+bool DataViewDrawTask::dest() {
+    return true;
+}
+
+void DataViewDrawTask::window() {
     ImGuiIO& io = ImGui::GetIO();
     ImGuiStyle& style = ImGui::GetStyle();
     ImFont* font = ImGui::GetFont();
+
+    extern int32_t height;
+    extern int32_t width;
 
     float_t w = min_def((float_t)width, 480.0f);
     float_t h = min_def((float_t)height, 542.0f);
@@ -89,28 +112,21 @@ void data_view_draw_task_imgui(class_data* data) {
     ImGui::SetNextWindowPos({ 0, 0 }, ImGuiCond_Appearing);
     ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Appearing);
 
-    data->imgui_focus = false;
-    bool open = data->flags & CLASS_HIDDEN ? false : true;
-    bool collapsed = !ImGui::Begin(data_view_draw_task_window_title, &open, 0);
-    if (!open) {
-        enum_or(data->flags, CLASS_HIDE);
+    focus = false;
+    bool open = false;
+    if (!ImGui::Begin("Draw Task##Data Viewer", &open, 0)) {
         ImGui::End();
         return;
     }
-    else if (collapsed) {
-        ImGui::End();
-        return;
-    }
-
-    data_view_draw_task* data_view = (data_view_draw_task*)data->data;
-    if (!data_view) {
+    else if (!open) {
+        exit = true;
         ImGui::End();
         return;
     }
 
-    render_context* rctx = data_view->rctx;
-    mdl::ObjList* obj = rctx->disp_manager->obj;
-    auto& obj_data = data_view->obj_data;
+    extern render_context* rctx_ptr;
+    mdl::ObjList* obj = rctx_ptr->disp_manager->obj;
+    prj::vector_pair<mdl::ObjData*, uint32_t> obj_data;
 
     ImGuiTreeNodeFlags tree_node_base_flags = 0;
     tree_node_base_flags |= ImGuiTreeNodeFlags_OpenOnDoubleClick;
@@ -169,7 +185,7 @@ void data_view_draw_task_imgui(class_data* data) {
             switch (data->kind) {
             case mdl::OBJ_KIND_NORMAL: {
                 if (ImGui::TreeNodeEx("Data", ImGuiTreeNodeFlags_DefaultOpen)) {
-                    data_view_draw_task_imgui_sub_mesh_args(&data->args.sub_mesh);
+                    data_view_draw_task_window_sub_mesh_args(&data->args.sub_mesh);
                     ImGui::TreePop();
                 }
             } break;
@@ -184,7 +200,7 @@ void data_view_draw_task_imgui(class_data* data) {
                 for (int32_t l = 0; l < 40 && l < translucent->count; l++) {
                     ImGui::PushID(l);
                     if (ImGui::TreeNodeEx("", ImGuiTreeNodeFlags_DefaultOpen, "Data %2d", l)) {
-                        data_view_draw_task_imgui_sub_mesh_args(translucent->sub_mesh[l]);
+                        data_view_draw_task_window_sub_mesh_args(translucent->sub_mesh[l]);
                         ImGui::TreePop();
                     }
                     ImGui::PopID();
@@ -202,28 +218,11 @@ void data_view_draw_task_imgui(class_data* data) {
         ImGui::PopID();
     }
 
-    data->imgui_focus |= ImGui::IsWindowFocused();
+    focus |= ImGui::IsWindowFocused();
     ImGui::End();
 }
 
-bool data_view_draw_task_dispose(class_data* data) {
-    data_view_draw_task* data_view = (data_view_draw_task*)data->data;
-    if (data_view) {
-        delete data_view;
-        data->data = 0;
-    }
-    return true;
-}
-
-data_view_draw_task::data_view_draw_task() : rctx() {
-
-}
-
-data_view_draw_task::~data_view_draw_task() {
-
-}
-
-static void data_view_draw_task_imgui_sub_mesh_args(mdl::ObjSubMeshArgs* args) {
+static void data_view_draw_task_window_sub_mesh_args(mdl::ObjSubMeshArgs* args) {
     ImGui::Text("Mesh Name: %s", args->mesh->name);
     ImGui::Text("Sub Mesh Index: %lld", args->sub_mesh - args->mesh->submesh_array);
 }
