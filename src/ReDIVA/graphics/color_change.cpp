@@ -237,7 +237,7 @@ ColorChangeDw::ColorChangeDw() {
     item_texture_names->SetMaxItems(20);
     item_texture_names->callback_data.v64 = this;
 
-    over_write = new dw::Button(item_group, dw::FLAG_8);
+    over_write = new dw::Button(item_group);
     over_write->SetText("OVER WRITE");
     over_write->callback = (dw::Widget::Callback)ColorChangeDw::OverwriteCallback;
     over_write->callback_data.v64 = this;
@@ -337,24 +337,24 @@ ColorChangeDw::ColorChangeDw() {
         (dw::SelectionListenerOnHook::CallbackFunc)ColorChangeDw::ContrastCallback));
     contrast->callback_data.v64 = this;
 
-    copy_button = new dw::Button(color_group, dw::FLAG_8);
+    copy_button = new dw::Button(color_group);
     copy_button->SetText("Copy");
     copy_button->callback = (dw::Widget::Callback)ColorChangeDw::CopyCallback;
     copy_button->callback_data.v64 = this;
 
-    paset_button = new dw::Button(color_group, dw::FLAG_8);
+    paset_button = new dw::Button(color_group);
     paset_button->SetText("Paste");
     paset_button->callback = (dw::Widget::Callback)ColorChangeDw::PasteCallback;
     paset_button->callback_data.v64 = this;
 
-    reset_button = new dw::Button(color_group, dw::FLAG_8);
+    reset_button = new dw::Button(color_group);
     reset_button->SetText("Reset");
     reset_button->callback = (dw::Widget::Callback)ColorChangeDw::ResetCallback;
     reset_button->callback_data.v64 = this;
 
     (new dw::Label(color_group, dw::FLAG_4000))->SetText(" ");
 
-    save_button = new dw::Button(color_group, dw::FLAG_8);
+    save_button = new dw::Button(color_group);
     save_button->SetText("Save");
     save_button->callback = (dw::Widget::Callback)ColorChangeDw::SaveCallback;
     save_button->callback_data.v64 = this;

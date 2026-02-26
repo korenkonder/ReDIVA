@@ -204,11 +204,11 @@ dwPostProcess::dwPostProcess() {
     set_for_each_cut_button->SetValue(set_for_each_cut);
     set_for_each_cut_button->callback = dwPostProcess::SetForEachCutCallback;
 
-    dw::Button* tone_trans_button = new dw::Button(this, dw::FLAG_8);
+    dw::Button* tone_trans_button = new dw::Button(this);
     tone_trans_button->SetText("TONE TRANS");
     tone_trans_button->callback = (dw::Widget::Callback)dw_tone_trans_init;
 
-    dw::Button* scene_fade_button = new dw::Button(this, dw::FLAG_8);
+    dw::Button* scene_fade_button = new dw::Button(this);
     scene_fade_button->SetText("SCENE FADE");
     scene_fade_button->callback = (dw::Widget::Callback)dw_scene_fade_init;
 
@@ -435,12 +435,12 @@ dwPostProcess::dwPostProcess() {
     dw::Composite* file_comp = new dw::Composite(glow_param_group);
     file_comp->SetLayout(new dw::RowLayout(dw::HORIZONTAL));
 
-    save_button = new dw::Button(file_comp, dw::FLAG_8);
+    save_button = new dw::Button(file_comp);
     save_button->SetText("SAVE");
     save_button->callback_data.v64 = data;
     save_button->callback = dwPostProcess::SaveCallback;
 
-    load_button = new dw::Button(file_comp, dw::FLAG_8);
+    load_button = new dw::Button(file_comp);
     load_button->SetText("LOAD");
     load_button->callback_data.v64 = data;
     load_button->callback = dwPostProcess::LoadCallback;
@@ -707,7 +707,7 @@ dwSceneFade::dwSceneFade() {
     dw::Composite* reset_comp = new dw::Composite(this);
     reset_comp->SetLayout(new dw::RowLayout(dw::HORIZONTAL));
 
-    dw::Button* reset_button = new dw::Button(reset_comp, dw::FLAG_8);
+    dw::Button* reset_button = new dw::Button(reset_comp);
     reset_button->SetText(" RESET ");
     reset_button->callback = dwSceneFade::ResetCallback;
 
@@ -829,7 +829,7 @@ dwToneTrans::dwToneTrans() {
     dw::Composite* reset_comp = new dw::Composite(this);
     reset_comp->SetLayout(new dw::RowLayout(dw::HORIZONTAL));
 
-    dw::Button* reset_button = new dw::Button(reset_comp, dw::FLAG_8);
+    dw::Button* reset_button = new dw::Button(reset_comp);
     reset_button->SetText(" RESET ");
     reset_button->callback = dwToneTrans::ResetCallback;
 

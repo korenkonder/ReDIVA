@@ -346,7 +346,7 @@ DataTestEquipDw::DataTestEquipDw() : chara_id() {
     else
         exclusive_check_text = u8"排他チェック窓に切替";
 
-    dw::Button* exclusive_check = new dw::Button(this, dw::FLAG_8);
+    dw::Button* exclusive_check = new dw::Button(this);
     exclusive_check->SetText(exclusive_check_text);
     exclusive_check->callback = DataTestEquipDw::ExclusiveCheckCallback;
 

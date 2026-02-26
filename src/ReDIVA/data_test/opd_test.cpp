@@ -375,7 +375,7 @@ DataTestOpdDw::DataTestOpdDw() {
     use_opdi->callback = DataTestOpdDw::UseOpdiCallback;
     use_opdi->SetValue(data.use_opdi);
 
-    dw::Button* start_data_creation = new dw::Button(this, dw::FLAG_8);
+    dw::Button* start_data_creation = new dw::Button(this);
     start_data_creation->SetText(start_data_creation_text);
     start_data_creation->callback = DataTestOpdDw::StartDataCreationCallback;
 
@@ -411,7 +411,7 @@ void DataTestOpdDw::InitCustomizeItem() {
     group->SetText(group_text);
     group->SetFont(dw::p_font_type_6x12);
 
-    dw::Button* add_all_items = new dw::Button(group, dw::FLAG_8);
+    dw::Button* add_all_items = new dw::Button(group);
     add_all_items->SetText(add_all_items_text);
     add_all_items->callback = (dw::Widget::Callback)task_data_test_opd_dw_add_modules;
     add_all_items->SetFont(dw::p_font_type_6x12);
@@ -426,7 +426,7 @@ void DataTestOpdDw::InitCustomizeItem() {
     list->SetMaxItems(40);
     list->SetFont(dw::p_font_type_6x12);
 
-    dw::Button* add = new dw::Button(comp, dw::FLAG_8);
+    dw::Button* add = new dw::Button(comp);
     add->SetText(add_text);
     add->callback = (dw::Widget::Callback)task_data_test_opd_dw_add_module;
     add->SetFont(dw::p_font_type_6x12);
@@ -469,7 +469,7 @@ void DataTestOpdDw::InitModule() {
     group->SetText(group_text);
     group->SetFont(dw::p_font_type_6x12);
 
-    dw::Button* add_all_modules = new dw::Button(group, dw::FLAG_8);
+    dw::Button* add_all_modules = new dw::Button(group);
     add_all_modules->SetText(add_all_modules_text);
     add_all_modules->callback = (dw::Widget::Callback)task_data_test_opd_dw_add_modules;
     add_all_modules->SetFont(dw::p_font_type_6x12);
@@ -484,7 +484,7 @@ void DataTestOpdDw::InitModule() {
     list->SetMaxItems(40);
     list->SetFont(dw::p_font_type_6x12);
 
-    dw::Button* add = new dw::Button(comp, dw::FLAG_8);
+    dw::Button* add = new dw::Button(comp);
     add->SetText(add_text);
     add->SetFont(dw::p_font_type_6x12);
     add->callback = (dw::Widget::Callback)task_data_test_opd_dw_add_module;

@@ -2265,16 +2265,16 @@ DataTestMotDw::DataTestMotDw(int32_t chara_id, DtmMot* dtm_mot) {
 
     (new dw::Label(start_ctrl_comp))->SetText("Start Ctrl : ");
 
-    dw::Button* start_ctrl_left = new dw::Button(start_ctrl_comp, dw::FLAG_8);
+    dw::Button* start_ctrl_left = new dw::Button(start_ctrl_comp);
     start_ctrl_left->SetText(" < ");
     start_ctrl_left->callback_data.v64 = this;
     start_ctrl_left->callback = DataTestMotDw::StartCtrlLeftRightCallback;
 
-    dw::Button* start_ctrl_reset = new dw::Button(start_ctrl_comp, dw::FLAG_8);
+    dw::Button* start_ctrl_reset = new dw::Button(start_ctrl_comp);
     start_ctrl_reset->SetText(" RESET ");
     start_ctrl_reset->callback = DataTestMotDw::StartCtrlResetCallback;
 
-    dw::Button* start_ctrl_right = new dw::Button(start_ctrl_comp, dw::FLAG_8);
+    dw::Button* start_ctrl_right = new dw::Button(start_ctrl_comp);
     start_ctrl_right->SetText(" > ");
     start_ctrl_right->callback_data.v64 = this;
     start_ctrl_right->callback = DataTestMotDw::StartCtrlLeftRightCallback;
@@ -2284,13 +2284,13 @@ DataTestMotDw::DataTestMotDw(int32_t chara_id, DtmMot* dtm_mot) {
     ab_loop_group->SetText("AB LOOP");
     ab_loop_group->SetFont(dw::p_font_type_6x12);
 
-    dw::Button* a_label = new dw::Button(ab_loop_group, dw::FLAG_8);
+    dw::Button* a_label = new dw::Button(ab_loop_group);
     a_label->SetText(" A ");
     a_label->callback_data.i64 = (int64_t)this;
     a_label->callback = DataTestMotDw::ACallback;
     a_label->SetFont(dw::p_font_type_6x12);
 
-    dw::Button* b_label = new dw::Button(ab_loop_group, dw::FLAG_8);
+    dw::Button* b_label = new dw::Button(ab_loop_group);
     b_label->SetText(" B ");
     b_label->callback_data.i64 = (int64_t)this;
     b_label->callback = DataTestMotDw::BCallback;
@@ -2302,7 +2302,7 @@ DataTestMotDw::DataTestMotDw(int32_t chara_id, DtmMot* dtm_mot) {
     ab_toggle_button->callback = DataTestMotDw::ABToggleCallback;
     ab_toggle_button->SetFont(dw::p_font_type_6x12);
 
-    ab_loop = new dw::Label(ab_loop_group, dw::FLAG_8);
+    ab_loop = new dw::Label(ab_loop_group);
     ab_loop->SetFont(dw::p_font_type_6x12);
     ab_loop->SetText("     00000:00000");
 
@@ -2324,18 +2324,18 @@ DataTestMotDw::DataTestMotDw(int32_t chara_id, DtmMot* dtm_mot) {
     dw::Composite* var_comp = new dw::Composite(this);
     var_comp->Composite::SetLayout(new dw::RowLayout(dw::HORIZONTAL));
 
-    dw::Button* reate_face_mot_dw = new dw::Button(var_comp, dw::FLAG_8);
+    dw::Button* reate_face_mot_dw = new dw::Button(var_comp);
     reate_face_mot_dw->SetText(" FACE MOT ");
     reate_face_mot_dw->AddSelectionListener(&create_face_mot_dw_proc);
     reate_face_mot_dw->callback_data.i32 = chara_id;
     reate_face_mot_dw->SetFont(dw::p_font_type_6x12);
 
-    dw::Button* create_eq_dw = new dw::Button(var_comp, dw::FLAG_8);
+    dw::Button* create_eq_dw = new dw::Button(var_comp);
     create_eq_dw->SetText("  EQUIP  ");
     create_eq_dw->AddSelectionListener(&create_eq_dw_proc);
     create_eq_dw->SetFont(dw::p_font_type_6x12);
 
-    dw::Button* create_debug_cam = new dw::Button(var_comp, dw::FLAG_8);
+    dw::Button* create_debug_cam = new dw::Button(var_comp);
     create_debug_cam->SetText(" LOCK CAM ");
     create_debug_cam->AddSelectionListener(&create_debug_cam_proc);
     create_debug_cam->SetFont(dw::p_font_type_6x12);
@@ -2709,7 +2709,7 @@ DataTestMotA3dDw::DataTestMotA3dDw() {
     dw::Composite* button_comp = new dw::Composite(this);
     button_comp->SetLayout(new dw::RowLayout(dw::HORIZONTAL));
 
-    play_a3d = new dw::Button(button_comp, dw::FLAG_8);
+    play_a3d = new dw::Button(button_comp);
     play_a3d->SetText(" PLAY A3D ");
 
     play_a3d->callback_data.v64 = this;
@@ -2798,17 +2798,17 @@ DataTestMotCtrlDw::DataTestMotCtrlDw() {
     type_list->SetItemIndex(test_mot_data->type);
     type_list->AddSelectionListener(&type_list_box_proc);
 
-    reset_mot = new dw::Button(this, dw::FLAG_8);
+    reset_mot = new dw::Button(this);
     reset_mot->SetText("RESET MOT");
     reset_mot->callback_data.v64 = this;
     reset_mot->callback = DataTestMotCtrlDw::ResetMotCallback;
 
-    reset_cam = new dw::Button(this, dw::FLAG_8);
+    reset_cam = new dw::Button(this);
     reset_cam->SetText("RESET CAM");
     reset_cam->callback_data.v64 = this;
     reset_cam->callback = DataTestMotCtrlDw::ResetCamCallback;
 
-    reload_data = new dw::Button(this, dw::FLAG_8);
+    reload_data = new dw::Button(this);
     reload_data->SetText("RELOAD DATA");
     reload_data->callback_data.v64 = this;
     reload_data->callback = DataTestMotCtrlDw::ReloadDataCallback;
@@ -2824,7 +2824,7 @@ DataTestMotCtrlDw::DataTestMotCtrlDw() {
     running->callback = DataTestMotCtrlDw::RunningCallback;
     running->SetFont(dw::p_font_type_6x12);
 
-    stage = new dw::Button(this, dw::FLAG_8);
+    stage = new dw::Button(this);
     stage->SetText("STAGE");
     stage->callback = DataTestMotCtrlDw::StageCallback;
 

@@ -141,11 +141,11 @@ MaterialDw::MaterialDw() {
     dw::Composite* object_select_comp = new dw::Composite(object_select_group);
     object_select_comp->layout = horizontal_layout;
 
-    refresh = new dw::Button(object_select_comp, dw::FLAG_8);
+    refresh = new dw::Button(object_select_comp);
     refresh->SetText("Refresh");
     refresh->callback = (dw::Widget::Callback)MaterialDw::RefreshCallback;
 
-    dw::Button* reset_button = new dw::Button(object_select_comp, dw::FLAG_8);
+    dw::Button* reset_button = new dw::Button(object_select_comp);
     reset_button->SetText("Reset");
     reset_button->callback = (dw::Widget::Callback)MaterialDw::ResetCallback;
 

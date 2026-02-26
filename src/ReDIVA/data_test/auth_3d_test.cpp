@@ -1482,19 +1482,19 @@ Auth3dTestWindow::Auth3dTestWindow() {
 
     (new dw::Label(v4))->SetText(" ");
 
-    chara = new dw::Button(v4, dw::FLAG_8);
+    chara = new dw::Button(v4);
     chara->SetText(u8"CHARA▽");
     chara_menu = 0;
 
-    stg = new dw::Button(v4, dw::FLAG_8);
+    stg = new dw::Button(v4);
     stg->SetText(u8"STG▽");
     stg_menu = 0;
 
-    eff = new dw::Button(v4, dw::FLAG_8);
+    eff = new dw::Button(v4);
     eff->SetText(u8"EFF▽");
     eff_menu = 0;
 
-    nage = new dw::Button(v4, dw::FLAG_8);
+    nage = new dw::Button(v4);
     nage->SetText(nage_text);
     nage_menu = 0;
 
@@ -1565,15 +1565,15 @@ Auth3dTestWindow::Auth3dTestWindow() {
     dw::Composite* v59 = new dw::Composite(this);
     v59->SetLayout(new dw::RowLayout(dw::HORIZONTAL));
 
-    begin = new dw::Button(v59, dw::FLAG_8);
+    begin = new dw::Button(v59);
     begin->SetText("|<<");
     begin->AddSelectionListener(&begin_listener);
 
-    play = new dw::Button(v59, (dw::Flags)(dw::FLAG_1000000 | dw::FLAG_8));
+    play = new dw::Button(v59, (dw::Flags)(dw::FLAG_1000000 | dw::PUSHBUTTON));
     play->SetText(" > ");
     play->AddSelectionListener(&play_listener);
 
-    end = new dw::Button(v59, dw::FLAG_8);
+    end = new dw::Button(v59);
     end->SetText(">>|");
     end->AddSelectionListener(&end_listener);
 
@@ -1649,14 +1649,14 @@ Auth3dTestWindow::Auth3dTestWindow() {
     rot_y->AddSelectionListener(&rot_y_listener);
     rot_y->SetRound(true);
 
-    save = new dw::Button(this, dw::FLAG_8);
+    save = new dw::Button(this);
     save->SetText(offset_save_text);
     save->AddSelectionListener(&save_listener);
 
     dw::Composite* v117 = new dw::Composite(this);
     v117->SetLayout(new dw::RowLayout(dw::HORIZONTAL));
 
-    dw::Button* cam_reset = new dw::Button(v117, dw::FLAG_8);
+    dw::Button* cam_reset = new dw::Button(v117);
     cam_reset->SetText("cam reset");
     cam_reset->AddSelectionListener(&cam_reset_listener);
 
@@ -1760,7 +1760,7 @@ void Auth3dTestWindow::CategoryCharaMenuInit(dw::Button* button, dw::Menu*& menu
     menu->SetText("CategoryCharaMenu");
 
     for (const std::string& i : items) {
-        dw::MenuItem* menu_item = new dw::MenuItem(menu, dw::FLAG_8);
+        dw::MenuItem* menu_item = new dw::MenuItem(menu);
         menu_item->SetText(i);
         menu_item->AddSelectionListener(selection_listener);
     }

@@ -59,7 +59,7 @@ RenderSettingsDw::RenderSettingsDw() : scale_slider_buf() {
         0.0f, (float_t)(RENDER_SCALE_MAX - 1), 1.0f, 1.0f, 1.0f);
     scale_slider->AddSelectionListener(new dw::SelectionListenerOnHook(RenderSettingsDw::ScaleCallback));
 
-    dw::Button* reset_scale_button = new dw::Button(scale_group, dw::FLAG_8);
+    dw::Button* reset_scale_button = new dw::Button(scale_group);
     reset_scale_button->SetText("Reset Scale");
     reset_scale_button->callback = RenderSettingsDw::ResetScaleCallback;
 

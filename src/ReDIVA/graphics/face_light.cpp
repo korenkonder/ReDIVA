@@ -74,7 +74,7 @@ DwFaceLight::DwFaceLight() {
 
     SetText("FACE LIGHT");
 
-    dw::Button* reset = new dw::Button(this, dw::FLAG_8);
+    dw::Button* reset = new dw::Button(this);
     reset->SetText("RESET");
     reset->callback = DwFaceLight::ResetCallback;
 

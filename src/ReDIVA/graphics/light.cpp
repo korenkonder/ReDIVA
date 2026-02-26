@@ -1005,12 +1005,12 @@ LightDw::File::File(LightDw* light_dw, dw::Widget* parent) {
     dw::Composite* comp = new dw::Composite(parent_comp);
     comp->SetLayout(new dw::RowLayout(dw::HORIZONTAL));
 
-    save = new dw::Button(comp, dw::FLAG_8);
+    save = new dw::Button(comp);
     save->SetText("SAVE");
     save->callback_data.v64 = light_dw;
     save->callback = LightDw::File::SaveCallback;
 
-    load = new dw::Button(comp, dw::FLAG_8);
+    load = new dw::Button(comp);
     load->SetText("LOAD");
     load->callback_data.v64 = light_dw;
     load->callback = LightDw::File::LoadCallback;
@@ -1021,12 +1021,12 @@ LightDw::File::File(LightDw* light_dw, dw::Widget* parent) {
     else
         light0_coord_init_text = u8"Light0座標初期化";
 
-    light0_coord_init = new dw::Button(comp, dw::FLAG_8);
+    light0_coord_init = new dw::Button(comp);
     light0_coord_init->SetText(light0_coord_init_text);
     light0_coord_init->callback_data.v64 = light_dw;
     light0_coord_init->callback = LightDw::File::Light0CoordinateInitializationCallback;
 
-    dw::Button* reopen = new dw::Button(parent_comp, dw::FLAG_8);
+    dw::Button* reopen = new dw::Button(parent_comp);
     reopen->SetText("Reopen");
     reopen->callback_data.v64 = light_dw;
     reopen->callback = LightDw::File::ReopenCallback;

@@ -1635,8 +1635,8 @@ namespace dw {
         return  print->GetTextSize(text) + 2.0f * 2.0f;
     }
 
-    Button::Button(Composite* parent, Flags flags) : Control(parent, flags), value(), callback(), field_100() {
-        field_104 = 1;
+    Button::Button(Composite* parent, Flags flags) : Control(parent, flags), value(), callback(), button_flags() {
+        button_state = 1;
         SetSize(GetSize());
     }
 
@@ -1651,9 +1651,9 @@ namespace dw {
         rectangle v6 = GetRectangle();
         rectangle v8 = v6;
 
-        if (flags & (FLAG_8 | MULTISELECT)) {
+        if (flags & (PUSHBUTTON | MULTISELECT)) {
             int32_t v3;
-            if ((field_100 & 0x01) && (field_100 & 0x02)) {
+            if ((button_flags & BUTTON_HIT) && (button_flags & BUTTON_CLICK)) {
                 v3 = 4;
                 v8.pos.x += 2.0f;
                 v8.size.x += -2.0f;
@@ -1729,7 +1729,7 @@ namespace dw {
         for (SelectionListener*& i : selection_listeners)
             i->Callback(&callback_data);
 
-        field_100 &= ~0x102;
+        enum_and(button_flags, ~(BUTTON_RELEASE | BUTTON_CLICK));
         return Control::KeyCallback(data);
     }
 
@@ -1737,24 +1737,26 @@ namespace dw {
         if (!GetParentEnabled())
             return 0;
 
-        field_100 &= ~0x01;
+        enum_and(button_flags, ~BUTTON_HIT);
         if (CheckHitPos(data.pos))
-            field_100 |= 0x01;
+            enum_or(button_flags, BUTTON_HIT);
 
-        if (field_100 & 0x01) {
+        if (button_flags & 0x01) {
             if ((data.input & MOUSE_INPUT_TAP_MASK) && !Field_60())
                 Field_58();
 
             if (data.input & MOUSE_INPUT_RELEASE_LEFT) {
-                if (field_100 & 0x02)
-                    field_100 = (field_100 & ~0x02) | 0x100;
+                if (button_flags & BUTTON_CLICK) {
+                    enum_and(button_flags, ~BUTTON_CLICK);
+                    enum_or(button_flags, BUTTON_RELEASE);
+                }
             }
             else if (data.input & MOUSE_INPUT_TAP_LEFT)
-                field_100 |= 0x02;
+                enum_or(button_flags, BUTTON_CLICK);
         }
 
-        if (field_100 & 0x100) {
-            field_104--;
+        if (button_flags & BUTTON_RELEASE) {
+            button_state--;
 
             if (flags & CHECKBOX)
                 SetValue(!value);
@@ -1768,8 +1770,8 @@ namespace dw {
             for (SelectionListener*& i : selection_listeners)
                 i->Callback(&callback_data);
 
-            field_100 &= ~0x102;
-            field_104 = 1;
+            enum_and(button_flags, ~(BUTTON_RELEASE | BUTTON_CLICK));
+            button_state = 1;
         }
 
         return Control::MouseCallback(data);
@@ -1779,7 +1781,7 @@ namespace dw {
         print->SetFont(&font);
         vec2 size = print->GetTextSize(text);
 
-        if (flags & FLAG_8) {
+        if (flags & PUSHBUTTON) {
             size.x += 2.0f;
             size.x += 2.0f * 2.0f;
             size.y += 2.0f * 2.0f;
@@ -3349,12 +3351,12 @@ namespace dw {
         scroll_bar->SetValue(value);
     }
 
-    ShellCloseButton::ShellCloseButton(Shell* parent) : Button(parent) {
+    ShellCloseButton::ShellCloseButton(Shell* parent) : Button(parent, (Flags)0) {
         SetSize({ 14.0f, 14.0f });
         SetText(L"Close Box");
         callback = Callback;
-        field_100 = 0;
-        field_104 = 4;
+        button_flags = (ButtonFlags)0;
+        button_state = 4;
     }
 
     ShellCloseButton::~ShellCloseButton() {
@@ -3365,7 +3367,8 @@ namespace dw {
         print->SetFont(&current_font);
 
         vec2 pos = GetPos();
-        print->PrintText(!(field_100 & 2) || !(field_100 & 1) ? "x" : "*", pos.x, pos.y);
+        print->PrintText(!(button_flags & BUTTON_CLICK)
+            || !(button_flags & BUTTON_HIT) ? "x" : "*", pos.x, pos.y);
     }
 
     vec2 ShellCloseButton::GetPos() {
@@ -3709,7 +3712,7 @@ void dw_sys_menu_init(dw::Shell* shell) {
     dw::Menu* sys_menu = new dw::Menu(shell);
     sys_menu->SetText(L"sysMenu");
 
-    dw::MenuItem* close = new dw::MenuItem(sys_menu, dw::FLAG_8);
+    dw::MenuItem* close = new dw::MenuItem(sys_menu, dw::PUSHBUTTON);
     close->SetText(L"Close");
 
     close->AddSelectionListener(&dw_gui_detail_sys_menu_selection_listener);

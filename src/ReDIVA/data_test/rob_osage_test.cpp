@@ -1366,15 +1366,15 @@ void RobOsageTestDw::Rob::Init(dw::Composite* parent) {
     list_box->SetItemIndex(0);
     list_box->AddSelectionListener(new dw::SelectionListenerOnHook(RobOsageTestDw::Rob::CharaCallback));
 
-    save_button = new dw::Button(ribbon_comp, dw::FLAG_8);
+    save_button = new dw::Button(ribbon_comp);
     save_button->SetText("  SAVE  ");
     save_button->callback = RobOsageTestDw::Rob::SaveCallback;
 
-    load_button = new dw::Button(ribbon_comp, dw::FLAG_8);
+    load_button = new dw::Button(ribbon_comp);
     load_button->SetText("  LOAD  ");
     load_button->callback = RobOsageTestDw::Rob::LoadCallback;
 
-    default_button = new dw::Button(ribbon_comp, dw::FLAG_8);
+    default_button = new dw::Button(ribbon_comp);
     default_button->SetText("DEFAULT");
     default_button->callback = RobOsageTestDw::Rob::DefaultCallback;
 
@@ -2088,15 +2088,15 @@ void RobOsageTestDw::Root::Init(dw::Composite* parent) {
     dw::Composite* ribbon_comp = new dw::Composite(comp);
     ribbon_comp->SetLayout(new dw::RowLayout(dw::HORIZONTAL));
 
-    reset_button = new dw::Button(ribbon_comp, dw::FLAG_8);
+    reset_button = new dw::Button(ribbon_comp);
     reset_button->SetText("  RESET ");
     reset_button->callback = RobOsageTestDw::Root::ResetCallback;
 
-    copy_button = new dw::Button(ribbon_comp, dw::FLAG_8);
+    copy_button = new dw::Button(ribbon_comp);
     copy_button->SetText("  COPY  ");
     copy_button->callback = RobOsageTestDw::Root::CopyCallback;
 
-    paste_button = new dw::Button(ribbon_comp, dw::FLAG_8);
+    paste_button = new dw::Button(ribbon_comp);
     paste_button->SetText("  PASTE ");
     paste_button->callback = RobOsageTestDw::Root::PasteCallback;
 
@@ -2530,15 +2530,15 @@ void RobOsageTestDw::Collision::Init(dw::Composite* parent) {
     dw::Composite* ribbon_comp = new dw::Composite(group);
     ribbon_comp->SetLayout(new dw::RowLayout(dw::HORIZONTAL));
 
-    reset_button = new dw::Button(ribbon_comp, dw::FLAG_8);
+    reset_button = new dw::Button(ribbon_comp);
     reset_button->SetText("  RESET ");
     reset_button->callback = RobOsageTestDw::Collision::ResetCallback;
 
-    copy_button = new dw::Button(ribbon_comp, dw::FLAG_8);
+    copy_button = new dw::Button(ribbon_comp);
     copy_button->SetText("  COPY  ");
     copy_button->callback = RobOsageTestDw::Collision::CopyCallback;
 
-    paste_button = new dw::Button(ribbon_comp, dw::FLAG_8);
+    paste_button = new dw::Button(ribbon_comp);
     paste_button->SetText("  PASTE ");
     paste_button->callback = RobOsageTestDw::Collision::PasteCallback;
 
@@ -2661,19 +2661,19 @@ void RobOsageTestDw::ColliElement::Init(dw::Composite* parent) {
     dw::Composite* ribbon_comp = new dw::Composite(group);
     ribbon_comp->SetLayout(new dw::RowLayout(dw::HORIZONTAL));
 
-    reset_button = new dw::Button(ribbon_comp, dw::FLAG_8);
+    reset_button = new dw::Button(ribbon_comp);
     reset_button->SetText("RESET ");
     reset_button->callback = RobOsageTestDw::ColliElement::ResetCallback;
 
-    copy_button = new dw::Button(ribbon_comp, dw::FLAG_8);
+    copy_button = new dw::Button(ribbon_comp);
     copy_button->SetText(" COPY ");
     copy_button->callback = RobOsageTestDw::ColliElement::CopyCallback;
 
-    paste_button = new dw::Button(ribbon_comp, dw::FLAG_8);
+    paste_button = new dw::Button(ribbon_comp);
     paste_button->SetText("PASTE ");
     paste_button->callback = RobOsageTestDw::ColliElement::PasteCallback;
 
-    flip_button = new dw::Button(ribbon_comp, dw::FLAG_8);
+    flip_button = new dw::Button(ribbon_comp);
     flip_button->SetText(" FLIP ");
     flip_button->callback = RobOsageTestDw::ColliElement::FlipCallback;
 

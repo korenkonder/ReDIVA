@@ -13,11 +13,17 @@
 #include <vector>
 
 namespace dw {
+    enum ButtonFlags {
+        BUTTON_HIT     = 0x001,
+        BUTTON_CLICK   = 0x002,
+        BUTTON_RELEASE = 0x100,
+    };
+
     enum Flags {
         FLAG_1       = 0x0000001,
         SEPARATOR    = 0x0000002,
         MULTISELECT  = 0x0000004,
-        FLAG_8       = 0x0000008,
+        PUSHBUTTON   = 0x0000008,
         RADIOBUTTON  = 0x0000010,
         CHECKBOX     = 0x0000020,
         CLOSE_BUTTON = 0x0000040,
@@ -673,10 +679,10 @@ namespace dw {
         bool value;
         std::vector<SelectionListener*> selection_listeners;
         Widget::Callback callback;
-        int32_t field_100;
-        int32_t field_104;
+        ButtonFlags button_flags;
+        int32_t button_state;
 
-        Button(Composite* parent = 0, Flags flags = (Flags)0);
+        Button(Composite* parent = 0, Flags flags = PUSHBUTTON);
         virtual ~Button() override;
 
         virtual void Draw() override;
