@@ -1977,6 +1977,13 @@ inline obj_skin* objset_info_storage_get_obj_skin(object_info obj_info) {
     return 0;
 }
 
+inline obj_skin_ex_data* objset_info_storage_get_obj_skin_ex_data(object_info obj_info) {
+    obj_skin* skin = objset_info_storage_get_obj_skin(obj_info);
+    if (skin)
+        return skin->ex_data;
+    return 0;
+}
+
 inline obj_index_buffer* objset_info_storage_get_obj_index_buffers(uint32_t set_id) {
     ObjsetInfo* info = objset_info_storage_get_objset_info(set_id);
     if (info && info->objib)

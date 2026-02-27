@@ -136,6 +136,7 @@ extern obj_set* objset_info_storage_get_obj_set(uint32_t set_id);
 extern size_t objset_info_storage_get_obj_set_count();
 extern int32_t objset_info_storage_get_obj_storage_load_count(uint32_t set_id);
 extern obj_skin* objset_info_storage_get_obj_skin(object_info obj_info);
+extern obj_skin_ex_data* objset_info_storage_get_obj_skin_ex_data(object_info obj_info);
 extern obj_index_buffer* objset_info_storage_get_obj_index_buffers(uint32_t set_id);
 extern obj_mesh_index_buffer* objset_info_storage_get_obj_mesh_index_buffer(object_info obj_info);
 extern obj_vertex_buffer* objset_info_storage_get_obj_vertex_buffers(uint32_t set_id);

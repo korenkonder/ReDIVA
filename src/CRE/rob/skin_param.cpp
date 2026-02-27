@@ -793,11 +793,10 @@ void SkinParamManager::AddFiles() {
             if (!obj_name)
                 continue;
 
-            obj_skin* skin = objset_info_storage_get_obj_skin(obj_info);
-            if (!skin || !skin->ex_data)
+            obj_skin_ex_data* ex_data = objset_info_storage_get_obj_skin_ex_data(obj_info);
+            if (!ex_data)
                 continue;
 
-            obj_skin_ex_data* ex_data = skin->ex_data;
             int32_t osage_count = 0;
             int32_t cloth_count = 0;
 
