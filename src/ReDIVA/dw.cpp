@@ -37,9 +37,9 @@ namespace dw {
         void AddDragBoundsListener(DragBoundsListener* value);
         void RemoveDragBoundsListener(DragBoundsListener* value);
 
-        void sub_1402E5020(Widget* widget, bool a3);
-        void sub_1402E5EA0(Widget* widget);
-        void sub_1402E68E0(Widget* widget);
+        void CallOnEnd(Widget* widget, bool release);
+        void CallOnMove(Widget* widget);
+        void CallOnStart(Widget* widget);
     };
 
     class DragBoundsControl : public Control {
@@ -426,7 +426,7 @@ namespace dw {
         callback(data->widget);
     }
 
-    Widget::DragBoundsCallbackData::DragBoundsCallbackData() : widget(), field_8() {
+    Widget::DragBoundsCallbackData::DragBoundsCallbackData() : widget(), release() {
 
     }
 
@@ -2105,6 +2105,10 @@ namespace dw {
         items.push_back(str);
     }
 
+    void List::AddSelection(int32_t value) {
+        selections.push_back(value);
+    }
+
     void List::AddSelectionListener(SelectionListener* value) {
         selection_listeners.push_back(value);
     }
@@ -3699,6 +3703,14 @@ void dw_gui_ctrl_disp() {
         dw_gui_detail_display->Draw();
 };
 
+void dw_gui_detail_display_add_drag_bounds_listener(dw::DragBoundsListener* value) {
+    dw_gui_detail_display->drag_bounds_control->data.AddDragBoundsListener(value);
+}
+
+void dw_gui_detail_display_remove_drag_bounds_listener(dw::DragBoundsListener* value) {
+    dw_gui_detail_display->drag_bounds_control->data.RemoveDragBoundsListener(value);
+}
+
 void dw_info_window_init() {
     if (dw::info_window_ptr)
         dw::info_window_ptr->Disp();
@@ -3749,7 +3761,7 @@ namespace dw {
         state = 1;
         start_pos = data.pos;
         end_pos = data.pos;
-        sub_1402E68E0(data.widget);
+        CallOnStart(data.widget);
     }
 
     void DragBoundsData::OnRelease(const Widget::MouseCallbackData& data) {
@@ -3757,7 +3769,7 @@ namespace dw {
             return;
 
         state = 0;
-        sub_1402E5020(data.widget, true);
+        CallOnEnd(data.widget, true);
     }
 
     void DragBoundsData::OnMove(const Widget::MouseCallbackData& data) {
@@ -3766,11 +3778,11 @@ namespace dw {
 
         if (data.state & dw::INPUT_STATE_ALT) {
             state = 0;
-            sub_1402E5020(data.widget, false);
+            CallOnEnd(data.widget, false);
         }
         else {
             end_pos = data.pos;
-            sub_1402E5EA0(data.widget);
+            CallOnMove(data.widget);
         }
     }
 
@@ -3779,7 +3791,7 @@ namespace dw {
             return;
 
         state = 0;
-        sub_1402E5020(data.widget, false);
+        CallOnEnd(data.widget, false);
     }
 
     void DragBoundsData::AddDragBoundsListener(DragBoundsListener* value) {
@@ -3801,37 +3813,40 @@ namespace dw {
                 i++;
     }
 
-    void DragBoundsData::sub_1402E5020(Widget* widget, bool a3) {
-        Widget::DragBoundsCallbackData v8;
-        v8.widget = widget;
-        v8.field_8 = a3;
-        v8.rect.pos = start_pos;
-        v8.rect.size = end_pos - start_pos;
+    // 0x1402E5020
+    void DragBoundsData::CallOnEnd(Widget* widget, bool release) {
+        Widget::DragBoundsCallbackData data;
+        data.widget = widget;
+        data.release = release;
+        data.rect.pos = start_pos;
+        data.rect.size = end_pos - start_pos;
 
         for (DragBoundsListener*& i : drag_bounds_listeners)
-            i->Field_10(v8);
+            i->OnEnd(data);
     }
 
-    void DragBoundsData::sub_1402E5EA0(Widget* widget) {
-        Widget::DragBoundsCallbackData v7;
-        v7.widget = widget;
-        v7.field_8 = true;
-        v7.rect.pos = start_pos;
-        v7.rect.size = end_pos - start_pos;
+    // 0x1402E5EA0
+    void DragBoundsData::CallOnMove(Widget* widget) {
+        Widget::DragBoundsCallbackData data;
+        data.widget = widget;
+        data.release = true;
+        data.rect.pos = start_pos;
+        data.rect.size = end_pos - start_pos;
 
         for (DragBoundsListener*& i : drag_bounds_listeners)
-            i->Field_18(v7);
+            i->OnMove(data);
     }
 
-    void DragBoundsData::sub_1402E68E0(Widget* widget) {
-        Widget::DragBoundsCallbackData v7;
-        v7.widget = widget;
-        v7.field_8 = true;
-        v7.rect.pos = start_pos;
-        v7.rect.size = end_pos - start_pos;
+    // 0x1402E68E0
+    void DragBoundsData::CallOnStart(Widget* widget) {
+        Widget::DragBoundsCallbackData data;
+        data.widget = widget;
+        data.release = true;
+        data.rect.pos = start_pos;
+        data.rect.size = end_pos - start_pos;
 
         for (DragBoundsListener*& i : drag_bounds_listeners)
-            i->Field_8(v7);
+            i->OnStart(data);
     }
 
     DragBoundsControl::DragBoundsControl(Composite* parent, Flags flags) : Control(parent, flags) {

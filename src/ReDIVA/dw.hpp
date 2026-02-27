@@ -301,7 +301,7 @@ namespace dw {
 
         struct DragBoundsCallbackData {
             Widget* widget;
-            bool field_8;
+            bool release;
             rectangle rect;
 
             DragBoundsCallbackData();
@@ -540,9 +540,9 @@ namespace dw {
         DragBoundsListener();
         virtual ~DragBoundsListener();
 
-        virtual void Field_8(const Widget::DragBoundsCallbackData& data) = 0;
-        virtual void Field_10(const Widget::DragBoundsCallbackData& data) = 0;
-        virtual void Field_18(const Widget::DragBoundsCallbackData& data) = 0;
+        virtual void OnStart(const Widget::DragBoundsCallbackData& data) = 0;
+        virtual void OnEnd(const Widget::DragBoundsCallbackData& data) = 0;
+        virtual void OnMove(const Widget::DragBoundsCallbackData& data) = 0;
     };
 
     class KeyListener {
@@ -718,6 +718,7 @@ namespace dw {
 
         void AddItem(const std::string& str);
         void AddItem(const std::wstring& str);
+        void AddSelection(int32_t value);
         void AddSelectionListener(SelectionListener* value);
         void Callback(SelectionListener::CallbackData* data);
         bool CheckItemSelected(size_t index);
@@ -799,6 +800,11 @@ namespace dw {
         inline void AddItem(const std::string&& str) {
             if (list)
                 list->AddItem(str);
+        }
+
+        inline void AddSelection(int32_t value) {
+            if (list)
+                list->AddSelection(value);
         }
 
         inline void AddSelectionListener(SelectionListener* value) {
@@ -1177,6 +1183,9 @@ extern void dw_init(dw::DisplayData& data);
 extern void dw_free();
 
 extern void dw_gui_ctrl_disp();
+
+extern void dw_gui_detail_display_add_drag_bounds_listener(dw::DragBoundsListener* value);
+extern void dw_gui_detail_display_remove_drag_bounds_listener(dw::DragBoundsListener* value);
 
 extern void dw_info_window_init();
 
