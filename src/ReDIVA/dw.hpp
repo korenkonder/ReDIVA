@@ -10,6 +10,7 @@
 #include "../KKdLib/vec.hpp"
 #include "../CRE/color.hpp"
 #include "font_info.hpp"
+#include <map>
 #include <vector>
 
 namespace dw {
@@ -421,8 +422,8 @@ namespace dw {
         virtual bool Field_60();
         virtual void SetFont(p_Font& font);
         virtual p_Font& GetFont();
-        virtual void SetForegroundColor(color4u8 value);
-        virtual void SetBackgroundColor(color4u8 value);
+        virtual void SetForegroundColor(const color4u8 value);
+        virtual void SetBackgroundColor(const color4u8 value);
         virtual color4u8 GetForegroundColor();
         virtual color4u8 GetBackgroundColor();
         virtual bool GetEnabled();
@@ -1135,6 +1136,35 @@ namespace dw {
         }
     };
 
+    class ColorDialog : public Shell {
+    public:
+        color4u8 color;
+        Label* icon;
+        Slider* r_slider;
+        Slider* g_slider;
+        Slider* b_slider;
+        Slider* a_slider;
+        Button* apply;
+        Button* ok;
+        Button* cancel;
+        color4u8* color_ptr;
+        RowLayout* icon_and_slider_layout;
+        RowLayout* slider_layout;
+        RowLayout* button_line_layout;
+
+        ColorDialog(Shell* parent = 0);
+        virtual ~ColorDialog() override;
+
+        virtual void Draw() override;
+
+        color4u8 GetColor() const;
+        void SetColor(const color4u8 value);
+
+        static void ApplyCallback(Widget* data);
+        static void CancelCallback(Widget* data);
+        static void OkCallback(Widget* data);
+    };
+
     struct DisplayData {
         rectangle field_0;
         rectangle field_10;
@@ -1158,7 +1188,15 @@ namespace dw {
         virtual void Callback(SelectionListener::CallbackData* data) override;
     };
 
+    struct ColorListCompare {
+        bool operator()(const char* left, const char* right) const {
+            return strcmp(left, right) < 0;
+        }
+    };
+
     extern bool translate;
+
+    extern std::map<const char*, color4u8*, ColorListCompare> color_list;
 
     extern p_Font current_font;
 
@@ -1169,6 +1207,8 @@ namespace dw {
     extern p_Font p_font_type_10x20;
     extern p_Font p_font_type_12x24;
     extern p_Font p_font_type_scroll_bar;
+
+    extern void colors_current_reset();
 
     extern void font_init();
     extern int32_t font_get_index(const std::string& name);

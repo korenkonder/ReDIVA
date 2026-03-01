@@ -84,9 +84,9 @@ namespace dw {
         void PrintText(std::string& str, float_t pos_x, float_t pos_y);
         void PrintText(std::wstring& str, float_t pos_x, float_t pos_y);
         void SetClipData(rectangle rect);
-        void SetFillColor(color4u8 value);
+        void SetFillColor(const color4u8 value);
         void SetFont(p_Font* value);
-        void SetColor(color4u8 value);
+        void SetColor(const color4u8 value);
 
         void sub_140301390(rectangle rect, float_t a3);
         void sub_140302800();
@@ -140,6 +140,8 @@ namespace dw {
         color4u8 button_disable_background;
         color4u8 button_disable_foreground;
     };
+
+    void set_color_list(Colors* colors);
 }
 
 namespace dw_gui_detail {
@@ -280,9 +282,11 @@ namespace dw {
 
     Print* print;
 
-    dw::Colors colors_current;
+    Colors colors_current;
 
     bool translate = false;
+
+    std::map<const char*, color4u8*, ColorListCompare> color_list;
 
     p_Font current_font;
 
@@ -687,11 +691,11 @@ namespace dw {
         return font;
     }
 
-    void Control::SetForegroundColor(color4u8 value) {
+    void Control::SetForegroundColor(const color4u8 value) {
         foreground_color = value;
     }
 
-    void Control::SetBackgroundColor(color4u8 value) {
+    void Control::SetBackgroundColor(const color4u8 value) {
         background_color = value;
     }
 
@@ -937,7 +941,7 @@ namespace dw {
         return GetControlIndex(control) == current_control && Field_C0();
     }
 
-    Shell::Shell(Shell* parent, Flags flags) : Composite(parent, flags), disp(), disp_callback(),
+    Shell::Shell(Shell* parent, Flags flags) : Composite(0, flags), disp(), disp_callback(),
         hide_callback(), field_128(), destroy(), close_button(), field_170(), field_178() {
         parent_shell = this;
 
@@ -2632,7 +2636,7 @@ namespace dw {
         if (!menu_items.size())
             return 0;
 
-        dw::KeyInput key_input = data.key_input;
+        KeyInput key_input = data.key_input;
         if (key_input == KEY_INPUT_ENTER) {
             if (current_menu_item_index != -1)
                 sub_1402E6750();
@@ -3542,6 +3546,128 @@ namespace dw {
         return slider;
     }
 
+    ColorDialog::ColorDialog(Shell* parent) : Shell(parent, (Flags)(FLAG_400 | FLAG_80 | CLOSE_BUTTON | CHECKBOX)) {
+        color = 0;
+        color_ptr = 0;
+
+        SetText(L"ColorDialog");
+
+        Composite* icon_and_slider_comp = new Composite(this);
+        icon_and_slider_comp->SetText(L"icon_and_slider");
+
+        icon_and_slider_layout = new RowLayout(HORIZONTAL);
+        icon_and_slider_comp->layout = icon_and_slider_layout;
+
+        icon = new Label(icon_and_slider_comp);
+        icon->SetText(L"       ");
+        icon->SetSize({ 70.0f, 70.0f });
+
+        Composite* slider_comp = new Composite(icon_and_slider_comp);
+        slider_comp->SetText(L"icon_and_slider");
+
+        slider_layout = new RowLayout(VERTICAL);
+        slider_comp->layout = slider_layout;
+
+        r_slider = Slider::Create(slider_comp, (Flags)(FLAG_800 | HORIZONTAL), "R", "%3.0f", 128.0f);
+        r_slider->SetParams(0.0f, 0.0f, 255.0f, 64.0f, 1.0f, 10.0f);
+        g_slider = Slider::Create(slider_comp, (Flags)(FLAG_800 | HORIZONTAL), "G", "%3.0f", 128.0f);
+        g_slider->SetParams(0.0f, 0.0f, 255.0f, 64.0f, 1.0f, 10.0f);
+        b_slider = Slider::Create(slider_comp, (Flags)(FLAG_800 | HORIZONTAL), "B", "%3.0f", 128.0f);
+        b_slider->SetParams(0.0f, 0.0f, 255.0f, 64.0f, 1.0f, 10.0f);
+        a_slider = Slider::Create(slider_comp, (Flags)(FLAG_800 | HORIZONTAL), "A", "%3.0f", 128.0f);
+        a_slider->SetParams(0.0f, 0.0f, 255.0f, 64.0f, 1.0f, 10.0f);
+
+        Composite* button_line_comp = new Composite(this);
+        button_line_comp->SetText(L"button_line");
+
+        button_line_layout = new RowLayout(HORIZONTAL);
+        button_line_comp->layout = button_line_layout;
+
+        apply = new Button(button_line_comp);
+        apply->SetText(L"Apply");
+        apply->callback = ColorDialog::ApplyCallback;
+
+        ok = new Button(button_line_comp);
+        ok->SetText(L"OK");
+        ok->callback = ColorDialog::OkCallback;
+
+        cancel = new Button(button_line_comp);
+        cancel->SetText(L"Cancel");
+        cancel->callback = ColorDialog::CancelCallback;
+
+        SetColor(color_white);
+
+        UpdateLayout();
+    }
+
+    ColorDialog::~ColorDialog() {
+
+    }
+
+    void ColorDialog::Draw() {
+        Shell::Draw();
+
+        rectangle rect(GetScrollableRectangle().pos + 6.0f, { 46.0f, 46.0f });
+
+        print->SetFillColor(GetColor());
+        print->FillRectangle(rect);
+        print->SetColor(colors_current.border_color);
+        print->sub_140301390(rect, 2.0f);
+    }
+
+    color4u8 ColorDialog::GetColor() const {
+        color4u8 color;
+        color.r = (uint8_t)(int32_t)r_slider->GetValue();
+        color.g = (uint8_t)(int32_t)g_slider->GetValue();
+        color.b = (uint8_t)(int32_t)b_slider->GetValue();
+        color.a = (uint8_t)(int32_t)a_slider->GetValue();
+        return color;
+    }
+
+    void ColorDialog::SetColor(color4u8 value) {
+        color = value;
+
+        r_slider->SetValue((float_t)value.r);
+        g_slider->SetValue((float_t)value.g);
+        b_slider->SetValue((float_t)value.b);
+        a_slider->SetValue((float_t)value.a);
+    }
+
+    void ColorDialog::ApplyCallback(Widget* data) {
+        Button* button = dynamic_cast<Button*>(data);
+        if (button) {
+            ColorDialog* color_dialog = dynamic_cast<ColorDialog*>(button->parent_shell);
+            if (color_dialog) {
+                color4u8 color = color_dialog->GetColor();
+                if (color_dialog->color_ptr)
+                    *color_dialog->color_ptr = color;
+            }
+        }
+    }
+
+    void ColorDialog::CancelCallback(Widget* data) {
+        Button* button = dynamic_cast<Button*>(data);
+        if (button) {
+            ColorDialog* color_dialog = dynamic_cast<ColorDialog*>(button->parent_shell);
+            if (color_dialog) {
+                color_dialog->SetColor(color_dialog->color);
+                ColorDialog::ApplyCallback(data);
+                color_dialog->Hide();
+            }
+        }
+    }
+
+    void ColorDialog::OkCallback(Widget* data) {
+        Button* button = dynamic_cast<Button*>(data);
+        if (button) {
+            ColorDialog* color_dialog = dynamic_cast<ColorDialog*>(button->parent_shell);
+            if (color_dialog) {
+                ColorDialog::ApplyCallback(data);
+                color_dialog->Hide();
+            }
+        }
+    }
+
     DisplayData::DisplayData() {
 
     }
@@ -3570,6 +3696,10 @@ namespace dw {
 
     void ScrollBarTestSelectionListener::Callback(SelectionListener::CallbackData* data) {
 
+    }
+
+    void colors_current_reset() {
+        colors_current = dw::colors_default;
     }
 
     void font_init() {
@@ -3659,9 +3789,9 @@ void dw_init() {
 }
 
 void dw_init(dw::DisplayData& data) {
-    dw::colors_current = dw::colors_default;
+    dw::colors_current_reset();
 
-    //dw::set_color_list(&dw::colors_current);
+    dw::set_color_list(&dw::colors_current);
     dw::font_init();
 
     if (!dw::print)
@@ -4108,6 +4238,39 @@ namespace dw {
 
     void Print::sub_140302800() {
         SetClipData(field_18);
+    }
+
+    void set_color_list(Colors* colors) {
+        color_list["background"] = &colors->background;
+        color_list["foreground"] = &colors->foreground;
+        color_list["selection_background"] = &colors->selection_background;
+        color_list["selection_foreground"] = &colors->selection_foreground;
+        color_list["selection_inactive_background"] = &colors->selection_inactive_background;
+        color_list["selection_inactive_foreground"] = &colors->selection_inactive_foreground;
+        color_list["disable_background"] = &colors->disable_background;
+        color_list["disable_foreground"] = &colors->disable_foreground;
+        color_list["title_background"] = &colors->title_background;
+        color_list["title_foreground"] = &colors->title_foreground;
+        color_list["title_inactive_background"] = &colors->title_inactive_background;
+        color_list["title_inactive_foreground"] = &colors->title_inactive_foreground;
+        color_list["active_border_color"] = &colors->active_border_color;
+        color_list["inactive_border_color"] = &colors->inactive_border_color;
+        color_list["focus_border_color"] = &colors->focus_border_color;
+        color_list["border_color"] = &colors->border_color;
+        color_list["border_light_color"] = &colors->border_light_color;
+        color_list["border_dark_color"] = &colors->border_dark_color;
+        color_list["popup_background"] = &colors->popup_background;
+        color_list["popup_foreground"] = &colors->popup_foreground;
+        color_list["popup_selection_background"] = &colors->popup_selection_background;
+        color_list["popup_selection_foreground"] = &colors->popup_selection_foreground;
+        color_list["menu_background"] = &colors->menu_background;
+        color_list["menu_foreground"] = &colors->menu_foreground;
+        color_list["menu_selection_background"] = &colors->menu_selection_background;
+        color_list["menu_selection_foreground"] = &colors->menu_selection_foreground;
+        color_list["button_background"] = &colors->button_background;
+        color_list["button_foreground"] = &colors->button_foreground;
+        color_list["button_disable_background"] = &colors->button_disable_background;
+        color_list["button_disable_foreground"] = &colors->button_disable_foreground;
     }
 }
 

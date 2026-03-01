@@ -24,6 +24,7 @@
 #include "information/dw_console.hpp"
 #include "information/frame_speed.hpp"
 #include "information/task.hpp"
+#include "dw_gui_user_detail.hpp"
 
 static void data_test_dw_init(dw::Menu* parent);
 static void data_view_dw_init(dw::Menu* parent); // Added
@@ -295,11 +296,11 @@ inline static void options_dw_init(dw::Menu* parent) {
 
     dw::Menu* menu = dw::Menu::Create(menu_item, L"Options");
 
-    /*dw::MenuItem::Create(menu, dw::PUSHBUTTON, L"ColorListWindow...",
+    dw::MenuItem::Create(menu, dw::PUSHBUTTON, L"ColorListWindow...",
         (dw::Widget::Callback)dw_color_list_window_init);
     dw::MenuItem::Create(menu, dw::PUSHBUTTON, L"FontListWindow...",
         (dw::Widget::Callback)dw_font_list_window_init);
-    dw::MenuItem::Create(menu, dw::PUSHBUTTON, L"config save",
+    /*dw::MenuItem::Create(menu, dw::PUSHBUTTON, L"config save",
         &dw_gui_user_detail::selection_gui_user_save);
     dw::MenuItem::Create(menu, dw::PUSHBUTTON, L"config load",
         &dw_gui_user_detail::selection_gui_user_load);*/
