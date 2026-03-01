@@ -8,8 +8,6 @@
 #include "../KKdLib/default.hpp"
 #include <bitset>
 
-#define INPUT_BUTTON_COUNT 111
-
 enum InputButton : int32_t {
     INPUT_BUTTON_JVS_TEST = 0,
 
@@ -134,10 +132,10 @@ enum InputButton : int32_t {
 
     INPUT_BUTTON_MOUSE_ADV_SKIP = 110,
 
-    INPUT_BUTTON_MAX = INPUT_BUTTON_COUNT,
+    INPUT_BUTTON_MAX,
 };
 
-typedef std::bitset<INPUT_BUTTON_COUNT> ButtonState;
+typedef std::bitset<INPUT_BUTTON_MAX> ButtonState;
 
 struct InputState {
     struct DoubleTap {
@@ -187,9 +185,9 @@ struct InputState {
     bool field_D1;
     bool field_D2;
     uint8_t key;
-    DoubleTap DoubleTapData[INPUT_BUTTON_COUNT];
-    HoldTap HoldTapData[INPUT_BUTTON_COUNT];
-    IntervalTap IntervalTapData[INPUT_BUTTON_COUNT];
+    DoubleTap DoubleTapData[INPUT_BUTTON_MAX];
+    HoldTap HoldTapData[INPUT_BUTTON_MAX];
+    IntervalTap IntervalTapData[INPUT_BUTTON_MAX];
 
     InputState();
     ~InputState();
