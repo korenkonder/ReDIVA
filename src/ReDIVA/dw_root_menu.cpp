@@ -190,7 +190,7 @@ inline static void graphics_dw_init(dw::Menu* parent) {
         (dw::Widget::Callback)capture_dw_init);
     dw::MenuItem::Create(menu, dw::PUSHBUTTON, L"NPR Cloth",
         (dw::Widget::Callback)npr_cloth_specular_dw_init);*/
-    dw::MenuItem::Create(menu, dw::PUSHBUTTON, L"Render Settings",
+    dw::MenuItem::Create(menu, dw::PUSHBUTTON, L"Background Color",
         (dw::Widget::Callback)graphics_background_color_init); // Added
     dw::MenuItem::Create(menu, dw::PUSHBUTTON, L"Render Settings",
         (dw::Widget::Callback)render_settings_dw_init); // Added
