@@ -14,7 +14,7 @@ namespace MoviePlayLib {
         IMediaSource* pSource, IDirect3DDeviceManager9* pDeviceManager, IDirect3DDevice9Ex* pDevice)
         : TransformBase(hr, rStat, pClock, pSource), m_formatSubType(MFVideoFormat_NV12),
         m_pD3D9Manager(), m_pD3D9Device(), m_pProcessor(), m_cbBufferBytes(), m_yuvWidth(), m_yuvHeight(),
-        m_frameWidth(), m_frameHeight(), m_frameDuration(), m_frameRate(), m_pixelAspect(), 
+        m_frameWidth(), m_frameHeight(), m_frameDuration(), m_frameRate(), m_pixelAspect(),
         m_videoArea(), m_videoDesc(), m_bltParams(), m_videoSample(), m_pool(),
         m_asynccb_OnReturnSample(&VideoDecoder::_async_callback_func, this) {
         MOVIE_PLAY_LIB_TRACE_BEGIN;

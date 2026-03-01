@@ -45,7 +45,7 @@ namespace MoviePlayLib {
             Destroy(this);
         }
 
-    protected: 
+    protected:
         void _close_device();
         void _close_texture(TEXTURE& tx);
         bool _lock_texture(uint32_t index);

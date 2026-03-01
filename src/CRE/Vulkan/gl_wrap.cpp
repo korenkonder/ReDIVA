@@ -5488,7 +5488,7 @@ namespace Vulkan {
             break;
         }
     }
-    
+
     static void gl_wrap_manager_get_buffer_parameter_int64_ptr(GLenum target, GLenum value, GLint64* data) {
         switch (target) {
         case GL_ARRAY_BUFFER:

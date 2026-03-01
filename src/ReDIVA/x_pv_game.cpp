@@ -13166,7 +13166,7 @@ static void x_pv_game_write_glitter(Glitter::EffectGroup* eff_group, const auth_
 
         auto elem = glitter_list.find(e->data.name_hash);
         if (elem != glitter_list.end())
-            e->name.assign(elem->second); 
+            e->name.assign(elem->second);
         else {
             auto elem = x_data->glitter_list_murmurhash.find(e->data.name_hash);
             if (elem != x_data->glitter_list_murmurhash.end())

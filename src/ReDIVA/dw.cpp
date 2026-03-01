@@ -3903,7 +3903,7 @@ namespace dw {
 
         dw_sys_menu_init(this);
     }
-    
+
     InfoWindow::~InfoWindow() {
 
     }

@@ -10,7 +10,7 @@ namespace prj {
         count_alloc(), count_free(), break_alloc(), break_free(), permanent_mode() {
 
     }
-    
+
     HeapDebug::~HeapDebug() {
 
     }
