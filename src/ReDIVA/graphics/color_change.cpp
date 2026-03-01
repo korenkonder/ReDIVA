@@ -683,28 +683,28 @@ void ColorChangeDw::BlendBCallback(dw::Slider* data) {
     ColorChangeDw* color_change_dw = (ColorChangeDw*)data->callback_data.v64;
     color_tone* col_tone = color_change_dw->GetColorTone();
     if (col_tone)
-        col_tone->blend.z = data->scroll_bar->value;
+        col_tone->blend.z = data->GetValue();
 }
 
 void ColorChangeDw::BlendGCallback(dw::Slider* data) {
     ColorChangeDw* color_change_dw = (ColorChangeDw*)data->callback_data.v64;
     color_tone* col_tone = color_change_dw->GetColorTone();
     if (col_tone)
-        col_tone->blend.y = data->scroll_bar->value;
+        col_tone->blend.y = data->GetValue();
 }
 
 void ColorChangeDw::BlendRCallback(dw::Slider* data) {
     ColorChangeDw* color_change_dw = (ColorChangeDw*)data->callback_data.v64;
     color_tone* col_tone = color_change_dw->GetColorTone();
     if (col_tone)
-        col_tone->blend.x = data->scroll_bar->value;
+        col_tone->blend.x = data->GetValue();
 }
 
 void ColorChangeDw::ContrastCallback(dw::Slider* data) {
     ColorChangeDw* color_change_dw = (ColorChangeDw*)data->callback_data.v64;
     color_tone* col_tone = color_change_dw->GetColorTone();
     if (col_tone)
-        col_tone->contrast = data->scroll_bar->value;
+        col_tone->contrast = data->GetValue();
 }
 
 void ColorChangeDw::CopyCallback(dw::Button* data) {
@@ -718,7 +718,7 @@ void ColorChangeDw::HueCallback(dw::Slider* data) {
     ColorChangeDw* color_change_dw = (ColorChangeDw*)data->callback_data.v64;
     color_tone* col_tone = color_change_dw->GetColorTone();
     if (col_tone)
-        col_tone->hue = data->scroll_bar->value;
+        col_tone->hue = data->GetValue();
 }
 
 void ColorChangeDw::InverseCallback(dw::Button* data) {
@@ -805,21 +805,21 @@ void ColorChangeDw::OffsetBCallback(dw::Slider* data) {
     ColorChangeDw* color_change_dw = (ColorChangeDw*)data->callback_data.v64;
     color_tone* col_tone = color_change_dw->GetColorTone();
     if (col_tone)
-        col_tone->offset.z = data->scroll_bar->value;
+        col_tone->offset.z = data->GetValue();
 }
 
 void ColorChangeDw::OffsetGCallback(dw::Slider* data) {
     ColorChangeDw* color_change_dw = (ColorChangeDw*)data->callback_data.v64;
     color_tone* col_tone = color_change_dw->GetColorTone();
     if (col_tone)
-        col_tone->offset.y = data->scroll_bar->value;
+        col_tone->offset.y = data->GetValue();
 }
 
 void ColorChangeDw::OffsetRCallback(dw::Slider* data) {
     ColorChangeDw* color_change_dw = (ColorChangeDw*)data->callback_data.v64;
     color_tone* col_tone = color_change_dw->GetColorTone();
     if (col_tone)
-        col_tone->offset.x = data->scroll_bar->value;
+        col_tone->offset.x = data->GetValue();
 }
 
 void ColorChangeDw::OverwriteCallback(dw::Button* data) {
@@ -844,7 +844,7 @@ void ColorChangeDw::SaturationCallback(dw::Slider* data) {
     ColorChangeDw* color_change_dw = (ColorChangeDw*)data->callback_data.v64;
     color_tone* col_tone = color_change_dw->GetColorTone();
     if (col_tone)
-        col_tone->saturation = data->scroll_bar->value;
+        col_tone->saturation = data->GetValue();
 }
 
 void ColorChangeDw::SaveCallback(dw::Button* data) {
@@ -868,7 +868,7 @@ void ColorChangeDw::ValueCallback(dw::Slider* data) {
     ColorChangeDw* color_change_dw = (ColorChangeDw*)data->callback_data.v64;
     color_tone* col_tone = color_change_dw->GetColorTone();
     if (col_tone)
-        col_tone->value = data->scroll_bar->value;
+        col_tone->value = data->GetValue();
 }
 
 static const char* get_dev_ram_color_change_param_dir() {

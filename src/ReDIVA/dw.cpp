@@ -2308,7 +2308,7 @@ namespace dw {
                     ? colors_current.foreground
                     : colors_current.disable_foreground);
                 print->SetClipData(v14);
-                print->PrintText(GetItem(list->selected_item), v14.pos.x, v14.pos.y);
+                print->PrintText(GetSelectedItem(), v14.pos.x, v14.pos.y);
             }
         }
 
@@ -3614,7 +3614,7 @@ namespace dw {
         font_collection.insert_or_assign(5, &p_font_type_6x12);
     }
 
-    int32_t font_get_index(std::string& name) {
+    int32_t font_get_index(const std::string& name) {
         for (auto& i : font_collection)
             if (!i.second->GetName().compare(name)) {
                 current_font = *i.second;
@@ -3715,7 +3715,7 @@ void dw_info_window_init() {
     if (dw::info_window_ptr)
         dw::info_window_ptr->Disp();
     else {
-        dw::info_window_ptr = new dw::InfoWindow();
+        dw::info_window_ptr = new dw::InfoWindow;
         dw::info_window_ptr->LimitPosDisp();
     }
 }

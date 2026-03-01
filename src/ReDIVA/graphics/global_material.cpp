@@ -100,31 +100,31 @@ void GlobalMaterialDw::Hide() {
 void GlobalMaterialDw::BumpDepthCallback(dw::Widget* data) {
     dw::Slider* slider = dynamic_cast<dw::Slider*>(data);
     if (slider)
-        rctx_ptr->draw_state->global_material.bump_depth = slider->scroll_bar->value;
+        rctx_ptr->draw_state->global_material.bump_depth = slider->GetValue();
 }
 
 void GlobalMaterialDw::IntensityCallback(dw::Widget* data) {
     dw::Slider* slider = dynamic_cast<dw::Slider*>(data);
     if (slider)
-        rctx_ptr->draw_state->global_material.intensity = slider->scroll_bar->value;
+        rctx_ptr->draw_state->global_material.intensity = slider->GetValue();
 }
 
 void GlobalMaterialDw::ReflectUVScaleCallback(dw::Widget* data) {
     dw::Slider* slider = dynamic_cast<dw::Slider*>(data);
     if (slider)
-        rctx_ptr->draw_state->global_material.reflect_uv_scale = slider->scroll_bar->value;
+        rctx_ptr->draw_state->global_material.reflect_uv_scale = slider->GetValue();
 }
 
 void GlobalMaterialDw::ReflectivityCallback(dw::Widget* data) {
     dw::Slider* slider = dynamic_cast<dw::Slider*>(data);
     if (slider)
-        rctx_ptr->draw_state->global_material.reflectivity = slider->scroll_bar->value;
+        rctx_ptr->draw_state->global_material.reflectivity = slider->GetValue();
 }
 
 void GlobalMaterialDw::RefractUVScaleCallback(dw::Widget* data) {
     dw::Slider* slider = dynamic_cast<dw::Slider*>(data);
     if (slider)
-        rctx_ptr->draw_state->global_material.refract_uv_scale = slider->scroll_bar->value;
+        rctx_ptr->draw_state->global_material.refract_uv_scale = slider->GetValue();
 }
 
 void GlobalMaterialDw::UseGlobalMaterialCallback(dw::Widget* data) {

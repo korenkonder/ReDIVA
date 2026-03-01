@@ -249,7 +249,7 @@ namespace dw {
     public:
         struct CallbackData {
             int64_t field_0;
-            dw::KeyInput key;
+            KeyInput key;
             int8_t field_C;
             vec2 mouse_pos;
             int32_t field_18;
@@ -902,47 +902,47 @@ namespace dw {
 
         void sub_1402E6810();
 
-        inline static MenuItem* Create(dw::Menu* parent, dw::Flags flags, const char* text) {
-            dw::MenuItem* menu_item = new dw::MenuItem(parent, flags);
+        inline static MenuItem* Create(Menu* parent, Flags flags, const char* text) {
+            MenuItem* menu_item = new MenuItem(parent, flags);
             menu_item->SetText(text);
             return menu_item;
         }
 
-        inline static MenuItem* Create(dw::Menu* parent, dw::Flags flags, const wchar_t* text) {
-            dw::MenuItem* menu_item = new dw::MenuItem(parent, flags);
+        inline static MenuItem* Create(Menu* parent, Flags flags, const wchar_t* text) {
+            MenuItem* menu_item = new MenuItem(parent, flags);
             menu_item->SetText(text);
             return menu_item;
         }
 
-        inline static MenuItem* Create(dw::Menu* parent, dw::Flags flags, const char* text,
-            SelectionListenerOnHook* listener) {
-            dw::MenuItem* menu_item = new dw::MenuItem(parent, flags);
+        inline static MenuItem* Create(Menu* parent, Flags flags, const char* text,
+            SelectionListener* listener) {
+            MenuItem* menu_item = new MenuItem(parent, flags);
             menu_item->SetText(text);
             menu_item->AddSelectionListener(listener);
             return menu_item;
         }
 
-        inline static MenuItem* Create(dw::Menu* parent, dw::Flags flags, const wchar_t* text,
-            SelectionListenerOnHook* listener) {
-            dw::MenuItem* menu_item = new dw::MenuItem(parent, flags);
+        inline static MenuItem* Create(Menu* parent, Flags flags, const wchar_t* text,
+            SelectionListener* listener) {
+            MenuItem* menu_item = new MenuItem(parent, flags);
             menu_item->SetText(text);
             menu_item->AddSelectionListener(listener);
             return menu_item;
         }
 
-        inline static MenuItem* Create(dw::Menu* parent, dw::Flags flags, const char* text,
+        inline static MenuItem* Create(Menu* parent, Flags flags, const char* text,
             SelectionListenerOnHook::CallbackFunc callback) {
-            dw::MenuItem* menu_item = new dw::MenuItem(parent, flags);
+            MenuItem* menu_item = new MenuItem(parent, flags);
             menu_item->SetText(text);
-            menu_item->AddSelectionListener(new dw::SelectionListenerOnHook(callback));
+            menu_item->AddSelectionListener(new SelectionListenerOnHook(callback));
             return menu_item;
         }
 
-        inline static MenuItem* Create(dw::Menu* parent, dw::Flags flags, const wchar_t* text,
+        inline static MenuItem* Create(Menu* parent, Flags flags, const wchar_t* text,
             SelectionListenerOnHook::CallbackFunc callback) {
-            dw::MenuItem* menu_item = new dw::MenuItem(parent, flags);
+            MenuItem* menu_item = new MenuItem(parent, flags);
             menu_item->SetText(text);
-            menu_item->AddSelectionListener(new dw::SelectionListenerOnHook(callback));
+            menu_item->AddSelectionListener(new SelectionListenerOnHook(callback));
             return menu_item;
         }
     };
@@ -982,14 +982,14 @@ namespace dw {
 
         void sub_1402E6750();
 
-        inline static Menu* Create(dw::MenuItem* parent, const char* text) {
-            dw::Menu* menu = new dw::Menu(parent);
+        inline static Menu* Create(MenuItem* parent, const char* text) {
+            Menu* menu = new Menu(parent);
             menu->SetText(text);
             return menu;
         }
 
-        inline static Menu* Create(dw::MenuItem* parent, const wchar_t* text) {
-            dw::Menu* menu = new dw::Menu(parent);
+        inline static Menu* Create(MenuItem* parent, const wchar_t* text) {
+            Menu* menu = new Menu(parent);
             menu->SetText(text);
             return menu;
         }
@@ -1171,7 +1171,7 @@ namespace dw {
     extern p_Font p_font_type_scroll_bar;
 
     extern void font_init();
-    extern int32_t font_get_index(std::string& name);
+    extern int32_t font_get_index(const std::string& name);
     extern void font_free();
 
     extern void* alloc(size_t size);

@@ -608,28 +608,28 @@ void MaterialDw::AmbientACallback(dw::Slider* data) {
     MaterialDw* material_dw = (MaterialDw*)data->callback_data.v64;
     obj_material_data* material_data = material_dw->GetMaterial();
     if (material_data)
-        material_data->material.color.ambient.w = data->scroll_bar->value;
+        material_data->material.color.ambient.w = data->GetValue();
 }
 
 void MaterialDw::AmbientBCallback(dw::Slider* data) {
     MaterialDw* material_dw = (MaterialDw*)data->callback_data.v64;
     obj_material_data* material_data = material_dw->GetMaterial();
     if (material_data)
-        material_data->material.color.ambient.z = data->scroll_bar->value;
+        material_data->material.color.ambient.z = data->GetValue();
 }
 
 void MaterialDw::AmbientGCallback(dw::Slider* data) {
     MaterialDw* material_dw = (MaterialDw*)data->callback_data.v64;
     obj_material_data* material_data = material_dw->GetMaterial();
     if (material_data)
-        material_data->material.color.ambient.y = data->scroll_bar->value;
+        material_data->material.color.ambient.y = data->GetValue();
 }
 
 void MaterialDw::AmbientRCallback(dw::Slider* data) {
     MaterialDw* material_dw = (MaterialDw*)data->callback_data.v64;
     obj_material_data* material_data = material_dw->GetMaterial();
     if (material_data)
-        material_data->material.color.ambient.x = data->scroll_bar->value;
+        material_data->material.color.ambient.x = data->GetValue();
 }
 
 void MaterialDw::AnisoDirectionCallback(dw::ListBox* data) {
@@ -644,14 +644,14 @@ void MaterialDw::AnisoFilterCallback(dw::Slider* data) {
     MaterialDw* material_dw = (MaterialDw*)data->callback_data.v64;
     obj_material_data* material_data = material_dw->GetMaterial();
     if (material_data) {
-        material_data->material.texdata[0].attrib.w = material_data->material.texdata[0].attrib.w & 0x3FFFFFFF | ((int)data->scroll_bar->value << 30);
-        material_data->material.texdata[1].attrib.w = material_data->material.texdata[1].attrib.w & 0x3FFFFFFF | ((int)data->scroll_bar->value << 30);
-        material_data->material.texdata[2].attrib.w = material_data->material.texdata[2].attrib.w & 0x3FFFFFFF | ((int)data->scroll_bar->value << 30);
-        material_data->material.texdata[3].attrib.w = material_data->material.texdata[3].attrib.w & 0x3FFFFFFF | ((int)data->scroll_bar->value << 30);
-        material_data->material.texdata[4].attrib.w = material_data->material.texdata[4].attrib.w & 0x3FFFFFFF | ((int)data->scroll_bar->value << 30);
-        material_data->material.texdata[5].attrib.w = material_data->material.texdata[5].attrib.w & 0x3FFFFFFF | ((int)data->scroll_bar->value << 30);
-        material_data->material.texdata[6].attrib.w = material_data->material.texdata[6].attrib.w & 0x3FFFFFFF | ((int)data->scroll_bar->value << 30);
-        material_data->material.texdata[7].attrib.w = material_data->material.texdata[7].attrib.w & 0x3FFFFFFF | ((int)data->scroll_bar->value << 30);
+        material_data->material.texdata[0].attrib.m.anisotropic_filter = (int32_t)data->GetValue();
+        material_data->material.texdata[1].attrib.m.anisotropic_filter = (int32_t)data->GetValue();
+        material_data->material.texdata[2].attrib.m.anisotropic_filter = (int32_t)data->GetValue();
+        material_data->material.texdata[3].attrib.m.anisotropic_filter = (int32_t)data->GetValue();
+        material_data->material.texdata[4].attrib.m.anisotropic_filter = (int32_t)data->GetValue();
+        material_data->material.texdata[5].attrib.m.anisotropic_filter = (int32_t)data->GetValue();
+        material_data->material.texdata[6].attrib.m.anisotropic_filter = (int32_t)data->GetValue();
+        material_data->material.texdata[7].attrib.m.anisotropic_filter = (int32_t)data->GetValue();
     }
 }
 
@@ -659,28 +659,28 @@ void MaterialDw::BumpDepthCallback(dw::Slider* data) {
     MaterialDw* material_dw = (MaterialDw*)data->callback_data.v64;
     obj_material_data* material_data = material_dw->GetMaterial();
     if (material_data)
-        material_data->material.bump_depth = data->scroll_bar->value;
+        material_data->material.bump_depth = data->GetValue();
 }
 
 void MaterialDw::DiffuseBCallback(dw::Slider* data) {
     MaterialDw* material_dw = (MaterialDw*)data->callback_data.v64;
     obj_material_data* material_data = material_dw->GetMaterial();
     if (material_data)
-        material_data->material.color.diffuse.z = data->scroll_bar->value;
+        material_data->material.color.diffuse.z = data->GetValue();
 }
 
 void MaterialDw::DiffuseGCallback(dw::Slider* data) {
     MaterialDw* material_dw = (MaterialDw*)data->callback_data.v64;
     obj_material_data* material_data = material_dw->GetMaterial();
     if (material_data)
-        material_data->material.color.diffuse.y = data->scroll_bar->value;
+        material_data->material.color.diffuse.y = data->GetValue();
 }
 
 void MaterialDw::DiffuseRCallback(dw::Slider* data) {
     MaterialDw* material_dw = (MaterialDw*)data->callback_data.v64;
     obj_material_data* material_data = material_dw->GetMaterial();
     if (material_data)
-        material_data->material.color.diffuse.x = data->scroll_bar->value;
+        material_data->material.color.diffuse.x = data->GetValue();
 }
 
 void MaterialDw::DoubleSidedCallback(dw::ListBox* data) {
@@ -715,63 +715,63 @@ void MaterialDw::EmissionACallback(dw::Slider* data) {
     MaterialDw* material_dw = (MaterialDw*)data->callback_data.v64;
     obj_material_data* material_data = material_dw->GetMaterial();
     if (material_data)
-        material_data->material.color.emission.w = data->scroll_bar->value;
+        material_data->material.color.emission.w = data->GetValue();
 }
 
 void MaterialDw::EmissionBCallback(dw::Slider* data) {
     MaterialDw* material_dw = (MaterialDw*)data->callback_data.v64;
     obj_material_data* material_data = material_dw->GetMaterial();
     if (material_data)
-        material_data->material.color.emission.z = data->scroll_bar->value;
+        material_data->material.color.emission.z = data->GetValue();
 }
 
 void MaterialDw::EmissionGCallback(dw::Slider* data) {
     MaterialDw* material_dw = (MaterialDw*)data->callback_data.v64;
     obj_material_data* material_data = material_dw->GetMaterial();
     if (material_data)
-        material_data->material.color.emission.y = data->scroll_bar->value;
+        material_data->material.color.emission.y = data->GetValue();
 }
 
 void MaterialDw::EmissionRCallback(dw::Slider* data) {
     MaterialDw* material_dw = (MaterialDw*)data->callback_data.v64;
     obj_material_data* material_data = material_dw->GetMaterial();
     if (material_data)
-        material_data->material.color.emission.x = data->scroll_bar->value;
+        material_data->material.color.emission.x = data->GetValue();
 }
 
 void MaterialDw::FresnelCallback(dw::Slider* data) {
     MaterialDw* material_dw = (MaterialDw*)data->callback_data.v64;
     obj_material_data* material_data = material_dw->GetMaterial();
     if (material_data)
-        material_data->material.shader_info.m.fresnel_type = (int32_t)data->scroll_bar->value;
+        material_data->material.shader_info.m.fresnel_type = (int32_t)data->GetValue();
 }
 
 void MaterialDw::IntensityCallback(dw::Slider* data) {
     MaterialDw* material_dw = (MaterialDw*)data->callback_data.v64;
     obj_material_data* material_data = material_dw->GetMaterial();
     if (material_data)
-        material_data->material.color.intensity = data->scroll_bar->value;
+        material_data->material.color.intensity = data->GetValue();
 }
 
 void MaterialDw::LineLightCallback(dw::Slider* data) {
     MaterialDw* material_dw = (MaterialDw*)data->callback_data.v64;
     obj_material_data* material_data = material_dw->GetMaterial();
     if (material_data)
-        material_data->material.shader_info.m.line_light = (int32_t)data->scroll_bar->value;
+        material_data->material.shader_info.m.line_light = (int32_t)data->GetValue();
 }
 
 void MaterialDw::MipmapBiasCallback(dw::Slider* data) {
     MaterialDw* material_dw = (MaterialDw*)data->callback_data.v64;
     obj_material_data* material_data = material_dw->GetMaterial();
     if (material_data) {
-        material_data->material.texdata[0].attrib.m.mipmap_bias = (int32_t)data->scroll_bar->value;
-        material_data->material.texdata[1].attrib.m.mipmap_bias = (int32_t)data->scroll_bar->value;
-        material_data->material.texdata[2].attrib.m.mipmap_bias = (int32_t)data->scroll_bar->value;
-        material_data->material.texdata[3].attrib.m.mipmap_bias = (int32_t)data->scroll_bar->value;
-        material_data->material.texdata[4].attrib.m.mipmap_bias = (int32_t)data->scroll_bar->value;
-        material_data->material.texdata[5].attrib.m.mipmap_bias = (int32_t)data->scroll_bar->value;
-        material_data->material.texdata[6].attrib.m.mipmap_bias = (int32_t)data->scroll_bar->value;
-        material_data->material.texdata[7].attrib.m.mipmap_bias = (int32_t)data->scroll_bar->value;
+        material_data->material.texdata[0].attrib.m.mipmap_bias = (int32_t)data->GetValue();
+        material_data->material.texdata[1].attrib.m.mipmap_bias = (int32_t)data->GetValue();
+        material_data->material.texdata[2].attrib.m.mipmap_bias = (int32_t)data->GetValue();
+        material_data->material.texdata[3].attrib.m.mipmap_bias = (int32_t)data->GetValue();
+        material_data->material.texdata[4].attrib.m.mipmap_bias = (int32_t)data->GetValue();
+        material_data->material.texdata[5].attrib.m.mipmap_bias = (int32_t)data->GetValue();
+        material_data->material.texdata[6].attrib.m.mipmap_bias = (int32_t)data->GetValue();
+        material_data->material.texdata[7].attrib.m.mipmap_bias = (int32_t)data->GetValue();
     }
 }
 
@@ -792,7 +792,7 @@ void MaterialDw::ObjectSetCallback(dw::ListBox* data) {
     object_database* aft_obj_db = &aft_data->data_ft.obj_db;
 
     MaterialDw* material_dw = (MaterialDw*)data->callback_data.v64;
-    std::string item = data->GetItemStr(data->list->selected_item);
+    std::string item = data->GetSelectedItemStr();
     material_dw->obj_set_id = aft_obj_db->get_object_set_id(item.c_str());
     material_dw->UpdateObjects();
 }
@@ -801,7 +801,7 @@ void MaterialDw::ReflectivityCallback(dw::Slider* data) {
     MaterialDw* material_dw = (MaterialDw*)data->callback_data.v64;
     obj_material_data* material_data = material_dw->GetMaterial();
     if (material_data)
-        material_data->material.color.specular.w = data->scroll_bar->value;
+        material_data->material.color.specular.w = data->GetValue();
 }
 
 void MaterialDw::RefreshCallback(dw::Widget* data) {
@@ -878,21 +878,21 @@ void MaterialDw::ShininessCallback(dw::Slider* data) {
     MaterialDw* material_dw = (MaterialDw*)data->callback_data.v64;
     obj_material_data* material_data = material_dw->GetMaterial();
     if (material_data)
-        material_data->material.color.shininess = data->scroll_bar->value;
+        material_data->material.color.shininess = data->GetValue();
 }
 
 void MaterialDw::SpecularBCallback(dw::Slider* data) {
     MaterialDw* material_dw = (MaterialDw*)data->callback_data.v64;
     obj_material_data* material_data = material_dw->GetMaterial();
     if (material_data)
-        material_data->material.color.specular.z = data->scroll_bar->value;
+        material_data->material.color.specular.z = data->GetValue();
 }
 
 void MaterialDw::SpecularGCallback(dw::Slider* data) {
     MaterialDw* material_dw = (MaterialDw*)data->callback_data.v64;
     obj_material_data* material_data = material_dw->GetMaterial();
     if (material_data)
-        material_data->material.color.specular.y = data->scroll_bar->value;
+        material_data->material.color.specular.y = data->GetValue();
 }
 
 void MaterialDw::SpecularQualityCallback(dw::ListBox* data) {
@@ -907,7 +907,7 @@ void MaterialDw::SpecularRCallback(dw::Slider* data) {
     MaterialDw* material_dw = (MaterialDw*)data->callback_data.v64;
     obj_material_data* material_data = material_dw->GetMaterial();
     if (material_data)
-        material_data->material.color.specular.x = data->scroll_bar->value;
+        material_data->material.color.specular.x = data->GetValue();
 }
 
 void MaterialDw::SrcBlendFactorCallback(dw::ListBox* data) {
@@ -922,12 +922,12 @@ void MaterialDw::TransparencyCallback(dw::Slider* data) {
     MaterialDw* material_dw = (MaterialDw*)data->callback_data.v64;
     obj_material_data* material_data = material_dw->GetMaterial();
     if (material_data)
-        material_data->material.color.diffuse.w = data->scroll_bar->value;
+        material_data->material.color.diffuse.w = data->GetValue();
 }
 
 void MaterialDw::ZBiasCallback(dw::Slider* data) {
     MaterialDw* material_dw = (MaterialDw*)data->callback_data.v64;
     obj_material_data* material_data = material_dw->GetMaterial();
     if (material_data)
-        material_data->material.attrib.m.zbias = (int32_t)data->scroll_bar->value;
+        material_data->material.attrib.m.zbias = (int32_t)data->GetValue();
 }
