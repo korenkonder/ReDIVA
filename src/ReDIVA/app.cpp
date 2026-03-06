@@ -933,6 +933,7 @@ static render_context* render_context_load(const wchar_t* config_path) {
     ImGui::SetCurrentContext(imgui_context);
     ImGuiIO& io = ImGui::GetIO();
     io.IniFilename = 0;
+    io.LogFilename = 0;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 
     io.Fonts->AddFontDefault();
@@ -1000,7 +1001,7 @@ static render_context* render_context_load(const wchar_t* config_path) {
             ImGui_ImplOpenGL3_Init("#version 420");
         else
             ImGui_ImplOpenGL3_Init("#version 410");
-}
+    }
 #endif
 
     clear_color = 0xFF000000;
