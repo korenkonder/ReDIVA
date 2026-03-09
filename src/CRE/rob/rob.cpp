@@ -18009,10 +18009,10 @@ void OsagePlayDataManager::LoadOpdFileList() {
                 std::string farc_buf = OsagePlayDataManager::GetOpdFarcFilePath(
                     sprintf_s_string("%s.farc", obj_name_buf.c_str()));
                 if (aft_data->check_file_exists(farc_buf.c_str())) {
-                    /*file_handlers.push_back(new p_file_handler);
-                    file_handlers.back()->read_file(aft_data, farc_buf.c_str(), file_buf.c_str(), true);
+                    file_handlers.push_back(new p_file_handler);
+                    file_handlers.back()->read_file(aft_data, farc_buf.c_str(), file_buf.c_str(), prj::MemCTemp, true);
                     i++;
-                    continue;*/
+                    continue;
                 }
 
 #if OPD_PLAY_GEN
