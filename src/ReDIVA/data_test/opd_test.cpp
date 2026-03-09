@@ -286,9 +286,9 @@ void opd_test_free() {
         task_data_test_opd_dw = 0;
     }
 
-    if (task_data_test_opd_dw) {
-        delete task_data_test_opd_dw;
-        task_data_test_opd_dw = 0;
+    if (task_data_test_opd) {
+        delete task_data_test_opd;
+        task_data_test_opd = 0;
     }
 }
 

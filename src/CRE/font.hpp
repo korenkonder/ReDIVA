@@ -57,8 +57,7 @@ struct font_handler {
     void set_font(const font* f, bool disable_glyph_spacing);
 };
 
-extern void fontmap_data_init();
 extern const font_handler* fontmap_data_get_font_handler(int32_t index);
 extern bool fontmap_data_load_file();
 extern void fontmap_data_read_file();
-extern void fontmap_data_free();
+extern void fontmap_data_unload();

@@ -794,7 +794,6 @@ static render_context* render_context_load(const wchar_t* config_path) {
     skin_param_data_load();
 
     input_state_init();
-    fontmap_data_init();
     font_info_default_init();
     dw_console_c_buff_array_init();
     sound_init();
@@ -1353,6 +1352,7 @@ static void render_context_dispose(render_context* rctx) {
     sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
 
     objset_info_storage_unload_set(dbg_set_id);
+    fontmap_data_unload();
     aet_manager_unload_set(aet_gam_loadsc_set_id, aft_aet_db);
     sprite_manager_unload_set(spr_gam_loadsc_set_id, aft_spr_db);
     aet_manager_unload_set(aet_cmn_all_set_id, aft_aet_db);
@@ -1462,7 +1462,6 @@ static void render_context_dispose(render_context* rctx) {
     sound_free();
     dw_console_c_buff_array_free();
     font_info_default_free();
-    fontmap_data_free();
     input_state_free();
 
     skin_param_data_free();

@@ -22,6 +22,7 @@ struct fontmap {
     void parse_file();
     void read_file();
     void set_font_handler(int32_t handler_index, int32_t font_index, bool disable_glyph_spacing = false);
+    void unload();
 };
 
 struct font_character_file {
@@ -57,9 +58,9 @@ struct fontmap_header {
     uint32_t font_offsets_offset;
 };
 
-fontmap* fontmap_data;
-
 static const font_character font_character_null = {};
+
+static fontmap& fontmap_data_get();
 
 font::font() : glyph_width(), glyph_height(), glyph_box_width(), glyph_box_height(),
 column_scale_num(), column_scale_denom(), column_scale(), characters_count_per_row(), disable_glyph_spacing() {
@@ -121,28 +122,20 @@ void font_handler::set_font(const font* f, bool disable_glyph_spacing) {
     this->disable_glyph_spacing = disable_glyph_spacing;
 }
 
-void fontmap_data_init() {
-    if (!fontmap_data)
-        fontmap_data = new fontmap;
-}
-
 const font_handler* fontmap_data_get_font_handler(int32_t index) {
-    return fontmap_data->get_font_handler(index);
+    return fontmap_data_get().get_font_handler(index);
 }
 
 bool fontmap_data_load_file() {
-    return fontmap_data->load_file();
+    return fontmap_data_get().load_file();
 }
 
 void fontmap_data_read_file() {
-    fontmap_data->read_file();
+    fontmap_data_get().read_file();
 }
 
-void fontmap_data_free() {
-    if (fontmap_data) {
-        delete fontmap_data;
-        fontmap_data = 0;
-    }
+void fontmap_data_unload() {
+    fontmap_data_get().unload();
 }
 
 fontmap::fontmap() : read(), handler() {
@@ -279,4 +272,14 @@ void fontmap::read_file() {
 
 void fontmap::set_font_handler(int32_t handler_index, int32_t font_index, bool disable_glyph_spacing) {
     handler[handler_index].set_font(&font[font_index], disable_glyph_spacing);
+}
+
+void fontmap::unload() {
+    file_handler.reset();
+    read = false;
+}
+
+static fontmap& fontmap_data_get() {
+    static fontmap fontmap_data;
+    return fontmap_data;
 }
