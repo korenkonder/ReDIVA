@@ -72,7 +72,7 @@ namespace prj {
 
     void* HeapCMalloc::alloc(size_t size, uint32_t a3, const char* id) {
         std::unique_lock<std::mutex> u_lock(M_mutex);
-        return M_alloc(size, a3, name);
+        return M_alloc(size, a3, id);
     }
 
     bool HeapCMalloc::free(void* data) {

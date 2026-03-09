@@ -6,6 +6,7 @@
 #include "disp_manager.hpp"
 #include "../../KKdLib/database/stage.hpp"
 #include "../Glitter/glitter.hpp"
+#include "../prj/memory_manager.hpp"
 #include "../config.hpp"
 #include "../gl_state.hpp"
 #include "../render_context.hpp"
@@ -1056,7 +1057,7 @@ namespace mdl {
         buff_offset = 0;
         buff_max = 0;
         buff_size = 0x300000;
-        buff = force_malloc(0x300000);
+        buff = prj::MemoryManager::alloc(prj::MemCSystem, 0x300000, "OBJDATABUF");
         texture_color_coefficients = 1.0f;
         texture_color_offset = 0.0f;
         texture_specular_coefficients = 1.0f;
@@ -1068,7 +1069,7 @@ namespace mdl {
             glDeleteVertexArrays(1, &i.vertex_array);
         vertex_array_cache.clear();
 
-        free_def(buff);
+        prj::MemoryManager::free(prj::MemCSystem, buff);
     }
 
     void DispManager::add_vertex_array(const obj_mesh* mesh, const obj_sub_mesh* sub_mesh,

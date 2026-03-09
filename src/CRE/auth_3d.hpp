@@ -13,6 +13,7 @@
 #include "../KKdLib/database/texture.hpp"
 #include "../KKdLib/a3da.hpp"
 #include "../KKdLib/kf.hpp"
+#include "prj/memory_manager.hpp"
 #include "auth_2d.hpp"
 #include "frame_rate_control.hpp"
 #include "render_context.hpp"
@@ -684,7 +685,7 @@ struct auth_3d_object_hrc {
     std::vector<auth_3d_object_hrc*> children_object_hrc;
     std::vector<int32_t> children_object_parent_node;
     std::vector<int32_t> children_object_hrc_parent_node;
-    std::vector<mat4> mats;
+    prj::sys_vector<mat4> mats;
     std::string name;
     std::vector<auth_3d_object_node> node;
     object_info object_info;
@@ -706,7 +707,7 @@ struct auth_3d_object_hrc {
 };
 
 struct auth_3d_object_instance {
-    std::vector<mat4> mats;
+    prj::sys_vector<mat4> mats;
     auth_3d_object_model_transform model_transform;
     std::string name;
     std::vector<int32_t> object_bone_indices;

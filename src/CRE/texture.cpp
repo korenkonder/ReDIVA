@@ -4,6 +4,7 @@
 */
 
 #include "texture.hpp"
+#include "prj/memory_manager.hpp"
 #include "gl_state.hpp"
 #include "shared.hpp"
 #include "static_var.hpp"
@@ -83,7 +84,7 @@ void texture_apply_color_tone(const texture* chg_tex,
 
     for (int32_t i = 0; i <= org_tex->max_mipmap_level; i++) {
         int32_t size = org_tex->get_size_mip_level(i);
-        void* data = force_malloc(size);
+        void* data = prj::MemoryManager::alloc(prj::MemCTemp, size, "imgf_color_tone_cpu()");
         if (!data)
             break;
 
@@ -119,7 +120,7 @@ void texture_apply_color_tone(const texture* chg_tex,
                 GL_RGB, GL_UNSIGNED_SHORT_5_6_5, data);
         }
         gl_get_error_print();
-        free_def(data);
+        prj::MemoryManager::free(prj::MemCTemp, data);
     }
     texture_bind(org_tex->target, 0);
 }
@@ -139,7 +140,8 @@ texture* texture_create_copy_texture(texture_id id, texture* org_tex) {
 
     texture_bind(org_tex->target, org_tex->glid);
     for (int32_t i = 0; i <= org_tex->max_mipmap_level; i++) {
-        void* data = force_malloc(org_tex->get_size_mip_level(i));
+        void* data = prj::MemoryManager::alloc(prj::MemCTemp,
+            org_tex->get_size_mip_level(i), "create_copy_texture()");
         if (!data)
             break;
 
@@ -156,7 +158,7 @@ texture* texture_create_copy_texture(texture_id id, texture* org_tex) {
         org_tex->width, org_tex->height, org_tex->max_mipmap_level, (const void**)vec_data.data(), true);
 
     for (void*& i : vec_data)
-        free_def(i);
+        prj::MemoryManager::free(prj::MemCTemp, i);
 
     return tex;
 }
@@ -178,7 +180,7 @@ texture* texture_create_copy_texture_apply_color_tone(
     texture_bind(org_tex->target, org_tex->glid);
     for (int32_t i = 0; i <= org_tex->max_mipmap_level; i++) {
         int32_t size = org_tex->get_size_mip_level(i);
-        void* data = force_malloc(org_tex->get_size_mip_level(i));
+        void* data = prj::MemoryManager::alloc(prj::MemCTemp, size, "create_copy_texture_imgf_color_tone_cpu()");
         if (!data)
             break;
 
@@ -210,7 +212,7 @@ texture* texture_create_copy_texture_apply_color_tone(
         org_tex->width, org_tex->height, org_tex->max_mipmap_level, (const void**)vec_data.data(), true);
 
     for (void*& i : vec_data)
-        free_def(i);
+        prj::MemoryManager::free(prj::MemCTemp, i);
 
     return tex;
 }
@@ -275,7 +277,7 @@ void texture_array_free(texture** arr) {
 
     for (texture** i = arr; *i; i++)
         texture_release(*i);
-    free_def(arr);
+    prj::MemoryManager::free(prj::MemCSystem, arr);
 }
 
 void texture_get_format_type_by_internal_format(GLenum internal_format, GLenum* format, GLenum* type) {
@@ -544,7 +546,7 @@ bool texture_txp_set_load(txp_set* t, texture*** texs, uint32_t* ids) {
         return false;
 
     size_t count = t->textures.size();
-    *texs = force_malloc<texture*>(count + 1);
+    *texs = prj::MemoryManager::alloc<texture*>(prj::MemCSystem, count + 1, "TXHD");
     texture** tex = *texs;
     for (size_t i = 0; i < count; i++)
         tex[i] = texture_txp_load(&t->textures[i], texture_id(0x00, ids[i]));
@@ -557,7 +559,7 @@ bool texture_txp_set_load(txp_set* t, texture*** texs, texture_id* ids) {
         return false;
 
     size_t count = t->textures.size();
-    *texs = force_malloc<texture*>(count + 1);
+    *texs = prj::MemoryManager::alloc<texture*>(prj::MemCSystem, count + 1, "TXHD");
     texture** tex = *texs;
     for (size_t i = 0; i < count; i++)
         tex[i] = texture_txp_load(&t->textures[i], ids[i]);
@@ -641,7 +643,14 @@ static int32_t texture_load_pixels(GLenum target, GLenum internal_format,
     case GL_COMPRESSED_RED_RGTC1:
     case GL_COMPRESSED_RG_RGTC2: {
         int32_t size = texture_get_size(internal_format, width, height);
-        glCompressedTexImage2D(target, level, internal_format, width, height, 0, size, data);
+        if (data)
+            glCompressedTexImage2D(target, level, internal_format, width, height, 0, size, data);
+        else {
+            void* data = prj::MemoryManager::alloc(prj::MemCTemp, size, "load_pixels()");
+            memset(data, 0, size);
+            glCompressedTexImage2D(target, level, internal_format, width, height, 0, size, data);
+            prj::MemoryManager::free(prj::MemCTemp, data);
+        }
     } break;
     default: {
         GLenum format;

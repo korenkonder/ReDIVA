@@ -317,7 +317,7 @@ void module_table_handler::read() {
 
         if (aft_data->check_file_exists("rom/", farc_file.c_str())) {
             p_file_handler* pfhndl = new p_file_handler;
-            pfhndl->read_file(aft_data, "rom/", farc_file.c_str(), "gm_module_id.bin", false);
+            pfhndl->read_file(aft_data, "rom/", farc_file.c_str(), "gm_module_id.bin", prj::MemCTemp, false);
             file_handlers.push_back(pfhndl);
         }
     }

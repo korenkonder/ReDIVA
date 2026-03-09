@@ -4,6 +4,7 @@
 */
 
 #include "render_texture.hpp"
+#include "prj/memory_manager.hpp"
 #include "gl_rend_state.hpp"
 #include "gl_state.hpp"
 #include "texture.hpp"
@@ -70,7 +71,7 @@ void RenderTexture::Free() {
 
     if (fbos) {
         glDeleteFramebuffers(max_level + 1, fbos);
-        free(fbos);
+        prj::MemoryManager::free(prj::MemCSystem, fbos);
         fbos = 0;
     }
     max_level = 0;
@@ -174,7 +175,7 @@ void render_texture_counter_reset() {
 }
 
 static int32_t render_texture_init_framebuffer(RenderTexture* rt, int32_t max_level) {
-    rt->fbos = force_malloc<GLuint>(max_level + 1LL);
+    rt->fbos = prj::MemoryManager::alloc<GLuint>(prj::MemCSystem, max_level + 1LL, "FBO");
     glGenFramebuffers(max_level + 1, rt->fbos);
     return -(gl_get_error_print() != GL_ZERO);
 }

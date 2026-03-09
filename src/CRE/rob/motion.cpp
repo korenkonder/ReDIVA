@@ -42,7 +42,7 @@ void MhdFile::LoadFile(const char* path, const char* file, uint32_t set) {
     this->set = set;
     file_path.assign(path);
     file_path.append(file);
-    if (file_handler.read_file(&data_list[DATA_AFT], path, file))
+    if (file_handler.read_file(&data_list[DATA_AFT], path, file, prj::MemCSystem))
         file_handler.set_callback_data(0, (PFNFILEHANDLERCALLBACK*)ParseFileParent, this);
     load_count = 1;
 }
@@ -206,11 +206,12 @@ void MotFile::LoadFile(std::string&& mdata_dir, uint32_t set) {
     dir.assign(rom_dir);
     dir.append(rob_dir);
     if (aft_data->check_file_exists(dir.c_str(), farc_file.c_str())) {
-        if (file_handler.read_file(aft_data, dir.c_str(), farc_file.c_str(), mot_file.c_str(), false))
+        if (file_handler.read_file(aft_data, dir.c_str(),
+            farc_file.c_str(), mot_file.c_str(), prj::MemCSystem, false))
             file_handler.set_callback_data(0, (PFNFILEHANDLERCALLBACK*)ParseFileParent, this);
     }
     else {
-        if (file_handler.read_file(aft_data, rom_dir.c_str(), mot_file.c_str()))
+        if (file_handler.read_file(aft_data, rom_dir.c_str(), mot_file.c_str(), prj::MemCSystem))
             file_handler.set_callback_data(0, (PFNFILEHANDLERCALLBACK*)ParseFileParent, this);
     }
     load_count = 1;

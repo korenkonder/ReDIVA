@@ -5329,7 +5329,7 @@ void x_pv_game_stage_data::load(int32_t stage_id, FrameRateControl* frame_rate_c
 
     char buf[0x200];
     sprintf_s(buf, sizeof(buf), "pv_stgpv%03d.stg", stage_id);
-    file_handler.read_file(&data_list[DATA_X], "root+/stage/", buf);
+    file_handler.read_file(&data_list[DATA_X], "root+/stage/", buf, prj::MemCSystem);
 
     task_stage_modern_add_task("X_PV_STAGE");
 
@@ -5805,7 +5805,7 @@ void x_pv_game_stage::load(int32_t stage_id, FrameRateControl* frame_rate_contro
 
     char buf[0x200];
     sprintf_s(buf, sizeof(buf), "stgpv%03d_param.pvsr", stage_id);
-    stage_resource_file_handler.read_file(&data_list[DATA_X], "root+/pv_stage_rsrc/", buf);
+    stage_resource_file_handler.read_file(&data_list[DATA_X], "root+/pv_stage_rsrc/", buf, prj::MemCSystem);
     state = 10;
 }
 
@@ -6591,7 +6591,7 @@ bool x_pv_game::ctrl() {
             x_pv_game_data& pv_data = this->data[i];
 
             sprintf_s(buf, sizeof(buf), "pv%03d.pvpp", pv_data.pv_id);
-            pv_data.play_param_file_handler.read_file(&data_list[DATA_X], "root+/pv/", buf);
+            pv_data.play_param_file_handler.read_file(&data_list[DATA_X], "root+/pv/", buf, prj::MemCSystem);
             pv_data.stage = &stage_data;
         }
 

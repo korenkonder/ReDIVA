@@ -1556,7 +1556,7 @@ bool sound_db_farc::read(const char* file_path) {
         unload();
 
     this->file_path.assign(file_path);
-    return file_handler.read_file(&data_list[DATA_AFT], file_path);
+    return file_handler.read_file(&data_list[DATA_AFT], file_path, prj::MemCSystem);
 }
 
 bool sound_db_farc::unload() {

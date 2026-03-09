@@ -13,6 +13,7 @@
 #include "../../KKdLib/mot.hpp"
 #include "../../KKdLib/rectangle.hpp"
 #include "../../KKdLib/vec.hpp"
+#include "../prj/memory_manager.hpp"
 #include "../item_table.hpp"
 #include "../render_context.hpp"
 #include "../object.hpp"
@@ -937,9 +938,9 @@ struct struc_369 {
 struct mot_key_data {
     bool key_sets_ready;
     size_t key_set_count;
-    std::vector<mot_key_set> key_set;
+    prj::sys_vector<mot_key_set> key_set;
     mot mot;
-    std::vector<float_t> key_set_data;
+    prj::sys_vector<float_t> key_set_data;
     const mot_data* mot_data;
     bone_database_skeleton_type skeleton_type;
     int32_t skeleton_select;
@@ -995,8 +996,8 @@ struct bone_data_parent {
     size_t motion_bone_count;
     size_t leaf_pos;
     size_t chain_pos;
-    std::vector<bone_data> bones;
-    std::vector<uint16_t> bone_indices;
+    prj::sys_vector<bone_data> bones;
+    prj::sys_vector<uint16_t> bone_indices;
     vec3 global_position;
     vec3 global_rotation;
     uint32_t bone_key_set_count;
@@ -1084,7 +1085,7 @@ public:
     virtual void Reset();
     virtual void Field_10(float_t, float_t, int32_t) = 0;
     virtual void Step(struc_400*) = 0;
-    virtual void Field_20(std::vector<bone_data>* bones_curr, std::vector<bone_data>* bones_prev) = 0;
+    virtual void Field_20(prj::sys_vector<bone_data>* bones_curr, prj::sys_vector<bone_data>* bones_prev) = 0;
     virtual void Blend(bone_data* curr, bone_data* prev) = 0;
     virtual bool Field_30();
 
@@ -1106,7 +1107,7 @@ public:
     virtual void Reset() override;
     virtual void Field_10(float_t, float_t, int32_t) override;
     virtual void Step(struc_400*) override;
-    virtual void Field_20(std::vector<bone_data>* bones_curr, std::vector<bone_data>* bones_prev) override;
+    virtual void Field_20(prj::sys_vector<bone_data>* bones_curr, prj::sys_vector<bone_data>* bones_prev) override;
     virtual void Blend(bone_data* curr, bone_data* prev) override;
     virtual bool Field_30() override;
 };
@@ -1139,7 +1140,7 @@ public:
     virtual void Reset() override;
     virtual void Field_10(float_t, float_t, int32_t) override;
     virtual void Step(struc_400*) override;
-    virtual void Field_20(std::vector<bone_data>* bones_curr, std::vector<bone_data>* bones_prev) override;
+    virtual void Field_20(prj::sys_vector<bone_data>* bones_curr, prj::sys_vector<bone_data>* bones_prev) override;
     virtual void Blend(bone_data* curr, bone_data* prev) override;
 };
 
@@ -1151,12 +1152,12 @@ public:
     virtual void Reset() override;
     virtual void Field_10(float_t, float_t, int32_t) override;
     virtual void Step(struc_400*) override;
-    virtual void Field_20(std::vector<bone_data>* bones_curr, std::vector<bone_data>* bones_prev) override;
+    virtual void Field_20(prj::sys_vector<bone_data>* bones_curr, prj::sys_vector<bone_data>* bones_prev) override;
     virtual void Blend(bone_data* curr, bone_data* prev) override;
 };
 
 struct struc_313 {
-    std::vector<uint32_t> bitfield;
+    prj::sys_vector<uint32_t> bitfield;
     size_t motion_bone_count;
 
     struc_313();
@@ -1216,8 +1217,8 @@ struct partial_motion_blend_mot {
 
     void init(bone_database_skeleton_type type,
         PFNMOTIONBONECHECKFUNC bone_check_func, size_t motion_bone_count, const bone_database* bone_data);
-    void interpolate(std::vector<bone_data>& bones,
-        const std::vector<uint16_t>* bone_indices, bone_database_skeleton_type skeleton_type);
+    void interpolate(prj::sys_vector<bone_data>& bones,
+        const prj::sys_vector<uint16_t>* bone_indices, bone_database_skeleton_type skeleton_type);
     void load_motion(uint32_t motion_id, const motion_database* mot_db);
     void reset();
     void set_blend_duration(float_t duration, float_t step, float_t offset);
@@ -1283,7 +1284,7 @@ struct struc_936 {
 };
 
 struct rob_chara_look_anim {
-    std::vector<bone_data>* bones;
+    prj::sys_vector<bone_data>* bones;
     mat4 mat;
     rob_chara_look_anim_eye_param param;
     bool update_view_point;
@@ -1357,7 +1358,7 @@ struct rob_chara_sleeve_adjust {
     vec3 field_74;
     vec3 field_80;
     float_t radius;
-    std::vector<bone_data>* bones;
+    prj::sys_vector<bone_data>* bones;
     float_t step;
 
     rob_chara_sleeve_adjust();

@@ -12,6 +12,7 @@
 #include "../KKdLib/hash.hpp"
 #include "../KKdLib/msgpack.hpp"
 #include "../KKdLib/str_utils.hpp"
+#include "prj/memory_manager.hpp"
 #include "data.hpp"
 #include "gl_state.hpp"
 #include "render_context.hpp"
@@ -98,11 +99,11 @@ void* obj_mesh_index_buffer::fill_data(void* data, obj_mesh& mesh) {
         obj_sub_mesh& sub_mesh = mesh.submesh_array[i];
 
         if (sub_mesh.primitive_type == OBJ_PRIMITIVE_TRIANGLE_STRIP && !(sub_mesh.attrib.w & 0x80)){
-            uint32_t* index_array = force_malloc<uint32_t>(sub_mesh.num_index);
+            uint32_t* index_array = prj::MemoryManager::alloc<uint32_t>(prj::MemCTemp, sub_mesh.num_index, "NEW INDICES");
             sub_mesh.num_index = remove_degenerate_triangle_indices(
                 index_array, sub_mesh.num_index, sub_mesh.index_array);
             memmove(sub_mesh.index_array, index_array, sizeof(uint32_t) * sub_mesh.num_index);
-            free_def(index_array);
+            prj::MemoryManager::free(prj::MemCTemp, index_array);
         }
 
         uint32_t* index = sub_mesh.index_array;
@@ -192,13 +193,13 @@ bool obj_mesh_vertex_buffer::load(obj_mesh& mesh, GL::BufferUsage usage) {
         break;
     }
 
-    void* vertex = force_malloc((size_t)size_vertex * mesh.num_vertex);
+    void* vertex = prj::MemoryManager::alloc(prj::MemCTemp, (size_t)size_vertex * mesh.num_vertex, "TMP_VTXBUF");
     obj_mesh_vertex_buffer::fill_data(vertex, mesh);
     mesh.size_vertex = size_vertex;
 
     bool ret = load_data((size_t)size_vertex * mesh.num_vertex,
         vertex, mesh.attrib.m.double_buffer ? 2 : 1, usage);
-    free_def(vertex);
+    prj::MemoryManager::free(prj::MemCTemp, vertex);
     return ret;
 }
 
@@ -445,7 +446,7 @@ bool obj_index_buffer::load(obj* obj) {
         return false;
 
     mesh_num = obj->num_mesh;
-    mesh_data = new obj_mesh_index_buffer[obj->num_mesh];
+    mesh_data = prj::MemoryManager::alloc<obj_mesh_index_buffer>(prj::MemCSystem, obj->num_mesh, "MESHIB");
     if (!mesh_data)
         return false;
 
@@ -504,7 +505,7 @@ void obj_index_buffer::unload() {
         for (int32_t i = 0; i < mesh_num; i++)
             mesh_data[i].unload();
 #endif
-        delete[] mesh_data;
+        prj::MemoryManager::free(prj::MemCSystem, mesh_data);
     }
     mesh_data = 0;
     mesh_num = 0;
@@ -559,7 +560,7 @@ bool obj_vertex_buffer::load(obj* obj) {
 
     int32_t count = double_buffer ? 2 : 1;
 
-    void* vertex = force_malloc(buffer_size);
+    void* vertex = prj::MemoryManager::alloc(prj::MemCTemp, buffer_size, "TMP_VTXBUF");
     if (!vertex && buffer_size) {
         for (int32_t i = 0; i < count; i++)
             buffers[i] = 0;
@@ -580,13 +581,13 @@ bool obj_vertex_buffer::load(obj* obj) {
     for (int32_t i = 0; i < count; i++) {
         buffers[i] = create_vertex_buffer(buffer_size, vertex);
         if (!buffers[i] && buffer_size) {
-            free_def(vertex);
+            prj::MemoryManager::free(prj::MemCTemp, vertex);
             unload();
             return false;
         }
     }
 
-    free_def(vertex);
+    prj::MemoryManager::free(prj::MemCTemp, vertex);
 
     for (int32_t i = 0; i < mesh_num; i++)
         memcpy(mesh_data[i].buffers, buffers, count * sizeof(GLuint));
@@ -2112,13 +2113,15 @@ int32_t objset_info_storage_load_set(void* data, const object_database* obj_db, 
 
     if (archive_file_name.size()) {
         info->obj_file_handler.read_file(data, "rom/objset/",
-            archive_file_name.c_str(), object_file_name.c_str(), false);
+            archive_file_name.c_str(), object_file_name.c_str(), prj::MemCSystem, false);
         info->tex_file_handler.read_file(data, "rom/objset/",
-            archive_file_name.c_str(), texture_file_name.c_str(), false);
+            archive_file_name.c_str(), texture_file_name.c_str(), prj::MemCSystem, false);
     }
     else {
-        info->obj_file_handler.read_file(data, "rom/objset/", object_file_name.c_str());
-        info->tex_file_handler.read_file(data, "rom/objset/", texture_file_name.c_str());
+        info->obj_file_handler.read_file(data,
+            "rom/objset/", object_file_name.c_str(), prj::MemCSystem);
+        info->tex_file_handler.read_file(data,
+            "rom/objset/", texture_file_name.c_str(), prj::MemCSystem);
     }
 
     info->load_count = 1;
@@ -2151,13 +2154,15 @@ int32_t objset_info_storage_load_set(void* data, const object_database* obj_db, 
 
     if (archive_file_name.size()) {
         info->obj_file_handler.read_file(data, "rom/objset/",
-            archive_file_name.c_str(), object_file_name.c_str(), false);
+            archive_file_name.c_str(), object_file_name.c_str(), prj::MemCSystem, false);
         info->tex_file_handler.read_file(data, "rom/objset/",
-            archive_file_name.c_str(), texture_file_name.c_str(), false);
+            archive_file_name.c_str(), texture_file_name.c_str(), prj::MemCSystem, false);
     }
     else {
-        info->obj_file_handler.read_file(data, "rom/objset/", object_file_name.c_str());
-        info->tex_file_handler.read_file(data, "rom/objset/", texture_file_name.c_str());
+        info->obj_file_handler.read_file(data,
+            "rom/objset/", object_file_name.c_str(), prj::MemCSystem);
+        info->tex_file_handler.read_file(data,
+            "rom/objset/", texture_file_name.c_str(), prj::MemCSystem);
     }
 
     info->load_count = 1;
@@ -2187,7 +2192,7 @@ int32_t objset_info_storage_load_set_hash(void* data, uint32_t hash) {
 
     info->modern = true;
 
-    info->farc_file_handler.read_file(data, "root+/objset/", file.c_str());
+    info->farc_file_handler.read_file(data, "root+/objset/", file.c_str(), prj::MemCSystem);
 
     info->load_count = 1;
     info->obj_loaded = false;
@@ -2648,7 +2653,7 @@ static void ObjsetInfo_get_shader_index_texture_index(ObjsetInfo* info) {
 static bool ObjsetInfo_index_buffer_load(ObjsetInfo* info) {
     obj_set* set = info->obj_set;
     info->objib_num = set->obj_num;
-    info->objib = new obj_index_buffer[set->obj_num];
+    info->objib = prj::MemoryManager::alloc<obj_index_buffer>(prj::MemCSystem, set->obj_num, "OBJIB");
     if (!info->objib)
         return true;
 
@@ -2662,7 +2667,7 @@ static void ObjsetInfo_index_buffer_free(ObjsetInfo* info) {
     if (info->objib) {
         for (int32_t i = 0; i < info->objib_num; i++)
             info->objib[i].unload();
-        delete[] info->objib;
+        prj::MemoryManager::free(prj::MemCSystem, info->objib);
     }
 
     info->objib = 0;
@@ -2786,7 +2791,7 @@ static void ObjsetInfo_vertex_array_load(ObjsetInfo* info) {
 static bool ObjsetInfo_vertex_buffer_load(ObjsetInfo* info) {
     obj_set* set = info->obj_set;
     info->objvb_num = set->obj_num;
-    info->objvb = new obj_vertex_buffer[set->obj_num];
+    info->objvb = prj::MemoryManager::alloc<obj_vertex_buffer>(prj::MemCSystem, set->obj_num, "OBJVB");
     if (!info->objvb)
         return true;
 
@@ -2800,7 +2805,7 @@ static void ObjsetInfo_vertex_buffer_free(ObjsetInfo* info) {
     if (info->objvb) {
         for (int32_t i = 0; i < info->objvb_num; i++)
             info->objvb[i].unload();
-        delete[] info->objvb;
+        prj::MemoryManager::free(prj::MemCSystem, info->objvb);
     }
 
     info->objvb = 0;

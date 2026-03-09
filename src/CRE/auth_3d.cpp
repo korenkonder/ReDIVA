@@ -7555,7 +7555,7 @@ static void auth_3d_farc_read_file(auth_3d_farc* a3da_farc, const char* mdata_di
     a3da_farc->file.append(".farc");
 
     if (a3da_farc->file_handler.read_file(&data_list[DATA_AFT],
-        a3da_farc->path.c_str(), a3da_farc->file.c_str()))
+        a3da_farc->path.c_str(), a3da_farc->file.c_str(), prj::MemCSystem))
         a3da_farc->file_handler.set_callback_data(0,
             (PFNFILEHANDLERCALLBACK*)auth_3d_farc_read_func, a3da_farc);
     else
@@ -7574,7 +7574,7 @@ static void auth_3d_farc_read_file_modern(auth_3d_farc* a3da_farc, void* data) {
     a3da_farc->file.append(".farc");
 
     if (a3da_farc->file_handler.read_file(data, a3da_farc->path.c_str(),
-        hash_string_murmurhash(a3da_farc->name), ".farc"))
+        hash_string_murmurhash(a3da_farc->name), ".farc", prj::MemCSystem))
         a3da_farc->file_handler.set_callback_data(0,
             (PFNFILEHANDLERCALLBACK*)auth_3d_farc_read_func, a3da_farc);
     else

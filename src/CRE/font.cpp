@@ -266,7 +266,7 @@ void fontmap::read_file() {
     if (read)
         return;
 
-    file_handler.read_file(&data_list[DATA_AFT], "rom/", "fontmap.farc", "fontmap.bin", false);
+    file_handler.read_file(&data_list[DATA_AFT], "rom/", "fontmap.farc", "fontmap.bin", prj::MemCSystem, false);
     read = false;
 }
 

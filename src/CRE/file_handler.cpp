@@ -8,6 +8,7 @@
 #include "../KKdLib/io/path.hpp"
 #include "../KKdLib/farc.hpp"
 #include "../KKdLib/hash.hpp"
+#include "prj/memory_manager.hpp"
 #include "data.hpp"
 #include "file_handler.hpp"
 #include "static_var.hpp"
@@ -54,16 +55,21 @@ static bool file_handler_load_farc_file(void* data, const char* dir, const char*
 static void file_handler_storage_ctrl_list();
 static void file_handler_storage_thread_ctrl();
 
-file_handler::file_handler() : count(), not_ready(true),
-reading(), cache(), callback(), size(), data(), ds() {
+file_handler::file_handler() : count(), not_ready(true), reading(),
+mem_c_type(prj::MemCMax), cache(), callback(), size(), data(), ds() {
 
 }
 
 file_handler::~file_handler() {
     if (data) {
-        free(data);
+        file_handler::free(mem_c_type, data);
         data = 0;
     }
+}
+
+void file_handler::add_count() {
+    std::unique_lock<std::mutex> u_lock(mtx);
+    count++;
 }
 
 void file_handler::call_callback(int32_t index) {
@@ -113,6 +119,27 @@ void file_handler::set_callback_data(int32_t index, PFNFILEHANDLERCALLBACK* func
         callback[index].data = data;
         callback[index].ready = false;
     }
+}
+
+inline void file_handler::set_mem_c_type(prj::MemCType type) {
+    std::unique_lock<std::mutex> u_lock(mtx);
+    mem_c_type = type;
+}
+
+void* file_handler::alloc(prj::MemCType type, size_t size, const char* id) {
+    if (type == prj::MemCMax)
+        return malloc(size);
+
+    return prj::MemoryManager::alloc(type, size, id);
+}
+
+void file_handler::free(prj::MemCType type, void* data) {
+    if (type == prj::MemCMax) {
+        ::free(data);
+        return;
+    }
+
+    prj::MemoryManager::free(type, data);
 }
 
 void file_handler::reset() {
@@ -211,10 +238,7 @@ void file_handler_storage_ctrl() {
         if (!deque.size()) {
             for (file_handler*& i : list)
                 if (i->not_ready && !i->reading) {
-                    {
-                        std::unique_lock<std::mutex> u_lock(i->mtx);
-                        i->count++;
-                    }
+                    i->add_count();
                     deque.push_back(i);
                 }
 
@@ -255,7 +279,7 @@ static bool file_handler_load_file(void* data, const char* dir, const char* file
     s.open(file_path.c_str(), "rb");
     bool ret = s.check_not_null() && s.read(fhndl->data, fhndl->size);
     if (!ret && fhndl->data) {
-        free(fhndl->data);
+        file_handler::free(fhndl->mem_c_type, fhndl->data);
         fhndl->data = 0;
     }
     return ret;
@@ -285,13 +309,13 @@ static bool file_handler_load_farc_file(void* data, const char* dir, const char*
         if (!fhndl->size)
             fhndl->size = 1;
 
-        fhndl->data = malloc(fhndl->size);
+        fhndl->data = file_handler::alloc(fhndl->mem_c_type, fhndl->size, file_path.c_str());
         if (fhndl->data && farc_read_hndl->read_data(fhndl->data, fhndl->size, fhndl->file))
             return true;
     }
 
     if (fhndl->data) {
-        free(fhndl->data);
+        file_handler::free(fhndl->mem_c_type, fhndl->data);
         fhndl->data = 0;
     }
 
@@ -299,7 +323,7 @@ static bool file_handler_load_farc_file(void* data, const char* dir, const char*
     if (sv_opd_play_gen && fhndl->file.size() >= 4
         && !fhndl->file.compare(fhndl->file.size() - 4, 4, ".opd")) {
         fhndl->size = 0x14;
-        fhndl->data = malloc(fhndl->size);;
+        fhndl->data = file_handler::alloc(fhndl->mem_c_type, fhndl->size, file_path.c_str());;
         if (fhndl->data) {
             memset(fhndl->data, 0, 0x14);
             *(uint32_t*)fhndl->data = 'OPDP';
@@ -394,32 +418,33 @@ size_t p_file_handler::get_size() {
     return ptr->size;
 }
 
-bool p_file_handler::read_file(void* data, const char* path) {
+bool p_file_handler::read_file(void* data, const char* path, prj::MemCType mem_c_type) {
     const char* t = strrchr(path, '/');
     if (!t)
         t = strrchr(path, '\\');
 
     if (t) {
         std::string dir(path, t - path + 1);
-        return read_file(data, dir.c_str(), 0, t + 1, false);
+        return read_file(data, dir.c_str(), 0, t + 1, mem_c_type, false);
     }
     return false;
 }
 
-bool p_file_handler::read_file(void* data, const char* farc_path, const char* file, bool cache) {
+bool p_file_handler::read_file(void* data,
+    const char* farc_path, const char* file, prj::MemCType mem_c_type, bool cache) {
     const char* t = strrchr(farc_path, '/');
     if (!t)
         t = strrchr(farc_path, '\\');
 
     if (t) {
         std::string dir(farc_path, t - farc_path + 1);
-        return read_file(data, dir.c_str(), t + 1, file, cache);
+        return read_file(data, dir.c_str(), t + 1, file, mem_c_type, cache);
     }
     return false;
 }
 
 bool p_file_handler::read_file(void* data, const char* dir,
-    const char* farc_file, const char* file, bool cache) {
+    const char* farc_file, const char* file, prj::MemCType mem_c_type, bool cache) {
     if (!dir || !file)
         return false;
 
@@ -439,30 +464,23 @@ bool p_file_handler::read_file(void* data, const char* dir,
 
     ptr->ds = data;
 
-    {
-        std::unique_lock<std::mutex> u_lock(ptr->mtx);
-        ptr->count++;
-    }
-
+    ptr->add_count();
     ptr->set_dir(dir);
     if (farc_file)
         ptr->set_farc_file(farc_file, cache);
     ptr->set_file(file);
-
-    {
-        std::unique_lock<std::mutex> u_lock(ptr->mtx);
-        ptr->count++;
-    }
+    ptr->set_mem_c_type(mem_c_type);
+    ptr->add_count();
 
     file_handler_storage_data->list.push_back(ptr);
     return true;
 }
 
-bool p_file_handler::read_file(void* data, const char* dir, const char* file) {
-    return read_file(data, dir, 0, file, false);
+bool p_file_handler::read_file(void* data, const char* dir, const char* file, prj::MemCType mem_c_type) {
+    return read_file(data, dir, 0, file, mem_c_type, false);
 }
 
-bool p_file_handler::read_file(void* data, const char* dir, uint32_t hash, const char* ext) {
+bool p_file_handler::read_file(void* data, const char* dir, uint32_t hash, const char* ext, prj::MemCType mem_c_type) {
     if (!data || !dir || !hash || hash == hash_murmurhash_empty)
         return false;
 
@@ -482,18 +500,11 @@ bool p_file_handler::read_file(void* data, const char* dir, uint32_t hash, const
 
     ptr->ds = data;
 
-    {
-        std::unique_lock<std::mutex> u_lock(ptr->mtx);
-        ptr->count++;
-    }
-
+    ptr->add_count();
     ptr->set_dir(dir);
     ptr->set_file(file.c_str());
-
-    {
-        std::unique_lock<std::mutex> u_lock(ptr->mtx);
-        ptr->count++;
-    }
+    ptr->set_mem_c_type(mem_c_type);
+    ptr->add_count();
 
     file_handler_storage_data->list.push_back(ptr);
     return true;

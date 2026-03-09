@@ -2478,7 +2478,7 @@ void pv_game_pv_data::init(::pv_game* pv_game, bool music_play) {
 bool pv_game_pv_data::load(std::string&& file_path, ::pv_game* pv_game, bool music_play) {
     switch (dsc_state) {
     case 0:
-        if (dsc_file_handler.read_file(&data_list[DATA_AFT], file_path.c_str()))
+        if (dsc_file_handler.read_file(&data_list[DATA_AFT], file_path.c_str(), prj::MemCTemp))
             dsc_state = 1;
         break;
     case 1: {

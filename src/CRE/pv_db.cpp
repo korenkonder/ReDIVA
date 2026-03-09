@@ -906,7 +906,8 @@ namespace pv_db {
 
             if (paths.size()) {
                 std::pair<std::string, std::string>& path = paths.front();
-                file_handler.read_file(&data_list[DATA_AFT], path.first.c_str(), path.second.c_str());
+                file_handler.read_file(&data_list[DATA_AFT],
+                    path.first.c_str(), path.second.c_str(), prj::MemCTemp);
                 state = 2;
             }
             else

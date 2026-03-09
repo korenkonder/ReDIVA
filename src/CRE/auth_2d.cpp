@@ -310,7 +310,7 @@ void AetSet::ReadFile(const char* dir, const char* file, void* data) {
     }
 
     load_count = 1;
-    file_handler.read_file(data, dir, file);
+    file_handler.read_file(data, dir, file, prj::MemCSystem);
     ready = false;
     aet_set = 0;
 }
@@ -368,7 +368,7 @@ void AetSet::ReadFileModern(uint32_t set_hash, void* data) {
 
     std::string file;
     if (((data_struct*)data)->get_file("root+/2d/", set_hash, ".farc", file))
-        file_handler.read_file(data, "root+/2d/", file.c_str());
+        file_handler.read_file(data, "root+/2d/", file.c_str(), prj::MemCSystem);
     this->hash = set_hash;
     ready = false;
     aet_set = 0;

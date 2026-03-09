@@ -958,7 +958,7 @@ bool DtmMot::ctrl() {
                 pv_id, PV_DIFFICULTY_HARD, PV_EDITION_ORIGINAL);
             if (diff) {
                 dsc_file_handler.reset();
-                dsc_file_handler.read_file(aft_data, diff->script_file_name.c_str());
+                dsc_file_handler.read_file(aft_data, diff->script_file_name.c_str(), prj::MemCMax);
             }
         }
 

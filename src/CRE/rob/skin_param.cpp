@@ -902,9 +902,9 @@ void SkinParamManager::AddFiles() {
 
             p_file_handler* pfhndl = new p_file_handler;
             if (read_farc)
-                pfhndl->read_file(aft_data, dir.c_str(), farc_file.c_str(), file.c_str(), false);
+                pfhndl->read_file(aft_data, dir.c_str(), farc_file.c_str(), file.c_str(), prj::MemCTemp, false);
             else
-                pfhndl->read_file(aft_data, dir.c_str(), file.c_str());
+                pfhndl->read_file(aft_data, dir.c_str(), file.c_str(), prj::MemCTemp);
             skp_file->file_handler = pfhndl;
             files.push_back(skp_file);
         }

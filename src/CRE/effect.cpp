@@ -11,6 +11,7 @@
 #include "GL/element_array_buffer.hpp"
 #include "GL/shader_storage_buffer.hpp"
 #include "GL/uniform_buffer.hpp"
+#include "prj/memory_manager.hpp"
 #include "rob/rob.hpp"
 #include "app_system_detail.hpp"
 #include "auth_3d.hpp"
@@ -4829,7 +4830,7 @@ void TaskEffectStar::set_stage_indices(const std::vector<int32_t>& stage_indices
         file = "megastar2.bin";
     }
 
-    star_catalog_data.file_handler.read_file(&data_list[DATA_AFT], dir, farc_file, file, false);
+    star_catalog_data.file_handler.read_file(&data_list[DATA_AFT], dir, farc_file, file, prj::MemCTemp, false);
     star_catalog_data.set_stage_param_data(star);
 }
 
@@ -6345,7 +6346,7 @@ static void rain_particle_init(bool change_stage) {
 
     rain_particle_free();
 
-    vec3* vtx_data = force_malloc<vec3>(rain_ptcl_count);
+    vec3* vtx_data = prj::MemoryManager::alloc<vec3>(prj::MemCTemp, rain_ptcl_count, "init_rain");
     for (int32_t i = 0; i < rain_ptcl_count; i++) {
         vec3 position;
         position.x = rand_state_array_get_float(4);
@@ -6362,7 +6363,7 @@ static void rain_particle_init(bool change_stage) {
     };
     rain_storage.Create(gl_state, sizeof(vec3), rain_ptcl_count, attribs, vtx_data);
 
-    free_def(vtx_data);
+    prj::MemoryManager::free(prj::MemCTemp, vtx_data);
 
     rain_particle_scene_ubo.Create(gl_state, sizeof(rain_particle_scene_shader_data));
     rain_particle_batch_ubo.Create(gl_state, sizeof(rain_particle_batch_shader_data));

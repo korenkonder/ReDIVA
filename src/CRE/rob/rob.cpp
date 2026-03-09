@@ -1267,7 +1267,7 @@ static void rob_chara_bone_data_get_ik_scale(
 static mat4* rob_chara_bone_data_get_mat(rob_chara_bone_data* rob_bone_data, size_t index);
 static bone_node* rob_chara_bone_data_get_node(rob_chara_bone_data* rob_bone_data, size_t index);
 static void rob_chara_bone_data_ik_scale_calculate(
-    rob_chara_bone_data_ik_scale* ik_scale, std::vector<bone_data>& bones,
+    rob_chara_bone_data_ik_scale* ik_scale, prj::sys_vector<bone_data>& bones,
     bone_database_skeleton_type base_skeleton_type,
     bone_database_skeleton_type skeleton_type, const bone_database* bone_data);
 static void rob_chara_bone_data_init_data(rob_chara_bone_data* rob_bone_data,
@@ -2684,7 +2684,7 @@ void rob_init() {
 
     {
         p_file_handler rob_mot_tbl_file_handler;
-        rob_mot_tbl_file_handler.read_file(&data_list[DATA_AFT], "rom/rob/", "rob_mot_tbl.bin");
+        rob_mot_tbl_file_handler.read_file(&data_list[DATA_AFT], "rom/rob/", "rob_mot_tbl.bin", prj::MemCSystem);
         rob_mot_tbl_file_handler.set_callback_data(0, (PFNFILEHANDLERCALLBACK*)rob_cmn_mottbl_read, 0);
         rob_mot_tbl_file_handler.read_now();
         rob_mot_tbl_file_handler.reset();
@@ -2764,6 +2764,11 @@ void rob_free() {
     if (opd_make_manager) {
         delete opd_make_manager;
         opd_make_manager = 0;
+    }
+
+    if (opd_checker) {
+        delete opd_checker;
+        opd_checker = 0;
     }
 
     if (opd_chara_data_array) {
@@ -5280,13 +5285,15 @@ bool OpdChecker::CheckFileAdler32Checksum(const std::string& path) {
     if (fs.check_not_null()) {
         size_t length = fs.get_length();
         if (length) {
-            uint8_t* data = force_malloc<uint8_t>(length);
+            uint8_t* data = prj::MemoryManager::alloc<uint8_t>(prj::MemCTemp, length, path.c_str());
             if (fs.read(data, length)) {
                 adler_buf adler;
                 adler.get_adler(data, length - 8);
                 ret = *(uint32_t*)&data[length - 4] == adler.adler;
-                free_def(data);
             }
+
+            if (data)
+                prj::MemoryManager::free(prj::MemCTemp, data);
         }
     }
     fs.close();
@@ -5300,10 +5307,14 @@ bool OpdChecker::CheckFileVersion(const std::string& path, uint32_t version) {
     if (fs.check_not_null()) {
         size_t length = fs.get_length();
         if (length) {
-            uint32_t footer[2] = {};
-            if (!fs.set_position(length - 8, SEEK_SET)
-                && fs.read(footer, sizeof(footer)))
-                ret = footer[0] == version;
+            static const size_t footer_len = 0x08;
+            void* footer = prj::MemoryManager::alloc(prj::MemCTemp, footer_len, path.c_str());
+            if (!fs.set_position(length - footer_len, SEEK_SET)
+                && fs.read(footer, footer_len))
+                ret = ((uint32_t*)footer)[0] == version;
+
+            if (footer)
+                prj::MemoryManager::free(prj::MemCTemp, footer);
         }
     }
     fs.close();
@@ -6032,7 +6043,7 @@ static void bone_data_parent_load_bone_indices_from_mot(bone_data_parent* a1,
     if (!a2)
         return;
 
-    std::vector<uint16_t>& bone_indices = a1->bone_indices;
+    prj::sys_vector<uint16_t>& bone_indices = a1->bone_indices;
     bone_indices.clear();
 
     uint16_t key_set_count = a2->key_set_count - 1;
@@ -8149,7 +8160,7 @@ static void sub_140412E10(motion_blend_mot* a1, int32_t skeleton_select) {
         }
 }
 
-static void sub_140412F20(partial_motion_blend_mot* a1, std::vector<bone_data>* a2) {
+static void sub_140412F20(partial_motion_blend_mot* a1, prj::sys_vector<bone_data>* a2) {
     for (bone_data& i : *a2)
         if (((1 << (i.motion_bone_index & 0x1F))
             & a1->field_0.field_8.bitfield.data()[i.motion_bone_index >> 5]) != 0)
@@ -8272,7 +8283,8 @@ static void opd_data_decode(const int16_t* src_data, size_t count, uint8_t shift
 
 static bool opd_decode(const osage_play_data_header* file_head, float_t*& opd_decod_buf, osage_play_data_header& head) {
     const osage_play_data_node_header* node = (osage_play_data_node_header*)&file_head[1];
-    float_t* buf = force_malloc<float_t>(3ULL * file_head->frame_count * file_head->nodes_count);
+    float_t* buf = prj::MemoryManager::alloc<float_t>(prj::MemCTemp,
+        3ULL * file_head->frame_count * file_head->nodes_count, "OPD_DECORD_BUF");
     opd_decod_buf = buf;
     if (!buf)
         return false;
@@ -9406,7 +9418,8 @@ static float_t sub_14040ADE0(float_t a1, float_t a2) {
     return v1;
 }
 
-static void sub_140407280(rob_chara_look_anim* look_anim, std::vector<bone_data>& bones, mat4* mat, float_t step) {
+static void sub_140407280(rob_chara_look_anim* look_anim,
+    prj::sys_vector<bone_data>& bones, mat4* mat, float_t step) {
     vec3 v69;
     mat4_get_translation(bones[MOTION_BONE_CL_KAO].node[2].mat, &v69);
     if (!look_anim->field_190 && !look_anim->field_191)
@@ -9684,7 +9697,7 @@ static void sub_140406FC0(rob_chara_look_anim* look_anim, bone_data* bone, mat4*
 }
 
 static void sub_140409170(rob_chara_look_anim* look_anim, mat4* adjust_mat,
-    std::vector<bone_data>& bones, mat4* mat, float_t step) {
+    prj::sys_vector<bone_data>& bones, mat4* mat, float_t step) {
     if (look_anim->disable)
         return;
 
@@ -9945,7 +9958,7 @@ static void sub_14040AE10(mat4* mat, const vec3 a2) {
     }
 }
 
-static void sub_140406A70(struc_936* a1, std::vector<bone_data>& bones, mat4* a3, vec3* a4,
+static void sub_140406A70(struc_936* a1, prj::sys_vector<bone_data>& bones, mat4* a3, vec3* a4,
     const motion_bone_index* a5, float_t rotation_blend, float_t arm_length, bool solve_ik) {
     bone_data* v14 = &bones[a5[0]];
 
@@ -10562,7 +10575,7 @@ static void sub_1403F9B20(rob_chara_sleeve_adjust* a1, motion_bone_index motion_
     sub_14040AE10(v42, v39 + v41);
 }
 
-static void sub_1403FAF30(rob_chara_sleeve_adjust* a1, std::vector<bone_data>& bones, float_t step) {
+static void sub_1403FAF30(rob_chara_sleeve_adjust* a1, prj::sys_vector<bone_data>& bones, float_t step) {
     a1->step = step;
     a1->bones = &bones;
     if (a1->enable1)
@@ -10634,7 +10647,7 @@ static void sub_140406920(struc_936* a1, bone_data* a2, bone_data* a3, float_t h
     a2->ik_target.z = v18.z;
 }
 
-static void sub_1404065B0(struc_936* a1, std::vector<bone_data>* a2, mat4* a3, float_t a4,
+static void sub_1404065B0(struc_936* a1, prj::sys_vector<bone_data>* a2, mat4* a3, float_t a4,
     bone_database_skeleton_type skeleton_type, const motion_bone_index* a6, const motion_bone_index* a7) {
     data_struct* aft_data = &data_list[DATA_AFT];
     bone_database* aft_bone_data = &aft_data->data_ft.bone_data;
@@ -10822,7 +10835,7 @@ static bone_node* rob_chara_bone_data_get_node(rob_chara_bone_data* rob_bone_dat
 }
 
 static void rob_chara_bone_data_ik_scale_calculate(
-    rob_chara_bone_data_ik_scale* ik_scale, std::vector<bone_data>& bones,
+    rob_chara_bone_data_ik_scale* ik_scale, prj::sys_vector<bone_data>& bones,
     bone_database_skeleton_type base_skeleton_type,
     bone_database_skeleton_type skeleton_type, const bone_database* bone_data) {
     const char* base_name = bone_database_skeleton_type_to_string(base_skeleton_type);
@@ -11184,7 +11197,7 @@ static void rob_chara_bone_data_reserve(rob_chara_bone_data* rob_bone_data) {
     rob_bone_data->nodes.resize(rob_bone_data->node_count);
 }
 
-static void sub_140412BB0(motion_blend_mot* a1, std::vector<bone_data>& bones) {
+static void sub_140412BB0(motion_blend_mot* a1, prj::sys_vector<bone_data>& bones) {
     for (bone_data& i : a1->bone_data.bones)
         i.copy_rot_trans(&bones[i.motion_bone_index]);
 }
@@ -11508,7 +11521,7 @@ static void sub_14040FBF0(motion_blend_mot* a1, float_t a2) {
     }
 }
 
-static void sub_140410A40(motion_blend_mot* a1, std::vector<bone_data>* a2, std::vector<bone_data>* a3) {
+static void sub_140410A40(motion_blend_mot* a1, prj::sys_vector<bone_data>* a2, prj::sys_vector<bone_data>* a3) {
     MotionBlend* v4 = a1->blend;
     if (!v4 || !v4->enable)
         return;
@@ -11526,7 +11539,7 @@ static void sub_140410A40(motion_blend_mot* a1, std::vector<bone_data>* a2, std:
     }
 }
 
-static void sub_140410B70(motion_blend_mot* a1, std::vector<bone_data>* a2) {
+static void sub_140410B70(motion_blend_mot* a1, prj::sys_vector<bone_data>* a2) {
     MotionBlend* v3 = a1->blend;
     if (!v3 || !v3->enable)
         return;
@@ -11544,7 +11557,7 @@ static void sub_140410B70(motion_blend_mot* a1, std::vector<bone_data>* a2) {
     }
 }
 
-static void sub_140410CB0(partial_motion_blend_mot* a1, std::vector<bone_data>* a2) {
+static void sub_140410CB0(partial_motion_blend_mot* a1, prj::sys_vector<bone_data>* a2) {
     if (!a1->blend.enable)
         return;
 
@@ -11576,7 +11589,7 @@ static void sub_1404182B0(rob_chara_bone_data* rob_bone_data) {
         if (sub_1404136B0(*j))
             continue;
 
-        std::vector<bone_data>* bones = 0;
+        prj::sys_vector<bone_data>* bones = 0;
         if (j != rob_bone_data->motion_loaded.rbegin()) {
             auto v5 = j;
             v5--;
@@ -12753,7 +12766,7 @@ void MotionBlendCross::Step(struc_400* a2) {
         rot_y_mat = mat4_identity;
 }
 
-void MotionBlendCross::Field_20(std::vector<bone_data>* bones_curr, std::vector<bone_data>* bones_prev) {
+void MotionBlendCross::Field_20(prj::sys_vector<bone_data>* bones_curr, prj::sys_vector<bone_data>* bones_prev) {
     if (!bones_curr || !bones_prev)
         return;
 
@@ -12933,7 +12946,7 @@ void MotionBlendFreeze::Step(struc_400* a2) {
         rot_y_mat = mat4_identity;
 }
 
-void MotionBlendFreeze::Field_20(std::vector<bone_data>* bones_curr, std::vector<bone_data>* bones_prev) {
+void MotionBlendFreeze::Field_20(prj::sys_vector<bone_data>* bones_curr, prj::sys_vector<bone_data>* bones_prev) {
     if (!bones_curr)
         return;
 
@@ -13038,7 +13051,8 @@ void PartialMotionBlendFreeze::Step(struc_400* a1) {
     }
 }
 
-void PartialMotionBlendFreeze::Field_20(std::vector<bone_data>* bones_curr, std::vector<bone_data>* bones_prev) {
+void PartialMotionBlendFreeze::Field_20(
+    prj::sys_vector<bone_data>* bones_curr, prj::sys_vector<bone_data>* bones_prev) {
 
 }
 
@@ -13166,8 +13180,8 @@ void partial_motion_blend_mot::init(bone_database_skeleton_type type,
     sub_140413350(&field_0, bone_check_func, motion_bone_count);
 }
 
-void partial_motion_blend_mot::interpolate(std::vector<bone_data>& bones,
-    const std::vector<uint16_t>* bone_indices, bone_database_skeleton_type skeleton_type) {
+void partial_motion_blend_mot::interpolate(prj::sys_vector<bone_data>& bones,
+    const prj::sys_vector<uint16_t>* bone_indices, bone_database_skeleton_type skeleton_type) {
     if (!mot_key_data.key_sets_ready || !mot_key_data.mot_data || disable)
         return;
 
@@ -13426,8 +13440,8 @@ void rob_chara_bone_data::interpolate() {
 
     bone_database_skeleton_type skeleton_type = base_skeleton_type;
     motion_blend_mot* v5 = motion_loaded.front();
-    std::vector<bone_data>& bones = v5->bone_data.bones;
-    std::vector<uint16_t>* bone_indices = &v5->bone_data.bone_indices;
+    prj::sys_vector<bone_data>& bones = v5->bone_data.bones;
+    prj::sys_vector<uint16_t>* bone_indices = &v5->bone_data.bone_indices;
     face.interpolate(bones, bone_indices, skeleton_type);
     hand_l.interpolate(bones, bone_indices, skeleton_type);
     hand_r.interpolate(bones, bone_indices, skeleton_type);
@@ -16682,7 +16696,7 @@ void OpdMaker::Data::ReadOpdiFiles(rob_chara* rob_chr, std::vector<uint32_t>& mo
                 "%s_%s.opdi", object_name, motion_name));
 
             p_file_handler* file_handler = new p_file_handler;
-            file_handler->read_file(aft_data, farc_path.c_str(), file.c_str(), true);
+            file_handler->read_file(aft_data, farc_path.c_str(), file.c_str(), prj::MemCTemp, true);
             elem->second = file_handler;
         }
     }
@@ -16845,7 +16859,7 @@ void OpdMaker::Ctrl() {
         size_t file_length = fs.get_length();
         fs.close();
 
-        void* file_data = force_malloc(file_length);
+        void* file_data = prj::MemoryManager::alloc(prj::MemCTemp, file_length, tmp_path.c_str());
         if (!file_data)
             continue;
 
@@ -16854,7 +16868,7 @@ void OpdMaker::Ctrl() {
         fs.close();
 
         if (!read_length) {
-            free_def(file_data);
+            prj::MemoryManager::free(prj::MemCTemp, file_data);
             continue;
         }
 
@@ -16866,7 +16880,7 @@ void OpdMaker::Ctrl() {
         if (fs.check_not_null())
             fs.write(footer, sizeof(footer));
         fs.close();
-        free_def(file_data);
+        prj::MemoryManager::free(prj::MemCTemp, file_data);
     }
 
     rob_chr = 0;
@@ -17437,7 +17451,7 @@ void opd_file_data::unload() {
         return;
 
     head = {};
-    free_def(data);
+    prj::MemoryManager::free(prj::MemCTemp, data);
 }
 
 opd_vec3_data_vec::opd_vec3_data_vec() {
@@ -17538,7 +17552,7 @@ void opd_chara_data::encode_data() {
             nodes_count += j.size();
 
         size_t max_size = sizeof(osage_play_data_header) + (6ULL * (frame_count + 2ULL) * nodes_count);
-        uint8_t* data = (uint8_t*)malloc(max_size);
+        uint8_t* data = prj::MemoryManager::alloc<uint8_t>(prj::MemCTemp, max_size, "OPD_ENCORD_BUF");
         if (!data)
             continue;
 
@@ -17581,7 +17595,7 @@ void opd_chara_data::encode_data() {
 
         std::string buf = string_to_lower(sprintf_s_string("%s_%s.opd", object_name, motion_name));
         opd->add_file(data, size, buf);
-        free_def(data);
+        prj::MemoryManager::free(prj::MemCTemp, data);
     }
 
     reset();
@@ -17617,7 +17631,7 @@ void opd_chara_data::encode_init_data(uint32_t motion_id) {
             continue;
 
         size_t size = sizeof(osage_play_data_init_header) + sizeof(vec3) * 2 * itm_eq_obj->osage_nodes_count;
-        uint8_t* data = force_malloc<uint8_t>(size);
+        uint8_t* data = prj::MemoryManager::alloc<uint8_t>(prj::MemCTemp, size, "OPDI_WRITE_BUF");
 
         osage_play_data_init_header* opdi_head = (osage_play_data_init_header*)data;
         opdi_head->motion_id = motion_id;
@@ -17655,7 +17669,7 @@ void opd_chara_data::encode_init_data(uint32_t motion_id) {
 
         std::string buf = string_to_lower(sprintf_s_string("%s_%s.opdi", object_name, motion_name));
         opdi->add_file(data, size, buf);
-        free_def(data);
+        prj::MemoryManager::free(prj::MemCTemp, data);
     }
 }
 
@@ -18579,7 +18593,10 @@ OpdMakeManager::OpdMakeManager() : mode(), workers() {
 }
 
 OpdMakeManager::~OpdMakeManager() {
-
+    for (OpdMakeWorker*& i : workers) {
+        delete i;
+        i = 0;
+    }
 }
 
 bool OpdMakeManager::init() {
@@ -19568,7 +19585,7 @@ void rob_sleeve_handler::read() {
 
         if (aft_data->check_file_exists("rom/", file.c_str())) {
             p_file_handler* pfhndl = new p_file_handler;
-            pfhndl->read_file(aft_data, "rom/", file.c_str());
+            pfhndl->read_file(aft_data, "rom/", file.c_str(), prj::MemCTemp);
             file_handlers.push_back(pfhndl);
         }
     }

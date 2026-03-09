@@ -159,7 +159,7 @@ void hand_item_handler::read() {
 
         if (aft_data->check_file_exists("rom/", file.c_str())) {
             p_file_handler* pfhndl = new p_file_handler;
-            pfhndl->read_file(aft_data, "rom/", file.c_str());
+            pfhndl->read_file(aft_data, "rom/", file.c_str(), prj::MemCTemp);
             file_handlers.push_back(pfhndl);
         }
     }

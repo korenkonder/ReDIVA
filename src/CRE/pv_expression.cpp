@@ -161,7 +161,7 @@ void pv_expression_file_load(void* data, const char* path) {
         }
 
     pv_expression_file* pv_exp_file = new pv_expression_file;
-    if (pv_exp_file->file_handler.read_file(data, path)) {
+    if (pv_exp_file->file_handler.read_file(data, path, prj::MemCSystem)) {
         pv_exp_file->data = new pv_exp;
         pv_exp_file->data->modern = false;
 
@@ -183,7 +183,7 @@ void pv_expression_file_load(void* data, const char* path, uint32_t hash) {
         }
 
     pv_expression_file* pv_exp_file = new pv_expression_file;
-    if (pv_exp_file->file_handler.read_file(data, path, hash, ".dex")) {
+    if (pv_exp_file->file_handler.read_file(data, path, hash, ".dex", prj::MemCSystem)) {
         pv_exp_file->data = new pv_exp;
         pv_exp_file->data->modern = true;
 

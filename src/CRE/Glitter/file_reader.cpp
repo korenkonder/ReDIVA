@@ -258,7 +258,7 @@ namespace Glitter {
 
         file_handler = new p_file_handler;
         farc = new ::farc;
-        if (file_handler->read_file(data, path, file_temp.c_str())) {
+        if (file_handler->read_file(data, path, file_temp.c_str(), prj::MemCTemp)) {
             this->hash = hash;
             load_count = 1;
             return true;

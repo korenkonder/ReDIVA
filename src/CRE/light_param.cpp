@@ -764,7 +764,7 @@ int32_t light_param_data_storage::load_file(bool read_now) {
         light_param_data* light_param = &current_light_param->second;
         std::string* paths = light_param->paths;
         for (int32_t i = 0; i < 6; i++)
-            file_handlers[i].read_file(&data_list[DATA_AFT], paths[i].c_str());
+            file_handlers[i].read_file(&data_list[DATA_AFT], paths[i].c_str(), prj::MemCTemp);
         state = 2;
         return 1;
     }
@@ -798,7 +798,7 @@ int32_t light_param_data_storage::load_file(bool read_now) {
     else if (state == 3) {
         char buf[0x100];
         sprintf_s(buf, sizeof(buf), "light_pv%03d.farc", pv_id);
-        if (farc_file_handler.read_file(&data_list[DATA_AFT], "rom/light_param/", buf))
+        if (farc_file_handler.read_file(&data_list[DATA_AFT], "rom/light_param/", buf, prj::MemCTemp))
             state = 4;
         else {
             farc_file_handler.reset();

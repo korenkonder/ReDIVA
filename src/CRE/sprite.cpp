@@ -2289,7 +2289,7 @@ void SprSet::ReadFile(const char* file, std::string& mdata_dir, void* data) {
         dir = mdata_dir.c_str();
 
     if (((data_struct*)data)->check_file_exists(dir, farc_file.c_str()))
-        file_handler.read_file(data, dir, farc_file.c_str(), file, false);
+        file_handler.read_file(data, dir, farc_file.c_str(), file, prj::MemCSystem, false);
     ready = false;
 }
 
@@ -2301,7 +2301,7 @@ void SprSet::ReadFileModern(uint32_t set_hash, void* data) {
 
     std::string file;
     if (((data_struct*)data)->get_file("root+/2d/", set_hash, ".farc", file))
-        file_handler.read_file(data, "root+/2d/", file.c_str());
+        file_handler.read_file(data, "root+/2d/", file.c_str(), prj::MemCSystem);
     this->hash = set_hash;
     ready = false;
 }
