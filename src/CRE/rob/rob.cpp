@@ -5534,7 +5534,7 @@ static void bone_data_mult_1(bone_data* a1, mat4* parent_mat, bone_data* a3, boo
         if (solve_ik) {
             a1->node[0].exp_data.rotation = 0.0f;
             if (!a1->check_flags_not_null())
-                mat4_get_rotation(&a1->rot_mat[0], &a1->node[0].exp_data.rotation);
+                mat4_get_rotation_zyx(&a1->rot_mat[0], &a1->node[0].exp_data.rotation);
             else if (bone_data_mult_1_exp_data(a1, &a1->node[0].exp_data, a3))
                 mat4_rotate_zyx(&a1->node[0].exp_data.rotation, &a1->rot_mat[0]);
             else {
@@ -5545,7 +5545,7 @@ static void bone_data_mult_1(bone_data* a1, mat4* parent_mat, bone_data* a3, boo
                     mat4_invert_rotation_fast(&mat, &rot_mat);
                     mat4_mul(a1->node[0].mat, &rot_mat, &rot_mat);
                     mat4_clear_trans(&rot_mat, &rot_mat);
-                    mat4_get_rotation(&rot_mat, &a1->node[0].exp_data.rotation);
+                    mat4_get_rotation_zyx(&rot_mat, &a1->node[0].exp_data.rotation);
                     a1->rot_mat[0] = rot_mat;
                 }
                 else
@@ -5580,7 +5580,7 @@ static void bone_data_mult_1(bone_data* a1, mat4* parent_mat, bone_data* a3, boo
             return;
 
         a1->node[1].exp_data.position = 0.0f;
-        mat4_get_rotation(&a1->rot_mat[1], &a1->node[1].exp_data.rotation);
+        mat4_get_rotation_zyx(&a1->rot_mat[1], &a1->node[1].exp_data.rotation);
         a1->node[1].exp_data.reset_scale();
         a1->node[2].exp_data.set_position_rotation(
             a1->ik_segment_length[1], 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
@@ -5596,10 +5596,10 @@ static void bone_data_mult_1(bone_data* a1, mat4* parent_mat, bone_data* a3, boo
             return;
 
         a1->node[1].exp_data.position = 0.0f;
-        mat4_get_rotation(&a1->rot_mat[1], &a1->node[1].exp_data.rotation);
+        mat4_get_rotation_zyx(&a1->rot_mat[1], &a1->node[1].exp_data.rotation);
         a1->node[1].exp_data.reset_scale();
         a1->node[2].exp_data.position = { a1->ik_segment_length[1], 0.0f, 0.0f };
-        mat4_get_rotation(&a1->rot_mat[2], &a1->node[2].exp_data.rotation);
+        mat4_get_rotation_zyx(&a1->rot_mat[2], &a1->node[2].exp_data.rotation);
         a1->node[2].exp_data.reset_scale();
         a1->node[3].exp_data.set_position_rotation(
             a1->ik_2nd_segment_length[1], 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
@@ -5761,7 +5761,7 @@ static bool bone_data_mult_1_exp_data(bone_data* a1, bone_node_expression_data* 
         dst = a3[MOTION_BONE_CL_KAO].rot_mat[0];
         mat = a3[MOTION_BONE_CL_KAO].rot_mat[1];
         mat4_mul(&mat, &dst, &dst);
-        mat4_get_rotation(&dst, &v15);
+        mat4_get_rotation_zyx(&dst, &v15);
         v10 = v15.z;
         if (v10 < (float_t)-M_PI_2)
             v10 += (float_t)(M_PI * 2.0);

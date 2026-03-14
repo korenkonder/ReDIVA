@@ -174,7 +174,7 @@ void DataViewDrawTask::window() {
             vec3 rot;
             vec3 scale;
             mat4_get_translation(&mat, &trans);
-            mat4_get_rotation(&mat, &rot);
+            mat4_get_rotation_zyx(&mat, &rot);
             mat4_get_scale(&mat, &scale);
             rot *= RAD_TO_DEG_FLOAT;
 

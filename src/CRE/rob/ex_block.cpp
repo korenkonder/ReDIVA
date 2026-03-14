@@ -3590,7 +3590,7 @@ void ExConstraintBlock::DataSet() {
     mat4 mat;
     mat4_invert_fast(parent_bone_node->ex_data_mat, &mat);
     mat4_mul(bone_node_ptr->mat, &mat, &mat);
-    mat4_get_rotation(&mat, &exp_data->rotation);
+    mat4_get_rotation_zyx(&mat, &exp_data->rotation);
     mat4_get_translation(&mat, &exp_data->position);
     if (fabsf(parent_scale.x) > 0.000001f)
         exp_data->position.x /= parent_scale.x;

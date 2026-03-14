@@ -115,7 +115,12 @@ extern void mat3_mul_scale(const mat3* in_m1, float_t sx, float_t sy, float_t sz
 extern void mat3_mul_scale_x(const mat3* in_m1, float_t s, mat3* out_m);
 extern void mat3_mul_scale_y(const mat3* in_m1, float_t s, mat3* out_m);
 extern void mat3_mul_scale_z(const mat3* in_m1, float_t s, mat3* out_m);
-extern void mat3_get_rotation(const mat3* in_m1, vec3* out_rad);
+extern void mat3_get_rotation_xyz(const mat3* in_m1, vec3* out_rad);
+extern void mat3_get_rotation_xzy(const mat3* in_m1, vec3* out_rad);
+extern void mat3_get_rotation_yxz(const mat3* in_m1, vec3* out_rad);
+extern void mat3_get_rotation_yzx(const mat3* in_m1, vec3* out_rad);
+extern void mat3_get_rotation_zxy(const mat3* in_m1, vec3* out_rad);
+extern void mat3_get_rotation_zyx(const mat3* in_m1, vec3* out_rad);
 extern void mat3_get_scale(const mat3* in_m1, vec3* out_s);
 extern float_t mat3_get_max_scale(const mat3* in_m1);
 
@@ -209,7 +214,12 @@ extern void mat4_rotation_from_mat3_inverse(const mat4* in_m1, const mat3* in_m2
 extern void mat4_clear_rot(const mat4* in_m1, mat4* out_m);
 extern void mat4_clear_trans(const mat4* in_m1, mat4* out_m);
 extern void mat4_get_scale(const mat4* in_m1, vec3* out_s);
-extern void mat4_get_rotation(const mat4* in_m1, vec3* out_rad);
+extern void mat4_get_rotation_xyz(const mat4* in_m1, vec3* out_rad);
+extern void mat4_get_rotation_xzy(const mat4* in_m1, vec3* out_rad);
+extern void mat4_get_rotation_yxz(const mat4* in_m1, vec3* out_rad);
+extern void mat4_get_rotation_yzx(const mat4* in_m1, vec3* out_rad);
+extern void mat4_get_rotation_zxy(const mat4* in_m1, vec3* out_rad);
+extern void mat4_get_rotation_zyx(const mat4* in_m1, vec3* out_rad);
 extern void mat4_get_translation(const mat4* in_m1, vec3* out_t);
 extern void mat4_set_translation(mat4* in_m1, const vec3* in_t);
 extern void mat4_replace_rotation(const mat4* in_m1, const mat3* in_m2, mat4* out_m);

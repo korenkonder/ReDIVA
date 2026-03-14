@@ -346,7 +346,7 @@ static void camera_calculate_view(camera* c) {
         *(vec3*)&c->inv_view.row1 = y_axis;
         *(vec3*)&c->inv_view.row2 = z_axis;
         mat4_invert(&c->inv_view, &c->view);
-        mat4_get_rotation(&c->inv_view, &c->rotation);
+        mat4_get_rotation_zyx(&c->inv_view, &c->rotation);
     }
     else {
         vec3 direction = c->view_point - c->interest;

@@ -8325,8 +8325,8 @@ void x_pv_game::basic() {
 
         bone_database_skeleton_type skeleton_type = rob_bone_data->base_skeleton_type;
         motion_blend_mot* mot = rob_bone_data->motion_loaded.front();
-        std::vector<bone_data>* bones = &mot->bone_data.bones;
-        std::vector<uint16_t>* bone_indices = &mot->bone_data.bone_indices;
+        prj::sys_vector<bone_data>* bones = &mot->bone_data.bones;
+        prj::sys_vector<uint16_t>* bone_indices = &mot->bone_data.bone_indices;
 
         bone_data* bones_data = bones->data();
         for (uint16_t& i : *bone_indices) {
@@ -8343,7 +8343,7 @@ void x_pv_game::basic() {
                 elem = a2m.bone_keys.insert({ motion_bone_index, {} }).first;
 
             vec3 rotation;
-            mat4_get_rotation(&data->rot_mat[0], &rotation);
+            mat4_get_rotation_zyx(&data->rot_mat[0], &rotation);
             if (elem->second.x.size() == frame)
                 elem->second.x.push_back(rotation.x);
             if (elem->second.y.size() == frame)

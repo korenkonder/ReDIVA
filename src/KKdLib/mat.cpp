@@ -685,7 +685,107 @@ inline void mat4_to_mat3_inverse(const mat4* in_m1, mat3* out_m) {
     out_m->row2 = *(vec3*)&yt.row2;
 }
 
-inline void mat3_get_rotation(const mat3* in_m1, vec3* out_rad) {
+inline void mat3_get_rotation_xyz(const mat3* in_m1, vec3* out_rad) {
+    if (in_m1->row2.x >= 1.0f)
+        out_rad->y = (float_t)M_PI_2;
+    else if (in_m1->row2.x <= -1.0f)
+        out_rad->y = (float_t)-M_PI_2;
+    else
+        out_rad->y = asinf(in_m1->row2.x);
+
+    if (fabsf(in_m1->row2.x) < 0.999999f) {
+        out_rad->x = atan2f(-in_m1->row2.y, in_m1->row2.z);
+        out_rad->z = atan2f(-in_m1->row1.x, in_m1->row0.x);
+    }
+    else {
+        out_rad->x = atan2f(in_m1->row0.y, in_m1->row1.y);
+        out_rad->z = 0.0f;
+        if (in_m1->row2.x > 0.0f)
+            out_rad->x = -out_rad->x;
+    }
+}
+
+inline void mat3_get_rotation_xzy(const mat3* in_m1, vec3* out_rad) {
+    if (-in_m1->row1.x >= 1.0f)
+        out_rad->z = (float_t)M_PI_2;
+    else if (-in_m1->row1.x <= -1.0f)
+        out_rad->z = (float_t)-M_PI_2;
+    else
+        out_rad->z = asinf(-in_m1->row1.x);
+
+    if (fabsf(in_m1->row1.x) < 0.999999f) {
+        out_rad->x = atan2f(in_m1->row1.z, in_m1->row1.y);
+        out_rad->y = atan2f(in_m1->row2.x, in_m1->row0.x);
+    }
+    else {
+        out_rad->x = atan2f(-in_m1->row0.z, in_m1->row2.z);
+        out_rad->y = 0.0f;
+        if (in_m1->row1.x > 0.0f)
+            out_rad->x = -out_rad->x;
+    }
+}
+
+inline void mat3_get_rotation_yxz(const mat3* in_m1, vec3* out_rad) {
+    if (-in_m1->row2.y >= 1.0f)
+        out_rad->x = (float_t)M_PI_2;
+    else if (-in_m1->row2.y <= -1.0f)
+        out_rad->x = (float_t)-M_PI_2;
+    else
+        out_rad->x = asinf(-in_m1->row2.y);
+
+    if (fabsf(in_m1->row2.y) < 0.999999f) {
+        out_rad->y = atan2f(in_m1->row2.x, in_m1->row2.z);
+        out_rad->z = atan2f(in_m1->row0.y, in_m1->row1.y);
+    }
+    else {
+        out_rad->y = atan2f(-in_m1->row1.x, in_m1->row0.x);
+        out_rad->z = 0.0f;
+        if (in_m1->row2.y > 0.0f)
+            out_rad->y = -out_rad->y;
+    }
+}
+
+inline void mat3_get_rotation_yzx(const mat3* in_m1, vec3* out_rad) {
+    if (in_m1->row0.y >= 1.0f)
+        out_rad->z = (float_t)M_PI_2;
+    else if (in_m1->row0.y <= -1.0f)
+        out_rad->z = (float_t)-M_PI_2;
+    else
+        out_rad->z = asinf(in_m1->row0.y);
+
+    if (fabsf(in_m1->row0.y) < 0.999999f) {
+        out_rad->x = atan2f(-in_m1->row2.y, in_m1->row1.y);
+        out_rad->y = atan2f(-in_m1->row0.z, in_m1->row0.x);
+    }
+    else {
+        out_rad->x = 0.0f;
+        out_rad->y = atan2f(in_m1->row1.z, in_m1->row2.z);
+        if (in_m1->row0.y > 0.0f)
+            out_rad->y = -out_rad->y;
+    }
+}
+
+inline void mat3_get_rotation_zxy(const mat3* in_m1, vec3* out_rad) {
+    if (in_m1->row1.z >= 1.0f)
+        out_rad->x = (float_t)M_PI_2;
+    else if (in_m1->row1.z <= -1.0f)
+        out_rad->x = (float_t)-M_PI_2;
+    else
+        out_rad->x = asinf(in_m1->row1.z);
+
+    if (fabsf(in_m1->row1.z) < 0.999999f) {
+        out_rad->y = atan2f(-in_m1->row0.z, in_m1->row2.z);
+        out_rad->z = atan2f(-in_m1->row1.x, in_m1->row1.y);
+    }
+    else {
+        out_rad->y = 0.0f;
+        out_rad->z = atan2f(in_m1->row2.x, in_m1->row0.x);
+        if (in_m1->row1.z > 0.0f)
+            out_rad->z = -out_rad->z;
+    }
+}
+
+inline void mat3_get_rotation_zyx(const mat3* in_m1, vec3* out_rad) {
     if (-in_m1->row0.z >= 1.0f)
         out_rad->y = (float_t)M_PI_2;
     else if (-in_m1->row0.z <= -1.0f)
@@ -693,7 +793,7 @@ inline void mat3_get_rotation(const mat3* in_m1, vec3* out_rad) {
     else
         out_rad->y = asinf(-in_m1->row0.z);
 
-    if (fabsf(in_m1->row0.z) < 0.99999899f) {
+    if (fabsf(in_m1->row0.z) < 0.999999f) {
         out_rad->x = atan2f(in_m1->row1.z, in_m1->row2.z);
         out_rad->z = atan2f(in_m1->row0.y, in_m1->row0.x);
     }
@@ -1825,7 +1925,107 @@ inline void mat4_clear_trans(const mat4* in_m1, mat4* out_m) {
     out_m->row3 = { 0.0f, 0.0f, 0.0f, 1.0f };
 }
 
-inline void mat4_get_rotation(const mat4* in_m1, vec3* out_rad) {
+inline void mat4_get_rotation_xyz(const mat4* in_m1, vec3* out_rad) {
+    if (in_m1->row2.x >= 1.0f)
+        out_rad->y = (float_t)M_PI_2;
+    else if (in_m1->row2.x <= -1.0f)
+        out_rad->y = (float_t)-M_PI_2;
+    else
+        out_rad->y = asinf(in_m1->row2.x);
+
+    if (fabsf(in_m1->row2.x) < 0.999999f) {
+        out_rad->x = atan2f(-in_m1->row2.y, in_m1->row2.z);
+        out_rad->z = atan2f(-in_m1->row1.x, in_m1->row0.x);
+    }
+    else {
+        out_rad->x = atan2f(in_m1->row0.y, in_m1->row1.y);
+        out_rad->z = 0.0f;
+        if (in_m1->row2.x > 0.0f)
+            out_rad->x = -out_rad->x;
+    }
+}
+
+inline void mat4_get_rotation_xzy(const mat4* in_m1, vec3* out_rad) {
+    if (-in_m1->row1.x >= 1.0f)
+        out_rad->z = (float_t)M_PI_2;
+    else if (-in_m1->row1.x <= -1.0f)
+        out_rad->z = (float_t)-M_PI_2;
+    else
+        out_rad->z = asinf(-in_m1->row1.x);
+
+    if (fabsf(in_m1->row1.x) < 0.999999f) {
+        out_rad->x = atan2f(in_m1->row1.z, in_m1->row1.y);
+        out_rad->y = atan2f(in_m1->row2.x, in_m1->row0.x);
+    }
+    else {
+        out_rad->x = atan2f(-in_m1->row0.z, in_m1->row2.z);
+        out_rad->y = 0.0f;
+        if (in_m1->row1.x > 0.0f)
+            out_rad->x = -out_rad->x;
+    }
+}
+
+inline void mat4_get_rotation_yxz(const mat4* in_m1, vec3* out_rad) {
+    if (-in_m1->row2.y >= 1.0f)
+        out_rad->x = (float_t)M_PI_2;
+    else if (-in_m1->row2.y <= -1.0f)
+        out_rad->x = (float_t)-M_PI_2;
+    else
+        out_rad->x = asinf(-in_m1->row2.y);
+
+    if (fabsf(in_m1->row2.y) < 0.999999f) {
+        out_rad->y = atan2f(in_m1->row2.x, in_m1->row2.z);
+        out_rad->z = atan2f(in_m1->row0.y, in_m1->row1.y);
+    }
+    else {
+        out_rad->y = atan2f(-in_m1->row1.x, in_m1->row0.x);
+        out_rad->z = 0.0f;
+        if (in_m1->row2.y > 0.0f)
+            out_rad->y = -out_rad->y;
+    }
+}
+
+inline void mat4_get_rotation_yzx(const mat4* in_m1, vec3* out_rad) {
+    if (in_m1->row0.y >= 1.0f)
+        out_rad->z = (float_t)M_PI_2;
+    else if (in_m1->row0.y <= -1.0f)
+        out_rad->z = (float_t)-M_PI_2;
+    else
+        out_rad->z = asinf(in_m1->row0.y);
+
+    if (fabsf(in_m1->row0.y) < 0.999999f) {
+        out_rad->x = atan2f(-in_m1->row2.y, in_m1->row1.y);
+        out_rad->y = atan2f(-in_m1->row0.z, in_m1->row0.x);
+    }
+    else {
+        out_rad->x = 0.0f;
+        out_rad->y = atan2f(in_m1->row1.z, in_m1->row2.z);
+        if (in_m1->row0.y > 0.0f)
+            out_rad->y = -out_rad->y;
+    }
+}
+
+inline void mat4_get_rotation_zxy(const mat4* in_m1, vec3* out_rad) {
+    if (in_m1->row1.z >= 1.0f)
+        out_rad->x = (float_t)M_PI_2;
+    else if (in_m1->row1.z <= -1.0f)
+        out_rad->x = (float_t)-M_PI_2;
+    else
+        out_rad->x = asinf(in_m1->row1.z);
+
+    if (fabsf(in_m1->row1.z) < 0.999999f) {
+        out_rad->y = atan2f(-in_m1->row0.z, in_m1->row2.z);
+        out_rad->z = atan2f(-in_m1->row1.x, in_m1->row1.y);
+    }
+    else {
+        out_rad->y = 0.0f;
+        out_rad->z = atan2f(in_m1->row2.x, in_m1->row0.x);
+        if (in_m1->row1.z > 0.0f)
+            out_rad->z = -out_rad->z;
+    }
+}
+
+inline void mat4_get_rotation_zyx(const mat4* in_m1, vec3* out_rad) {
     if (-in_m1->row0.z >= 1.0f)
         out_rad->y = (float_t)M_PI_2;
     else if (-in_m1->row0.z <= -1.0f)
@@ -1833,7 +2033,7 @@ inline void mat4_get_rotation(const mat4* in_m1, vec3* out_rad) {
     else
         out_rad->y = asinf(-in_m1->row0.z);
 
-    if (fabsf(in_m1->row0.z) < 0.99999899f) {
+    if (fabsf(in_m1->row0.z) < 0.999999f) {
         out_rad->x = atan2f(in_m1->row1.z, in_m1->row2.z);
         out_rad->z = atan2f(in_m1->row0.y, in_m1->row0.x);
     }
