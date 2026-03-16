@@ -746,23 +746,10 @@ static void am_input_output_pc_ctrl(amInputState& input) {
     input.field_30[6] = glut_pc_input[0].field_30[6];
     input.field_30[7] = glut_pc_input[0].field_30[7];
 
-#if BAKE_PNG || BAKE_VIDEO
-    int32_t x_offset = 0;
-    int32_t y_offset = 0;
-    float_t x_scale = 1280.0f / (float_t)BAKE_BASE_WIDTH;
-    float_t y_scale = 720.0f / (float_t)BAKE_BASE_HEIGHT;
-#else
-    int32_t x_offset = rctx_ptr->screen_x_offset;
-    int32_t y_offset = rctx_ptr->screen_y_offset;
-    float_t x_scale = 1280.0f / (float_t)rctx_ptr->sprite_width;
-    float_t y_scale = 720.0f / (float_t)rctx_ptr->sprite_height;
-#endif
-
-    input.field_30[8] = (int32_t)(((float_t)glut_pc_input[0].field_30[8] - x_offset) * x_scale);
-    input.field_30[9] = (int32_t)(((float_t)glut_pc_input[0].field_30[9] - y_offset) * y_scale);
-    input.field_30[10] = (int32_t)(((float_t)glut_pc_input[0].field_30[10] - x_offset) * x_scale);
-    input.field_30[11] = (int32_t)(((float_t)glut_pc_input[0].field_30[11] - y_offset) * y_scale);
-
+    input.field_30[8] = glut_pc_input[0].field_30[8];
+    input.field_30[9] = glut_pc_input[0].field_30[9];
+    input.field_30[10] = glut_pc_input[0].field_30[10];
+    input.field_30[11] = glut_pc_input[0].field_30[11];
     input.field_30[12] = glut_pc_input[0].field_30[12];
     input.field_30[13] = glut_pc_input[0].field_30[12];
 
@@ -1044,6 +1031,21 @@ void glut_mouse_cb(int32_t bn, int32_t state, int32_t x, int32_t y) {
 
 void glut_motion_cb(int32_t x, int32_t y) {
     resolution_struct res =  *res_window_get();
+
+#if BAKE_PNG || BAKE_VIDEO
+    int32_t x_offset = 0;
+    int32_t y_offset = 0;
+    float_t x_scale = 1280.0f / (float_t)BAKE_BASE_WIDTH;
+    float_t y_scale = 720.0f / (float_t)BAKE_BASE_HEIGHT;
+#else
+    int32_t x_offset = rctx_ptr->screen_x_offset;
+    int32_t y_offset = rctx_ptr->screen_y_offset;
+    float_t x_scale = 1280.0f / (float_t)rctx_ptr->sprite_width;
+    float_t y_scale = 720.0f / (float_t)rctx_ptr->sprite_height;
+#endif
+
+    x = (int32_t)(((float_t)x - x_offset) * x_scale);
+    y = (int32_t)(((float_t)y - y_offset) * y_scale);
 
     glut_input.motion_x = x;
     glut_input.motion_y = y;
