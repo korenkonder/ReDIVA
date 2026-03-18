@@ -877,14 +877,14 @@ struct rob_manager_rob_impl {
 };
 
 static float_t bone_data_limit_angle(float_t angle);
-static void bone_data_mult_0(bone_data* a1, int32_t skeleton_select);
+static void bone_data_mult_0(bone_data* a1, uint32_t skeleton_select);
 static void bone_data_mult_1(bone_data* a1, mat4* parent_mat, bone_data* a3, bool solve_ik);
 static bool bone_data_mult_1_ik(bone_data* a1, bone_data* a2);
 static void bone_data_mult_1_ik_hands(bone_data* a1, const vec3& pos);
 static void bone_data_mult_1_ik_hands_2(bone_data* a1, const vec3& pos, float_t angle_scale);
 static void bone_data_mult_1_ik_legs(bone_data* a1, const vec3& pos);
 static bool bone_data_mult_1_exp_data(bone_data* a1, bone_node_expression_data* a2, bone_data* a3);
-static void bone_data_mult_ik(bone_data* a1, int32_t skeleton_select);
+static void bone_data_mult_ik(bone_data* a1, uint32_t skeleton_select);
 
 static void bone_data_parent_data_init(bone_data_parent* bone,
     rob_chara_bone_data* rob_bone_data, const bone_database* bone_data);
@@ -1209,7 +1209,7 @@ static void mothead_mot_func_68(mothead_mot_func_data* func_data,
 
 static void motion_blend_mot_interpolate(motion_blend_mot* a1);
 static void motion_blend_mot_load_bone_data(motion_blend_mot* a1,
-    rob_chara_bone_data* a2, PFNMOTIONBONECHECKFUNC bone_check_func, const bone_database* bone_data);
+    rob_chara_bone_data* a2, PFNMOTIONBONECHECKFUNC check_func, const bone_database* bone_data);
 static bool motion_blend_mot_interpolate_get_reverse(int32_t* a1);
 static void motion_blend_mot_load_file(motion_blend_mot* a1, uint32_t motion_id,
     MotionBlendType blend_type, float_t blend, const bone_database* bone_data, const motion_database* mot_db);
@@ -1298,7 +1298,7 @@ static object_info rob_chara_get_head_object(rob_chara* rob_chr, int32_t head_ob
 static object_info rob_chara_get_object_info(rob_chara* rob_chr, item_id id);
 static void rob_chara_load_default_motion(rob_chara* rob_chr,
     const bone_database* bone_data, const motion_database* mot_db);
-static void rob_chara_load_default_motion_sub(rob_chara* rob_chr, int32_t skeleton_select,
+static void rob_chara_load_default_motion_sub(rob_chara* rob_chr, uint32_t skeleton_select,
     uint32_t motion_id, const bone_database* bone_data, const motion_database* mot_db);
 
 static void rob_chara_set_adjust(rob_chara* rob_chr, rob_chara_data_adjust* adjust_new,
@@ -5470,7 +5470,7 @@ static float_t bone_data_limit_angle(float_t angle) {
         return angle;
 }
 
-static void bone_data_mult_0(bone_data* a1, int32_t skeleton_select) {
+static void bone_data_mult_0(bone_data* a1, uint32_t skeleton_select) {
     if (a1->check_flags_not_null())
         return;
 
@@ -5855,7 +5855,7 @@ static bool bone_data_mult_1_exp_data(bone_data* a1, bone_node_expression_data* 
     return ret;
 }
 
-static void bone_data_mult_ik(bone_data* a1, int32_t skeleton_select) {
+static void bone_data_mult_ik(bone_data* a1, uint32_t skeleton_select) {
     if (a1->type < BONE_DATABASE_BONE_HEAD_IK_ROTATION)
         return;
 
@@ -6089,101 +6089,6 @@ static void bone_data_parent_load_rob_chara(bone_data_parent* bone) {
     bone->bones.resize(rob_bone_data->motion_bone_count);
     bone->global_key_set_count = 6;
     bone->bone_key_set_count = (uint32_t)((bone->motion_bone_count + bone->leaf_pos) * 3);
-}
-
-static void sub_14040F650(struc_313* a1, size_t a2) {
-    size_t v7 = (a2 + 31) >> 5;
-    if (v7 < a1->bitfield.size())
-        a1->bitfield.resize(v7);
-    a1->motion_bone_count = a2;
-
-    int32_t v9 = (int32_t)a2 & 0x1F;
-    if (v9)
-        a1->bitfield.data()[v7 - 1] &= (1 << v9) - 1;
-}
-
-static void sub_1404122C0(struc_313* a1, struc_314* a2, struc_314* a3, struc_314* a4) {
-    uint32_t* bitfield = a1->bitfield.data();
-    uint32_t* v4 = bitfield;
-    uint32_t* v5 = a3->field_0;
-    size_t v6 = a3->field_8;
-    size_t v7 = a1->motion_bone_count;
-    size_t v8 = 0;
-
-    struc_314 v25;
-    v25.field_0 = bitfield;
-    v25.field_8 = 0;
-    if (v7) {
-        size_t v12 = v6 + 32 * (v5 - v4);
-        v25.field_0 = &bitfield[v12 >> 5];
-        v25.field_8 = v12 & 0x1F;
-    }
-
-    struc_314 v26;
-    v26.field_0 = bitfield;
-    v26.field_8 = 0;
-    if (v7) {
-        size_t v17 = a4->field_8 + 32 * (a4->field_0 - v4);
-        v26.field_0 = &v4[v17 >> 5];
-        v26.field_8 = v17 & 0x1F;
-    }
-
-    size_t v18 = v25.field_8 + 32 * (v25.field_0 - v4);
-    if (v25.field_0 != v26.field_0 || v25.field_8 != v26.field_8) {
-        size_t v19 = 0;
-        if (v7) {
-            v4 += v7 >> 5;
-            v19 = a1->motion_bone_count & 0x1F;
-        }
-
-        size_t v20 = v26.field_8;
-        uint32_t* v21 = v26.field_0;
-        size_t v22 = v25.field_8;
-        uint32_t* v23 = v25.field_0;
-        while (v21 != v4 || v20 != v19) {
-            if ((1 << v20) & *v21)
-                *v23 |= 1 << v22;
-            else
-                *v23 &= ~(1 << v22);
-            if (v22 >= 0x1F) {
-                v22 = 0;
-                v23++;
-            }
-            else
-                v22++;
-
-            if (v20 >= 0x1F) {
-                v20 = 0;
-                v21++;
-            }
-            else
-                v20++;
-        }
-        sub_14040F650(a1, v22 + 32 * (v23 - a1->bitfield.data()));
-    }
-
-    a2->field_0 = &a1->bitfield.data()[v18 >> 5];
-    a2->field_8 = v18 & 0x1F;
-}
-
-static void sub_1404119A0(struc_313* a1) {
-    uint32_t* bitfield = a1->bitfield.data();
-    struc_314 v3;
-    if (a1->motion_bone_count) {
-        v3.field_0 = &bitfield[a1->motion_bone_count >> 5];
-        v3.field_8 = a1->motion_bone_count & 0x1F;
-    }
-    else {
-        v3.field_0 = bitfield;
-        v3.field_8 = 0;
-    }
-
-    struc_314 v4;
-    v4.field_0 = bitfield;
-    v4.field_8 = 0;
-
-    struc_314 v5;
-    sub_1404122C0(a1, &v5, &v4, &v3);
 }
 
 static void mot_interpolate(const mot* a1, float_t frame, float_t* value,
@@ -6897,7 +6802,6 @@ static void mothead_func_32(mothead_func_data* func_data,
     int32_t v10 = ((int32_t*)data)[3];
 
     if (v8 == (int16_t)0xFA0C && v10 == 0xD62721C5) { // X
-        printf("");
         float_t value = v9;
         float_t duration = (float_t)v5;
         v2.arm_adjust_next_value = value;
@@ -7921,11 +7825,6 @@ static void mothead_mot_func_68(mothead_mot_func_data* func_data,
         func_data->field_10->field_0.iterations = iterations;
 }
 
-
-static bool sub_140410250(const struc_313* a1, size_t a2) {
-    return !!(a1->bitfield.data()[a2 >> 5] & (1 << (a2 & 0x1F)));
-}
-
 static void motion_blend_mot_interpolate(motion_blend_mot* a1) {
     vec3* keyframe_data = (vec3*)a1->mot_key_data.key_set_data.data();
     bool reverse = motion_blend_mot_interpolate_get_reverse(&a1->field_4F8.field_0);
@@ -7935,7 +7834,7 @@ static void motion_blend_mot_interpolate(motion_blend_mot* a1) {
     bone_data* bones_data = a1->bone_data.bones.data();
     for (uint16_t& i : a1->bone_data.bone_indices) {
         bone_data* data = &bones_data[i];
-        bool get_data = sub_140410250(&a1->field_0.field_8, data->motion_bone_index);
+        bool get_data = a1->enabled_bones.arr[data->motion_bone_index];
         if (reverse && data->mirror != 255)
             data = &bones_data[data->mirror];
 
@@ -7987,173 +7886,20 @@ static bool motion_blend_mot_interpolate_get_reverse(int32_t* a1) {
     return *a1 & 0x01 && !(*a1 & 0x08) || !(*a1 & 0x01) && *a1 & 0x08;
 }
 
-static void sub_1404146F0(struc_240* a1) {
-    uint32_t* v1 = a1->field_8.bitfield.data();
-    int32_t v2 = MOTION_BONE_N_HARA_CP;
-    size_t v4 = 0;
-    while (true) {
-        size_t v5 = a1->field_8.motion_bone_count;
-        uint32_t* v6 = a1->field_8.bitfield.data();
-        size_t v7 = 0;
-        if (v5) {
-            v6 += a1->field_8.motion_bone_count >> 5;
-            v7 = a1->field_8.motion_bone_count & 0x1F;
-        }
-        if (v1 == v6 && v4 == v7)
-            break;
-
-        if (a1->bone_check_func((motion_bone_index)v2))
-            *v1 |= 1 << v4;
-        else
-            *v1 &= ~(1 << v4);
-        v2++;
-
-        if (v4 >= 0x1F) {
-            v4 = 0;
-            v1++;
-        }
-        else
-            v4++;
-    }
-}
-
-size_t sub_14040EB30(struc_313* a1, struc_314* a2, size_t a3) {
-    size_t v5 = a2->field_8 + 32 * (a2->field_0 - a1->bitfield.data());
-    if (!a3)
-        return v5;
-
-    a1->bitfield.resize((a1->motion_bone_count + a3 + 31) >> 5);
-
-    uint32_t* bitfield = a1->bitfield.data();
-    size_t v7 = a1->motion_bone_count;
-    if (!v7) {
-        a1->motion_bone_count = a3;
-        return v5;
-    }
-
-    struc_314 v18;
-    v18.field_0 = &bitfield[v7 >> 5];
-    v18.field_8 = a1->motion_bone_count & 0x1F;
-    size_t v11 = a3 + v7;
-    a1->motion_bone_count = v11;
-
-    struc_314 v17;
-    v17.field_0 = &bitfield[v11 >> 5];
-    v17.field_8 = v11 & 0x1F;
-
-    uint32_t* v12 = &bitfield[v5 >> 5];
-    size_t v13 = v18.field_8;
-    uint32_t* v14 = v18.field_0;
-    size_t v15 = v17.field_8;
-    uint32_t*  v16 = v17.field_0;
-    while (v12 != v14 || (v5 & 0x1F) != v13) {
-        if (v13)
-            v13--;
-        else {
-            v13 = 31;
-            v14--;
-        }
-
-        if (v15)
-            v15--;
-        else {
-            v15 = 31;
-            v16--;
-        }
-
-        if ((1 << v13) & *v14)
-            *v16 |= 1 << v15;
-        else
-            *v16 &= ~(1 << v15);
-    }
-    return v5;
-}
-
-static void sub_14040E980(struc_313* a1, struc_314* a2, struc_314* a3, size_t a4, bool* a5) {
-    uint32_t* bitfield = a1->bitfield.data();
-    struc_314 v19 = *a3;
-    size_t v8 = sub_14040EB30(a1, &v19, a4);
-    size_t v10 = v8 + a4;
-    size_t v11 = v8;
-    uint32_t* v12 = &bitfield[v10 >> 5];
-    size_t v13 = v10 & 0x1F;
-
-    uint32_t* v15 = &bitfield[v8 >> 5];
-    size_t v14 = v8 & 0x1F;
-    while (v15 != v12 || v14 != v13) {
-        if (*a5)
-            *v15 |= 1 << v14;
-        else
-            *v15 &= ~(1 << v14);
-
-        if (v14 >= 0x1F) {
-            v14 = 0;
-            v15++;
-        }
-        else
-            v14++;
-    }
-
-    a2->field_0 = &bitfield[v11 >> 5];
-    a2->field_8 = v11 & 0x1F;
-}
-
-static void sub_140414550(struc_313* a1, size_t a2, bool a3) {
-    uint32_t* bitfield = a1->bitfield.data();
-    size_t motion_bone_count = a1->motion_bone_count;
-    if (a2 > motion_bone_count) {
-        struc_314 v7;
-        v7.field_0 = bitfield;
-        v7.field_8 = 0;
-        if (motion_bone_count) {
-            v7.field_0 = &bitfield[motion_bone_count >> 5];
-            v7.field_8 = motion_bone_count & 0x1F;
-        }
-
-        struc_314 v8 = v7;
-        sub_14040E980(a1, &v7, &v8, a2 - motion_bone_count, &a3);
-    }
-    else if (a2 < motion_bone_count) {
-        struc_314 v8;
-        v8.field_0 = bitfield;
-        v8.field_8 = 0;
-        if (motion_bone_count) {
-            v8.field_0 = &bitfield[motion_bone_count >> 5];
-            v8.field_8 = motion_bone_count & 0x1F;
-        }
-
-        struc_314 v7;
-        v7.field_0 = &bitfield[a2 >> 5];
-        v7.field_8 = a2 & 0x1F;
-
-        struc_314 v9;
-        sub_1404122C0(a1, &v9, &v7, &v8);
-    }
-}
-
-static void sub_140413350(struc_240* a1, PFNMOTIONBONECHECKFUNC bone_check_func, size_t motion_bone_count) {
-    a1->bone_check_func = bone_check_func;
-    a1->motion_bone_count = motion_bone_count;
-    sub_1404119A0(&a1->field_8);
-    sub_140414550(&a1->field_8, motion_bone_count, 0);
-    sub_1404146F0(a1);
-}
-
 static void motion_blend_mot_load_bone_data(motion_blend_mot* a1,
-    rob_chara_bone_data* a2, PFNMOTIONBONECHECKFUNC bone_check_func, const bone_database* bone_data) {
+    rob_chara_bone_data* a2, PFNMOTIONBONECHECKFUNC check_func, const bone_database* bone_data) {
     bone_data_parent_data_init(&a1->bone_data, a2, bone_data);
     mot_key_data_init_key_sets(
         &a1->mot_key_data,
         a1->bone_data.rob_bone_data->base_skeleton_type,
         a1->bone_data.motion_bone_count,
         a1->bone_data.leaf_pos);
-    sub_140413350(&a1->field_0, bone_check_func, a1->bone_data.motion_bone_count);
+    a1->enabled_bones.init(check_func, a1->bone_data.motion_bone_count);
 }
 
-static void sub_140412E10(motion_blend_mot* a1, int32_t skeleton_select) {
+static void sub_140412E10(motion_blend_mot* a1, uint32_t skeleton_select) {
     for (bone_data& i : a1->bone_data.bones)
-        if ((1 << (i.motion_bone_index & 0x1F))
-            & a1->field_0.field_8.bitfield.data()[i.motion_bone_index >> 5]) {
+        if (a1->enabled_bones.arr[i.motion_bone_index]) {
             i.store_curr_rot_trans(skeleton_select);
             if (i.type == BONE_DATABASE_BONE_POSITION_ROTATION && (a1->field_4F8.field_0 & 0x02))
                 i.position_prev[skeleton_select] += a1->field_4F8.field_90;
@@ -8162,8 +7908,7 @@ static void sub_140412E10(motion_blend_mot* a1, int32_t skeleton_select) {
 
 static void sub_140412F20(partial_motion_blend_mot* a1, prj::sys_vector<bone_data>* a2) {
     for (bone_data& i : *a2)
-        if (((1 << (i.motion_bone_index & 0x1F))
-            & a1->field_0.field_8.bitfield.data()[i.motion_bone_index >> 5]) != 0)
+        if (a1->enabled_bones.arr[i.motion_bone_index])
             i.store_curr_rot_trans(0);
 }
 
@@ -10935,90 +10680,79 @@ static void rob_chara_bone_data_init_skeleton(rob_chara_bone_data* rob_bone_data
     rob_bone_data->skeleton_type = skeleton_type;
 }
 
-static void sub_14041B4E0(struc_313* a1) {
-    uint32_t* bitfield = a1->bitfield.data();
+static void sub_14041B4E0(prj::sys_vector<bool>& vec) {
     for (uint32_t i = MOTION_BONE_FACE_ROOT; i <= MOTION_BONE_TL_TOOTH_UPPER_WJ; i++)
-        bitfield[i >> 5] &= ~(1 << (i & 0x1F));
+        vec[i] = false;
 }
 
-static void sub_14041B580(struc_313* a1) {
-    uint32_t* bitfield = a1->bitfield.data();
+static void sub_14041B580(prj::sys_vector<bool>& vec) {
     for (uint32_t i = MOTION_BONE_FACE_ROOT; i <= MOTION_BONE_TL_TOOTH_UPPER_WJ; i++)
-        bitfield[i >> 5] &= ~(1 << (i & 0x1F));
+        vec[i] = false;
 
     for (uint32_t i = MOTION_BONE_N_EYE_L; i <= MOTION_BONE_KL_HIGHLIGHT_R_WJ; i++)
-        bitfield[i >> 5] |= 1 << (i & 0x1F);
+        vec[i] = true;
 }
 
-static void sub_14041B800(struc_313* a1) {
-    uint32_t* bitfield = a1->bitfield.data();
+static void sub_14041B800(prj::sys_vector<bool>& vec) {
     for (uint32_t i = MOTION_BONE_N_KUTI_D; i <= MOTION_BONE_TL_KUTI_U_R_WJ; i++)
-        bitfield[i >> 5] &= ~(1 << (i & 0x1F));
+        vec[i] = false;
 
     for (uint32_t i = MOTION_BONE_N_AGO; i <= MOTION_BONE_TL_TOOTH_UNDER_WJ; i++)
-        bitfield[i >> 5] &= ~(1 << (i & 0x1F));
+        vec[i] = false;
 
     for (uint32_t i = MOTION_BONE_N_TOOTH_UPPER; i <= MOTION_BONE_TL_TOOTH_UPPER_WJ; i++)
-        bitfield[i >> 5] &= ~(1 << (i & 0x1F));
+        vec[i] = false;
 }
 
-static void sub_14041B440(struc_313* a1) {
-    uint32_t* bitfield = a1->bitfield.data();
+static void sub_14041B440(prj::sys_vector<bool>& vec) {
     for (uint32_t i = MOTION_BONE_N_EYE_L; i <= MOTION_BONE_KL_HIGHLIGHT_R_WJ; i++)
-        bitfield[i >> 5] &= ~(1 << (i & 0x1F));
+        vec[i] = false;
 }
 
-static void sub_14041B1C0(struc_313* a1) {
-    uint32_t* bitfield = a1->bitfield.data();
+static void sub_14041B1C0(prj::sys_vector<bool>& vec) {
     for (uint32_t i = MOTION_BONE_N_MABU_L_D_A; i <= MOTION_BONE_TL_MABU_R_U_C_WJ; i++)
-        bitfield[i >> 5] &= ~(1 << (i & 0x1F));
+        vec[i] = false;
 
     for (uint32_t i = MOTION_BONE_N_EYELID_L_A; i <= MOTION_BONE_TL_EYELID_R_B_WJ; i++)
-        bitfield[i >> 5] &= ~(1 << (i & 0x1F));
-    sub_14041B440(a1);
+        vec[i] = false;
+
+    sub_14041B440(vec);
 }
 
-static void sub_14041B6B0(struc_313* a1) {
-    uint32_t* bitfield = a1->bitfield.data();
+static void sub_14041B6B0(prj::sys_vector<bool>& vec) {
     for (uint32_t i = MOTION_BONE_N_HITO_L_EX; i <= MOTION_BONE_NL_OYA_C_L_WJ; i++)
-        bitfield[i >> 5] &= ~(1 << (i & 0x1F));
+        vec[i] = false;
 }
 
-static void sub_14041B750(struc_313* a1) {
-    uint32_t* bitfield = a1->bitfield.data();
+static void sub_14041B750(prj::sys_vector<bool>& vec) {
     for (uint32_t i = MOTION_BONE_N_HITO_R_EX; i <= MOTION_BONE_NL_OYA_C_R_WJ; i++)
-        bitfield[i >> 5] &= ~(1 << (i & 0x1F));
+        vec[i] = false;
 }
 
-static void sub_14041B300(struc_313* a1) {
-    uint32_t* bitfield = a1->bitfield.data();
+static void sub_14041B300(prj::sys_vector<bool>& vec) {
     for (uint32_t i = MOTION_BONE_N_MABU_L_D_A; i <= MOTION_BONE_TL_MABU_R_U_C_WJ; i++)
-        bitfield[i >> 5] &= ~(1 << (i & 0x1F));
+        vec[i] = false;
 
     for (uint32_t i = MOTION_BONE_N_EYELID_L_A; i <= MOTION_BONE_TL_EYELID_R_B_WJ; i++)
-        bitfield[i >> 5] &= ~(1 << (i & 0x1F));
-}
-
-static void sub_140413EA0(struc_240* a1, void(*a2)(struc_313*)) {
-    a2(&a1->field_8);
+        vec[i] = false;
 }
 
 static void sub_14041AD90(rob_chara_bone_data* rob_bone_data) {
     if (rob_bone_data->mouth.mot_key_data.key_sets_ready
         && rob_bone_data->mouth.mot_key_data.mot_data && !rob_bone_data->mouth.disable)
-        sub_140413EA0(&rob_bone_data->face.field_0, sub_14041B800);
+        rob_bone_data->face.enabled_bones.set(sub_14041B800);
     if (rob_bone_data->eyelid.mot_key_data.key_sets_ready
         && rob_bone_data->eyelid.mot_key_data.mot_data && !rob_bone_data->eyelid.disable)
-        sub_140413EA0(&rob_bone_data->face.field_0, sub_14041B1C0);
+        rob_bone_data->face.enabled_bones.set(sub_14041B1C0);
     else if (rob_bone_data->disable_eye_motion || rob_bone_data->eyes.mot_key_data.key_sets_ready
         && rob_bone_data->eyes.mot_key_data.mot_data && !rob_bone_data->eyes.disable)
-        sub_140413EA0(&rob_bone_data->face.field_0, sub_14041B440);
+        rob_bone_data->face.enabled_bones.set(sub_14041B440);
 }
 
 static void sub_14041AD50(rob_chara_bone_data* rob_bone_data) {
     if (rob_bone_data->disable_eye_motion || rob_bone_data->eyes.mot_key_data.key_sets_ready
         && rob_bone_data->eyes.mot_key_data.mot_data && !rob_bone_data->eyes.disable)
-        sub_140413EA0(&rob_bone_data->eyelid.field_0, sub_14041B440);
+        rob_bone_data->eyelid.enabled_bones.set(sub_14041B440);
 }
 
 static void sub_14041ABA0(rob_chara_bone_data* a1) {
@@ -11027,34 +10761,34 @@ static void sub_14041ABA0(rob_chara_bone_data* a1) {
             && a1->face.mot_key_data.mot_data && !a1->face.disable) {
             if (!a1->disable_eye_motion || a1->eyes.mot_key_data.key_sets_ready
                 && a1->eyes.mot_key_data.mot_data && !a1->eyes.disable)
-                sub_140413EA0(&i->field_0, sub_14041B4E0);
+                i->enabled_bones.set(sub_14041B4E0);
             else
-                sub_140413EA0(&i->field_0, sub_14041B580);
+                i->enabled_bones.set(sub_14041B580);
         }
         else {
             if (a1->mouth.mot_key_data.key_sets_ready
                 && a1->mouth.mot_key_data.mot_data && !a1->mouth.disable)
-                sub_140413EA0(&i->field_0, sub_14041B800);
+                i->enabled_bones.set(sub_14041B800);
             if (a1->eyelid.mot_key_data.key_sets_ready
                 && a1->eyelid.mot_key_data.mot_data && !a1->eyelid.disable) {
                 if (!a1->disable_eye_motion
                     || a1->eyes.mot_key_data.key_sets_ready
                     && a1->eyes.mot_key_data.mot_data && !a1->eyes.disable)
-                    sub_140413EA0(&i->field_0, sub_14041B1C0);
+                    i->enabled_bones.set(sub_14041B1C0);
                 else
-                    sub_140413EA0(&i->field_0, sub_14041B300);
+                    i->enabled_bones.set(sub_14041B300);
             }
             else if (a1->eyes.mot_key_data.key_sets_ready
                 && a1->eyes.mot_key_data.mot_data && !a1->eyes.disable)
-                sub_140413EA0(&i->field_0, sub_14041B440);
+                i->enabled_bones.set(sub_14041B440);
         }
 
         if (a1->hand_l.mot_key_data.key_sets_ready
             && a1->hand_l.mot_key_data.mot_data && !a1->hand_l.disable)
-            sub_140413EA0(&i->field_0, sub_14041B6B0);
+            i->enabled_bones.set(sub_14041B6B0);
         if (a1->hand_r.mot_key_data.key_sets_ready
             && a1->hand_r.mot_key_data.mot_data && !a1->hand_r.disable)
-            sub_140413EA0(&i->field_0, sub_14041B750);
+            i->enabled_bones.set(sub_14041B750);
     }
     sub_14041AD90(a1);
     sub_14041AD50(a1);
@@ -11166,7 +10900,7 @@ static void rob_chara_bone_data_motion_blend_mot_list_free(rob_chara_bone_data* 
             delete v5;
         else {
             rob_bone_data->motion_indices.push_back(v14);
-            sub_1404146F0(&v5->field_0);
+            v5->enabled_bones.check();
         }
         rob_bone_data->motion_loaded.pop_back();
         rob_bone_data->motion_loaded_indices.pop_back();
@@ -11203,8 +10937,8 @@ static void sub_140412BB0(motion_blend_mot* a1, prj::sys_vector<bone_data>& bone
 }
 
 static void sub_14041AE40(rob_chara_bone_data* rob_bone_data) {
-    struc_240* v3 = &rob_bone_data->motion_loaded.front()->field_0;
-    if (!v3)
+    motion_blend_mot_enabled_bones* enabled_bones = &rob_bone_data->motion_loaded.front()->enabled_bones;
+    if (!enabled_bones)
         return;
 
     if (rob_bone_data->face.mot_key_data.key_sets_ready
@@ -11212,40 +10946,40 @@ static void sub_14041AE40(rob_chara_bone_data* rob_bone_data) {
         if (!rob_bone_data->disable_eye_motion
             || rob_bone_data->eyes.mot_key_data.key_sets_ready
             && rob_bone_data->eyes.mot_key_data.mot_data && !rob_bone_data->eyes.disable)
-            sub_140413EA0(v3, sub_14041B4E0);
+            enabled_bones->set(sub_14041B4E0);
         else
-            sub_140413EA0(v3, sub_14041B580);
+            enabled_bones->set(sub_14041B580);
     }
     else {
         if (rob_bone_data->mouth.mot_key_data.key_sets_ready
             && rob_bone_data->mouth.mot_key_data.mot_data && !rob_bone_data->mouth.disable)
-            sub_140413EA0(v3, sub_14041B800);
+            enabled_bones->set(sub_14041B800);
         if (rob_bone_data->eyelid.mot_key_data.key_sets_ready
             && rob_bone_data->eyelid.mot_key_data.mot_data && !rob_bone_data->eyelid.disable) {
             if (!rob_bone_data->disable_eye_motion
                 || rob_bone_data->eyes.mot_key_data.key_sets_ready
                 && rob_bone_data->eyes.mot_key_data.mot_data && !rob_bone_data->eyes.disable)
-                sub_140413EA0(v3, sub_14041B1C0);
+                enabled_bones->set(sub_14041B1C0);
             else
-                sub_140413EA0(v3, sub_14041B300);
+                enabled_bones->set(sub_14041B300);
         }
         else
             if (rob_bone_data->eyes.mot_key_data.key_sets_ready
                 && rob_bone_data->eyes.mot_key_data.mot_data && !rob_bone_data->eyes.disable)
-                sub_140413EA0(v3, sub_14041B440);
+                enabled_bones->set(sub_14041B440);
     }
 
     if (rob_bone_data->hand_l.mot_key_data.key_sets_ready
         && rob_bone_data->hand_l.mot_key_data.mot_data && !rob_bone_data->hand_l.disable)
-        sub_140413EA0(v3, sub_14041B6B0);
+        enabled_bones->set(sub_14041B6B0);
     if (rob_bone_data->hand_r.mot_key_data.key_sets_ready
         && rob_bone_data->hand_r.mot_key_data.mot_data && !rob_bone_data->hand_r.disable)
-        sub_140413EA0(v3, sub_14041B750);
+        enabled_bones->set(sub_14041B750);
 }
 
 static void sub_14041BA60(rob_chara_bone_data* rob_bone_data) {
     if (rob_bone_data->motion_loaded.front())
-        sub_1404146F0(&rob_bone_data->motion_loaded.front()->field_0);
+        rob_bone_data->motion_loaded.front()->enabled_bones.check();
 }
 
 static void rob_chara_bone_data_motion_load(rob_chara_bone_data* rob_bone_data, uint32_t motion_id,
@@ -11282,7 +11016,7 @@ static void rob_chara_bone_data_motion_load(rob_chara_bone_data* rob_bone_data, 
     }
 
     motion_blend_mot* v16 = new motion_blend_mot();
-    motion_blend_mot_load_bone_data(v16, rob_bone_data, v16->field_0.bone_check_func, bone_data);
+    motion_blend_mot_load_bone_data(v16, rob_bone_data, v16->enabled_bones.func, bone_data);
     if (!v16) {
         rob_chara_bone_data_motion_blend_mot_list_free(rob_bone_data, 1);
         sub_14041AE40(rob_bone_data);
@@ -11472,7 +11206,7 @@ static void sub_140413EB0(struc_308* a1) {
 
 static void sub_1404117F0(motion_blend_mot* a1) {
     sub_140413EB0(&a1->field_4F8);
-    int32_t skeleton_select = a1->mot_key_data.skeleton_select;
+    uint32_t skeleton_select = a1->mot_key_data.skeleton_select;
     for (bone_data& i : a1->bone_data.bones)
         bone_data_mult_0(&i, skeleton_select);
 }
@@ -11529,7 +11263,7 @@ static void sub_140410A40(motion_blend_mot* a1, prj::sys_vector<bone_data>* a2, 
     v4->Field_20(a2, a3);
 
     for (bone_data& i : *a2) {
-        if (!sub_140410250(&a1->field_0.field_8, i.motion_bone_index))
+        if (!a1->enabled_bones.arr[i.motion_bone_index])
             continue;
 
         bone_data* v8 = 0;
@@ -11547,7 +11281,7 @@ static void sub_140410B70(motion_blend_mot* a1, prj::sys_vector<bone_data>* a2) 
     v3->Field_20(&a1->bone_data.bones, a2);
 
     for (bone_data& i : a1->bone_data.bones) {
-        if (!sub_140410250(&a1->field_0.field_8, i.motion_bone_index))
+        if (!a1->enabled_bones.arr[i.motion_bone_index])
             continue;
 
         bone_data* v6 = 0;
@@ -11562,7 +11296,7 @@ static void sub_140410CB0(partial_motion_blend_mot* a1, prj::sys_vector<bone_dat
         return;
 
     for (bone_data& i : *a2)
-        if (sub_140410250(&a1->field_0.field_8, i.motion_bone_index))
+        if (a1->enabled_bones.arr[i.motion_bone_index])
             a1->blend.Blend(&a2->data()[i.motion_bone_index], 0);
 }
 
@@ -11618,10 +11352,10 @@ static void sub_1404182B0(rob_chara_bone_data* rob_bone_data) {
 
 void sub_14041B9F0(rob_chara_bone_data* rob_bone_data) {
     for (motion_blend_mot*& i : rob_bone_data->motion_loaded)
-        sub_1404146F0(&i->field_0);
+        i->enabled_bones.check();
 
-    sub_1404146F0(&rob_bone_data->face.field_0);
-    sub_1404146F0(&rob_bone_data->eyelid.field_0);
+    rob_bone_data->face.enabled_bones.check();
+    rob_bone_data->eyelid.enabled_bones.check();
 }
 
 void sub_140506C20(struc_523* a1) {
@@ -11923,11 +11657,11 @@ static void rob_chara_load_default_motion(rob_chara* rob_chr,
     rob_chara_load_default_motion_sub(rob_chr, 1, motion_id, bone_data, mot_db);
 }
 
-static void sub_140419820(rob_chara_bone_data* rob_bone_data, int32_t skeleton_select) {
+static void sub_140419820(rob_chara_bone_data* rob_bone_data, uint32_t skeleton_select) {
     sub_140412E10(rob_bone_data->motion_loaded.front(), skeleton_select);
 }
 
-static void rob_chara_load_default_motion_sub(rob_chara* rob_chr, int32_t skeleton_select,
+static void rob_chara_load_default_motion_sub(rob_chara* rob_chr, uint32_t skeleton_select,
     uint32_t motion_id, const bone_database* bone_data, const motion_database* mot_db) {
     rob_chr->bone_data->load_face_motion(-1, mot_db);
     rob_chr->bone_data->load_hand_l_motion(-1, mot_db);
@@ -12605,7 +12339,7 @@ vec3* bone_data::set_key_data(vec3* keyframe_data,
     return keyframe_data;
 }
 
-void bone_data::store_curr_rot_trans(int32_t skeleton_select) {
+void bone_data::store_curr_rot_trans(uint32_t skeleton_select) {
     if (check_flags_not_null())
         return;
 
@@ -13090,20 +12824,44 @@ void PartialMotionBlendFreeze::Blend(bone_data* curr, bone_data* prev) {
     }
 }
 
-struc_313::struc_313() : motion_bone_count() {
-    bitfield.reserve(16);
-}
-
-struc_313::~struc_313() {
+motion_blend_mot_enabled_bones::motion_blend_mot_enabled_bones() : func(), arr(0, false), count() {
 
 }
 
-struc_240::struc_240() : bone_check_func(), motion_bone_count() {
+motion_blend_mot_enabled_bones::~motion_blend_mot_enabled_bones() {
 
 }
 
-struc_240::~struc_240() {
+// 0x1404146F0
+void motion_blend_mot_enabled_bones::check() {
+    int32_t bone_index = MOTION_BONE_N_HARA_CP;
+    for (auto i = arr.begin(); i != arr.end(); i++) {
+        if (func((motion_bone_index)bone_index))
+            *i = true;
+        else
+            *i = false;
+        bone_index++;
+    }
+}
 
+// 0x140413350
+void motion_blend_mot_enabled_bones::init(PFNMOTIONBONECHECKFUNC func, size_t count) {
+    this->func = func;
+    this->count = count;
+    arr.clear();
+    arr.resize(count, false);
+    check();
+}
+
+void motion_blend_mot_enabled_bones::reset() {
+    func = 0;
+    arr.clear();
+    count = 0;
+}
+
+// 0x140413EA0
+void motion_blend_mot_enabled_bones::set(void(*func)(prj::sys_vector<bool>&)) {
+    func(arr);
 }
 
 motion_blend_mot::motion_blend_mot() : bone_data(),
@@ -13175,9 +12933,9 @@ partial_motion_blend_mot::~partial_motion_blend_mot() {
 }
 
 void partial_motion_blend_mot::init(bone_database_skeleton_type type,
-    PFNMOTIONBONECHECKFUNC bone_check_func, size_t motion_bone_count, const bone_database* bone_data) {
+    PFNMOTIONBONECHECKFUNC check_func, size_t motion_bone_count, const bone_database* bone_data) {
     mot_key_data_init(&mot_key_data, type, bone_data);
-    sub_140413350(&field_0, bone_check_func, motion_bone_count);
+    enabled_bones.init(check_func, motion_bone_count);
 }
 
 void partial_motion_blend_mot::interpolate(prj::sys_vector<bone_data>& bones,
@@ -13189,7 +12947,7 @@ void partial_motion_blend_mot::interpolate(prj::sys_vector<bone_data>& bones,
     vec3* keyframe_data = (vec3*)mot_key_data.key_set_data.data();
     for (const uint16_t& i : *bone_indices) {
         bone_data* data = &bones[i];
-        bool get_data = sub_140410250(&field_0.field_8, data->motion_bone_index);
+        bool get_data = enabled_bones.arr[data->motion_bone_index];
         if (get_data) {
             mot_key_data.interpolate(frame, data->key_set_offset, data->key_set_count);
             data->frame = frame;
@@ -13220,9 +12978,7 @@ void partial_motion_blend_mot::reset() {
     mot_key_data.reset();
     mot_play_data.reset();
     blend.Reset();
-    field_0.bone_check_func = 0;
-    sub_1404119A0(&field_0.field_8);
-    field_0.motion_bone_count = 0;
+    enabled_bones.reset();
     disable = false;
 }
 
@@ -13453,7 +13209,7 @@ void rob_chara_bone_data::interpolate() {
 void rob_chara_bone_data::load_eyelid_motion(uint32_t motion_id, const motion_database* mot_db) {
     sub_14041AD50(this);
     sub_140412F20(&eyelid, &motion_loaded.front()->bone_data.bones);
-    sub_1404146F0(&eyelid.field_0);
+    eyelid.enabled_bones.check();
     eyelid.load_motion(motion_id, mot_db);
 }
 
@@ -13465,7 +13221,7 @@ void rob_chara_bone_data::load_eyes_motion(uint32_t motion_id, const motion_data
 void rob_chara_bone_data::load_face_motion(uint32_t motion_id, const motion_database* mot_db) {
     sub_14041AD90(this);
     sub_140412F20(&face, &motion_loaded.front()->bone_data.bones);
-    sub_1404146F0(&face.field_0);
+    face.enabled_bones.check();
     face.load_motion(motion_id, mot_db);
 }
 

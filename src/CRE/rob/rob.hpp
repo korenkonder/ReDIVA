@@ -987,7 +987,7 @@ struct bone_data {
     bool check_flags_not_null();
     vec3* set_key_data(vec3* keyframe_data,
         bone_database_skeleton_type skeleton_type, bool get_data, bool reverse_x);
-    void store_curr_rot_trans(int32_t skeleton_select);
+    void store_curr_rot_trans(uint32_t skeleton_select);
 
 };
 
@@ -1156,27 +1156,24 @@ public:
     virtual void Blend(bone_data* curr, bone_data* prev) override;
 };
 
-struct struc_313 {
-    prj::sys_vector<uint32_t> bitfield;
-    size_t motion_bone_count;
-
-    struc_313();
-    ~struc_313();
-};
-
 typedef bool(* PFNMOTIONBONECHECKFUNC)(motion_bone_index bone_index);
 
-struct struc_240 {
-    PFNMOTIONBONECHECKFUNC bone_check_func;
-    struc_313 field_8;
-    size_t motion_bone_count;
+struct motion_blend_mot_enabled_bones {
+    PFNMOTIONBONECHECKFUNC func;
+    prj::sys_vector<bool> arr;
+    size_t count;
 
-    struc_240();
-    ~struc_240();
+    motion_blend_mot_enabled_bones();
+    ~motion_blend_mot_enabled_bones();
+
+    void check();
+    void init(PFNMOTIONBONECHECKFUNC func, size_t count);
+    void reset();
+    void set(void(*func)(prj::sys_vector<bool>&));
 };
 
 struct motion_blend_mot {
-    struc_240 field_0;
+    motion_blend_mot_enabled_bones enabled_bones;
     MotionBlendCross cross;
     MotionBlendFreeze freeze;
     MotionBlendCombine combine;
@@ -1206,7 +1203,7 @@ struct rob_chara_bone_data_ik_scale {
 };
 
 struct partial_motion_blend_mot {
-    struc_240 field_0;
+    motion_blend_mot_enabled_bones enabled_bones;
     bool disable;
     mot_key_data mot_key_data;
     mot_play_data mot_play_data;
