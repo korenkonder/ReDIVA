@@ -72,7 +72,7 @@ static rgb565 rgb565_apply_color_tone(rgb565 col, const color_tone* col_tone) {
     vec3 rgb;
     if (col_tone->inverse) {
         rgb.x = (float_t)((1 << 5) - 1 - col.r);
-        rgb.y = (float_t)((1 << 5) - 1 - col.g);
+        rgb.y = (float_t)((1 << 6) - 1 - col.g);
         rgb.z = (float_t)((1 << 5) - 1 - col.b);
     }
     else {
@@ -87,10 +87,12 @@ static rgb565 rgb565_apply_color_tone(rgb565 col, const color_tone* col_tone) {
     rgb_to_ycc(rgb, ycc);
 
     *(vec2*)&ycc.y = *(vec2*)&ycc.y * col_tone->saturation;
+
     ycc_apply_col_tone_hue(ycc, col_tone);
+
     ycc.x = (ycc.x + col_tone->value - 0.5f) * col_tone->contrast + 0.5f;
-    ycc.x = clamp_def(ycc.x, 0.0f, 1.0f);
-    *(vec2*)&ycc.y = vec2::clamp(*(vec2*)&ycc.y, -0.5f, 0.5f);
+
+    ycc = vec3::clamp(ycc, vec3(0.0f, -0.5f, -0.5f), vec3(1.0f, 0.5f, 0.5f));
 
     ycc_to_rgb(ycc, rgb);
 
@@ -116,8 +118,10 @@ inline static void ycc_apply_col_tone_hue(vec3& ycc, const color_tone* col_tone)
     float_t hue = col_tone->hue * DEG_TO_RAD_FLOAT;
     float_t cos = cosf(hue);
     float_t sin = sinf(hue);
-    ycc.y = ycc.y * cos + ycc.z * sin;
-    ycc.z = ycc.z * cos - ycc.y * sin;
+    float_t y = ycc.y;
+    float_t z = ycc.z;
+    ycc.y = y * cos + z * sin;
+    ycc.z = z * cos - y * sin;
 }
 
 inline static void ycc_to_rgb(vec3& ycc, vec3& rgb) {
