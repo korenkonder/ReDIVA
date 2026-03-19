@@ -3451,7 +3451,7 @@ void ExConstraintBlock::CtrlInitMain() {
     CtrlMain();
 }
 
-static void sub_1401EB410(mat4& mat, vec3& in_v1, vec3& in_v2) {
+static void sub_1401EB410(mat4& mat, const vec3& in_v1, const vec3& in_v2) {
     const vec3 v1 = vec3::normalize(in_v1);
     const vec3 v2 = vec3::normalize(in_v2);
     const vec3 axis = vec3::cross(v2, v1);

@@ -32,6 +32,46 @@ const mat4 mat4_null = {
     { 0.0f, 0.0f, 0.0f, 0.0f },
 };
 
+inline void mat3_set_column(mat3* in_m1, int32_t column, float_t in_x, float_t in_y, float_t in_z) {
+    switch (column) {
+    case 0:
+        in_m1->row0.x = in_x;
+        in_m1->row1.x = in_y;
+        in_m1->row2.x = in_z;
+        break;
+    case 1:
+        in_m1->row0.y = in_x;
+        in_m1->row1.y = in_y;
+        in_m1->row2.y = in_z;
+        break;
+    case 2:
+        in_m1->row0.z = in_x;
+        in_m1->row1.z = in_y;
+        in_m1->row2.z = in_z;
+        break;
+    }
+}
+
+inline void mat3_set_row(mat3* in_m1, int32_t column, float_t in_x, float_t in_y, float_t in_z) {
+    switch (column) {
+    case 0:
+        in_m1->row0.x = in_x;
+        in_m1->row0.y = in_y;
+        in_m1->row0.z = in_z;
+        break;
+    case 1:
+        in_m1->row1.x = in_x;
+        in_m1->row1.y = in_y;
+        in_m1->row1.z = in_z;
+        break;
+    case 2:
+        in_m1->row2.x = in_x;
+        in_m1->row2.y = in_y;
+        in_m1->row2.z = in_z;
+        break;
+    }
+}
+
 inline void mat3_add(const mat3* in_m1, const float_t value, mat3* out_m) {
     out_m->row0 = in_m1->row0 + value;
     out_m->row1 = in_m1->row1 + value;
@@ -876,6 +916,64 @@ inline void mat4_set(const vec3* in_axis, float_t s, float_t c, mat4* out_m) {
     out_m->row1.w = 0.0f;
     out_m->row2.w = 0.0f;
     out_m->row3 = { 0.0f, 0.0f, 0.0f, 1.0f };
+}
+
+inline void mat4_set_column(mat4* in_m1, int32_t column, float_t in_x, float_t in_y, float_t in_z, float_t in_w) {
+    switch (column) {
+    case 0:
+        in_m1->row0.x = in_x;
+        in_m1->row1.x = in_y;
+        in_m1->row2.x = in_z;
+        in_m1->row3.x = in_w;
+        break;
+    case 1:
+        in_m1->row0.y = in_x;
+        in_m1->row1.y = in_y;
+        in_m1->row2.y = in_z;
+        in_m1->row3.y = in_w;
+        break;
+    case 2:
+        in_m1->row0.z = in_x;
+        in_m1->row1.z = in_y;
+        in_m1->row2.z = in_z;
+        in_m1->row3.z = in_w;
+        break;
+    case 3:
+        in_m1->row0.w = in_x;
+        in_m1->row1.w = in_y;
+        in_m1->row2.w = in_z;
+        in_m1->row3.w = in_w;
+        break;
+    }
+}
+
+inline void mat4_set_row(mat4* in_m1, int32_t column, float_t in_x, float_t in_y, float_t in_z, float_t in_w) {
+    switch (column) {
+    case 0:
+        in_m1->row0.x = in_x;
+        in_m1->row0.y = in_y;
+        in_m1->row0.z = in_z;
+        in_m1->row0.w = in_w;
+        break;
+    case 1:
+        in_m1->row1.x = in_x;
+        in_m1->row1.y = in_y;
+        in_m1->row1.z = in_z;
+        in_m1->row1.w = in_w;
+        break;
+    case 2:
+        in_m1->row2.x = in_x;
+        in_m1->row2.y = in_y;
+        in_m1->row2.z = in_z;
+        in_m1->row2.w = in_w;
+        break;
+    case 3:
+        in_m1->row3.x = in_x;
+        in_m1->row3.y = in_y;
+        in_m1->row3.z = in_z;
+        in_m1->row3.w = in_w;
+        break;
+    }
 }
 
 inline void mat4_set_rotation(mat4* in_m1, const quat* in_q1) {

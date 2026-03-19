@@ -877,14 +877,14 @@ struct rob_manager_rob_impl {
 };
 
 static float_t bone_data_limit_angle(float_t angle);
-static void bone_data_mult_0(bone_data* a1, uint32_t skeleton_select);
-static void bone_data_mult_1(bone_data* a1, mat4* parent_mat, bone_data* a3, bool solve_ik);
-static bool bone_data_mult_1_ik(bone_data* a1, bone_data* a2);
-static void bone_data_mult_1_ik_hands(bone_data* a1, const vec3& pos);
-static void bone_data_mult_1_ik_hands_2(bone_data* a1, const vec3& pos, float_t angle_scale);
-static void bone_data_mult_1_ik_legs(bone_data* a1, const vec3& pos);
-static bool bone_data_mult_1_exp_data(bone_data* a1, bone_node_expression_data* a2, bone_data* a3);
-static void bone_data_mult_ik(bone_data* a1, uint32_t skeleton_select);
+static void bone_data_mult(bone_data* bone, uint32_t skeleton_select);
+static void bone_data_constrain_ik(bone_data* bone, mat4* parent_mat, bone_data* bones, bool solve_ik);
+static bool bone_data_get_constraint_ik(bone_data* bone, bone_data* bones);
+static void bone_data_orient_x(bone_data* bone, const vec3& target);
+static void bone_data_orient_x_cns(bone_data* bone, const vec3& target, float_t weight);
+static void bone_data_orient_y(bone_data* bone, vec3 y_axis);
+static bool bone_data_get_cns_rotation(bone_data* bone, bone_node_expression_data* exp_data, bone_data* bones);
+static void bone_data_mult_ik(bone_data* bone, uint32_t skeleton_select);
 
 static void bone_data_parent_data_init(bone_data_parent* bone,
     rob_chara_bone_data* rob_bone_data, const bone_database* bone_data);
@@ -5470,184 +5470,185 @@ static float_t bone_data_limit_angle(float_t angle) {
         return angle;
 }
 
-static void bone_data_mult_0(bone_data* a1, uint32_t skeleton_select) {
-    if (a1->check_flags_not_null())
+static void bone_data_mult(bone_data* bone, uint32_t skeleton_select) {
+    if (bone->check_flags_not_null())
         return;
 
-    if (a1->motion_bone_index == MOTION_BONE_N_HITO_L_EX)
-        printf("");
-
     mat4 mat;
-    if (a1->has_parent)
-        mat = *a1->parent_mat;
+    if (bone->has_parent)
+        mat = *bone->parent_mat;
     else
         mat = mat4_identity;
 
-    if (a1->type == BONE_DATABASE_BONE_POSITION) {
-        mat4_mul_translate(&mat, &a1->position, &mat);
-        a1->rot_mat[0] = mat4_identity;
+    if (bone->type == BONE_DATABASE_BONE_POSITION) {
+        mat4_mul_translate(&mat, &bone->position, &mat);
+        bone->rot_mat[0] = mat4_identity;
     }
-    else if (a1->type == BONE_DATABASE_BONE_TYPE_1) {
-        mat4_inverse_transform_point(&mat, &a1->position, &a1->position);
-        mat4_mul_translate(&mat, &a1->position, &mat);
-        a1->rot_mat[0] = mat4_identity;
+    else if (bone->type == BONE_DATABASE_BONE_TYPE_1) {
+        mat4_inverse_transform_point(&mat, &bone->position, &bone->position);
+        mat4_mul_translate(&mat, &bone->position, &mat);
+        bone->rot_mat[0] = mat4_identity;
     }
     else {
-        if (a1->motion_bone_index == MOTION_BONE_KL_EYE_L
-            || a1->motion_bone_index == MOTION_BONE_KL_EYE_R) {
-            if (a1->rotation.x > 0.0f)
-                a1->rotation.x *= a1->eyes_xrot_adjust_pos;
-            else if (a1->rotation.x < 0.0f)
-                a1->rotation.x *= a1->eyes_xrot_adjust_neg;
+        if (bone->motion_bone_index == MOTION_BONE_KL_EYE_L
+            || bone->motion_bone_index == MOTION_BONE_KL_EYE_R) {
+            if (bone->rotation.x > 0.0f)
+                bone->rotation.x *= bone->eyes_xrot_adjust_pos;
+            else if (bone->rotation.x < 0.0f)
+                bone->rotation.x *= bone->eyes_xrot_adjust_neg;
         }
 
         mat4 rot_mat;
-        if (a1->type == BONE_DATABASE_BONE_POSITION_ROTATION)
-            mat4_mul_rotate_zyx(&a1->rot_mat[0], &a1->rotation, &rot_mat);
+        if (bone->type == BONE_DATABASE_BONE_POSITION_ROTATION)
+            mat4_mul_rotate_zyx(&bone->rot_mat[0], &bone->rotation, &rot_mat);
         else {
-            a1->position = a1->base_position[skeleton_select];
-            mat4_rotate_zyx(&a1->rotation, &rot_mat);
+            bone->position = bone->base_position[skeleton_select];
+            mat4_rotate_zyx(&bone->rotation, &rot_mat);
         }
 
-        mat4_mul_translate(&mat, &a1->position, &mat);
+        mat4_mul_translate(&mat, &bone->position, &mat);
         mat4_mul(&rot_mat, &mat, &mat);
-        a1->rot_mat[0] = rot_mat;
+        bone->rot_mat[0] = rot_mat;
     }
 
-    *a1->node[0].mat = mat;
+    *bone->node[0].mat = mat;
 
-    bone_data_mult_ik(a1, skeleton_select);
+    bone_data_mult_ik(bone, skeleton_select);
 }
 
-static void bone_data_mult_1(bone_data* a1, mat4* parent_mat, bone_data* a3, bool solve_ik) {
+static void bone_data_constrain_ik(bone_data* bone, mat4* parent_mat, bone_data* bones, bool solve_ik) {
     mat4 mat;
-    if (a1->has_parent)
-        mat = *a1->parent_mat;
+    if (bone->has_parent)
+        mat = *bone->parent_mat;
     else
         mat = *parent_mat;
 
-    if (a1->type != BONE_DATABASE_BONE_TYPE_1 && a1->type != BONE_DATABASE_BONE_POSITION) {
-        if (a1->type != BONE_DATABASE_BONE_POSITION_ROTATION)
-            a1->position = a1->base_position[1];
+    if (bone->type != BONE_DATABASE_BONE_TYPE_1 && bone->type != BONE_DATABASE_BONE_POSITION) {
+        if (bone->type != BONE_DATABASE_BONE_POSITION_ROTATION)
+            bone->position = bone->base_position[1];
 
-        mat4_mul_translate(&mat, &a1->position, &mat);
+        mat4_mul_translate(&mat, &bone->position, &mat);
         if (solve_ik) {
-            a1->node[0].exp_data.rotation = 0.0f;
-            if (!a1->check_flags_not_null())
-                mat4_get_rotation_zyx(&a1->rot_mat[0], &a1->node[0].exp_data.rotation);
-            else if (bone_data_mult_1_exp_data(a1, &a1->node[0].exp_data, a3))
-                mat4_rotate_zyx(&a1->node[0].exp_data.rotation, &a1->rot_mat[0]);
+            bone->node[0].exp_data.rotation = 0.0f;
+            if (!bone->check_flags_not_null())
+                mat4_get_rotation_zyx(&bone->rot_mat[0], &bone->node[0].exp_data.rotation);
+            else if (bone_data_get_cns_rotation(bone, &bone->node[0].exp_data, bones))
+                mat4_rotate_zyx(&bone->node[0].exp_data.rotation, &bone->rot_mat[0]);
             else {
-                *a1->node[0].mat = mat;
+                *bone->node[0].mat = mat;
 
-                if (bone_data_mult_1_ik(a1, a3)) {
+                if (bone_data_get_constraint_ik(bone, bones)) {
                     mat4 rot_mat;
                     mat4_invert_rotation_fast(&mat, &rot_mat);
-                    mat4_mul(a1->node[0].mat, &rot_mat, &rot_mat);
+                    mat4_mul(bone->node[0].mat, &rot_mat, &rot_mat);
                     mat4_clear_trans(&rot_mat, &rot_mat);
-                    mat4_get_rotation_zyx(&rot_mat, &a1->node[0].exp_data.rotation);
-                    a1->rot_mat[0] = rot_mat;
+                    mat4_get_rotation_zyx(&rot_mat, &bone->node[0].exp_data.rotation);
+                    bone->rot_mat[0] = rot_mat;
                 }
                 else
-                    a1->rot_mat[0] = mat4_identity;
+                    bone->rot_mat[0] = mat4_identity;
             }
         }
 
-        mat4_mul(&a1->rot_mat[0], &mat, &mat);
+        mat4_mul(&bone->rot_mat[0], &mat, &mat);
     }
     else {
-        mat4_mul_translate(&mat, &a1->position, &mat);
+        mat4_mul_translate(&mat, &bone->position, &mat);
         if (solve_ik)
-            a1->node[0].exp_data.rotation = 0.0f;
+            bone->node[0].exp_data.rotation = 0.0f;
     }
 
-    *a1->node[0].mat = mat;
+    *bone->node[0].mat = mat;
+
     if (solve_ik) {
-        a1->node[0].exp_data.position = a1->position;
-        a1->node[0].exp_data.reset_scale();
+        bone->node[0].exp_data.position = bone->position;
+        bone->node[0].exp_data.reset_scale();
     }
 
-    if (a1->type < BONE_DATABASE_BONE_HEAD_IK_ROTATION)
+    if (bone->type < BONE_DATABASE_BONE_HEAD_IK_ROTATION)
         return;
 
-    mat4_mul(&a1->rot_mat[1], &mat, &mat);
-    *a1->node[1].mat = mat;
+    mat4_mul(&bone->rot_mat[1], &mat, &mat);
+    *bone->node[1].mat = mat;
 
-    if (a1->type == BONE_DATABASE_BONE_HEAD_IK_ROTATION) {
-        mat4_mul_translate(&mat, a1->ik_segment_length[1], 0.0f, 0.0f, &mat);
-        *a1->node[2].mat = mat;
-        if (!solve_ik)
-            return;
+    if (bone->type == BONE_DATABASE_BONE_HEAD_IK_ROTATION) {
+        mat4_mul_translate(&mat, bone->ik_segment_length[1], 0.0f, 0.0f, &mat);
+        *bone->node[2].mat = mat;
 
-        a1->node[1].exp_data.position = 0.0f;
-        mat4_get_rotation_zyx(&a1->rot_mat[1], &a1->node[1].exp_data.rotation);
-        a1->node[1].exp_data.reset_scale();
-        a1->node[2].exp_data.set_position_rotation(
-            a1->ik_segment_length[1], 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+        if (solve_ik) {
+            bone->node[1].exp_data.position = 0.0f;
+            mat4_get_rotation_zyx(&bone->rot_mat[1], &bone->node[1].exp_data.rotation);
+            bone->node[1].exp_data.reset_scale();
+
+            bone->node[2].exp_data.set_position_rotation(
+                bone->ik_segment_length[1], 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+        }
     }
     else {
-        mat4_mul_translate(&mat, a1->ik_segment_length[1], 0.0f, 0.0f, &mat);
-        mat4_mul(&a1->rot_mat[2], &mat, &mat);
-        *a1->node[2].mat = mat;
+        mat4_mul_translate(&mat, bone->ik_segment_length[1], 0.0f, 0.0f, &mat);
+        mat4_mul(&bone->rot_mat[2], &mat, &mat);
+        *bone->node[2].mat = mat;
 
-        mat4_mul_translate(&mat, a1->ik_2nd_segment_length[1], 0.0f, 0.0f, &mat);
-        *a1->node[3].mat = mat;
-        if (!solve_ik)
-            return;
+        mat4_mul_translate(&mat, bone->ik_2nd_segment_length[1], 0.0f, 0.0f, &mat);
+        *bone->node[3].mat = mat;
 
-        a1->node[1].exp_data.position = 0.0f;
-        mat4_get_rotation_zyx(&a1->rot_mat[1], &a1->node[1].exp_data.rotation);
-        a1->node[1].exp_data.reset_scale();
-        a1->node[2].exp_data.position = { a1->ik_segment_length[1], 0.0f, 0.0f };
-        mat4_get_rotation_zyx(&a1->rot_mat[2], &a1->node[2].exp_data.rotation);
-        a1->node[2].exp_data.reset_scale();
-        a1->node[3].exp_data.set_position_rotation(
-            a1->ik_2nd_segment_length[1], 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+        if (solve_ik) {
+            bone->node[1].exp_data.position = 0.0f;
+            mat4_get_rotation_zyx(&bone->rot_mat[1], &bone->node[1].exp_data.rotation);
+            bone->node[1].exp_data.reset_scale();
+
+            bone->node[2].exp_data.position = { bone->ik_segment_length[1], 0.0f, 0.0f };
+            mat4_get_rotation_zyx(&bone->rot_mat[2], &bone->node[2].exp_data.rotation);
+            bone->node[2].exp_data.reset_scale();
+
+            bone->node[3].exp_data.set_position_rotation(
+                bone->ik_2nd_segment_length[1], 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+        }
     }
 }
 
-static bool bone_data_mult_1_ik(bone_data* a1, bone_data* a2) {
-    vec3 pos;
+static bool bone_data_get_constraint_ik(bone_data* bone, bone_data* bones) {
+    vec3 target;
 
-    switch (a1->motion_bone_index) {
+    switch (bone->motion_bone_index) {
     case MOTION_BONE_N_SKATA_L_WJ_CD_EX:
-        mat4_get_translation(a2[MOTION_BONE_C_KATA_L].node[2].mat, &pos);
-        bone_data_mult_1_ik_hands(a1, pos);
+        mat4_get_translation(bones[MOTION_BONE_C_KATA_L].node[2].mat, &target);
+        bone_data_orient_x(bone, target);
         break;
     case MOTION_BONE_N_SKATA_R_WJ_CD_EX:
-        mat4_get_translation(a2[MOTION_BONE_C_KATA_R].node[2].mat, &pos);
-        bone_data_mult_1_ik_hands(a1, pos);
+        mat4_get_translation(bones[MOTION_BONE_C_KATA_R].node[2].mat, &target);
+        bone_data_orient_x(bone, target);
         break;
     case MOTION_BONE_N_SKATA_B_L_WJ_CD_CU_EX:
-        mat4_get_translation(a2[MOTION_BONE_N_UP_KATA_L_EX].node[0].mat, &pos);
-        bone_data_mult_1_ik_hands_2(a1, pos, 0.333f);
+        mat4_get_translation(bones[MOTION_BONE_N_UP_KATA_L_EX].node[0].mat, &target);
+        bone_data_orient_x_cns(bone, target, 0.333f);
         break;
     case MOTION_BONE_N_SKATA_B_R_WJ_CD_CU_EX:
-        mat4_get_translation(a2[MOTION_BONE_N_UP_KATA_R_EX].node[0].mat, &pos);
-        bone_data_mult_1_ik_hands_2(a1, pos, 0.333f);
+        mat4_get_translation(bones[MOTION_BONE_N_UP_KATA_R_EX].node[0].mat, &target);
+        bone_data_orient_x_cns(bone, target, 0.333f);
         break;
     case MOTION_BONE_N_SKATA_C_L_WJ_CD_CU_EX:
-        mat4_get_translation(a2[MOTION_BONE_N_UP_KATA_L_EX].node[0].mat, &pos);
-        bone_data_mult_1_ik_hands_2(a1, pos, 0.5f);
+        mat4_get_translation(bones[MOTION_BONE_N_UP_KATA_L_EX].node[0].mat, &target);
+        bone_data_orient_x_cns(bone, target, 0.5f);
         break;
     case MOTION_BONE_N_SKATA_C_R_WJ_CD_CU_EX:
-        mat4_get_translation(a2[MOTION_BONE_N_UP_KATA_R_EX].node[0].mat, &pos);
-        bone_data_mult_1_ik_hands_2(a1, pos, 0.5f);
+        mat4_get_translation(bones[MOTION_BONE_N_UP_KATA_R_EX].node[0].mat, &target);
+        bone_data_orient_x_cns(bone, target, 0.5f);
         break;
     case MOTION_BONE_N_MOMO_A_L_WJ_CD_EX:
-        mat4_get_translation(a2[MOTION_BONE_CL_MOMO_L].node[2].mat, &pos);
-        mat4_inverse_transform_point(a1->node[0].mat, &pos, &pos);
-        bone_data_mult_1_ik_legs(a1, -pos);
+        mat4_get_translation(bones[MOTION_BONE_CL_MOMO_L].node[2].mat, &target);
+        mat4_inverse_transform_point(bone->node[0].mat, &target, &target);
+        bone_data_orient_y(bone, -target);
         break;
     case MOTION_BONE_N_MOMO_A_R_WJ_CD_EX:
-        mat4_get_translation(a2[MOTION_BONE_CL_MOMO_R].node[2].mat, &pos);
-        mat4_inverse_transform_point(a1->node[0].mat, &pos, &pos);
-        bone_data_mult_1_ik_legs(a1, -pos);
+        mat4_get_translation(bones[MOTION_BONE_CL_MOMO_R].node[2].mat, &target);
+        mat4_inverse_transform_point(bone->node[0].mat, &target, &target);
+        bone_data_orient_y(bone, -target);
         break;
     case MOTION_BONE_N_HARA_CD_EX:
-        mat4_get_translation(a2[MOTION_BONE_KL_MUNE_B_WJ].node[0].mat, &pos);
-        mat4_inverse_transform_point(a1->node[0].mat, &pos, &pos);
-        bone_data_mult_1_ik_legs(a1, pos);
+        mat4_get_translation(bones[MOTION_BONE_KL_MUNE_B_WJ].node[0].mat, &target);
+        mat4_inverse_transform_point(bone->node[0].mat, &target, &target);
+        bone_data_orient_y(bone, target);
         break;
     default:
         return false;
@@ -5655,92 +5656,106 @@ static bool bone_data_mult_1_ik(bone_data* a1, bone_data* a2) {
     return true;
 }
 
-static void bone_data_mult_1_ik_hands(bone_data* a1, const vec3& pos) {
-    vec3 v15;
-    mat4_inverse_transform_point(a1->node[0].mat, &pos, &v15);
+static void bone_data_orient_x(bone_data* bone, const vec3& target) {
+    vec3 x_axis;
+    mat4_inverse_transform_point(bone->node[0].mat, &target, &x_axis);
 
     float_t len;
-    len = vec3::length_squared(v15);
+    len = vec3::length_squared(x_axis);
     if (len <= 0.000001f)
         return;
 
     len = sqrtf(len);
     if (len != 0.0f)
-        v15 *= 1.0f / len;
+        x_axis *= 1.0f / len;
 
-    vec3 v17;
-    v17.x = -v15.z * v15.x - v15.z;
-    v17.y = -v15.y * v15.z;
-    v17.z = v15.x * v15.x + v15.y * v15.y + v15.x;
+    // Gram-Schmidt process, but hacky
+    vec3 z_axis;
+    z_axis.x = x_axis.y *      0.0f -  x_axis.x * x_axis.z - x_axis.z;
+    z_axis.y = x_axis.z * -x_axis.y -      0.0f * x_axis.x;
+    z_axis.z = x_axis.x *  x_axis.x - -x_axis.y * x_axis.y + x_axis.x;
 
-    len = vec3::length_squared(v17);
+    // Written other way
+    //vec3 z_axis = vec3::cross(x_axis, vec3(-x_axis.y, x_axis.x, 0.0f)) + vec3(-x_axis.z, 0.0f, x_axis.x);
+
+    // Expanded
+    //vec3 z_axis = vec3::cross(x_axis, vec3::cross(vec3(0.0f, 0.0f, 1.0f), x_axis))
+    //    + vec3::cross(x_axis, vec3(0.0f, 1.0f, 0.0f));
+
+    len = vec3::length_squared(z_axis);
     if (len <= 0.000001f)
         return;
 
     len = sqrtf(len);
     if (len != 0.0f)
-        v17 *= 1.0f / len;
+        z_axis *= 1.0f / len;
 
-    vec3 v16 = vec3::cross(v17, v15);
+    vec3 y_axis = vec3::cross(z_axis, x_axis);
 
     mat4 rot_mat = mat4_identity;
-    *(vec3*)&rot_mat.row0 = v15;
-    *(vec3*)&rot_mat.row1 = v16;
-    *(vec3*)&rot_mat.row2 = v17;
+    mat4_set_row(&rot_mat, 0, x_axis.x, x_axis.y, x_axis.z, 0.0f);
+    mat4_set_row(&rot_mat, 1, y_axis.x, y_axis.y, y_axis.z, 0.0f);
+    mat4_set_row(&rot_mat, 2, z_axis.x, z_axis.y, z_axis.z, 0.0f);
+    mat4_set_column(&rot_mat, 3, 0.0f, 0.0f, 0.0f, 1.0f);
 
-    mat4_mul(&rot_mat, a1->node[0].mat, a1->node[0].mat);
+    mat4_mul(&rot_mat, bone->node[0].mat, bone->node[0].mat);
 }
 
-static void bone_data_mult_1_ik_hands_2(bone_data* a1, const vec3& pos, float_t angle_scale) {
-    vec3 v8;
-    mat4_inverse_transform_point(a1->node[0].mat, &pos, &v8);
-    v8.x = 0.0f;
+static void bone_data_orient_x_cns(bone_data* bone, const vec3& target, float_t weight) {
+    vec3 local_target;
+    mat4_inverse_transform_point(bone->node[0].mat, &target, &local_target);
+    local_target.x = 0.0f;
 
-    float_t len = vec3::length(v8);
-    if (len <= 0.000001f)
-        return;
-
-    v8 *= 1.0f / len;
-    float_t angle = atan2f(v8.z, v8.y);
-    mat4_mul_rotate_x(a1->node[0].mat, angle * angle_scale, a1->node[0].mat);
+    float_t len = vec2::length(*(vec2*)&local_target.y);
+    if (fabsf(len) > 0.000001f) {
+        float_t angle = atan2f((1.0f / len) * local_target.z, (1.0f / len) * local_target.y);
+        mat4_mul_rotate_x(bone->node[0].mat, angle * weight, bone->node[0].mat);
+    }
 }
 
-static void bone_data_mult_1_ik_legs(bone_data* a1, const vec3& pos) {
-    vec3 v9 = pos;
-
+static void bone_data_orient_y(bone_data* bone, vec3 y_axis) {
     float_t len;
-    len = vec3::length_squared(v9);
+    len = vec3::length_squared(y_axis);
     if (len <= 0.000001f)
         return;
 
     len = sqrtf(len);
     if (len != 0.0f)
-        v9 *= 1.0f / len;
+        y_axis *= 1.0f / len;
 
-    vec3 v8;
-    v8.x = -v9.z * v9.x;
-    v8.y = -v9.z * v9.y - v9.z;
-    v8.z = v9.y * v9.y - v9.x * -v9.x + v9.y;
+    // Gram-Schmidt process, but hacky
+    vec3 z_axis;
+    z_axis.x = -y_axis.x * y_axis.z - y_axis.y *      0.0f;
+    z_axis.y =      0.0f * y_axis.x - y_axis.z *  y_axis.y - y_axis.z;
+    z_axis.z =  y_axis.y * y_axis.y - y_axis.x * -y_axis.x + y_axis.y;
 
-    len = vec3::length_squared(v8);
+    // Written other way
+    //vec3 z_axis = vec3::cross(vec3(y_axis.y, -y_axis.x, 0.0f), y_axis) + vec3(0.0f, -y_axis.z, y_axis.y);
+
+    // Expanded
+    //vec3 z_axis = vec3::cross(vec3::cross(y_axis, vec3(0.0f, 0.0f, 1.0f)), y_axis)
+    //    + vec3::cross(vec3(1.0f, 0.0f, 0.0f), y_axis);
+
+    len = vec3::length_squared(z_axis);
     if (len <= 0.000001f)
         return;
 
     len = sqrtf(len);
     if (len != 0.0f)
-        v8 *= 1.0f / len;
+        z_axis *= 1.0f / len;
 
-    vec3 v10 = vec3::cross(v9, v8);
+    vec3 x_axis = vec3::cross(y_axis, z_axis);
 
     mat4 rot_mat = mat4_identity;
-    *(vec3*)&rot_mat.row0 = v10;
-    *(vec3*)&rot_mat.row1 = v9;
-    *(vec3*)&rot_mat.row2 = v8;
+    mat4_set_row(&rot_mat, 0, x_axis.x, x_axis.y, x_axis.z, 0.0f);
+    mat4_set_row(&rot_mat, 1, y_axis.x, y_axis.y, y_axis.z, 0.0f);
+    mat4_set_row(&rot_mat, 2, z_axis.x, z_axis.y, z_axis.z, 0.0f);
+    mat4_set_column(&rot_mat, 3, 0.0f, 0.0f, 0.0f, 1.0f);
 
-    mat4_mul(&rot_mat, a1->node[0].mat, a1->node[0].mat);
+    mat4_mul(&rot_mat, bone->node[0].mat, bone->node[0].mat);
 }
 
-static bool bone_data_mult_1_exp_data(bone_data* a1, bone_node_expression_data* exp_data, bone_data* a3) {
+static bool bone_data_get_cns_rotation(bone_data* bone, bone_node_expression_data* exp_data, bone_data* bones) {
     float_t v10;
     bone_node* v11;
     vec3 v15;
@@ -5748,18 +5763,18 @@ static bool bone_data_mult_1_exp_data(bone_data* a1, bone_node_expression_data* 
     mat4 mat;
 
     bool ret = true;
-    switch (a1->motion_bone_index) {
+    switch (bone->motion_bone_index) {
     case MOTION_BONE_N_EYE_L_WJ_EX:
-        exp_data->rotation.x = -a3[MOTION_BONE_KL_EYE_L].node[0].exp_data.rotation.x;
-        exp_data->rotation.y = a3[MOTION_BONE_KL_EYE_L].node[0].exp_data.rotation.y * (float_t)(-1.0 / 2.0);
+        exp_data->rotation.x = -bones[MOTION_BONE_KL_EYE_L].node[0].exp_data.rotation.x;
+        exp_data->rotation.y = bones[MOTION_BONE_KL_EYE_L].node[0].exp_data.rotation.y * (float_t)(-1.0 / 2.0);
         break;
     case MOTION_BONE_N_EYE_R_WJ_EX:
-        exp_data->rotation.x = -a3[MOTION_BONE_KL_EYE_R].node[0].exp_data.rotation.x;
-        exp_data->rotation.y = a3[MOTION_BONE_KL_EYE_R].node[0].exp_data.rotation.y * (float_t)(-1.0 / 2.0);
+        exp_data->rotation.x = -bones[MOTION_BONE_KL_EYE_R].node[0].exp_data.rotation.x;
+        exp_data->rotation.y = bones[MOTION_BONE_KL_EYE_R].node[0].exp_data.rotation.y * (float_t)(-1.0 / 2.0);
         break;
     case MOTION_BONE_N_KUBI_WJ_EX:
-        dst = a3[MOTION_BONE_CL_KAO].rot_mat[0];
-        mat = a3[MOTION_BONE_CL_KAO].rot_mat[1];
+        dst = bones[MOTION_BONE_CL_KAO].rot_mat[0];
+        mat = bones[MOTION_BONE_CL_KAO].rot_mat[1];
         mat4_mul(&mat, &dst, &dst);
         mat4_get_rotation_zyx(&dst, &v15);
         v10 = v15.z;
@@ -5789,20 +5804,20 @@ static bool bone_data_mult_1_exp_data(bone_data* a1, bone_node_expression_data* 
         exp_data->rotation.z = (float_t)(-24.0 * DEG_TO_RAD);
         break;
     case MOTION_BONE_N_STE_L_WJ_EX:
-        exp_data->rotation.x = a3[MOTION_BONE_KL_TE_L_WJ].node[0].exp_data.rotation.x;
+        exp_data->rotation.x = bones[MOTION_BONE_KL_TE_L_WJ].node[0].exp_data.rotation.x;
         break;
     case MOTION_BONE_N_SUDE_L_WJ_EX:
     case MOTION_BONE_N_SUDE_B_L_WJ_EX:
-        v11 = &a3[MOTION_BONE_KL_TE_L_WJ].node[0];
+        v11 = &bones[MOTION_BONE_KL_TE_L_WJ].node[0];
         exp_data->rotation.x = bone_data_limit_angle(v11->exp_data.rotation.x) * (float_t)(1.0 / 3.0);
         break;
     case MOTION_BONE_N_SUDE_R_WJ_EX:
     case MOTION_BONE_N_SUDE_B_R_WJ_EX:
-        v11 = &a3[MOTION_BONE_KL_TE_R_WJ].node[0];
+        v11 = &bones[MOTION_BONE_KL_TE_R_WJ].node[0];
         exp_data->rotation.x = bone_data_limit_angle(v11->exp_data.rotation.x) * (float_t)(1.0 / 3.0);
         break;
     case MOTION_BONE_N_HIJI_L_WJ_EX:
-        exp_data->rotation.z = a3[MOTION_BONE_C_KATA_L].node[2].exp_data.rotation.z * (float_t)(1.0 / 2.0);
+        exp_data->rotation.z = bones[MOTION_BONE_C_KATA_L].node[2].exp_data.rotation.z * (float_t)(1.0 / 2.0);
         break;
     case MOTION_BONE_N_UP_KATA_L_EX:
     case MOTION_BONE_N_UP_KATA_R_EX:
@@ -5817,36 +5832,36 @@ static bool bone_data_mult_1_exp_data(bone_data* a1, bone_node_expression_data* 
         exp_data->rotation.z = (float_t)(-24.0 * DEG_TO_RAD);
         break;
     case MOTION_BONE_N_STE_R_WJ_EX:
-        exp_data->rotation.x = a3[MOTION_BONE_KL_TE_R_WJ].node[0].exp_data.rotation.x;
+        exp_data->rotation.x = bones[MOTION_BONE_KL_TE_R_WJ].node[0].exp_data.rotation.x;
         break;
     case MOTION_BONE_N_HIJI_R_WJ_EX:
-        exp_data->rotation.z = a3[MOTION_BONE_C_KATA_R].node[2].exp_data.rotation.z * (float_t)(1.0 / 2.0);
+        exp_data->rotation.z = bones[MOTION_BONE_C_KATA_R].node[2].exp_data.rotation.z * (float_t)(1.0 / 2.0);
         break;
     case MOTION_BONE_N_HIZA_L_WJ_EX:
-        exp_data->rotation.z = a3[MOTION_BONE_CL_MOMO_L].node[2].exp_data.rotation.z * (float_t)(1.0 / 2.0);
+        exp_data->rotation.z = bones[MOTION_BONE_CL_MOMO_L].node[2].exp_data.rotation.z * (float_t)(1.0 / 2.0);
         break;
     case MOTION_BONE_N_HIZA_R_WJ_EX:
-        exp_data->rotation.z = a3[MOTION_BONE_CL_MOMO_R].node[2].exp_data.rotation.z * (float_t)(1.0 / 2.0);
+        exp_data->rotation.z = bones[MOTION_BONE_CL_MOMO_R].node[2].exp_data.rotation.z * (float_t)(1.0 / 2.0);
         break;
     case MOTION_BONE_N_MOMO_B_L_WJ_EX:
     case MOTION_BONE_N_MOMO_C_L_WJ_EX:
-        v11 = &a3[MOTION_BONE_CL_MOMO_L].node[0];
+        v11 = &bones[MOTION_BONE_CL_MOMO_L].node[0];
         exp_data->rotation.y = bone_data_limit_angle(v11->exp_data.rotation.y
             + v11->exp_data.rotation.x) * (float_t)(1.0 / 3.0);
         break;
     case MOTION_BONE_N_MOMO_B_R_WJ_EX:
     case MOTION_BONE_N_MOMO_C_R_WJ_EX:
-        v11 = &a3[MOTION_BONE_CL_MOMO_R].node[0];
+        v11 = &bones[MOTION_BONE_CL_MOMO_R].node[0];
         exp_data->rotation.y = bone_data_limit_angle(v11->exp_data.rotation.y
             + v11->exp_data.rotation.x) * (float_t)(1.0 / 3.0);
         break;
     case MOTION_BONE_N_HARA_B_WJ_EX:
-        exp_data->rotation.y = a3[MOTION_BONE_CL_MUNE].node[0].exp_data.rotation.y * (float_t)(1.0 / 3.0)
-            + a3[MOTION_BONE_KL_KOSI_Y].node[0].exp_data.rotation.y * (float_t)(2.0 / 3.0);
+        exp_data->rotation.y = bones[MOTION_BONE_CL_MUNE].node[0].exp_data.rotation.y * (float_t)(1.0 / 3.0)
+            + bones[MOTION_BONE_KL_KOSI_Y].node[0].exp_data.rotation.y * (float_t)(2.0 / 3.0);
         break;
     case MOTION_BONE_N_HARA_C_WJ_EX:
-        exp_data->rotation.y = a3[MOTION_BONE_CL_MUNE].node[0].exp_data.rotation.y * (float_t)(2.0 / 3.0)
-            + a3[MOTION_BONE_KL_KOSI_Y].node[0].exp_data.rotation.y * (float_t)(1.0 / 3.0);
+        exp_data->rotation.y = bones[MOTION_BONE_CL_MUNE].node[0].exp_data.rotation.y * (float_t)(2.0 / 3.0)
+            + bones[MOTION_BONE_KL_KOSI_Y].node[0].exp_data.rotation.y * (float_t)(1.0 / 3.0);
         break;
     default:
         ret = false;
@@ -5855,30 +5870,33 @@ static bool bone_data_mult_1_exp_data(bone_data* a1, bone_node_expression_data* 
     return ret;
 }
 
-static void bone_data_mult_ik(bone_data* a1, uint32_t skeleton_select) {
-    if (a1->type < BONE_DATABASE_BONE_HEAD_IK_ROTATION)
+static void bone_data_mult_ik(bone_data* bone, uint32_t skeleton_select) {
+    if (bone->type < BONE_DATABASE_BONE_HEAD_IK_ROTATION)
         return;
 
-    mat4 mat = *a1->node[0].mat;
+    mat4 mat = *bone->node[0].mat;
 
-    vec3 v30;
-    mat4_inverse_transform_point(&mat, &a1->ik_target, &v30);
-    float_t v6 = vec2::length_squared(*(vec2*)&v30);
-    float_t v8 = vec3::length_squared(v30);
-    float_t v9 = sqrtf(v6);
-    float_t v10 = sqrtf(v8);
+    vec3 local_target;
+    mat4_inverse_transform_point(&mat, &bone->ik_target, &local_target);
+
+    float_t target_len_xy_sq = vec2::length_squared(*(vec2*)&local_target);
+    float_t target_len_sq = vec3::length_squared(local_target);
+    float_t target_len_xy = sqrtf(target_len_xy_sq);
+    float_t target_len = sqrtf(target_len_sq);
     mat4 rot_mat;
-    if (v9 > 0.000001f && v8 > 0.000001f) {
-        mat4_rotate_z(v30.y / v9, v30.x / v9, &rot_mat);
-        mat4_mul_rotate_y(&rot_mat, -v30.z / v10, v9 / v10, &rot_mat);
+    if (target_len_xy > 0.000001f && target_len_sq > 0.000001f) {
+        mat4_rotate_z((1.0f / target_len_xy) * local_target.y,
+            (1.0f / target_len_xy) * local_target.x, &rot_mat);
+        mat4_mul_rotate_y(&rot_mat, -(1.0f / target_len) * local_target.z,
+            (1.0f / target_len) * target_len_xy, &rot_mat);
         mat4_mul(&rot_mat, &mat, &mat);
     }
     else
         rot_mat = mat4_identity;
 
-    if (a1->pole_target_mat) {
+    if (bone->pole_target_mat) {
         vec3 pole_target;
-        mat4_get_translation(a1->pole_target_mat, &pole_target);
+        mat4_get_translation(bone->pole_target_mat, &pole_target);
         mat4_inverse_transform_point(&mat, &pole_target, &pole_target);
         float_t pole_target_length = vec2::length(*(vec2*)&pole_target.y);
         if (pole_target_length > 0.000001f) {
@@ -5890,39 +5908,40 @@ static void bone_data_mult_ik(bone_data* a1, uint32_t skeleton_select) {
         }
     }
 
-    if (a1->type == BONE_DATABASE_BONE_HEAD_IK_ROTATION) {
-        a1->rot_mat[1] = rot_mat;
-        *a1->node[1].mat = mat;
-        mat4_mul_translate(&mat, a1->ik_segment_length[skeleton_select], 0.0f, 0.0f, &mat);
-        *a1->node[2].mat = mat;
+    if (bone->type == BONE_DATABASE_BONE_HEAD_IK_ROTATION) {
+        bone->rot_mat[1] = rot_mat;
+        *bone->node[1].mat = mat;
+        mat4_mul_translate(&mat, bone->ik_segment_length[skeleton_select], 0.0f, 0.0f, &mat);
+
+        *bone->node[2].mat = mat;
         return;
     }
 
-    float_t ik_segment_length = a1->ik_segment_length[skeleton_select];
-    float_t ik_2nd_segment_length = a1->ik_2nd_segment_length[skeleton_select];
+    float_t ik_segment_length = bone->ik_segment_length[skeleton_select];
+    float_t ik_2nd_segment_length = bone->ik_2nd_segment_length[skeleton_select];
     float_t rot_sin;
     float_t rot_cos;
     float_t rot_2nd_sin;
     float_t rot_2nd_cos;
-    if (v8 > 0.000001f) {
-        if (a1->arm_length > 0.0001f) {
-            float_t v27 = (ik_segment_length + ik_2nd_segment_length) * a1->arm_length;
-            if (v10 > v27) {
-                v10 = v27;
-                v8 = v27 * v27;
+    if (target_len_sq > 0.000001f) {
+        if (bone->arm_length > 0.0001f) {
+            float_t max_reach = (ik_segment_length + ik_2nd_segment_length) * bone->arm_length;
+            if (target_len > max_reach) {
+                target_len = max_reach;
+                target_len_sq = max_reach * max_reach;
             }
         }
 
-        float_t v28 = (v8 - ik_2nd_segment_length * ik_2nd_segment_length) / ik_segment_length;
-        rot_cos = (v28 + ik_segment_length) / (2.0f * v10);
-        rot_2nd_cos = (v28 - ik_segment_length) / (2.0f * ik_2nd_segment_length);
+        float_t proj_length = (target_len_sq - ik_2nd_segment_length * ik_2nd_segment_length) / ik_segment_length;
+        rot_cos = (proj_length + ik_segment_length) / (2.0f * target_len);
+        rot_2nd_cos = (proj_length - ik_segment_length) / (2.0f * ik_2nd_segment_length);
 
         rot_cos = clamp_def(rot_cos, -1.0f, 1.0f);
         rot_2nd_cos = clamp_def(rot_2nd_cos, -1.0f, 1.0f);
 
         rot_sin = sqrtf(1.0f - rot_cos * rot_cos);
         rot_2nd_sin = sqrtf(1.0f - rot_2nd_cos * rot_2nd_cos);
-        if (a1->type == BONE_DATABASE_BONE_LEGS_IK_ROTATION)
+        if (bone->type == BONE_DATABASE_BONE_LEGS_IK_ROTATION)
             rot_sin = -rot_sin;
         else
             rot_2nd_sin = -rot_2nd_sin;
@@ -5935,16 +5954,18 @@ static void bone_data_mult_ik(bone_data* a1, uint32_t skeleton_select) {
     }
 
     mat4_mul_rotate_z(&mat, rot_sin, rot_cos, &mat);
-    *a1->node[1].mat = mat;
+    *bone->node[1].mat = mat;
     mat4_mul_rotate_z(&rot_mat, rot_sin, rot_cos, &rot_mat);
-    a1->rot_mat[1] = rot_mat;
+    bone->rot_mat[1] = rot_mat;
     mat4_mul_translate(&mat, ik_segment_length, 0.0f, 0.0f, &mat);
+
     mat4_mul_rotate_z(&mat, rot_2nd_sin, rot_2nd_cos, &mat);
-    *a1->node[2].mat = mat;
+    *bone->node[2].mat = mat;
     mat4_rotate_z(rot_2nd_sin, rot_2nd_cos, &rot_mat);
-    a1->rot_mat[2] = rot_mat;
+    bone->rot_mat[2] = rot_mat;
     mat4_mul_translate(&mat, ik_2nd_segment_length, 0.0f, 0.0f, &mat);
-    *a1->node[3].mat = mat;
+
+    *bone->node[3].mat = mat;
 }
 
 static void bone_data_parent_data_init(bone_data_parent* bone,
@@ -7954,9 +7975,9 @@ static void motion_blend_mot_mult_mat(motion_blend_mot* a1, mat4* mat) {
     sub_140414900(&a1->field_4F8, mat);
 
     mat4& m = a1->field_4F8.mat;
-    bone_data* v3 = a1->bone_data.bones.data();
-    for (bone_data& v4 : a1->bone_data.bones)
-        bone_data_mult_1(&v4, &m, v3, true);
+    bone_data* bones = a1->bone_data.bones.data();
+    for (bone_data& bone : a1->bone_data.bones)
+        bone_data_constrain_ik(&bone, &m, bones, true);
 }
 
 static void motion_blend_mot_set_blend(motion_blend_mot* a1,
@@ -9382,7 +9403,7 @@ static void sub_140407280(rob_chara_look_anim* look_anim,
     mat4_mul(&cl_kao_mat, &v74, &bones[MOTION_BONE_CL_KAO].rot_mat[1]);
 
     for (int32_t i = MOTION_BONE_CL_KAO; i <= MOTION_BONE_N_KUBI_WJ_EX; i++)
-        bone_data_mult_1(&bones[i], mat, &bones[MOTION_BONE_N_HARA_CP], true);
+        bone_data_constrain_ik(&bones[i], mat, &bones[MOTION_BONE_N_HARA_CP], true);
 
     bones[MOTION_BONE_CL_KAO].rot_mat[1] = cl_kao_mat_backup;
 }
@@ -9394,7 +9415,7 @@ static void sub_1404189A0(rob_chara_bone_data* rob_bone_data) {
 }
 
 static void sub_140406FC0(rob_chara_look_anim* look_anim, bone_data* bone, mat4* eye_mat, vec3 pos,
-    const vec3 rot_neg, const vec3 rot_pos, bool eyes_rot_anim, float_t eyes_rot_blend, float_t eyes_rot_step) {
+    const vec3& rot_neg, const vec3& rot_pos, bool eyes_rot_anim, float_t eyes_rot_blend, float_t eyes_rot_step) {
     pos.z = fabsf(pos.z);
 
     float_t rot_x;
@@ -9562,10 +9583,10 @@ static void sub_140409170(rob_chara_look_anim* look_anim, mat4* adjust_mat,
         rot_neg_right, rot_pos_right, eyes_rot_anim, eyes_rot_blend, eyes_rot_step);
 
     for (int32_t i = MOTION_BONE_KL_EYE_L; i <= MOTION_BONE_KL_HIGHLIGHT_L_WJ; i++)
-        bone_data_mult_1(&bones[i], mat, &bones[MOTION_BONE_N_HARA_CP], true);
+        bone_data_constrain_ik(&bones[i], mat, &bones[MOTION_BONE_N_HARA_CP], true);
 
     for (int32_t i = MOTION_BONE_KL_EYE_R; i <= MOTION_BONE_KL_HIGHLIGHT_R_WJ; i++)
-        bone_data_mult_1(&bones[i], mat, &bones[MOTION_BONE_N_HARA_CP], true);
+        bone_data_constrain_ik(&bones[i], mat, &bones[MOTION_BONE_N_HARA_CP], true);
 }
 
 static void sub_14041A160(rob_chara_bone_data* rob_bone_data, mat4* adjust_mat) {
@@ -9689,17 +9710,19 @@ static void rob_chara_set_hands_adjust(rob_chara* rob_chr) {
             &rob_chr->data.motion.hand_adjust_prev[i]);
 }
 
-static void sub_14040AE10(mat4* mat, const vec3 a2) {
-    vec3 v8;
-    mat4_inverse_transform_point(mat, &a2, &v8);
-    float_t v5 = vec2::length(*(vec2*)&v8);
-    float_t v6 = vec3::length(v8);
-    if (fabsf(v5) > 0.000001f && fabsf(v6) > 0.000001f) {
-        float_t v7 = v5;
-        v5 = 1.0f / v5;
-        v6 = 1.0f / v6;
-        mat4_mul_rotate_z(mat, v5 * v8.y, v5 * v8.x, mat);
-        mat4_mul_rotate_y(mat, -v6 * v8.z, v6 * v7, mat);
+static void sub_14040AE10(mat4* mat, const vec3& target) {
+    vec3 local_target;
+    mat4_inverse_transform_point(mat, &target, &local_target);
+
+    float_t target_len_xy_sq = vec2::length_squared(*(vec2*)&local_target);
+    float_t target_len_sq = vec3::length_squared(local_target);
+    float_t target_len_xy = sqrtf(target_len_xy_sq);
+    float_t target_len = sqrtf(target_len_sq);
+    if (fabsf(target_len_xy) > 0.000001f && fabsf(target_len) > 0.000001f) {
+        mat4_mul_rotate_z(mat, (1.0f / target_len_xy) * local_target.y,
+            (1.0f / target_len_xy) * local_target.x, mat);
+        mat4_mul_rotate_y(mat, -(1.0f / target_len) * local_target.z,
+            (1.0f / target_len) * target_len_xy, mat);
     }
 }
 
@@ -9746,10 +9769,10 @@ static void sub_140406A70(struc_936* a1, prj::sys_vector<bone_data>& bones, mat4
     if (solve_ik) {
         a5++;
         while (*a5 != MOTION_BONE_NONE)
-            bone_data_mult_1(&bones[*a5++], a3, &bones[MOTION_BONE_N_HARA_CP], true);
+            bone_data_constrain_ik(&bones[*a5++], a3, &bones[MOTION_BONE_N_HARA_CP], true);
     }
     else
-        bone_data_mult_1(v25, a3, &bones[MOTION_BONE_N_HARA_CP], false);
+        bone_data_constrain_ik(v25, a3, &bones[MOTION_BONE_N_HARA_CP], false);
 }
 
 static void sub_140418A00(rob_chara_bone_data* rob_bone_data, vec3* a2,
@@ -10420,11 +10443,11 @@ static void sub_1404065B0(struc_936* a1, prj::sys_vector<bone_data>* a2, mat4* a
 
     a6++;
     while (*a6 != MOTION_BONE_NONE)
-        bone_data_mult_1(&v7[*a6++], a3, v7, true);
+        bone_data_constrain_ik(&v7[*a6++], a3, v7, true);
 
     a7++;
     while (*a7 != MOTION_BONE_NONE)
-        bone_data_mult_1(&v7[*a7++], a3, v7, true);
+        bone_data_constrain_ik(&v7[*a7++], a3, v7, true);
 }
 
 static void sub_140418810(rob_chara_bone_data* rob_bone_data, const motion_bone_index* a6, const motion_bone_index* a7) {
@@ -11208,7 +11231,7 @@ static void sub_1404117F0(motion_blend_mot* a1) {
     sub_140413EB0(&a1->field_4F8);
     uint32_t skeleton_select = a1->mot_key_data.skeleton_select;
     for (bone_data& i : a1->bone_data.bones)
-        bone_data_mult_0(&i, skeleton_select);
+        bone_data_mult(&i, skeleton_select);
 }
 
 static void sub_14040FBF0(motion_blend_mot* a1, float_t a2) {
