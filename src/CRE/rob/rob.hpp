@@ -965,7 +965,7 @@ struct bone_data {
     int32_t key_set_offset;
     int32_t key_set_count;
     float_t frame;
-    vec3 base_position[2];
+    vec3 local_position[2];
     vec3 rotation;
     vec3 ik_target;
     vec3 position;
@@ -982,13 +982,24 @@ struct bone_data {
     float_t eyes_xrot_adjust_pos;
 
     bone_data();
+    ~bone_data();
 
-    void copy_rot_trans(bone_data* data);
+    void copy_rot_trans(const bone_data& other);
     bool check_flags_not_null();
+    bool get_constraint_ik(const bone_data* bones);
+    bool get_ex_rotation(bone_node_expression_data& exp_data, const bone_data* bones);
+    void get_mat(int32_t skeleton_select);
+    void get_mat_ik(int32_t skeleton_select);
+    void mult_mat(const mat4& parent_mat, const bone_data* bones, bool solve_ik);
+    void orient_x(const vec3& target);
+    void orient_x_cns(const vec3& target, float_t weight);
+    void orient_y(vec3 y_axis);
     vec3* set_key_data(vec3* keyframe_data,
         bone_database_skeleton_type skeleton_type, bool get_data, bool reverse_x);
-    void store_curr_rot_trans(uint32_t skeleton_select);
+    void store_curr_rot_trans(int32_t skeleton_select);
 
+    static float_t limit_angle(float_t angle);
+    static void orient_to_target(mat4& mat, vec3 target, vec3 source);
 };
 
 struct bone_data_parent {
@@ -1187,10 +1198,26 @@ struct motion_blend_mot {
     motion_blend_mot();
     ~motion_blend_mot();
 
+    void apply_global_transform();
+    void copy_rot_trans();
+    void copy_rot_trans(const prj::sys_vector<::bone_data>& bones);
     bool get_blend_enable();
+    void get_n_hara_cp_position(vec3& value);
     MotionBlendType get_type();
+    void init(rob_chara_bone_data* rob_bone_data,
+        PFNMOTIONBONECHECKFUNC check_func, const bone_database* bone_data);
+    void interpolate();
+    void load_file(uint32_t motion_id, MotionBlendType blend_type, float_t blend,
+        const bone_database* bone_data, const motion_database* mot_db);
+    void mult_mat(const mat4* mat);
     void reset();
+    void set_arm_length(motion_bone_index motion_bone_index, float_t value);
+    void set_blend(MotionBlendType blend_type, float_t blend);
+    void set_blend_duration(float_t duration, float_t step, float_t offset);
     void set_step(float_t step);
+    void store_curr_rot_trans(int32_t skeleton_select);
+
+    static bool interpolate_get_reverse(struc_308& a1);
 };
 
 struct rob_chara_bone_data_ik_scale {
@@ -1221,6 +1248,7 @@ struct partial_motion_blend_mot {
     void set_blend_duration(float_t duration, float_t step, float_t offset);
     void set_frame(float_t frame);
     void set_step(float_t step);
+    void store_curr_rot_trans(prj::sys_vector<bone_data>& bones);
 };
 
 struct rob_chara_look_anim_eye_param_limits {
@@ -1434,6 +1462,7 @@ struct rob_chara_bone_data {
     void set_look_anim(bool update_view_point, bool rotation_enable, float_t head_rot_strength,
         float_t eyes_rot_strength, float_t duration, float_t eyes_rot_step, float_t a8, bool ft);
     void set_look_anim_target_view_point(const vec3& value);
+    void set_mats_identity();
     void set_motion_blend_duration(float_t duration, float_t step, float_t offset);
     void set_motion_frame(float_t frame, float_t step, float_t frame_count);
     void set_motion_loop(float_t loop_begin, int32_t loop_count, float_t loop_end);
@@ -1443,7 +1472,7 @@ struct rob_chara_bone_data {
     void set_mouth_blend_duration(float_t duration, float_t step, float_t offset);
     void set_mouth_frame(float_t frame);
     void set_mouth_step(float_t step);
-    void update(mat4* mat);
+    void update(const mat4* mat);
 };
 
 union rob_chara_pv_data_item {
@@ -2211,6 +2240,9 @@ public:
     virtual void CtrlEnd() override;
 
     void AddMotionResetData(uint32_t motion_id, float_t frame);
+    void GetNodeList(obj_skin_block_osage* osg_data, obj_skin_osage_node* osg_nodes,
+        prj::vector_pair<uint32_t, RobOsageNode*>& osage_node_list,
+        std::map<std::string, ExNodeBlock*>& node_list);
     void InitData(rob_chara_item_equip_object* itm_eq_obj, obj_skin_block_osage* osg_data,
         const char* osg_data_name, obj_skin_osage_node* osg_nodes, bone_node* bone_nodes,
         bone_node* ex_data_bone_nodes, obj_skin* skin);
@@ -2223,16 +2255,13 @@ public:
     void SetRing(const osage_ring_data& ring);
     void SetSkinParam(skin_param_file_data* skp);
     void SetWindDirection();
-    void sub_1405F3E10(obj_skin_block_osage* osg_data, obj_skin_osage_node* osg_nodes,
-        prj::vector_pair<uint32_t, RobOsageNode*>* a4,
-        std::map<const char*, ExNodeBlock*>* a5);
 };
 
 class ExConstraintBlock : public ExNodeBlock {
 public:
     obj_skin_block_constraint_type constraint_type;
-    bone_node* source_node_bone_node;
-    bone_node* direction_up_vector_bone_node;
+    bone_node* source_node_ref;
+    bone_node* up_vector_ref;
     obj_skin_block_constraint* cns_data;
     int64_t field_80;
 
@@ -3030,9 +3059,9 @@ struct rob_chara_data_hand_adjust {
     bool disable_y;
     bool disable_z;
     vec3 offset;
-    vec3 field_30;
+    vec3 target;
     float_t arm_length;
-    int32_t field_40;
+    int32_t iterations;
 
     rob_chara_data_hand_adjust();
 

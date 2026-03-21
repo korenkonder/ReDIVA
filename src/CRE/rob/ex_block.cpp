@@ -3299,6 +3299,28 @@ void ExOsageBlock::AddMotionResetData(uint32_t motion_id, float_t frame) {
     rob.AddMotionResetData(motion_id, frame);
 }
 
+// 0x1405F3E10
+void ExOsageBlock::GetNodeList(obj_skin_block_osage* osg_data, obj_skin_osage_node* osg_nodes,
+    prj::vector_pair<uint32_t, RobOsageNode*>& osage_node_list,
+    std::map<std::string, ExNodeBlock*>& node_list) {
+    RobOsageNode* node = rob.GetNode(0);
+    osage_node_list.push_back(osg_data->name_index, node);
+
+    for (int32_t i = 0; i < osg_data->count; i++) {
+        node = rob.GetNode(i + 1ULL);
+        osage_node_list.push_back(osg_nodes[i].name_index, node);
+
+        if (node->bone_node_ptr && node->bone_node_ptr->name)
+            node_list.insert({ node->bone_node_ptr->name, this });
+    }
+
+    node = rob.GetNode(osg_data->count + 1ULL);
+    osage_node_list.push_back(osg_data->end_name_index, node);
+
+    if (node->bone_node_ptr && node->bone_node_ptr->name)
+        node_list.insert({ node->bone_node_ptr->name, this });
+}
+
 void ExOsageBlock::InitData(rob_chara_item_equip_object* itm_eq_obj,
     obj_skin_block_osage* osg_data, const char* osg_data_name, obj_skin_osage_node* osg_nodes,
     bone_node* bone_nodes, bone_node* ex_data_bone_nodes, obj_skin* skin) {
@@ -3350,29 +3372,8 @@ void ExOsageBlock::SetWindDirection() {
     rob.SetWindDirection(&wind_direction);
 }
 
-void ExOsageBlock::sub_1405F3E10(obj_skin_block_osage* osg_data,
-    obj_skin_osage_node* osg_nodes, prj::vector_pair<uint32_t, RobOsageNode*>* a4,
-    std::map<const char*, ExNodeBlock*>* a5) {
-    RobOsageNode* node = rob.GetNode(0);
-    a4->push_back(osg_data->name_index, node);
-
-    for (int32_t i = 0; i < osg_data->count; i++) {
-        node = rob.GetNode(i + 1ULL);
-        a4->push_back(osg_nodes[i].name_index, node);
-
-        if (node->bone_node_ptr && node->bone_node_ptr->name)
-            a5->insert({ node->bone_node_ptr->name, this });
-    }
-
-    node = rob.GetNode(osg_data->count + 1ULL);
-    a4->push_back(osg_data->end_name_index, node);
-
-    if (node->bone_node_ptr && node->bone_node_ptr->name)
-        a5->insert({ node->bone_node_ptr->name, this });
-}
-
 ExConstraintBlock::ExConstraintBlock() : constraint_type(),
-source_node_bone_node(), direction_up_vector_bone_node(), cns_data() {
+source_node_ref(), up_vector_ref(), cns_data() {
     Init();
 }
 
@@ -3382,8 +3383,8 @@ ExConstraintBlock::~ExConstraintBlock() {
 
 void ExConstraintBlock::Init() {
     constraint_type = OBJ_SKIN_BLOCK_CONSTRAINT_NONE;
-    source_node_bone_node = 0;
-    direction_up_vector_bone_node = 0;
+    source_node_ref = 0;
+    up_vector_ref = 0;
     cns_data = 0;
     field_80 = 0;
 }
@@ -3451,16 +3452,6 @@ void ExConstraintBlock::CtrlInitMain() {
     CtrlMain();
 }
 
-static void sub_1401EB410(mat4& mat, const vec3& in_v1, const vec3& in_v2) {
-    const vec3 v1 = vec3::normalize(in_v1);
-    const vec3 v2 = vec3::normalize(in_v2);
-    const vec3 axis = vec3::cross(v2, v1);
-
-    float_t c = clamp_def(vec3::dot(v2, v1), -1.0f, 1.0f);
-    float_t s = sqrtf(clamp_def(1.0f - c * c, 0.0f, 1.0f));
-    mat4_set(&axis, -s, c, &mat);
-}
-
 void ExConstraintBlock::Calc() {
     bone_node* node = bone_node_ptr;
     if (!node)
@@ -3495,46 +3486,58 @@ inline void ExConstraintBlock::CalcConstraintDirection(mat4 mat) {
 
     vec3 align_axis = direction->align_axis;
     vec3 target_offset = direction->target_offset;
-    mat4_transform_point(source_node_bone_node->mat, &target_offset, &target_offset);
-    mat4_inverse_transform_point(&mat, &target_offset, &target_offset);
-    float_t target_offset_length = vec3::length_squared(target_offset);
-    if (target_offset_length <= 0.000001f)
+
+    vec3 world_offset;
+    mat4_transform_point(source_node_ref->mat, &target_offset, &world_offset);
+
+    vec3 v51;
+    mat4_inverse_transform_point(&mat, &world_offset, &v51);
+    float_t v51_length = vec3::length_squared(v51);
+    if (v51_length <= 0.000001f)
         return;
 
-    mat4 v59;
-    sub_1401EB410(v59, align_axis, target_offset);
-    if (direction_up_vector_bone_node) {
-        vec3 affected_axis = direction->up_vector.affected_axis;
-        mat4 v56;
-        mat4_mul(&v59, &mat, &v56);
-        mat4_transform_vector(&v56, &affected_axis, &affected_axis);
-        mat4* v20 = direction_up_vector_bone_node->mat;
+    mat4 rot_mat;
+    bone_data::orient_to_target(rot_mat, align_axis, v51);
 
-        vec3 v23;
-        vec3 v24;
-        mat4_get_translation(v20, &v23);
-        mat4_get_translation(&v56, &v24);
-        v23 = v23 - v24;
+    if (up_vector_ref) {
+        vec3 affected_axis = direction->up_vector.affected_axis;
+
+        mat4 dir_mat;
+        mat4_mul(&rot_mat, &mat, &dir_mat);
+
+        vec3 dir_axis;
+        mat4_transform_vector(&dir_mat, &affected_axis, &dir_axis);
+
+        mat4* up_mat = up_vector_ref->mat;
+
+        vec3 up_vector_trans;
+        vec3 post_dir_trans;
+        mat4_get_translation(up_mat, &up_vector_trans);
+        mat4_get_translation(&dir_mat, &post_dir_trans);
+
+        vec3 up_vector_off = up_vector_trans - post_dir_trans;
 
         vec3 v50;
-        mat4_transform_vector(&mat, &target_offset, &v50);
+        mat4_transform_vector(&mat, &v51, &v50);
 
-        vec3 v25 = vec3::normalize(vec3::cross(v50, affected_axis));
-        vec3 v29 = vec3::normalize(vec3::cross(v50, v23));
+        vec3 v25 = vec3::normalize(vec3::cross(v50, dir_axis));
+        vec3 v29 = vec3::normalize(vec3::cross(v50, up_vector_off));
 
         vec3 v35 = vec3::cross(v25, v29);
 
-        float_t v39 = vec3::dot(v29, v25);
+        float_t v39 = vec3::dot(v25, v29);
         float_t v36 = vec3::dot(v35, v50);
 
         float_t v40 = vec3::length(v35);
         if (v36 >= 0.0f)
             v40 = -v40;
 
-        mat4_set(&target_offset, -v40, v39, &v56);
-        mat4_mul(&v59, &v56, &v59);
+        mat4 up_corr_mat;
+        mat4_set(&v51, -v40, v39, &up_corr_mat);
+        mat4_mul(&rot_mat, &up_corr_mat, &rot_mat);
     }
-    mat4_mul(&v59, &mat, bone_node_ptr->mat);
+
+    mat4_mul(&rot_mat, &mat, bone_node_ptr->mat);
 }
 
 void ExConstraintBlock::CalcConstraintDistance(mat4 mat) {
@@ -3545,7 +3548,7 @@ void ExConstraintBlock::CalcConstraintOrientation(mat4 mat) {
     obj_skin_block_constraint_orientation* orientation = cns_data->orientation;
 
     mat3 rot;
-    mat4_to_mat3(source_node_bone_node->mat, &rot);
+    mat4_to_mat3(source_node_ref->mat, &rot);
     mat3_normalize_rotation(&rot, &rot);
     mat3_mul_rotate_zyx(&rot, &orientation->offset, &rot);
     mat4_replace_rotation(&mat, &rot, bone_node_ptr->mat);
@@ -3557,21 +3560,23 @@ void ExConstraintBlock::CalcConstraintPosition(mat4 mat) {
     vec3 constraining_offset = position->constraining_object.offset;
     vec3 constrained_offset = position->constrained_object.offset;
     if (position->constraining_object.affected_by_orientation)
-        mat4_transform_vector(source_node_bone_node->mat, &constraining_offset, &constraining_offset);
+        mat4_transform_vector(source_node_ref->mat, &constraining_offset, &constraining_offset);
 
     vec3 source_node_trans;
-    mat4_get_translation(source_node_bone_node->mat, &source_node_trans);
+    mat4_get_translation(source_node_ref->mat, &source_node_trans);
     source_node_trans = constraining_offset + source_node_trans;
     mat4_set_translation(&mat, &source_node_trans);
-    if (direction_up_vector_bone_node) {
+
+    if (up_vector_ref) {
         vec3 up_vector_trans;
-        mat4_get_translation(direction_up_vector_bone_node->mat, &up_vector_trans);
+        mat4_get_translation(up_vector_ref->mat, &up_vector_trans);
         mat4_inverse_transform_point(&mat, &up_vector_trans, &up_vector_trans);
 
-        mat4 v26;
-        sub_1401EB410(v26, position->up_vector.affected_axis, up_vector_trans);
-        mat4_mul(&v26, &mat, &mat);
+        mat4 rot_mat;
+        bone_data::orient_to_target(rot_mat, position->up_vector.affected_axis, up_vector_trans);
+        mat4_mul(&rot_mat, &mat, &mat);
     }
+
     if (position->constrained_object.affected_by_orientation)
         mat4_transform_vector(&mat, &constrained_offset, &constrained_offset);
 
@@ -3612,7 +3617,7 @@ void ExConstraintBlock::InitData(rob_chara_item_equip_object* itm_eq_obj,
     name = node->name;
     item_equip_object = itm_eq_obj;
 
-    source_node_bone_node = itm_eq_obj->get_bone_node(cns_data->source_node_name, bone_data);
+    source_node_ref = itm_eq_obj->get_bone_node(cns_data->source_node_name, bone_data);
 
     obj_skin_block_constraint_type type = cns_data->type;
     const char* up_vector_name;
@@ -3638,7 +3643,7 @@ void ExConstraintBlock::InitData(rob_chara_item_equip_object* itm_eq_obj,
     }
 
     if (up_vector_name)
-        direction_up_vector_bone_node = itm_eq_obj->get_bone_node(up_vector_name, bone_data);
+        up_vector_ref = itm_eq_obj->get_bone_node(up_vector_name, bone_data);
 }
 
 ExExpressionBlock::ExExpressionBlock() : values(), types(), expressions(),
