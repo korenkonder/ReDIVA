@@ -13776,7 +13776,7 @@ RobOsageNode* rob_chara_item_equip_object::get_normal_ref_osage_node(const std::
     RobOsageNode* node = 0;
     for (ExOsageBlock*& i : osage_blocks)
         if (!name.compare(i->name)) {
-            if (node_idx + 1 < i->rob.nodes.size())
+            if (node_idx < i->rob.nodes.size())
                 node = i->rob.GetNode(node_idx + 1);
             break;
         }
