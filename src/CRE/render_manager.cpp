@@ -103,8 +103,8 @@ namespace rndr {
     };
 
     RenderManager::RenderManager() : pass_sw(), reflect_blur_num(), reflect_blur_filter(),
-        render(), sync_gpu(), cpu_time(), gpu_time(), draw_pass_3d(), field_11E(), field_11F(),
-        field_120(), show_ref_map(), reflect_type(), clear(), tex_index(), width(), height(),
+        render(), sync_gpu(), cpu_time(), gpu_time(), draw_pass_3d(), field_11E(), silhouette(),
+        silhouette_high(), show_ref_map(), reflect_type(), clear(), tex_index(), width(), height(),
         multisample_framebuffer(), multisample_renderbuffer(), multisample(), check_state(), show_vector_flags(),
         show_vector_length(), show_vector_z_offset(), show_stage_shadow(), effect_texture(), npr_param(),
         npr_mask(), reflect_texture_mask(), reflect_tone_curve(), field_31F(), light_stage_ambient(), npr() {
@@ -173,8 +173,8 @@ namespace rndr {
         shadow = true;
         opaque_z_sort = true;
         alpha_z_sort = true;
-        field_11F = false;
-        field_120 = false;
+        silhouette = false;
+        silhouette_high = false;
 
         reflect_blur_num = 1;
         reflect_blur_filter = BLUR_FILTER_4;
@@ -531,7 +531,7 @@ namespace rndr {
             rend_data_ctx.state.begin_event("reflect");
             reflect_draw = true;
 
-            RenderTexture& refl_tex = rctx->render_manager->get_render_texture(0);
+            RenderTexture& refl_tex = get_render_texture(0);
             if (sss->set(rend_data_ctx, refl_tex)) {
                 rndr::Render* rend = render;
 
@@ -646,7 +646,7 @@ namespace rndr {
 
         render_context* rctx = rctx_ptr;
         rend_data_ctx.state.begin_event("pass_reflect");
-        RenderTexture& refl_tex = rctx->render_manager->get_render_texture(0);
+        RenderTexture& refl_tex = get_render_texture(0);
         RenderTexture& refl_buf_tex = rctx->reflect_buffer;
         refl_tex.Bind(rend_data_ctx.state);
         if (rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_REFLECT_OPAQUE)
@@ -773,7 +773,7 @@ namespace rndr {
     void RenderManager::pass_refract(render_data_context& rend_data_ctx) {
         render_context* rctx = rctx_ptr;
         rend_data_ctx.state.begin_event("pass_refract");
-        RenderTexture& refract_texture = rctx->render_manager->get_render_texture(1);
+        RenderTexture& refract_texture = get_render_texture(1);
         refract_texture.Bind(rend_data_ctx.state);
         if (rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_REFRACT_OPAQUE)
             || rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_REFRACT_TRANSPARENT)
@@ -953,8 +953,6 @@ namespace rndr {
             rctx->disp_manager->obj_sort(rend_data_ctx,
                 mdl::OBJ_TYPE_TRANSLUCENT, 1, cam, field_31F);
             rctx->disp_manager->obj_sort(rend_data_ctx,
-                mdl::OBJ_TYPE_TRANSLUCENT_SORT_BY_RADIUS, 2, cam);
-            rctx->disp_manager->obj_sort(rend_data_ctx,
                 mdl::OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_POST_GLITTER, 1, cam, field_31F);
             rctx->disp_manager->obj_sort(rend_data_ctx,
                 mdl::OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_POST_TRANSLUCENT, 1, cam, field_31F);
@@ -962,15 +960,20 @@ namespace rndr {
                 mdl::OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_POST_OPAQUE, 1, cam, field_31F);
         }
 
+        if (alpha_z_sort)
+            rctx->disp_manager->obj_sort(rend_data_ctx, mdl::OBJ_TYPE_TRANSLUCENT_SORT_BY_RADIUS, 2, cam);
+
         if (opaque_z_sort)
             rctx->disp_manager->obj_sort(rend_data_ctx, mdl::OBJ_TYPE_OPAQUE, 0, cam);
 
-        if (draw_pass_3d[DRAW_PASS_3D_OPAQUE]) {
-            rend_data_ctx.state.enable_depth_test();
-            rend_data_ctx.state.set_depth_mask(GL_TRUE);
+        rend_data_ctx.state.enable_depth_test();
+        rend_data_ctx.state.set_depth_mask(GL_TRUE);
+        if (silhouette)
+            rctx->disp_manager->draw(rend_data_ctx, mdl::OBJ_TYPE_SILHOUETTE, cam);
+
+        if (draw_pass_3d[DRAW_PASS_3D_OPAQUE])
             rctx->disp_manager->draw(rend_data_ctx, mdl::OBJ_TYPE_OPAQUE, cam);
-            rend_data_ctx.state.disable_depth_test();
-        }
+        rend_data_ctx.state.disable_depth_test();
 
         Glitter::glt_particle_manager->DispScenes(rend_data_ctx, Glitter::DISP_OPAQUE, cam);
 
@@ -978,8 +981,9 @@ namespace rndr {
         rend_data_ctx.state.set_depth_mask(GL_TRUE);
         if (draw_pass_3d[DRAW_PASS_3D_TRANSPARENT])
             rctx->disp_manager->draw(rend_data_ctx, mdl::OBJ_TYPE_TRANSPARENT, cam);
-        if (rctx->render_manager->field_120)
-            rctx->disp_manager->draw(rend_data_ctx, mdl::OBJ_TYPE_TYPE_7, cam);
+
+        if (silhouette_high)
+            rctx->disp_manager->draw(rend_data_ctx, mdl::OBJ_TYPE_SILHOUETTE_HIGH, cam);
 
         render->calc_exposure_chara_data(rend_data_ctx, cam);
 
@@ -1173,7 +1177,7 @@ namespace rndr {
         RenderTexture* rt;
         RenderTexture* contour_rt;
         if (reflect_draw) {
-            rt = &rctx->render_manager->get_render_texture(0);
+            rt = &get_render_texture(0);
             contour_rt = &rctx->reflect_buffer;
     }
         else {

@@ -65,8 +65,8 @@ namespace rndr {
         bool alpha_z_sort;
         bool draw_pass_3d[DRAW_PASS_3D_MAX];
         bool field_11E;
-        bool field_11F;
-        bool field_120;
+        bool silhouette;
+        bool silhouette_high;
         bool show_ref_map;
         int32_t reflect_type; // stage_data_reflect_type
         bool clear;

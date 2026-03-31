@@ -305,7 +305,8 @@ void DataTestObjectManager::disp() {
 
     uint32_t obj_set_id = aft_obj_db->get_object_set_id(object_set_index);
     uint32_t obj_id = objset_info_storage_get_obj_by_index(obj_set_id, obj_index)->id;
-    rctx_ptr->disp_manager->set_obj_flags((mdl::ObjFlags)(mdl::OBJ_40 | mdl::OBJ_20 | obj_flags));
+    rctx_ptr->disp_manager->set_obj_flags(
+        (mdl::ObjFlags)(mdl::OBJ_SILHOUETTE_HIGH | mdl::OBJ_SILHOUETTE | obj_flags));
 
     vec3 rotation = this->rotation * DEG_TO_RAD_FLOAT;
     mat4 mat;

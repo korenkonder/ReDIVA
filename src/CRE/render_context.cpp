@@ -65,7 +65,7 @@ draw_state::render_data::render_data() : self_shadow(), shadow(), blend(), cull_
 draw_state::draw_state() : wireframe(), wireframe_overlay(),
 shader_debug_flag(), use_global_material(), fog_height(), ex_data_mat(), field_68() {
     shader = true;
-    shader_index = -1;
+    show_flags = -1;
     show = -1;
     fresnel = 7.0f;
 }

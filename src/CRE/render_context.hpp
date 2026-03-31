@@ -77,7 +77,7 @@ struct draw_state {
     bool fog_height;
     bool ex_data_mat;
     bool shader;
-    int32_t shader_index;
+    int32_t show_flags;
     int32_t show;
     global_material_struct global_material;
     int32_t field_68;

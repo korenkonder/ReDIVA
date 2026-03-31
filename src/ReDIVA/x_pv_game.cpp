@@ -7831,14 +7831,14 @@ bool x_pv_game::ctrl() {
         pv_data.dsc_data_ptr = pv_data.dsc.data.data();
         pv_data.dsc_data_ptr_end = pv_data.dsc_data_ptr + pv_data.dsc.data.size();
 
-        pv_data.ctrl(false, 0.0f, 0.0f);
+        pv_data.ctrl(false, (float_t)(frame_float * (1.0 / 60.0)), 0.0f);
 
         light_auth_3d_id.set_enable(true);
         light_auth_3d_id.set_camera_root_update(false);
         light_auth_3d_id.set_paused(false);
         light_auth_3d_id.set_repeat(false);
         light_auth_3d_id.set_visibility(true);
-        light_auth_3d_id.set_req_frame(0.0f);
+        light_auth_3d_id.set_req_frame((float_t)frame_float);
 
 #if BAKE_PV826
         if (pv_id == 826) {

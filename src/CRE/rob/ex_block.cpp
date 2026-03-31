@@ -3814,11 +3814,11 @@ void ExExpressionBlock::InitData(rob_chara_item_equip_object* itm_eq_obj,
                 std::string func_str;
                 expression = str_utils_get_next_string(expression, func_str, ' ');
                 stack_val->type = EX_EXPRESSION_BLOCK_STACK_VARIABLE;
-                int32_t v40 = func_str[0] - '0';
-                if (v40 < 9) {
-                    bone_node* v42 = itm_eq_obj->get_bone_node(func_str.c_str() + 2, bone_data);
-                    if (v42)
-                        stack_val->var.value = v42->get_exp_data_component(v40, stack_val->type);
+                int32_t index = func_str[0] - '0';
+                if (index >= 0 && index < 9) {
+                    bone_node* node = itm_eq_obj->get_bone_node(func_str.c_str() + 2, bone_data);
+                    if (node)
+                        stack_val->var.value = node->get_exp_data_component(index, stack_val->type);
                     else {
                         stack_val->type = EX_EXPRESSION_BLOCK_STACK_NUMBER;
                         stack_val->number.value = 0.0f;

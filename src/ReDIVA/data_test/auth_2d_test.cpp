@@ -279,7 +279,7 @@ void DtmAet::disp() {
         font.init_font_data(0);
 
         print_work.set_font(&font);
-        print_work.set_prio(spr::SPR_PRIO_29);
+        print_work.set_prio(spr::SPR_PRIO_DEBUG);
         print_work.set_position(*(vec2*)&pos);
         print_work.set_resolution_mode(i.second.mode);
         print_work.set_color(color_red);
