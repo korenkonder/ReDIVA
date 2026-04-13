@@ -916,15 +916,6 @@ x_pv_game_a3da_to_mot::x_pv_game_a3da_to_mot(auth_3d_id id) {
     j_kubi_wj = -1;
     n_kao = -1;
     j_kao_wj = -1;
-    j_kao_normal_wj = -1;
-    j_kao_close_wj = -1;
-    j_kao_smile_wj = -1;
-    j_kao_close_half_wj = -1;
-    j_kao_smile_half_wj = -1;
-    j_kuti_l_wj = -1;
-    j_kuti_u_wj = -1;
-    j_kuti_d_wj = -1;
-    j_kuti_r_wj = -1;
     j_eye_r_wj = -1;
     j_eye_l_wj = -1;
     n_waki_l = -1;
@@ -933,19 +924,12 @@ x_pv_game_a3da_to_mot::x_pv_game_a3da_to_mot(auth_3d_id id) {
     j_kata_l_wj = -1;
     j_ude_l_wj = -1;
     j_te_l_wj = -1;
-    j_te_sizen2_l_wj = -1;
-    j_te_close_l_wj = -1;
-    j_te_reset_l_wj = -1;
     n_waki_r = -1;
     j_waki_r_wj = -1;
     n_kata_r = -1;
     j_kata_r_wj = -1;
     j_ude_r_wj = -1;
     j_te_r_wj = -1;
-    j_te_sizen2_r_wj = -1;
-    j_te_close_r_wj = -1;
-    j_te_reset_r_wj = -1;
-    j_te_one_r_wj = -1;
     j_kosi_wj = -1;
     n_momo_l = -1;
     j_momo_l_wj = -1;
@@ -981,15 +965,6 @@ void x_pv_game_a3da_to_mot::get_bone_indices(auth_3d_object_hrc* oh) {
     j_kubi_wj = get_bone_index(oh, "j_kubi_wj");
     n_kao = get_bone_index(oh, "n_kao");
     j_kao_wj = get_bone_index(oh, "j_kao_wj");
-    j_kao_normal_wj = get_bone_index(oh, "j_kao_normal_wj");
-    j_kao_close_wj = get_bone_index(oh, "j_kao_close_wj");
-    j_kao_smile_wj = get_bone_index(oh, "j_kao_smile_wj");
-    j_kao_close_half_wj = get_bone_index(oh, "j_kao_close_half_wj");
-    j_kao_smile_half_wj = get_bone_index(oh, "j_kao_smile_half_wj");
-    j_kuti_l_wj = get_bone_index(oh, "j_kuti_l_wj");
-    j_kuti_u_wj = get_bone_index(oh, "j_kuti_u_wj");
-    j_kuti_d_wj = get_bone_index(oh, "j_kuti_d_wj");
-    j_kuti_r_wj = get_bone_index(oh, "j_kuti_r_wj");
     j_eye_r_wj = get_bone_index(oh, "j_eye_r_wj");
     j_eye_l_wj = get_bone_index(oh, "j_eye_l_wj");
     n_waki_l = get_bone_index(oh, "n_waki_l");
@@ -998,19 +973,12 @@ void x_pv_game_a3da_to_mot::get_bone_indices(auth_3d_object_hrc* oh) {
     j_kata_l_wj = get_bone_index(oh, "j_kata_l_wj");
     j_ude_l_wj = get_bone_index(oh, "j_ude_l_wj");
     j_te_l_wj = get_bone_index(oh, "j_te_l_wj");
-    j_te_sizen2_l_wj = get_bone_index(oh, "j_te_sizen2_l_wj");
-    j_te_close_l_wj = get_bone_index(oh, "j_te_close_l_wj");
-    j_te_reset_l_wj = get_bone_index(oh, "j_te_reset_l_wj");
     n_waki_r = get_bone_index(oh, "n_waki_r");
     j_waki_r_wj = get_bone_index(oh, "j_waki_r_wj");
     n_kata_r = get_bone_index(oh, "n_kata_r");
     j_kata_r_wj = get_bone_index(oh, "j_kata_r_wj");
     j_ude_r_wj = get_bone_index(oh, "j_ude_r_wj");
     j_te_r_wj = get_bone_index(oh, "j_te_r_wj");
-    j_te_sizen2_r_wj = get_bone_index(oh, "j_te_sizen2_r_wj");
-    j_te_close_r_wj = get_bone_index(oh, "j_te_close_r_wj");
-    j_te_reset_r_wj = get_bone_index(oh, "j_te_reset_r_wj");
-    j_te_one_r_wj = get_bone_index(oh, "j_te_one_r_wj");
     j_kosi_wj = get_bone_index(oh, "j_kosi_wj");
     n_momo_l = get_bone_index(oh, "n_momo_l");
     j_momo_l_wj = get_bone_index(oh, "j_momo_l_wj");
@@ -10802,6 +10770,46 @@ static void x_pv_game_change_field(x_pv_game* xpvgm, int32_t field, int64_t dsc_
 }
 
 #if BAKE_PV826
+static void set_bone_key_set_global_data(bone_data* bone_data,
+    std::map<motion_bone_index, x_pv_game_a3da_to_mot_keys>& bone_keys,
+    std::map<motion_bone_index, x_pv_game_a3da_to_mot_keys>& second_bone_keys, bool add_keys,
+    motion_blend_mot* mot, mot_key_set* key_set, const vec3* data, int32_t count = 1) {
+    if (add_keys) {
+        auto elem = bone_keys.find(MOTION_BONE_MAX);
+        if (elem == bone_keys.end())
+            elem = bone_keys.insert({ MOTION_BONE_MAX, {} }).first;
+
+        x_pv_game_a3da_to_mot_keys& keys = elem->second;
+        keys.x.push_back(data[0].x);
+        keys.y.push_back(data[0].y);
+        keys.z.push_back(data[0].z);
+
+        if (count == 2) {
+            auto elem = second_bone_keys.find(MOTION_BONE_MAX);
+            if (elem == second_bone_keys.end())
+                elem = second_bone_keys.insert({ MOTION_BONE_MAX, {} }).first;
+
+            x_pv_game_a3da_to_mot_keys& keys = elem->second;
+            keys.x.push_back(data[1].x);
+            keys.y.push_back(data[1].y);
+            keys.z.push_back(data[1].z);
+        }
+    }
+
+    key_set += mot->bone_data.bone_key_set_count;
+    while (count > 0) {
+        if (key_set[0].type == MOT_KEY_SET_STATIC && key_set[0].values)
+            *(float_t*)&key_set[0].values[0] = data->x;
+        if (key_set[1].type == MOT_KEY_SET_STATIC && key_set[1].values)
+            *(float_t*)&key_set[1].values[0] = data->y;
+        if (key_set[2].type == MOT_KEY_SET_STATIC && key_set[2].values)
+            *(float_t*)&key_set[2].values[0] = data->z;
+        key_set += 3;
+        data++;
+        count--;
+    }
+}
+
 static void set_bone_key_set_data(bone_data* bone_data,
     std::map<motion_bone_index, x_pv_game_a3da_to_mot_keys>& bone_keys,
     std::map<motion_bone_index, x_pv_game_a3da_to_mot_keys>& second_bone_keys, bool add_keys,
@@ -10865,9 +10873,14 @@ static void x_pv_game_map_auth_3d_to_mot(x_pv_game* xpvgm, bool add_keys) {
         mot_key_set* key_set = mot->mot_key_data.mot.key_sets;
 
         vec3 data[2];
+        data[0] = 0.0f;
+        data[1] = oh->node[a2m.gblctr].model_transform.rotation_value;
+        set_bone_key_set_global_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
+            mot, key_set, data, 2);
+
         data[0] = oh->node[a2m.gblctr].model_transform.translation_value;
-        data[0].y = oh->node[a2m.n_hara].model_transform.translation_value.y;
-        data[1] = 0.0f;
+        data[0] += oh->node[a2m.n_hara].model_transform.translation_value;
+        data[1] = oh->node[a2m.n_hara].model_transform.rotation_value;
         set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
             MOTION_BONE_N_HARA_CP, key_set, data, 2);
 
@@ -10913,19 +10926,23 @@ static void x_pv_game_map_auth_3d_to_mot(x_pv_game* xpvgm, bool add_keys) {
         set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
             MOTION_BONE_CL_KAO, key_set, data, 2);
 
-        data[0] = oh->node[a2m.j_eye_r_wj].model_transform.rotation_value;
-        data[0].x += (float_t)(M_PI / 2.0);
-        data[0].y = -data[0].z;
-        data[0].z = 0.0f;
-        set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
-            MOTION_BONE_KL_EYE_R, key_set, data);
+        if (a2m.j_eye_r_wj != -1) {
+            data[0] = oh->node[a2m.j_eye_r_wj].model_transform.rotation_value;
+            data[0].x += (float_t)(M_PI / 2.0);
+            data[0].y = -data[0].z;
+            data[0].z = 0.0f;
+            set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
+                MOTION_BONE_KL_EYE_R, key_set, data);
+        }
 
-        data[0] = oh->node[a2m.j_eye_l_wj].model_transform.rotation_value;
-        data[0].x += (float_t)(M_PI / 2.0);
-        data[0].y = -data[0].z;
-        data[0].z = 0.0f;
-        set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
-            MOTION_BONE_KL_EYE_L, key_set, data);
+        if (a2m.j_eye_l_wj != -1) {
+            data[0] = oh->node[a2m.j_eye_l_wj].model_transform.rotation_value;
+            data[0].x += (float_t)(M_PI / 2.0);
+            data[0].y = -data[0].z;
+            data[0].z = 0.0f;
+            set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
+                MOTION_BONE_KL_EYE_L, key_set, data);
+        }
 
         data[0] = oh->node[a2m.n_waki_l].model_transform.rotation_value;
         set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
@@ -11010,6 +11027,10 @@ static void x_pv_game_map_auth_3d_to_mot(x_pv_game* xpvgm, bool add_keys) {
         data[0] = oh->node[a2m.j_te_r_wj].model_transform.rotation_value;
         set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
             MOTION_BONE_KL_TE_R_WJ, key_set, data);
+
+        data[0] = oh->node[a2m.j_kosi_wj].model_transform.rotation_value;
+        set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
+            MOTION_BONE_KL_KOSI_XZ, key_set, data);
 
         mat4_get_translation(&oh->node[a2m.j_asi_l_wj].model_transform.mat, &data[0]);
         data[0].y -= 0.033f;
