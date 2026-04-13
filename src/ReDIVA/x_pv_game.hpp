@@ -8,8 +8,6 @@
 #include <list>
 #include <map>
 #include <string>
-#include <unordered_map>
-#include <unordered_set>
 #include <vector>
 #include "config.hpp"
 #include "../CRE/Glitter/glitter.hpp"
@@ -164,62 +162,6 @@ struct x_pv_play_data {
     void reset();
 };
 
-#if BAKE_PV826
-struct x_pv_game_a3da_to_mot_keys {
-    std::vector<float_t> x;
-    std::vector<float_t> y;
-    std::vector<float_t> z;
-
-    x_pv_game_a3da_to_mot_keys();
-    ~x_pv_game_a3da_to_mot_keys();
-};
-
-struct x_pv_game_a3da_to_mot {
-    auth_3d_id id;
-    int32_t gblctr;
-    int32_t n_hara;
-    int32_t n_hara_y;
-    int32_t j_hara_wj;
-    int32_t n_kosi;
-    int32_t j_mune_wj;
-    int32_t n_mune_kl;
-    int32_t j_mune_b_wj;
-    int32_t j_kubi_wj;
-    int32_t n_kao;
-    int32_t j_kao_wj;
-    int32_t j_eye_r_wj;
-    int32_t j_eye_l_wj;
-    int32_t n_waki_l;
-    int32_t j_waki_l_wj;
-    int32_t n_kata_l;
-    int32_t j_kata_l_wj;
-    int32_t j_ude_l_wj;
-    int32_t j_te_l_wj;
-    int32_t n_waki_r;
-    int32_t j_waki_r_wj;
-    int32_t n_kata_r;
-    int32_t j_kata_r_wj;
-    int32_t j_ude_r_wj;
-    int32_t j_te_r_wj;
-    int32_t j_kosi_wj;
-    int32_t n_momo_l;
-    int32_t j_momo_l_wj;
-    int32_t j_sune_l_wj;
-    int32_t j_asi_l_wj;
-    int32_t n_momo_r;
-    int32_t j_momo_r_wj;
-    int32_t j_sune_r_wj;
-    int32_t j_asi_r_wj;
-    std::map<motion_bone_index, x_pv_game_a3da_to_mot_keys> bone_keys;
-    std::map<motion_bone_index, x_pv_game_a3da_to_mot_keys> sec_bone_keys;
-
-    x_pv_game_a3da_to_mot(auth_3d_id id);
-    ~x_pv_game_a3da_to_mot();
-
-    void get_bone_indices(auth_3d_object_hrc* oh);
-};
-#endif
-
 struct x_pv_game_song_effect_auth_3d {
     auth_3d_id id;
 
@@ -331,20 +273,9 @@ struct x_pv_game_chara_effect {
     x_pv_game_chara_effect();
     ~x_pv_game_chara_effect();
 
-#if BAKE_PV826
-    void ctrl(object_database* obj_db, texture_database* tex_db,
-        int32_t pv_id = -1, std::map<uint32_t, auth_3d_id>* effchrpv_auth_3d_mot_ids = 0);
-#else
-    void ctrl(object_database* obj_db, texture_database* tex_db);
-#endif
+    void ctrl(int32_t pv_id, object_database* obj_db, texture_database* tex_db);
     vec3 get_node_translation(int32_t chara_id, int32_t chara_effect, int32_t objhrc_index, const char* node_name);
-#if BAKE_PV826
-    void load(int32_t pv_id, pvpp* play_param, FrameRateControl* frame_rate_control, chara_index charas[6],
-        std::unordered_map<std::string, string_hash>* effchrpv_auth_3d_mot_names = 0);
-
-#else
     void load(int32_t pv_id, pvpp* play_param, FrameRateControl* frame_rate_control, chara_index charas[6]);
-#endif
     void load_data();
     void reset();
     void set_chara_effect(int32_t chara_id, int32_t index, int64_t time);
@@ -618,20 +549,10 @@ struct x_pv_game_data {
     x_pv_game_data();
     ~x_pv_game_data();
 
-#if BAKE_PV826
-    void ctrl(float_t curr_time, float_t delta_time,
-        std::map<uint32_t, auth_3d_id>* effchrpv_auth_3d_mot_ids = 0);
-#else
     void ctrl(float_t curr_time, float_t delta_time);
-#endif
     void ctrl_stage_effect_index();
     void disp();
-#if BAKE_PV826
-    void load(int32_t pv_id, FrameRateControl* frame_rate_control, chara_index charas[6],
-        std::unordered_map<std::string, string_hash>* effchrpv_auth_3d_mot_names = 0);
-#else
     void load(int32_t pv_id, FrameRateControl* frame_rate_control, chara_index charas[6]);
-#endif
     void reset();
     void stop();
     void unload();
@@ -839,18 +760,7 @@ public:
 
     std::string light_category;
 
-#if BAKE_PV826
-    std::unordered_map<std::string, string_hash> effchrpv_auth_3d_mot_names;
-#endif
-
     auth_3d_id light_auth_3d_id;
-
-#if BAKE_PV826
-    std::map<uint32_t, auth_3d_id> effchrpv_auth_3d_mot_ids;
-
-    std::vector<int32_t> effchrpv_rob_mot_ids;
-    std::map<int32_t, x_pv_game_a3da_to_mot> effchrpv_auth_3d_rob_mot_ids;
-#endif
 
     bool success;
     bool task_effect_init;
