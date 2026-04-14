@@ -353,7 +353,7 @@ effchrpv_auth_3d_to_mot::~effchrpv_auth_3d_to_mot() {
 static void set_bone_key_set_global_data(bone_data* bone_data,
     std::map<motion_bone_index, auth_3d_to_mot_keys>& bone_keys,
     std::map<motion_bone_index, auth_3d_to_mot_keys>& second_bone_keys, bool add_keys,
-    motion_blend_mot* mot, mot_key_set* key_set, const vec3* data, int32_t count = 1) {
+    motion_blend_mot* mot, mot_key_set* key_set, const vec3* data, const int32_t count = 1) {
     if (add_keys) {
         auto elem = bone_keys.find(MOTION_BONE_MAX);
         if (elem == bone_keys.end())
@@ -377,23 +377,21 @@ static void set_bone_key_set_global_data(bone_data* bone_data,
     }
 
     key_set += mot->bone_data.bone_key_set_count;
-    while (count > 0) {
+    for (int32_t i = 0; i < count; i++) {
         if (key_set[0].type == MOT_KEY_SET_STATIC && key_set[0].values)
-            *(float_t*)&key_set[0].values[0] = data->x;
+            *(float_t*)&key_set[0].values[0] = data[i].x;
         if (key_set[1].type == MOT_KEY_SET_STATIC && key_set[1].values)
-            *(float_t*)&key_set[1].values[0] = data->y;
+            *(float_t*)&key_set[1].values[0] = data[i].y;
         if (key_set[2].type == MOT_KEY_SET_STATIC && key_set[2].values)
-            *(float_t*)&key_set[2].values[0] = data->z;
+            *(float_t*)&key_set[2].values[0] = data[i].z;
         key_set += 3;
-        data++;
-        count--;
     }
 }
 
 static void set_bone_key_set_data(bone_data* bone_data,
     std::map<motion_bone_index, auth_3d_to_mot_keys>& bone_keys,
     std::map<motion_bone_index, auth_3d_to_mot_keys>& second_bone_keys, bool add_keys,
-    motion_bone_index motion_bone_index, mot_key_set* key_set, const vec3* data, int32_t count = 1) {
+    motion_bone_index motion_bone_index, mot_key_set* key_set, const vec3* data, const int32_t count = 1) {
     if (add_keys) {
         auto elem = bone_keys.find(motion_bone_index);
         if (elem == bone_keys.end())
@@ -418,16 +416,14 @@ static void set_bone_key_set_data(bone_data* bone_data,
 
     bone_data += motion_bone_index;
     key_set += bone_data->key_set_offset;
-    while (count > 0) {
+    for (int32_t i = 0; i < count; i++) {
         if (key_set[0].type == MOT_KEY_SET_STATIC && key_set[0].values)
-            *(float_t*)&key_set[0].values[0] = data->x;
+            *(float_t*)&key_set[0].values[0] = data[i].x;
         if (key_set[1].type == MOT_KEY_SET_STATIC && key_set[1].values)
-            *(float_t*)&key_set[1].values[0] = data->y;
+            *(float_t*)&key_set[1].values[0] = data[i].y;
         if (key_set[2].type == MOT_KEY_SET_STATIC && key_set[2].values)
-            *(float_t*)&key_set[2].values[0] = data->z;
+            *(float_t*)&key_set[2].values[0] = data[i].z;
         key_set += 3;
-        data++;
-        count--;
     }
 }
 
