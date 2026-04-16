@@ -68,60 +68,60 @@ void FaceAnim::Auth3D::patch() {
         vec3(0.0f, 0.0f, 0.0f)); // j_hara_wj
     set_data(nodes[ 5].model_transform,
         vec3(0.0f, 0.0f, 0.0f),
-        vec3(0.0f, 0.0f, 0.0f)); // n_kosi
+        vec3(0.0f, 1.570796f, 0.0f)); // n_kosi
     set_data(nodes[ 6].model_transform,
         vec3(0.0f, 0.11f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_mune_wj
     set_data(nodes[ 7].model_transform,
         vec3(0.0f, 0.0f, 0.0f),
-        vec3(0.0f, 0.0f, 0.0f)); // n_mune_kl
+        vec3(0.0f, -1.570796f, 0.0f)); // n_mune_kl
     set_data(nodes[ 8].model_transform,
         vec3(0.0f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_mune_b_wj
     set_data(nodes[ 9].model_transform,
         vec3(0.0f, 0.145f, -0.044f),
-        vec3(-0.820574f, 0.0f, 0.24122f)); // j_kubi_wj
+        vec3(0.0f, 0.0f, 0.0f)); // j_kubi_wj
     set_data(nodes[10].model_transform,
         vec3(0.0f, 0.079f, 0.004f),
-        vec3(2.376704f, 0.175657f, -0.166183f)); // n_kao
+        vec3(1.570796f, 0.0f, 0.0f)); // n_kao
     set_data(nodes[11].model_transform,
         vec3(0.0f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_kao_wj
     set_data(nodes[12].model_transform,
-        vec3(0.111f, 0.18f, -0.062f),
+        vec3(0.111f, -0.062f, -0.18f),
         vec3(0.0f, -1.570796f, 1.221731f)); // j_hair_twin_l_000_wj
     set_data(nodes[13].model_transform,
-        vec3(0.0f, -0.222f, 0.0f),
+        vec3(0.222f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_hair_twin_l_001_wj
     set_data(nodes[14].model_transform,
-        vec3(0.0f, -0.222f, 0.0f),
+        vec3(0.222f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_hair_twin_l_002_wj
     set_data(nodes[15].model_transform,
-        vec3(0.0f, -0.222f, 0.0f),
+        vec3(0.222f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_hair_twin_l_003_wj
     set_data(nodes[16].model_transform,
-        vec3(0.0f, -0.222f, 0.0f),
+        vec3(0.222f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_hair_twin_l_004_wj
     set_data(nodes[17].model_transform,
-        vec3(0.0f, -0.222f, 0.0f),
+        vec3(0.222f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_hair_twin_l_005_wj
     set_data(nodes[18].model_transform,
-        vec3(-0.111f, 0.18f, -0.062f),
+        vec3(-0.111f, -0.062f, -0.18f),
         vec3(0.0f, -1.570796f, -1.221731f)); // j_hair_twin_r_000_wj
     set_data(nodes[19].model_transform,
-        vec3(0.0f, -0.222f, 0.0f),
+        vec3(0.222f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_hair_twin_r_001_wj
     set_data(nodes[20].model_transform,
-        vec3(0.0f, -0.222f, 0.0f),
+        vec3(0.222f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_hair_twin_r_002_wj
     set_data(nodes[21].model_transform,
-        vec3(0.0f, -0.222f, 0.0f),
+        vec3(0.222f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_hair_twin_r_003_wj
     set_data(nodes[22].model_transform,
-        vec3(0.0f, -0.222f, 0.0f),
+        vec3(0.222f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_hair_twin_r_004_wj
     set_data(nodes[23].model_transform,
-        vec3(0.0f, -0.222f, 0.0f),
+        vec3(0.222f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_hair_twin_r_005_wj
     /*set_data(nodes[24].model_transform,
         vec3(0.0f, 0.0f, 0.0f),
@@ -163,16 +163,16 @@ void FaceAnim::Auth3D::patch() {
         vec3(0.0f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_waki_l_wj
     set_data(nodes[37].model_transform,
-        vec3(0.083002f, -0.009998f, 0.0f),
+        vec3(-0.01f, 0.0f, 0.083f),
         vec3(-0.037163f, -1.081817f, -3.108780f)); // n_kata_l
     set_data(nodes[38].model_transform,
         vec3(0.0f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_kata_l_wj
     set_data(nodes[39].model_transform,
-        vec3(0.183625f, -0.09765f, -0.003205f),
+        vec3(0.208f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_ude_l_wj
     set_data(nodes[40].model_transform,
-        vec3(0.18539f, -0.098589f, -0.003236f),
+        vec3(0.21f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_te_l_wj
     set_data(nodes[41].model_transform,
         vec3(0.0f, 0.0f, 0.0f),
@@ -190,16 +190,16 @@ void FaceAnim::Auth3D::patch() {
         vec3(0.0f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_waki_r_wj
     set_data(nodes[46].model_transform,
-        vec3(-0.083002f, -0.009998f, 0.0f),
+        vec3(-0.01f, 0.0f, -0.083f),
         vec3(0.037163f, 1.081817f, -3.108780f)); // n_kata_r
     set_data(nodes[47].model_transform,
         vec3(0.0f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_kata_r_wj
     set_data(nodes[48].model_transform,
-        vec3(-0.183625f, -0.09765f, -0.003205f),
+        vec3(0.208f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_ude_r_wj
     set_data(nodes[49].model_transform,
-        vec3(-0.18539f, -0.098589f, -0.003236f),
+        vec3(0.21f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_te_r_wj
     set_data(nodes[50].model_transform,
         vec3(0.0f, 0.0f, 0.0f),
@@ -215,54 +215,54 @@ void FaceAnim::Auth3D::patch() {
         vec3(0.0f, 0.0f, 0.0f)); // j_te_one_r_wj
     set_data(nodes[54].model_transform,
         vec3(0.0f, 0.0f, 0.0f),
-        vec3(0.0f, 1.570796f, 0.0f)); // j_kosi_wj
+        vec3(0.0f, 0.0f, 0.0f)); // j_kosi_wj
     set_data(nodes[55].model_transform,
-        vec3(0.065f, -0.15f, -0.046f),
+        vec3(0.046f, -0.15f, 0.065f),
         vec3(0.0f, 0.0f, -1.570796f)); // n_momo_l
     set_data(nodes[56].model_transform,
         vec3(0.0f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_momo_l_wj
     set_data(nodes[57].model_transform,
-        vec3(0.0f, -0.39f, 0.0f),
+        vec3(0.39f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_sune_l_wj
     set_data(nodes[58].model_transform,
-        vec3(0.0f, -0.38f, 0.0f),
+        vec3(0.38f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_asi_l_wj
     set_data(nodes[59].model_transform,
-        vec3(-0.065f, -0.15f, -0.046f),
+        vec3(0.046f, -0.15f, -0.065f),
         vec3(0.0f, 0.0f, -1.570796f)); // n_momo_r
     set_data(nodes[60].model_transform,
         vec3(0.0f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_momo_r_wj
     set_data(nodes[61].model_transform,
-        vec3(0.0f, -0.39f, 0.0f),
+        vec3(0.39f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_sune_r_wj
     set_data(nodes[62].model_transform,
-        vec3(0.0f, -0.38f, 0.0f),
+        vec3(0.38f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_asi_r_wj
     set_data(nodes[63].model_transform,
-        vec3(0.0f, -0.052047f, 0.060104f),
+        vec3(-0.060104f, -0.052047f, 0.0f),
         vec3(0.0f, 0.0f, -1.762782f)); // j_cloth_skirt_f_000_wj
     set_data(nodes[64].model_transform,
-        vec3(0.05915f, -0.052048f, 0.04283f),
+        vec3(-0.042834f, -0.052048f, 0.05915f),
         vec3(-0.368869f, -0.220518f, -1.784135f)); // j_cloth_skirt_l_02_000_wj
     set_data(nodes[65].model_transform,
-        vec3(0.10962f, -0.052048f, -0.013f),
+        vec3(-0.013f, -0.052048f, 0.109621f),
         vec3(-1.710423f, -0.331613f, -1.588249f)); // j_cloth_skirt_l_04_000_wj
     set_data(nodes[66].model_transform,
-        vec3(0.08239f, -0.052048f, -0.09275f),
+        vec3(0.0927504f, -0.052048f, 0.08239f),
         vec3(-2.356194f, -0.314159f, -1.308997f)); // j_cloth_skirt_l_06_000_wj
     set_data(nodes[67].model_transform,
-        vec3(-0.05915f, -0.052048f, 0.04283f),
+        vec3(-0.042834f, -0.052048f, -0.05915f),
         vec3(0.368869f, 0.220518f, -1.784135f)); // j_cloth_skirt_r_02_000_wj
     set_data(nodes[68].model_transform,
-        vec3(-0.10962f, -0.052048f, -0.013f),
+        vec3(0.013f, -0.052048f, -0.10962f),
         vec3(1.710423f, 0.331613f, -1.588249f)); // j_cloth_skirt_r_04_000_wj
     set_data(nodes[69].model_transform,
-        vec3(-0.08239f, -0.052048f, -0.09275f),
+        vec3(0.09275f, -0.052048f, -0.08239f),
         vec3(2.356194f, 0.314159f, -1.308997f)); // j_cloth_skirt_r_06_000_wj
     set_data(nodes[70].model_transform,
-        vec3(0.0f, -0.052049f, -0.118331f),
+        vec3(0.118331f, -0.052048f, 0.0f),
         vec3(-3.141592f, 0.0f, -1.186823f)); // j_cloth_skirt_b_000_wj
 
     objhrc->interpolate(0.0f);
