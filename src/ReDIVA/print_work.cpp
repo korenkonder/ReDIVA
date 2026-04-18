@@ -97,10 +97,10 @@ sprite_text_mesh::~sprite_text_mesh() {
 
 }
 
-spr::SpriteVertex* sprite_text_mesh::add_char() {
-    size_t size = vertices.size();
-    vertices.resize(size + 4);
-    return &vertices.data()[size];
+spr::SprArgs::Quad* sprite_text_mesh::add_char() {
+    size_t size = quads.size();
+    quads.resize(size + 4);
+    return &quads.data()[size];
 }
 
 void sprite_text_mesh::add_set_char(app::text_flags flags, rectangle pos, rectangle uv, color4u8 color) {
@@ -108,11 +108,11 @@ void sprite_text_mesh::add_set_char(app::text_flags flags, rectangle pos, rectan
 }
 
 void sprite_text_mesh::apply_scale_offset(vec2 scale, vec2 offset) {
-    for (spr::SpriteVertex& i : vertices)
+    for (spr::SprArgs::Quad& i : quads)
         *(vec2*)&i.pos.x = *(vec2*)&i.pos.x * scale + offset;
 }
 
-void sprite_text_mesh::set_char(spr::SpriteVertex* vtx, app::text_flags flags, rectangle pos, rectangle uv, color4u8 color) {
+void sprite_text_mesh::set_char(spr::SprArgs::Quad* vtx, app::text_flags flags, rectangle pos, rectangle uv, color4u8 color) {
     vec2 uv_size = uv.size;
     vec2 uv_pos = uv.pos;
     if (flags & app::TEXT_FLAG_11) {
@@ -152,52 +152,52 @@ void sprite_text_mesh::set_char(spr::SpriteVertex* vtx, app::text_flags flags, r
 PrintWork::PrintWork() : clip(), layer(), field_28(), line_length() {
     color = 0xFFFFFFFF;
     fill_color = 0xFF808080;
-    prio = spr::SPR_PRIO_DEFAULT;
-    resolution_mode = RESOLUTION_MODE_HD;
+    prio = spr::SPR_PRIO_GAME_FRONT;
+    screen_mode = SCREEN_MODE_HD;
     font = font_info_default_get();
     empty_char = L'\x25A1';
 }
 
 void PrintWork::DrawLine(vec2 pos[2]) {
-    spr::put_sprite_line(pos[0], pos[1], resolution_mode, prio, color, layer);
+    spr::put_sprite_line(pos[0], pos[1], screen_mode, prio, color, layer);
 }
 
 void PrintWork::DrawPolyLine(vec2* points, size_t count) {
-    spr::put_sprite_poly_line(points, count, resolution_mode, prio, color, layer);
+    spr::put_sprite_poly_line(points, count, screen_mode, prio, color, layer);
 }
 
 void PrintWork::DrawRectangle(rectangle rect) {
-    spr::put_sprite_rect_draw(rect, resolution_mode, prio, color, layer);
+    spr::put_sprite_line_box(rect, screen_mode, prio, color, layer);
 }
 
 void PrintWork::DrawTextMesh(app::text_flags flags, sprite_text_mesh& mesh) {
-    if (!mesh.vertices.size())
+    if (!mesh.quads.size())
         return;
 
     data_struct* aft_data = &data_list[DATA_AFT];
     sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
 
     spr::SprArgs args;
-    args.blend = (field_28 >> 3) & 0x02;
-    args.resolution_mode_screen = resolution_mode;
-    args.resolution_mode_sprite = args.resolution_mode_screen;
+    args.blend = (field_28 >> 3) == 0x02 ? spr::SPR_BLEND_ADD : spr::SPR_BLEND_DEFAULT;
+    args.screen_trans = screen_mode;
+    args.screen_scale = args.screen_trans;
     args.prio = prio;
     args.color = color;
     args.layer = layer;
 
     if (field_28 & 0x02) {
-        for (spr::SpriteVertex& i : mesh.vertices) {
+        for (spr::SprArgs::Quad& i : mesh.quads) {
             i.color.r = 0x40;
             i.color.g = 0x40;
             i.color.b = 0x40;
             i.pos.x += 2.0f;
             i.pos.y += 2.0f;
         }
-        args.SetVertexArray(mesh.vertices.data(), mesh.vertices.size());
+        args.SetQuadArgs(mesh.quads.data(), mesh.quads.size());
         args.id.index = mesh.sprite_id;
         spr::put_sprite(args, aft_spr_db);
 
-        for (spr::SpriteVertex& i : mesh.vertices) {
+        for (spr::SprArgs::Quad& i : mesh.quads) {
             i.color.r = color.r;
             i.color.g = color.g;
             i.color.b = color.b;
@@ -206,9 +206,9 @@ void PrintWork::DrawTextMesh(app::text_flags flags, sprite_text_mesh& mesh) {
         }
     }
 
-    args.SetVertexArray(mesh.vertices.data(), mesh.vertices.size());
+    args.SetQuadArgs(mesh.quads.data(), mesh.quads.size());
     if (flags & app::TEXT_FLAG_FONT)
-        args.shader = SHADER_FT_FONT;
+        args.shader_name = SHADER_FT_FONT;
     args.id.index = mesh.sprite_id;
     spr::put_sprite(args, aft_spr_db);
 }
@@ -226,7 +226,7 @@ void PrintWork::FillRectangle(rectangle rect) {
         rect.size.y = clip_max_pos_y - rect.pos.y;
     }
 
-    spr::put_sprite_rect_fill(rect, resolution_mode, prio, fill_color, layer);
+    spr::put_sprite_rect(rect, screen_mode, prio, fill_color, layer);
 }
 
 font_char PrintWork::GetCharData(wchar_t c) {
@@ -287,7 +287,7 @@ vec2 PrintWork::GetTextOffset(app::text_flags flags, vec2 size) {
         if (flags & app::TEXT_FLAG_CLIP)
             pos.x = clip_data.pos.x + clip_data.size.x * 0.5f;
         else {
-            resolution_struct v10(resolution_mode);
+            ScreenParam v10(screen_mode);
             pos.x = (float_t)v10.width * 0.5f;
         }
         pos.x -= size.x * 0.5f;
@@ -299,7 +299,7 @@ vec2 PrintWork::GetTextOffset(app::text_flags flags, vec2 size) {
         if (flags & app::TEXT_FLAG_CLIP)
             pos.y = clip_data.pos.y + clip_data.size.y * 0.5f;
         else {
-            resolution_struct v10(resolution_mode);
+            ScreenParam v10(screen_mode);
             pos.y = (float_t)v10.height * 0.5f;
         }
         pos.y -= size.y * 0.5f;
@@ -415,7 +415,7 @@ void PrintWork::PutText(app::text_flags flags, const wchar_t* str_begin, const w
     mesh.sprite_id = font->font_ptr->sprite_id;
 
     meshes.push_back(mesh);
-    meshes.back().vertices.reserve(str_end - str_begin);
+    meshes.back().quads.reserve(str_end - str_begin);
 
     float_t glyph_x = 0.0f;
     if (str_end - str_begin) {
@@ -458,8 +458,8 @@ void PrintWork::set_font(const font_info* value) {
     font = value;
 }
 
-void PrintWork::set_resolution_mode(const ::resolution_mode value) {
-    resolution_mode = value;
+void PrintWork::set_screen_mode(const SCREEN_MODE value) {
+    screen_mode = value;
 }
 
 void PrintWork::set_text_position(const float_t column, const float_t line) {

@@ -152,7 +152,7 @@ static void spr_set_classic_read_inner(spr_set* ss,
     s.set_position(sprdata_offset, SEEK_SET);
     for (uint32_t i = ss->num_of_sprite; i; i--, sprdata++) {
         sprdata->attr = s.read_uint32_t();
-        sprdata->resolution_mode = (resolution_mode)s.read_uint32_t();
+        sprdata->screen_mode = (SCREEN_MODE)s.read_uint32_t();
     }
     s.close();
 
@@ -207,7 +207,7 @@ static void spr_set_classic_write_inner(spr_set* ss, void** data, size_t* size) 
     SpriteData* sprdata = ss->sprdata;
     for (uint32_t i = ss->num_of_sprite; i; i--, sprdata++) {
         s.write_uint32_t(sprdata->attr);
-        s.write_uint32_t(sprdata->resolution_mode);
+        s.write_uint32_t(sprdata->screen_mode);
     }
     s.align_write(0x20);
 
@@ -338,7 +338,7 @@ static void spr_set_modern_read_inner(spr_set* ss,
     s_sprc.set_position(sprdata_offset, SEEK_SET);
     for (uint32_t i = ss->num_of_sprite; i; i--, sprdata++) {
         sprdata->attr = s_sprc.read_uint32_t_reverse_endianness();
-        sprdata->resolution_mode = (resolution_mode)s_sprc.read_uint32_t_reverse_endianness();
+        sprdata->screen_mode = (SCREEN_MODE)s_sprc.read_uint32_t_reverse_endianness();
     }
     s_sprc.close();
 

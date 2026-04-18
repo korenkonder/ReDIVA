@@ -5,7 +5,7 @@
 
 #include "app_system_detail.hpp"
 #include "../KKdLib/time.hpp"
-#include "resolution_mode.hpp"
+#include "screen_param.hpp"
 
 struct time_pair {
     int64_t value;
@@ -260,7 +260,7 @@ void app_system_detail::SystemInfo::MeasureFps::exec() {
         if (max_time >= time)
             break;
 
-        if (res_window_get()->resolution_mode == RESOLUTION_MODE_HD && (fps < 59.940002f || fps > 60.060001f)) {
+        if (get_screen_param().mode == SCREEN_MODE_HD && (fps < 59.940002f || fps > 60.060001f)) {
             printf_debug_info("%s: %f(%zu) -> retry\n", __FUNCTION__, fps, retry_count);
             retry_count++;
             if (retry_count < 3) {

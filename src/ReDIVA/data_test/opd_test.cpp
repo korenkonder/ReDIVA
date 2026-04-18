@@ -153,7 +153,7 @@ void TaskDataTestOpd::disp() {
 
     print_work.set_font(&font);
     print_work.set_position(10.0f);
-    print_work.set_resolution_mode(RESOLUTION_MODE_MAX);
+    print_work.set_screen_mode(SCREEN_MODE_MAX);
     print_work.printf_align_left("OSAGE PLAY DATA MAKE MODE \n");
     print_work.printf_align_left("%s\n", cursor_array[get_main_timer() % 3]);
     print_work.printf_align_left("STATUS: ");

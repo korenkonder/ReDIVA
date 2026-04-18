@@ -187,7 +187,7 @@ void TaskWaitScreen::disp_version_text() {
     print_work.set_prio(spr::SPR_PRIO_22);
     print_work.set_color(color_white);
     print_work.set_position({ 1268.0f - font.glyph.x, 708.0f - font.glyph.y * 2.0f });
-    print_work.set_resolution_mode(RESOLUTION_MODE_HD);
+    print_work.set_screen_mode(SCREEN_MODE_HD);
     print_work.printf(app::TEXT_FLAG_ALIGN_FLAG_RIGHT, "%s\n", "VERSION B");
     print_work.printf(app::TEXT_FLAG_ALIGN_FLAG_RIGHT, "%s\n", "REVISION 3");
 }

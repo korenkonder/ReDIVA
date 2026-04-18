@@ -1255,12 +1255,12 @@ bool SubGameState::SystemStartup::Init() {
     /*if (!sub_14066E820())
         game_state_set_error_code(949);*/
 
-    resolution_struct* res_wind = res_window_get();
+    ScreenParam& screen_param = get_screen_param();
 
     //sub_14066D190();
 
     if (!test_mode_get()) {
-        /*if (res_wind->resolution_mode != RESOLUTION_MODE_HD)
+        /*if (screen_param.mode != SCREEN_MODE_HD)
             game_state_set_error_code(910);*/
 
         /*if (sub_14066C9A0()) {
@@ -1396,20 +1396,20 @@ bool SubGameState::Demo::Init() {
 
     switch (sub_game_state_demo_data.state) {
     case 0: {
-        resolution_struct* res_wind = res_window_get();
-        resolution_struct* res_wind_int = res_window_internal_get();
-        res_window_get();
+        ScreenParam& screen_param = get_screen_param();
+        ScreenParam& render_screen_param = get_render_screen_param();
+        get_screen_param();
 
         rectangle rect;
-        rect.pos = { 0.0f, (float_t)(res_wind->height - res_wind_int->height) * 0.5f };
-        rect.size = { (float_t)res_wind_int->width, (float_t)res_wind_int->height };
+        rect.pos = { 0.0f, (float_t)(screen_param.height - render_screen_param.height) * 0.5f };
+        rect.size = { (float_t)render_screen_param.width, (float_t)render_screen_param.height };
 
         TaskMovie::SprParams spr_params;
         spr_params.disp.rect = rect;
-        spr_params.disp.resolution_mode = res_wind->resolution_mode;
+        spr_params.disp.screen_mode = screen_param.mode;
         spr_params.disp.scale = -1.0f;
         spr_params.disp.field_18 = 0;
-        spr_params.disp.index = -1;
+        spr_params.disp.target = spr::SPR_TARGET_DEFAULT;
         spr_params.prio = spr::SPR_PRIO_07;
         task_movie_get(0)->Reset(spr_params);
         //task_movie_get(0)->Load("rom/movie/diva_adv.wmv");
@@ -1614,19 +1614,19 @@ bool SubGameState::CM::Dest() {
 
 bool SubGameState::PhotoModeDemo::Init() {
     if (check_photo_mode_demo_movie_exists()) {
-        resolution_struct* res_wind = res_window_get();
-        resolution_struct* res_wind_int = res_window_internal_get();
+        ScreenParam& screen_param = get_screen_param();
+        ScreenParam& render_screen_param = get_render_screen_param();
 
         rectangle rect;
-        rect.pos = { 0.0f, (float_t)(res_wind->height - res_wind_int->height) * 0.5f };
-        rect.size = { (float_t)res_wind_int->width, (float_t)res_wind_int->height };
+        rect.pos = { 0.0f, (float_t)(screen_param.height - render_screen_param.height) * 0.5f };
+        rect.size = { (float_t)render_screen_param.width, (float_t)render_screen_param.height };
 
         TaskMovie::SprParams spr_params;
         spr_params.disp.rect = rect;
-        spr_params.disp.resolution_mode = res_wind->resolution_mode;
+        spr_params.disp.screen_mode = screen_param.mode;
         spr_params.disp.scale = -1.0f;
         spr_params.disp.field_18 = 0;
-        spr_params.disp.index = -1;
+        spr_params.disp.target = spr::SPR_TARGET_DEFAULT;
         spr_params.prio = spr::SPR_PRIO_07;
         task_movie_get(0)->Reset(spr_params);
         //task_movie_get(0)->Load("rom/movie/diva_adv02.wmv");

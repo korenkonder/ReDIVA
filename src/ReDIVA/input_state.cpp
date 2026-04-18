@@ -5,7 +5,7 @@
 
 #include "input_state.hpp"
 #include "../CRE/render_context.hpp"
-#include "../CRE/resolution_mode.hpp"
+#include "../CRE/screen_param.hpp"
 #include "config.hpp"
 
 #ifndef USE_OPENGL
@@ -1030,7 +1030,7 @@ void glut_mouse_cb(int32_t bn, int32_t state, int32_t x, int32_t y) {
 }
 
 void glut_motion_cb(int32_t x, int32_t y) {
-    resolution_struct res =  *res_window_get();
+    ScreenParam screen_param =  get_screen_param();
 
 #if BAKE_PNG || BAKE_VIDEO
     int32_t x_offset = 0;
@@ -1050,8 +1050,8 @@ void glut_motion_cb(int32_t x, int32_t y) {
     glut_input.motion_x = x;
     glut_input.motion_y = y;
 
-    glut_input.motion_x = clamp_def(glut_input.motion_x, 0, res.width - 1);
-    glut_input.motion_y = clamp_def(glut_input.motion_y, 0, res.height - 1);
+    glut_input.motion_x = clamp_def(glut_input.motion_x, 0, screen_param.width - 1);
+    glut_input.motion_y = clamp_def(glut_input.motion_y, 0, screen_param.height - 1);
 }
 
 static void glut_key_down(int32_t key, const glut_table* table) {

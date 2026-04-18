@@ -3781,9 +3781,9 @@ namespace dw {
 
 void dw_init() {
     dw::DisplayData data;
-    resolution_struct* res_wind = res_window_get();
-    data.field_10.size.x = (float_t)res_wind->width;
-    data.field_10.size.y = (float_t)res_wind->height;
+    ScreenParam& screen_param = get_screen_param();
+    data.field_10.size.x = (float_t)screen_param.width;
+    data.field_10.size.y = (float_t)screen_param.height;
     data.field_0.size = data.field_10.size;
     dw_init(data);
 }
@@ -3868,7 +3868,7 @@ void dw_sys_menu_init(dw::Shell* shell) {
 
 PrintWorkDebug::PrintWorkDebug() {
     prio = spr::SPR_PRIO_29;
-    set_resolution_mode(RESOLUTION_MODE_MAX);
+    set_screen_mode(SCREEN_MODE_MAX);
 }
 
 namespace dw {
@@ -4522,8 +4522,8 @@ void dw_gui_detail::Input::Draw() {
         args.prio = spr::SPR_PRIO_29;
         args.trans.x = mouse_pos.x;
         args.trans.y = mouse_pos.y;
-        args.resolution_mode_screen = RESOLUTION_MODE_MAX;
-        args.resolution_mode_sprite = RESOLUTION_MODE_MAX;
+        args.screen_trans = SCREEN_MODE_MAX;
+        args.screen_scale = SCREEN_MODE_MAX;
 
         data_struct* aft_data = &data_list[DATA_AFT];
         sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;

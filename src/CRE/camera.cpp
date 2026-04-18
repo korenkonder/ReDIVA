@@ -5,7 +5,7 @@
 
 #include "camera.hpp"
 #include "render_context.hpp"
-#include "resolution_mode.hpp"
+#include "screen_param.hpp"
 
 static void camera_calculate_projection(camera* c);
 static void camera_calculate_view(camera* c);
@@ -268,13 +268,13 @@ static void camera_calculate_forward(camera* c) {
 }
 
 static void camera_calculate_projection(camera* c) {
-    resolution_struct* res_wind = res_window_get();
-    resolution_struct* res_wind_int = res_window_internal_get();
+    ScreenParam& screen_param = get_screen_param();
+    ScreenParam& render_screen_param = get_render_screen_param();
 
-    const float_t sprite_half_width = (float_t)res_wind->width * 0.5f;
-    const float_t sprite_half_height = (float_t)res_wind->height * 0.5f;
-    const float_t render_half_width = (float_t)res_wind_int->width * 0.5f;
-    const float_t render_half_height = (float_t)res_wind_int->height * 0.5f;
+    const float_t sprite_half_width = (float_t)screen_param.width * 0.5f;
+    const float_t sprite_half_height = (float_t)screen_param.height * 0.5f;
+    const float_t render_half_width = (float_t)render_screen_param.width * 0.5f;
+    const float_t render_half_height = (float_t)render_screen_param.height * 0.5f;
 
     const float_t aet_fov = atanf(tanf((float_t)(39.6 * 0.5 * DEG_TO_RAD)) * 0.75f) * 2.0f * RAD_TO_DEG_FLOAT;
     c->aet_fov = aet_fov;
@@ -326,8 +326,8 @@ static void camera_calculate_projection(camera* c) {
         c->min_distance, c->max_distance, &persp_scale, &persp_offset, &c->projection);
     mat4_invert(&c->projection, &c->inv_projection);
 
-    float_t height = (float_t)res_wind_int->height * 0.5f;
-    float_t width = (float_t)res_wind_int->height * (float_t)c->aspect * 0.5f;
+    float_t height = (float_t)render_screen_param.height * 0.5f;
+    float_t width = (float_t)render_screen_param.height * (float_t)c->aspect * 0.5f;
 
     c->field_1E4 = vec3::normalize({  c->depth, 0.0f, -width });
     c->field_1F0 = vec3::normalize({ -c->depth, 0.0f, -width });

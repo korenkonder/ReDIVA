@@ -1385,12 +1385,12 @@ void render_context::disp() {
     render_manager->cam.get(camera);
     app::TaskWork::disp();
     shadow_ptr_get()->ctrl();
-    int32_t sprite_index = sprite_manager_get_index();
-    //sprite_manager_set_index(3);
-    sprite_manager_set_index(0);
+    spr::SprTarget target = sprite_manager_get_target();
+    //sprite_manager_set_target(spr::SPR_TARGET_CSBACK);
+    sprite_manager_set_target(spr::SPR_TARGET_FRONT);
     extern void dw_gui_ctrl_disp();
     dw_gui_ctrl_disp();
-    sprite_manager_set_index(sprite_index);
+    sprite_manager_set_target(target);
     render_manager->rndpass_pre_proc();
     render_manager->render_all();
     render_manager->rndpass_post_proc();

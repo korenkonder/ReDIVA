@@ -21,26 +21,26 @@ public:
     float_t start_time;
     float_t end_time;
     AetFlags flags;
-    int32_t index;
-    int32_t layer_index;
+    spr::SprTarget starget;
+    spr::SprLayer slayer;
     spr::SprPrio prio;
-    resolution_mode src_mode;
-    vec3 pos;
-    vec3 rot;
+    SCREEN_MODE src_mode;
+    vec3 trans;
+    vec3 rotate;
     vec3 scale;
     vec3 anchor;
-    float_t frame_speed;
+    float_t speed;
     vec4 color;
     float_t frame;
-    resolution_mode dst_mode;
+    SCREEN_MODE dst_mode;
     vec2 scale_size;
     bool matte;
     spr::SprArgs spr_args;
     float_t opacity;
-    std::map<std::string, int32_t> layer_sprite;
-    std::string sound_path;
-    std::map<std::string, std::string> sound_replace;
-    int32_t sound_queue_index;
+    std::map<std::string, int32_t> list;
+    std::string snd_dir;
+    std::map<std::string, std::string> snd_list;
+    int32_t snd_port;
     std::map<uint32_t, uint32_t> sprite_replace;
     std::map<uint32_t, texture*> sprite_texture;
     std::map<uint32_t, uint32_t> sprite_discard;
@@ -54,7 +54,7 @@ public:
     virtual ~AetObj();
 
     virtual void Init(AetArgs& args, const aet_scene* scene, const aet_comp* comp, const aet_layer* layer,
-        const aet_marker* start_marker, const aet_marker* end_marker, resolution_mode mode);
+        const aet_marker* start_marker, const aet_marker* end_marker, SCREEN_MODE mode);
     virtual void Ctrl();
     virtual void Disp();
     virtual bool StepFrame();
@@ -171,15 +171,15 @@ public:
 AetMgr* aet_manager;
 
 AetArgs::AetArgs() : layer_name(), start_marker(), end_marker(), flags(),
-index(), layer(), frame_rate_control(), sound_voice(), spr_db() {
+target(), layer(), frame_rate_control(), sound_voice(), spr_db() {
     start_time = -1.0f;
     end_time = -1.0f;
     prio = spr::SPR_PRIO_DEFAULT;
-    mode = RESOLUTION_MODE_HD;
+    screen = SCREEN_MODE_HD;
     scale = 1.0f;
-    frame_speed = 1.0f;
+    speed = 1.0f;
     color = 1.0f;
-    sound_queue_index = 1;
+    snd_port = 1;
 }
 
 AetArgs::~AetArgs() {
@@ -194,20 +194,20 @@ AetArgs& AetArgs::operator=(const AetArgs& other) {
     start_time = other.start_time;
     end_time = other.end_time;
     flags = other.flags;
-    index = other.index;
+    target = other.target;
     layer = other.layer;
     prio = other.prio;
-    mode = other.mode;
-    pos = other.pos;
-    rot = other.rot;
+    screen = other.screen;
+    trans = other.trans;
+    rotate = other.rotate;
     scale = other.scale;
     anchor = other.anchor;
-    frame_speed = other.frame_speed;
+    speed = other.speed;
     color = other.color;
-    layer_sprite = other.layer_sprite;
-    sound_path.assign(other.sound_path.begin(), other.sound_path.end());
-    sound_replace = other.sound_replace;
-    sound_queue_index = other.sound_queue_index;
+    list = other.list;
+    snd_dir.assign(other.snd_dir.begin(), other.snd_dir.end());
+    snd_list = other.snd_list;
+    snd_port = other.snd_port;
     sprite_replace = other.sprite_replace;
     sprite_texture = other.sprite_texture;
     sprite_discard = other.sprite_discard;
@@ -222,7 +222,7 @@ aet_layout_data::aet_layout_data() : width(), height() {
     mat = mat4_identity;
     opacity = 1.0f;
     color = 0xFFFFFFFF;
-    mode = RESOLUTION_MODE_HD;
+    mode = SCREEN_MODE_HD;
 }
 
 void aet_layout_data::put_sprite(int32_t spr_id, spr::SprAttr attr, spr::SprPrio prio,
@@ -245,7 +245,7 @@ void aet_layout_data::set_args(const aet_layout_data* layout, spr::SprArgs* args
         return;
 
     args->trans = layout->position;
-    args->center = layout->anchor;
+    args->anchor = layout->anchor;
     args->scale.x = layout->mat.row0.x;
     args->scale.y = layout->mat.row1.y;
     args->scale.z = layout->mat.row2.z;
@@ -536,13 +536,13 @@ const char* AetSet::GetSceneName(uint16_t index) {
     return aet_set->scenes[index]->name;
 }
 
-resolution_mode AetSet::GetSceneResolutionMode(const aet_scene* scene) {
-    for (int32_t i = RESOLUTION_MODE_QVGA; i < RESOLUTION_MODE_MAX; i++) {
-        resolution_struct v5((resolution_mode)i);
-        if (scene->width == v5.width && scene->height == v5.height)
-            return (resolution_mode)i;
+SCREEN_MODE AetSet::GetSceneScreenMode(const aet_scene* scene) {
+    for (int32_t i = SCREEN_MODE_QVGA; i < SCREEN_MODE_MAX; i++) {
+        ScreenParam screen_param((SCREEN_MODE)i);
+        if (scene->width == screen_param.width && scene->height == screen_param.height)
+            return (SCREEN_MODE)i;
     }
-    return RESOLUTION_MODE_HD;
+    return SCREEN_MODE_HD;
 }
 
 float_t AetSet::GetSceneStartTime(uint16_t index) {
@@ -664,13 +664,13 @@ void aet_manager_init_aet_layout(AetComp* comp, AetArgs args, const aet_database
 }
 
 void aet_manager_init_aet_layout(AetComp* comp, uint32_t aet_id, const char* layer_name,
-    AetFlags flags, resolution_mode mode, const char* start_marker, float_t start_time,
+    AetFlags flags, SCREEN_MODE mode, const char* start_marker, float_t start_time,
     const aet_database* aet_db, const sprite_database* spr_db) {
     AetArgs args;
     args.id.info = aet_db->get_aet_by_id(aet_id)->info;
     args.layer_name = layer_name;
     args.flags = flags;
-    args.mode = mode;
+    args.screen = mode;
     args.start_marker = start_marker;
     args.start_time = start_time;
     args.spr_db = spr_db;
@@ -697,7 +697,7 @@ uint32_t aet_manager_init_aet_object(uint32_t id, const char* layer_name,
 }
 
 uint32_t aet_manager_init_aet_object(uint32_t aet_id, spr::SprPrio prio, AetFlags flags,
-    const char* layer_name, const vec2* pos, int32_t index, const char* start_marker, const char* end_marker,
+    const char* layer_name, const vec2* trans, spr::SprTarget  target, const char* start_marker, const char* end_marker,
     float_t start_time, float_t end_time, const vec2* scale, FrameRateControl* frame_rate_control,
     const aet_database* aet_db, const sprite_database* spr_db) {
     AetArgs args;
@@ -705,15 +705,15 @@ uint32_t aet_manager_init_aet_object(uint32_t aet_id, spr::SprPrio prio, AetFlag
     args.prio = prio;
     enum_or(args.flags, flags);
     args.layer_name = layer_name;
-    args.mode = RESOLUTION_MODE_HD;
-    args.layer = 0;
-    args.index = index;
+    args.screen = SCREEN_MODE_HD;
+    args.layer = spr::SPR_LAYER_DEFAULT;
+    args.target = target;
     args.start_marker = start_marker;
     args.end_marker = end_marker;
 
-    if (pos) {
-        args.pos.x = pos->x;
-        args.pos.y = pos->y;
+    if (trans) {
+        args.trans.x = trans->x;
+        args.trans.y = trans->y;
     }
 
     if (scale) {
@@ -835,15 +835,15 @@ void aet_manager_free() {
 }
 
 AetObj::AetObj() : scene(), comp(), layer(), start_time(), end_time(),
-flags(), layer_index(), frame_speed(), frame(), matte(), opacity(),
+flags(), slayer(), speed(), frame(), matte(), opacity(),
 frame_rate_control(), sound_voice(), use_float(), spr_db() {
-    index = -1;
-    layer_index = 0;
-    prio = spr::SPR_PRIO_03;
-    src_mode = RESOLUTION_MODE_HD;
+    starget = spr::SPR_TARGET_DEFAULT;
+    slayer = spr::SPR_LAYER_DEFAULT;
+    prio = spr::SPR_PRIO_GAME_BACK;
+    src_mode = SCREEN_MODE_HD;
     scale = 1.0f;
-    dst_mode = RESOLUTION_MODE_HD;
-    sound_queue_index = 2;
+    dst_mode = SCREEN_MODE_HD;
+    snd_port = 2;
 }
 
 AetObj::~AetObj() {
@@ -851,7 +851,7 @@ AetObj::~AetObj() {
 }
 
 void AetObj::Init(AetArgs& args, const aet_scene* scene, const aet_comp* comp, const aet_layer* layer,
-    const aet_marker* start_marker, const aet_marker* end_marker, resolution_mode mode) {
+    const aet_marker* start_marker, const aet_marker* end_marker, SCREEN_MODE mode) {
     start_time = scene->start_time;
     end_time = scene->end_time - 1.0f;
 
@@ -903,27 +903,27 @@ void AetObj::Init(AetArgs& args, const aet_scene* scene, const aet_comp* comp, c
     this->scene = scene;
     this->comp = comp;
     this->layer = layer;
-    index = args.index;
-    layer_index = args.layer;
+    starget = args.target;
+    slayer = args.layer;
     prio = args.prio;
-    src_mode = args.mode;
-    pos = args.pos;
-    rot = args.rot;
+    src_mode = args.screen;
+    trans = args.trans;
+    rotate = args.rotate;
     scale = args.scale;
     anchor = args.anchor;
-    frame_speed = args.frame_speed;
+    speed = args.speed;
     color = args.color;
     dst_mode = mode;
     scale_size.x = flags & AET_FLIP_H ? -1.0f : 1.0f;
     scale_size.y = flags & AET_FLIP_V ? -1.0f : 1.0f;
     matte = false;
     opacity = 0.0f;
-    layer_sprite.clear();
-    layer_sprite.insert(args.layer_sprite.begin(), args.layer_sprite.end());
-    sound_path.assign(args.sound_path);
-    sound_replace.clear();
-    sound_replace.insert(args.sound_replace.begin(), args.sound_replace.end());
-    sound_queue_index = args.sound_queue_index;
+    list.clear();
+    list.insert(args.list.begin(), args.list.end());
+    snd_dir.assign(args.snd_dir);
+    snd_list.clear();
+    snd_list.insert(args.snd_list.begin(), args.snd_list.end());
+    snd_port = args.snd_port;
     sprite_replace.clear();
     sprite_replace.insert(args.sprite_replace.begin(), args.sprite_replace.end());
     sprite_texture.clear();
@@ -953,8 +953,8 @@ void AetObj::Disp() {
     if (flags & AET_HIDDEN || !scene)
         return;
 
-    vec3 pos = this->pos;
-    resolution_mode_scale_pos(*(vec2*)&pos, dst_mode, *(vec2*)&pos, src_mode);
+    vec3 trans = this->trans;
+    get_screen_conv_pos(*(vec2*)&trans, dst_mode, *(vec2*)&trans, src_mode);
 
     vec3 anchor = this->anchor;
     if (flags & AET_100000) {
@@ -964,8 +964,8 @@ void AetObj::Disp() {
     }
 
     mat4 mat;
-    mat4_translate(&pos, &mat);
-    mat4_mul_rotate_xyz(&mat, rot.x, rot.y, rot.z * scale_size.x * scale_size.y, &mat);
+    mat4_translate(&trans, &mat);
+    mat4_mul_rotate_xyz(&mat, rotate.x, rotate.y, rotate.z * scale_size.x * scale_size.y, &mat);
     mat4_scale_rot(&mat, scale.x * scale_size.x, scale.y * scale_size.y, scale.z, &mat);
     mat4_mul_translate(&mat, -anchor.x, -anchor.y, -anchor.z, &mat);
 
@@ -991,7 +991,7 @@ bool AetObj::StepFrame() {
     if (frame_rate_control)
         delta_frame = frame_rate_control->get_delta_frame();
 
-    delta_frame = delta_frame * frame_speed * scene->fps * (float_t)(1.0 / 60.0);
+    delta_frame = delta_frame * speed * scene->fps * (float_t)(1.0 / 60.0);
     if (flags & AET_REVERSE)
         delta_frame = -delta_frame;
     frame += delta_frame;
@@ -1039,7 +1039,7 @@ void AetObj::SetVisible(bool value) {
 }
 
 void AetObj::SetPosition(const vec3& value) {
-    pos = value;
+    trans = value;
 }
 
 void AetObj::SetScale(const vec3& value) {
@@ -1047,7 +1047,7 @@ void AetObj::SetScale(const vec3& value) {
 }
 
 void AetObj::SetRotation(const vec3& value) {
-    rot = value;
+    rotate = value;
 }
 
 void AetObj::SetAlpha(float_t value) {
@@ -1140,14 +1140,14 @@ void AetObj::CtrlLayer(const aet_layer* layer, float_t frame) {
         return;
 
     std::string file(layer->name);
-    auto elem = sound_replace.find(file);
-    if (elem != sound_replace.end())
+    auto elem = snd_list.find(file);
+    if (elem != snd_list.end())
         file.assign(elem->second);
 
     size_t aif_off = file.rfind(".aif");
     if (aif_off != -1 && aif_off == file.size() - 4) {
         file.assign(file.substr(0, aif_off));
-        sound_work_play_se(sound_queue_index, file.c_str());
+        sound_work_play_se(snd_port, file.c_str());
         return;
     }
 
@@ -1160,8 +1160,8 @@ void AetObj::CtrlLayer(const aet_layer* layer, float_t frame) {
     data_struct* aft_data = &data_list[DATA_AFT];
 
     std::string path;
-    if (sound_path.size()) {
-        path.assign(sound_path);
+    if (snd_dir.size()) {
+        path.assign(snd_dir);
         path.append(file);
     }
     else if (sound_voice) {
@@ -1216,7 +1216,7 @@ void AetObj::DispVideo(const mat4& mat, const aet_layer* layer,
     if (video->sources_count <= 1) {
         if (video->sources_count == 1)
             DispSpriteSource(mat, layer, 0, opacity, spr_db);
-        else if (layer_sprite.size())
+        else if (list.size())
             DispSprite(mat, layer, opacity, spr_db);
         return;
     }
@@ -1247,8 +1247,8 @@ void AetObj::DispVideo(const mat4& mat, const aet_layer* layer,
 
 void AetObj::DispSprite(const mat4& mat, const aet_layer* layer,
     float_t opacity, const sprite_database* spr_db) {
-    auto elem = layer_sprite.find(layer->name);
-    if (elem == layer_sprite.end())
+    auto elem = list.find(layer->name);
+    if (elem == list.end())
         return;
 
     vec4 color = this->color;
@@ -1256,19 +1256,19 @@ void AetObj::DispSprite(const mat4& mat, const aet_layer* layer,
 
     spr::SprArgs args;
     args.id.id = elem->second;
-    args.mat = mat;
-    args.index = index;
-    args.layer = layer_index;
+    args.matrix = mat;
+    args.target = starget;
+    args.layer = slayer;
     args.prio = prio;
     args.color = color;
-    args.resolution_mode_screen = dst_mode;
-    args.resolution_mode_sprite = dst_mode;
+    args.screen_trans = dst_mode;
+    args.screen_scale = dst_mode;
     if (flags & AET_FLIP_H)
         enum_or(args.attr, spr::SPR_ATTR_FLIP_H);
     if (flags & AET_FLIP_V)
         enum_or(args.attr, spr::SPR_ATTR_FLIP_V);
     if (flags & AET_100000)
-        enum_or(args.attr, spr::SPR_ATTR_10000000);
+        enum_or(args.attr, spr::SPR_ATTR_EDGELINE);
     spr::put_sprite(args, spr_db);
 }
 
@@ -1285,7 +1285,7 @@ void AetObj::DispSpriteSource(const mat4& mat, const aet_layer* layer,
 
     auto elem_texture = sprite_texture.find(spr_id);
     if (elem_texture != sprite_texture.end()) {
-        args.texture = elem_texture->second;
+        args.tex = elem_texture->second;
         args.id.id = -1;
     }
     else if (spr_id != -1) {
@@ -1302,32 +1302,32 @@ void AetObj::DispSpriteSource(const mat4& mat, const aet_layer* layer,
     vec4 color = this->color;
     color.w *= opacity;
 
-    args.mat = mat;
-    args.index = index;
-    args.layer = layer_index;
+    args.matrix = mat;
+    args.target = starget;
+    args.layer = slayer;
     args.prio = prio;
     args.color = color;
-    args.resolution_mode_screen = dst_mode;
-    args.resolution_mode_sprite = dst_mode;
+    args.screen_trans = dst_mode;
+    args.screen_scale = dst_mode;
     if (flags & AET_FLIP_H)
         enum_or(args.attr, spr::SPR_ATTR_FLIP_H);
     if (flags & AET_FLIP_V)
         enum_or(args.attr, spr::SPR_ATTR_FLIP_V);
     if (flags & AET_100000)
-        enum_or(args.attr, spr::SPR_ATTR_10000000);
+        enum_or(args.attr, spr::SPR_ATTR_EDGELINE);
 
     switch (layer->video->transfer_mode.mode) {
     case AET_BLEND_MODE_SCREEN:
-        args.blend = 1;
+        args.blend = spr::SPR_BLEND_SCREEN;
         break;
     case AET_BLEND_MODE_ADD:
-        args.blend = 2;
+        args.blend = spr::SPR_BLEND_ADD;
         break;
     case AET_BLEND_MODE_MULTIPLY:
-        args.blend = 3;
+        args.blend = spr::SPR_BLEND_MODULATE;
         break;
     case AET_BLEND_MODE_OVERLAY:
-        args.blend = 5;
+        args.blend = spr::SPR_BLEND_OVERLAY;
         break;
     }
 
@@ -1338,12 +1338,12 @@ void AetObj::DispSpriteSource(const mat4& mat, const aet_layer* layer,
             spr_args.Reset();
             spr_args = args;
         }
-        else if (fabsf(mat4_determinant(&args.mat)) > 0.000001f)
+        else if (fabsf(mat4_determinant(&args.matrix)) > 0.000001f)
             spr::put_sprite(args, spr_db);
     }
     else {
         matte = false;
-        if (fabsf(mat4_determinant(&args.mat)) > 0.000001f) {
+        if (fabsf(mat4_determinant(&args.matrix)) > 0.000001f) {
             vec4 _color = this->color;
             _color.w = opacity * _color.w * this->opacity;
 
@@ -1352,7 +1352,7 @@ void AetObj::DispSpriteSource(const mat4& mat, const aet_layer* layer,
             spr::SprArgs* v52 = spr::put_sprite(spr_args, spr_db);
             spr::SprArgs* v53 = spr::put_sprite(args, spr_db);
             if (v53 && v52)
-                spr::SprArgs::SetNext(v53, v52);
+                spr::SprArgs::SetChild(v53, v52);
         }
     }
 }
@@ -1718,7 +1718,7 @@ bool AetMgr::InitAetObj(AetObj& obj, AetArgs& args) {
     const aet_marker* end_marker = 0;
     if ((!args.start_marker || (start_marker = set->GetLayerMarker(layer, args.start_marker)))
         && (!args.end_marker || (end_marker = set->GetLayerMarker(layer, args.end_marker)))) {
-        resolution_mode mode = set->GetSceneResolutionMode(scene);
+        SCREEN_MODE mode = set->GetSceneScreenMode(scene);
         obj.Init(args, scene, comp, layer, start_marker, end_marker, mode);
         return true;
     }

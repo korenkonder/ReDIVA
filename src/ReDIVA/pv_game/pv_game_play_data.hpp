@@ -268,7 +268,7 @@ struct pv_game_play_data {
     uint32_t init_aet_gam_cmn(pv_game_aet aet_index, spr::SprPrio prio,
         AetFlags flags, const char* layer_name, const vec2* pos = 0, const vec2* scale = 0);
     void init_aet_id(int32_t aet_id, const char* layer_name,
-        int32_t index, pv_game_aet aet_index, spr::SprPrio prio, bool* not_init,
+        spr::SprTarget target, pv_game_aet aet_index, spr::SprPrio prio, bool* not_init,
         float_t start_time, float_t end_time, FrameRateControl* frame_rate_control);
     void init_aet_level_info();
     void init_aet_next_info();

@@ -232,13 +232,13 @@ namespace system_startup_detail {
     }
 
     void TaskSystemStartup::disp() {
-        resolution_struct* res_wind = res_window_get();
-        spr::put_sprite_rect_fill({ 0.0f, 0.0f, (float_t)res_wind->width, (float_t)res_wind->height },
-            res_wind->resolution_mode, spr::SPR_PRIO_25, color_black, 0);
+        ScreenParam& screen_param = get_screen_param();
+        spr::put_sprite_rect({ 0.0f, 0.0f, (float_t)screen_param.width, (float_t)screen_param.height },
+            screen_param.mode, spr::SPR_PRIO_25, color_black);
 
         system_startup.print_work.set_prio(spr::SPR_PRIO_25);
         system_startup.print_work.set_color(color_white);
-        system_startup.print_work.set_resolution_mode(RESOLUTION_MODE_HD);
+        system_startup.print_work.set_screen_mode(SCREEN_MODE_HD);
         system_startup.print_work.set_text_position(7.0f, 3.0f);
 
         switch (system_startup.state) {
@@ -456,7 +456,7 @@ bool SSOpdMakeTask::dest() {
 void SSOpdMakeTask::disp() {
     OpdMakeManagerData* opd_make_manager_data = opd_make_manager_get_data();
     print_work.set_text_position(7.0f, 19.0f);
-    print_work.set_resolution_mode(RESOLUTION_MODE_HD);
+    print_work.set_screen_mode(SCREEN_MODE_HD);
 
     if (state != 6 && state != 7)
         return;

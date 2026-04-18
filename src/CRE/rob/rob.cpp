@@ -23,7 +23,7 @@
 #include "../pv_db.hpp"
 #include "../pv_expression.hpp"
 #include "../random.hpp"
-#include "../resolution_mode.hpp"
+#include "../screen_param.hpp"
 #include "../stage.hpp"
 #include "../stage_param.hpp"
 #include "../static_var.hpp"
@@ -16253,13 +16253,13 @@ float_t pos_scale::get_screen_pos_scale(const mat4& mat,
     if (fabsf(v19.w) >= 1.0e-10f) {
         float_t v11 = v19.y * (1.0f / v19.w);
         float_t v12 = v19.x * (1.0f / v19.w) + 1.0f;
-        resolution_struct* res_wind_int = res_window_internal_get();
-        float_t v14 = (float_t)(v12 * 0.5f) * (float_t)res_wind_int->width;
-        float_t v15 = (float_t)((1.0f - v11) * 0.5f) * (float_t)res_wind_int->height;
+        ScreenParam& render_screen_param = get_render_screen_param();
+        float_t v14 = (float_t)(v12 * 0.5f) * (float_t)render_screen_param.width;
+        float_t v15 = (float_t)((1.0f - v11) * 0.5f) * (float_t)render_screen_param.height;
         if (apply_offset) {
-            resolution_struct* res_wind = res_window_get();
-            v14 += (float_t)res_wind_int->x_offset;
-            v15 += (float_t)(res_wind->height - res_wind_int->y_offset - res_wind_int->height);
+            ScreenParam& screen_param = get_screen_param();
+            v14 += (float_t)render_screen_param.xoffset;
+            v15 += (float_t)(screen_param.height - render_screen_param.yoffset - render_screen_param.height);
         }
         this->pos.x = v14;
         this->pos.y = v15;

@@ -39,7 +39,7 @@ public:
 
     const char* GetName(spr_info info);
     rectangle GetRectangle(spr_info info);
-    resolution_mode GetResolutionMode(spr_info info);
+    SCREEN_MODE GetResolutionMode(spr_info info);
     texture* GetTexture(spr_info info);
     bool LoadData();
     bool LoadDataModern(const void* data, size_t size);
@@ -94,8 +94,8 @@ struct sprite_draw_param {
     };
     GLsizei count;
     GLintptr offset;
-    const texture* textures[2];
-    int32_t shader;
+    const texture* texs[2];
+    int32_t shader_name;
     sprite_draw_param_attrib attrib;
     vec3 vtx[4];
 };
@@ -104,8 +104,8 @@ namespace spr {
     struct SprArgsDraw {
         int32_t num_texture;
         int32_t blend;
-        const texture* textures[4];
-        int32_t shader;
+        const texture* texs[4];
+        int32_t shader_name;
         spr::SprKind kind;
     };
 
@@ -131,11 +131,11 @@ namespace spr {
     };
 
     struct TexParam {
-        const texture* texture;
+        const texture* tex;
         TexCoord texcoord;
         //int32_t pad[2];
 
-        inline TexParam() : texture()/*, pad()*/ {
+        inline TexParam() : tex()/*, pad()*/ {
 
         }
     };
@@ -155,19 +155,26 @@ namespace spr {
             ~RenderData();
 
             template <typename T>
-            size_t AddData(T*& data, size_t num_vertex);
+            size_t AddData(T*& data, size_t nb_quad);
             void Clear();
             void Update();
         };
 
+        struct ViewPort {
+            SCREEN_MODE screen;
+            rectangle rect;
+
+            ViewPort();
+        };
+
         std::map<uint32_t, SprSet> sets;
-        std::list<SprArgs> reqlist[4][2][SPR_PRIO_MAX];
+        std::list<SprArgs> reqlist[SPR_TARGET_MAX][SPR_LAYER_MAX][SPR_PRIO_MAX];
         float_t aspect[2];
-        std::pair<resolution_mode, rectangle> field_1018[2];
-        int32_t index;
+        ViewPort view_list[2];
+        SprTarget target;
         mat4 view_projection;
         mat4 mat;
-        resolution_mode resolution_mode;
+        SCREEN_MODE screen_mode_back;
 
         uint32_t set_counter;
 
@@ -194,7 +201,7 @@ namespace spr {
         void ReadFile(uint32_t index, const char* file, std::string& mdata_dir, void* data);
         void ReadFileModern(uint32_t index, uint32_t set_hash, void* data, sprite_database* spr_db);
         void RemoveSprSets(const sprite_database* spr_db);
-        void ResetIndex();
+        void ResetTarget();
         void ResetReqList();
         void ResetResData();
         void PostDraw();
@@ -223,15 +230,15 @@ namespace spr {
 spr::SpriteManager* sprite_manager;
 
 #if BREAK_SPRITE_VERTEX_LIMIT
-size_t sprite_vertex_array_max_count = 0x2000;
+size_t string_quad_max_count = 0x2000;
 
-spr::SpriteVertex* sprite_vertex_array;
+spr::SprArgs::Quad* string_quad;
 #else
-const size_t sprite_vertex_array_max_count = 0x2000;
+const size_t string_quad_max_count = 0x2000;
 
-spr::SpriteVertex sprite_vertex_array[sprite_vertex_array_max_count];
+spr::SprArgs::Quad string_quad[string_quad_max_count];
 #endif
-size_t sprite_vertex_array_count;
+size_t string_quad_idx;
 
 extern render_context* rctx_ptr;
 
@@ -245,17 +252,17 @@ static const GLenum spr_blend_param[6][4] = {
 };
 
 namespace spr {
-    SprArgs::SprArgs() : kind(), attr(), blend(), index(), layer(), prio(),
-        resolution_mode_screen(), resolution_mode_sprite(), texture(), shader(),
-        sprite_draw_param_index(), vertex_array(), num_vertex(), flags(), field_CC(), next() {
+    SprArgs::SprArgs() : kind(), attr(), blend(), target(), layer(), prio(),
+        screen_trans(), screen_scale(), tex(), shader_name(),
+        sprite_draw_param_index(), quad(), nb_quad(), flags(), next() {
         Reset();
     }
 
-    inline SpriteVertex* SprArgs::GetVertexArray() {
+    inline SprArgs::Quad* SprArgs::GetVertexArray() {
 #if BREAK_SPRITE_VERTEX_LIMIT
-        return sprite_vertex_array + vertex_array;
+        return string_quad + quad;
 #else
-        return vertex_array;
+        return quad;
 #endif
     }
 
@@ -264,87 +271,90 @@ namespace spr {
         id = {};
         color = 0xFFFFFFFF;
         attr = (SprAttr)0;
-        blend = 0;
-        index = -1;
-        layer = 0;
+        blend = SPR_BLEND_DEFAULT;
+        target = SPR_TARGET_DEFAULT;
+        layer = SPR_LAYER_DEFAULT;
         prio = SPR_PRIO_DEFAULT;
-        resolution_mode_screen = RESOLUTION_MODE_HD;
-        resolution_mode_sprite = RESOLUTION_MODE_HD;
-        center = 0.0f;
+        screen_trans = SCREEN_MODE_HD;
+        screen_scale = SCREEN_MODE_HD;
+        anchor = 0.0f;
         trans = 0.0f;
         scale = 1.0f;
         rot = 0.0f;
-        skew_angle = 0.0f;
-        mat = mat4_identity;
-        texture = 0;
-        shader = SHADER_FT_FFP;
+        slant = 0.0f;
+        shear = 0.0f;
+        matrix = mat4_identity;
+        tex = 0;
+        shader_name = SHADER_FT_FFP;
         sprite_draw_param_index = -1;
 #if BREAK_SPRITE_VERTEX_LIMIT
-        vertex_array = -1;
+        quad = -1;
 #else
-        vertex_array = 0;
+        quad = 0;
 #endif
-        num_vertex = 0;
+        nb_quad = 0;
         flags = (SprArgs::Flags)0;
-        sprite_size = 0.0f;
-        field_CC = 0;
-        texture_pos = 0.0f;
-        texture_size = 1.0f;
+        size = 0.0f;
+        rect.x = 0.0f;
+        rect.y = 0.0f;
+        rect.width = 1.0f;
+        rect.height = 1.0f;
         next = 0;
     }
 
-    void SprArgs::SetSpriteSize(vec2 size) {
-        if (flags & SPRITE_SIZE)
-            return;
-
-        enum_or(flags, SPRITE_SIZE);
-        sprite_size = size;
-        field_CC = 0;
-    }
-
-    void SprArgs::SetTexturePosSize(float_t x, float_t y, float_t width, float_t height) {
+    void SprArgs::SetRect(float_t x, float_t y, float_t width, float_t height) {
         if (flags & TEXTURE_POS_SIZE)
             return;
 
         enum_or(flags, TEXTURE_POS_SIZE);
-        texture_pos.x = x;
-        texture_pos.y = y;
-        texture_size.x = width;
-        texture_size.y = height;
+        rect.x = x;
+        rect.y = y;
+        rect.width = width;
+        rect.height = height;
     }
 
-    void SprArgs::SetVertexArray(SpriteVertex* vertex_array, size_t num_vertex) {
+    void SprArgs::SetQuadArgs(SprArgs::Quad* quad_arg, size_t len) {
 #if BREAK_SPRITE_VERTEX_LIMIT
-        if (sprite_vertex_array_count + num_vertex >= sprite_vertex_array_max_count) {
-            while (sprite_vertex_array_count + num_vertex >= sprite_vertex_array_max_count)
-                sprite_vertex_array_max_count *= 2;
+        if (string_quad_idx + len >= string_quad_max_count) {
+            while (string_quad_idx + len >= string_quad_max_count)
+                string_quad_max_count *= 2;
 
-            spr::SpriteVertex* _sprite_vertex_array = new spr::SpriteVertex[sprite_vertex_array_max_count];
-            memmove(_sprite_vertex_array, sprite_vertex_array, sizeof(SpriteVertex) * sprite_vertex_array_count);
-            delete[] sprite_vertex_array;
-            sprite_vertex_array = _sprite_vertex_array;
+            spr::SprArgs::Quad* _string_quad = new spr::SprArgs::Quad[string_quad_max_count];
+            memmove(_string_quad, string_quad, sizeof(SprArgs::Quad) * string_quad_idx);
+            delete[] string_quad;
+            string_quad = _string_quad;
         }
 #else
-        if (sprite_vertex_array_count + num_vertex >= sprite_vertex_array_max_count)
+        if (string_quad_idx + len >= string_quad_max_count)
             return;
 #endif
 
-        this->num_vertex = num_vertex;
+        this->nb_quad = len;
 #if BREAK_SPRITE_VERTEX_LIMIT
-        this->vertex_array = sprite_vertex_array_count;
-        memmove(sprite_vertex_array + this->vertex_array, vertex_array, sizeof(SpriteVertex) * num_vertex);
+        this->quad = string_quad_idx;
+        memmove(string_quad + this->quad, quad_arg, sizeof(SprArgs::Quad) * len);
 #else
-        this->vertex_array = &sprite_vertex_array[sprite_vertex_array_count];
-        memmove(this->vertex_array, vertex_array, sizeof(SpriteVertex) * num_vertex);
+        this->quad = &string_quad[string_quad_idx];
+        memmove(this->quad, quad_arg, sizeof(SprArgs::Quad) * len);
 #endif
-        sprite_vertex_array_count += num_vertex;
+        string_quad_idx += len;
     }
 
-    void SprArgs::SetNext(SprArgs* args, SprArgs* next) {
+    void SprArgs::SetSize(vec2 size) {
+        if (flags & SPRITE_SIZE)
+            return;
+
+        enum_or(flags, SPRITE_SIZE);
+        this->size.x = size.x;
+        this->size.y = size.y;
+        this->size.z = 0.0f;
+    }
+
+    void SprArgs::SetChild(SprArgs* args, SprArgs* next) {
         while (args->next)
             args = args->next;
         args->next = next;
-        next->kind = SPR_KIND_CHILD;
+        next->kind = SPR_KIND_MULTI;
     }
 
     vec2 proj_sprite_3d_line(vec3 vec, bool offset) {
@@ -356,14 +366,14 @@ namespace spr {
 
         vec2 sc_vec = cam->depth * *(vec2*)&vec.x * (1.0f / vec.z);
 
-        resolution_struct* res_wind_int = res_window_internal_get();
-        sc_vec.x = (float_t)res_wind_int->width * 0.5f - sc_vec.x;
-        sc_vec.y = (float_t)res_wind_int->height * 0.5f + sc_vec.y;
+        ScreenParam& render_screen_param = get_render_screen_param();
+        sc_vec.x = (float_t)render_screen_param.width * 0.5f - sc_vec.x;
+        sc_vec.y = (float_t)render_screen_param.height * 0.5f + sc_vec.y;
         if (offset) {
-            resolution_struct* res_wind = res_window_get();
-            sc_vec.x = (float_t)res_wind_int->x_offset + sc_vec.x;
-            sc_vec.y = (float_t)(res_wind->height
-                - res_wind_int->y_offset - res_wind_int->height) + sc_vec.y;
+            ScreenParam& screen_param = get_screen_param();
+            sc_vec.x = (float_t)render_screen_param.xoffset + sc_vec.x;
+            sc_vec.y = (float_t)(screen_param.height
+                - render_screen_param.yoffset - render_screen_param.height) + sc_vec.y;
         }
         return sc_vec;
     }
@@ -389,103 +399,106 @@ namespace spr {
     }
 
     void put_rgb_cross(const mat4& mat) {
-        spr::put_cross(mat, color_red, color_green, color_blue);
+        put_cross(mat, color_red, color_green, color_blue);
     }
 
-    spr::SprArgs* put_sprite(const spr::SprArgs& args, const sprite_database* spr_db) {
+    SprArgs* put_sprite(const SprArgs& args, const sprite_database* spr_db) {
         return sprite_manager->PutSprite(args, spr_db);
     }
 
     void put_sprite_3d_line(vec3 p1, vec3 p2, color4u8 color) {
         vec2 sc_p1 = proj_sprite_3d_line(p1, true);
         vec2 sc_p2 = proj_sprite_3d_line(p2, true);
-        spr::put_sprite_line(sc_p1, sc_p2, RESOLUTION_MODE_MAX, SPR_PRIO_DEBUG, color, 0);
+        put_sprite_line(sc_p1, sc_p2, SCREEN_MODE_MAX, SPR_PRIO_DW, color, SPR_LAYER_DEFAULT);
     }
 
-    void put_sprite_line(vec2 p1, vec2 p2, resolution_mode mode, spr::SprPrio prio, color4u8 color, int32_t layer) {
-        spr::SprArgs args;
+    void put_sprite_line(vec2 p1, vec2 p2, SCREEN_MODE screen_mode,
+        SprPrio prio, color4u8 color, SprLayer layer) {
+        SprArgs args;
         args.trans.x = p1.x;
         args.trans.y = p1.y;
         args.trans.z = 0.0f;
         args.layer = layer;
         args.kind = SPR_KIND_LINE;
-        args.resolution_mode_screen = mode;
-        args.resolution_mode_sprite = mode;
+        args.screen_trans = screen_mode;
+        args.screen_scale = screen_mode;
         args.prio = prio;
         args.color = color;
-        args.SetSpriteSize({ p2.x - p1.x, p2.y - p1.y });
-        enum_or(args.attr, SPR_ATTR_MATRIX);
+        args.SetSize({ p2.x - p1.x, p2.y - p1.y });
+        enum_or(args.attr, SPR_ATTR_NOTRANSFORM);
         sprite_manager->PutSprite(args, 0);
     }
 
-    void put_sprite_poly_line(vec2* points, size_t count, resolution_mode mode,
-        spr::SprPrio prio, color4u8 color, int32_t layer) {
-        spr::SprArgs args;
+    void put_sprite_poly_line(vec2* points, size_t count, SCREEN_MODE screen_mode,
+        SprPrio prio, color4u8 color, SprLayer layer) {
+        SprArgs args;
         args.kind = SPR_KIND_POLY_LINE;
         args.layer = layer;
-        args.resolution_mode_screen = mode;
-        args.resolution_mode_sprite = mode;
+        args.screen_trans = screen_mode;
+        args.screen_scale = screen_mode;
         args.prio = prio;
         args.color = color;
 
-        std::vector<spr::SpriteVertex> vertex_array;
-        vertex_array.reserve(count);
+        std::vector<SprArgs::Quad> quad;
+        quad.reserve(count);
 
         for (size_t i = 0; i < count; i++, points++) {
-            spr::SpriteVertex vert = {};
+            SprArgs::Quad vert = {};
             *(vec2*)&vert.pos = *points;
-            vertex_array.push_back(vert);
+            quad.push_back(vert);
         }
 
-        args.SetVertexArray(vertex_array.data(), vertex_array.size());
+        args.SetQuadArgs(quad.data(), quad.size());
         sprite_manager->PutSprite(args, 0);
     }
 
-    void put_sprite_rect_draw(rectangle rect, resolution_mode mode, spr::SprPrio prio, color4u8 color, int32_t layer) {
-        spr::SprArgs args;
+    void put_sprite_line_box(rectangle rect, SCREEN_MODE screen_mode,
+        SprPrio prio, color4u8 color, SprLayer layer) {
+        SprArgs args;
         args.trans.x = rect.pos.x;
         args.trans.y = rect.pos.y;
         args.trans.z = 0.0f;
         args.layer = layer;
-        args.kind = SPR_KIND_RECT_DRAW;
-        args.resolution_mode_screen = mode;
-        args.resolution_mode_sprite = mode;
+        args.kind = SPR_KIND_LINE_BOX;
+        args.screen_trans = screen_mode;
+        args.screen_scale = screen_mode;
         args.prio = prio;
         args.color = color;
-        args.SetSpriteSize(rect.size);
-        enum_or(args.attr, SPR_ATTR_MATRIX);
+        args.SetSize(rect.size);
+        enum_or(args.attr, SPR_ATTR_NOTRANSFORM);
         sprite_manager->PutSprite(args, 0);
     }
 
-    void put_sprite_rect_fill(rectangle rect, resolution_mode mode, spr::SprPrio prio, color4u8 color, int32_t layer) {
-        spr::SprArgs args;
+    void put_sprite_rect(rectangle rect, SCREEN_MODE screen_mode,
+        SprPrio prio, color4u8 color, SprLayer layer) {
+        SprArgs args;
         args.trans.x = rect.pos.x;
         args.trans.y = rect.pos.y;
         args.trans.z = 0.0f;
         args.layer = layer;
-        args.kind = SPR_KIND_RECT_FILL;
-        args.resolution_mode_screen = mode;
-        args.resolution_mode_sprite = mode;
+        args.kind = SPR_KIND_RECT;
+        args.screen_trans = screen_mode;
+        args.screen_scale = screen_mode;
         args.prio = prio;
         args.color = color;
-        args.SetSpriteSize(rect.size);
-        enum_or(args.attr, SPR_ATTR_MATRIX);
+        args.SetSize(rect.size);
+        enum_or(args.attr, SPR_ATTR_NOTRANSFORM);
         sprite_manager->PutSprite(args, 0);
     }
 
-    void put_sprite_strip(SpriteVertex* vert, size_t num, resolution_mode mode,
-        SprPrio prio, int32_t spr_id, int32_t layer, const sprite_database* spr_db) {
-        spr::SprArgs args;
+    void put_sprite_strip(SprArgs::Quad* vert, size_t num, SCREEN_MODE screen_mode,
+        SprPrio prio, int32_t spr_id, SprLayer layer, const sprite_database* spr_db) {
+        SprArgs args;
         args.layer = layer;
         args.kind = SPR_KIND_STRIP;
-        args.resolution_mode_screen = mode;
-        args.resolution_mode_sprite = mode;
+        args.screen_trans = screen_mode;
+        args.screen_scale = screen_mode;
         args.prio = prio;
         args.color = vert[0].color;
         if (spr_id != -1)
             args.id.info = spr_db->get_spr_by_id(spr_id)->info;
-        enum_or(args.attr, SPR_ATTR_MATRIX);
-        args.SetVertexArray(vert, num);
+        enum_or(args.attr, SPR_ATTR_NOTRANSFORM);
+        args.SetQuadArgs(vert, num);
         sprite_manager->PutSprite(args, spr_db);
     }
 }
@@ -495,8 +508,8 @@ void sprite_manager_init() {
         sprite_manager = new spr::SpriteManager;
 
 #if BREAK_SPRITE_VERTEX_LIMIT
-    if (!sprite_vertex_array)
-        sprite_vertex_array = new spr::SpriteVertex[sprite_vertex_array_max_count];
+    if (!string_quad)
+        string_quad = new spr::SprArgs::Quad[string_quad_max_count];
 #endif
 }
 
@@ -513,8 +526,8 @@ void sprite_manager_draw(render_data_context& rend_data_ctx,
     sprite_manager->Draw(rend_data_ctx, index, font, overlay_tex, vp);
 }
 
-int32_t sprite_manager_get_index() {
-    return sprite_manager->index;
+spr::SprTarget sprite_manager_get_target() {
+    return sprite_manager->target;
 }
 
 size_t sprite_manager_get_reqlist_count(int32_t index) {
@@ -601,8 +614,8 @@ void sprite_manager_reset_res_data() {
     sprite_manager->ResetResData();
 }
 
-void sprite_manager_set_index(int32_t value) {
-    sprite_manager->index = value;
+void sprite_manager_set_target(spr::SprTarget value) {
+    sprite_manager->target = value;
 }
 
 void sprite_manager_set_res(double_t aspect, int32_t width, int32_t height) {
@@ -610,9 +623,9 @@ void sprite_manager_set_res(double_t aspect, int32_t width, int32_t height) {
         return;
 
     sprite_manager->aspect[0] = (float_t)aspect;
-    sprite_manager->field_1018[0].second = { 0.0f, 0.0f, (float_t)width, (float_t)height };
+    sprite_manager->view_list[0].rect = { 0.0f, 0.0f, (float_t)width, (float_t)height };
     sprite_manager->aspect[1] = (float_t)aspect;
-    sprite_manager->field_1018[1].second = { 0.0f, 0.0f, (float_t)width, (float_t)height };
+    sprite_manager->view_list[1].rect = { 0.0f, 0.0f, (float_t)width, (float_t)height };
 }
 
 void sprite_manager_unload_set(uint32_t set_id, const sprite_database* spr_db) {
@@ -625,9 +638,9 @@ void sprite_manager_unload_set_modern(uint32_t set_hash, sprite_database* spr_db
 
 void sprite_manager_free() {
 #if BREAK_SPRITE_VERTEX_LIMIT
-    if (sprite_vertex_array) {
-        delete[] sprite_vertex_array;
-        sprite_vertex_array = 0;
+    if (string_quad) {
+        delete[] string_quad;
+        string_quad = 0;
     }
 #endif
 
@@ -708,10 +721,10 @@ namespace spr {
     }
 
     template <typename T>
-    size_t SpriteManager::RenderData::AddData(T*& data, size_t num_vertex) {
+    size_t SpriteManager::RenderData::AddData(T*& data, size_t nb_quad) {
         size_t size = vertex_buffer.size();
         size_t align_offset = (sizeof(T) - size % sizeof(T)) % sizeof(T);
-        size_t vertex_array_size = sizeof(T) * num_vertex;
+        size_t vertex_array_size = sizeof(T) * nb_quad;
 
         vertex_buffer.resize(size + align_offset + vertex_array_size);
         T* vtx_data = (T*)(vertex_buffer.data() + size + align_offset);
@@ -804,19 +817,23 @@ namespace spr {
         gl_state.bind_element_array_buffer(0);
     }
 
-    SpriteManager::SpriteManager() : aspect(), index(), set_counter() {
-        ResetIndex();
-        resolution_mode = RESOLUTION_MODE_MAX;
+    SpriteManager::ViewPort::ViewPort() : screen(SCREEN_MODE_MAX) {
 
-        resolution_struct res = resolution_struct(RESOLUTION_MODE_HD);
+    }
+
+    SpriteManager::SpriteManager() : aspect(), target(), set_counter() {
+        ResetTarget();
+        screen_mode_back = SCREEN_MODE_MAX;
+
+        ScreenParam res = ScreenParam(SCREEN_MODE_HD);
 
         aspect[0] = (float_t)res.aspect;
-        field_1018[0].first = res.resolution_mode;
-        field_1018[0].second = { 0.0f, 0.0f, (float_t)res.width, (float_t)res.height };
+        view_list[0].screen = res.mode;
+        view_list[0].rect = { 0.0f, 0.0f, (float_t)res.width, (float_t)res.height };
 
         aspect[1] = (float_t)res.aspect;
-        field_1018[1].first = res.resolution_mode;
-        field_1018[1].second = { 0.0f, 0.0f, (float_t)res.width, (float_t)res.height };
+        view_list[1].screen = res.mode;
+        view_list[1].rect = { 0.0f, 0.0f, (float_t)res.width, (float_t)res.height };
 
         view_projection = mat4_identity;
         mat = mat4_identity;
@@ -863,7 +880,7 @@ namespace spr {
     }
 
     void SpriteManager::Clear() {
-        for (int32_t i = 0; i < 4; i++)
+        for (int32_t i = 0; i < SPR_TARGET_MAX; i++)
             for (int32_t j = 0; j < 2; j++)
             for (int32_t k = 0; k < SPR_PRIO_MAX; k++)
                 reqlist[i][j][k].clear();
@@ -880,9 +897,9 @@ namespace spr {
         render_context* rctx = rctx_ptr;
         draw_sprite_begin(rend_data_ctx);
 
-        ::resolution_mode mode = res_window_get()->resolution_mode;
-        if (index == 2 && resolution_mode != RESOLUTION_MODE_MAX)
-            res_window_get()->resolution_mode = resolution_mode;
+        SCREEN_MODE screen_mode = get_screen_param().mode;
+        if (index == 2 && screen_mode_back != SCREEN_MODE_MAX)
+            get_screen_param().mode = screen_mode_back;
 
         gl_rend_state_rect viewport_rect = rend_data_ctx.state.get_viewport();
 
@@ -901,10 +918,10 @@ namespace spr {
             int32_t x_max;
             int32_t y_max;
             if (index == 0 || index == 3) {
-                resolution_struct* res_wind = res_window_get();
+                ScreenParam& screen_param = get_screen_param();
 
-                float_t sprite_half_width = (float_t)res_wind->width * 0.5f;
-                float_t sprite_half_height = (float_t)res_wind->height * 0.5f;
+                float_t sprite_half_width = (float_t)screen_param.width * 0.5f;
+                float_t sprite_half_height = (float_t)screen_param.height * 0.5f;
 
                 float_t aet_depth = rctx->camera->aet_depth;
                 float_t aet_depth_1 = 1.0f / aet_depth;
@@ -925,9 +942,9 @@ namespace spr {
 
                 vec2 min;
                 vec2 max;
-                resolution_mode_scale_pos(min, mode, field_1018[i].second.pos, field_1018[i].first);
-                resolution_mode_scale_pos(max, mode,
-                    field_1018[i].second.pos + field_1018[i].second.size, field_1018[i].first);
+                get_screen_conv_pos(min, screen_mode, view_list[i].rect.pos, view_list[i].screen);
+                get_screen_conv_pos(max, screen_mode,
+                    view_list[i].rect.pos + view_list[i].rect.size, view_list[i].screen);
                 x_min = (int32_t)min.x;
                 y_min = (int32_t)min.y;
                 x_max = (int32_t)(max.x - min.x);
@@ -974,8 +991,8 @@ namespace spr {
             rend_data_ctx.state.bind_vertex_array(0);
         }
 
-        if (index == 2 && resolution_mode != RESOLUTION_MODE_MAX)
-            res_window_get()->resolution_mode = mode;
+        if (index == 2 && screen_mode_back != SCREEN_MODE_MAX)
+            get_screen_param().mode = screen_mode;
 
         draw_sprite_end(rend_data_ctx);
     }
@@ -1044,11 +1061,11 @@ namespace spr {
     }
 
     SprArgs* SpriteManager::PutSprite(const SprArgs& args, const sprite_database* spr_db) {
-        int32_t index = args.index;
-        if (index == -1)
-            index = this->index;
+        SprTarget target = args.target;
+        if (target == -1)
+            target = this->target;
 
-        auto reqlist = &this->reqlist[index][args.layer][args.prio];
+        auto reqlist = &this->reqlist[target][args.layer][args.prio];
         spr_info info = args.id.info;
         if (args.kind == SPR_KIND_NORMAL)
             info = spr_db->get_spr_by_id(args.id.id)->info;
@@ -1061,21 +1078,21 @@ namespace spr {
             reqlist->push_back(args);
             SprArgs& _args = reqlist->back();
             _args.id.info = info;
-            _args.texture = set->GetTexture(info);
+            _args.tex = set->GetTexture(info);
             rectangle rect = set->GetRectangle(info);
-            _args.SetSpriteSize({ rect.size.x, rect.size.y });
-            _args.SetTexturePosSize(rect.pos.x, rect.pos.y, rect.size.x, rect.size.y);
-            if (_args.resolution_mode_sprite != RESOLUTION_MODE_MAX)
-                _args.resolution_mode_sprite = set->GetResolutionMode(_args.id.info);
+            _args.SetSize({ rect.size.x, rect.size.y });
+            _args.SetRect(rect.pos.x, rect.pos.y, rect.size.x, rect.size.y);
+            if (_args.screen_scale != SCREEN_MODE_MAX)
+                _args.screen_scale = set->GetResolutionMode(_args.id.info);
             return &_args;
         }
 
-        if (args.texture) {
+        if (args.tex) {
             reqlist->push_back(args);
             SprArgs& _args = reqlist->back();
             _args.id.index = -1;
-            _args.SetSpriteSize({ (float_t)_args.texture->width, (float_t)_args.texture->height });
-            _args.SetTexturePosSize(0.0, 0.0, (float_t)_args.texture->width, (float_t)_args.texture->height);
+            _args.SetSize({ (float_t)_args.tex->width, (float_t)_args.tex->height });
+            _args.SetRect(0.0, 0.0, (float_t)_args.tex->width, (float_t)_args.tex->height);
             return &_args;
         }
         else {
@@ -1105,8 +1122,8 @@ namespace spr {
             set->ReadFileModern(set_hash, data);
     }
 
-    void SpriteManager::ResetIndex() {
-        index = 0;
+    void SpriteManager::ResetTarget() {
+        target = SPR_TARGET_FRONT;
     }
 
     void SpriteManager::RemoveSprSets(const sprite_database* spr_db) {
@@ -1119,23 +1136,23 @@ namespace spr {
             for (auto& j : i)
                 for (auto& k : j)
                     k.clear();
-        ResetIndex();
-        sprite_vertex_array_count = 0;
+        ResetTarget();
+        string_quad_idx = 0;
     }
 
     void SpriteManager::ResetResData() {
-        ResetIndex();
-        resolution_mode = RESOLUTION_MODE_MAX;
+        ResetTarget();
+        screen_mode_back = SCREEN_MODE_MAX;
 
-        resolution_struct* res = res_window_get();
+        ScreenParam& screen_param = get_screen_param();
 
-        aspect[0] = (float_t)res->aspect;
-        field_1018[0].first = res->resolution_mode;
-        field_1018[0].second = { 0.0f, 0.0f, (float_t)res->width, (float_t)res->height };
+        aspect[0] = (float_t)screen_param.aspect;
+        view_list[0].screen = screen_param.mode;
+        view_list[0].rect = { 0.0f, 0.0f, (float_t)screen_param.width, (float_t)screen_param.height };
 
-        aspect[1] = (float_t)res->aspect;
-        field_1018[1].first = res->resolution_mode;
-        field_1018[1].second = { 0.0f, 0.0f, (float_t)res->width, (float_t)res->height };
+        aspect[1] = (float_t)screen_param.aspect;
+        view_list[1].screen = screen_param.mode;
+        view_list[1].rect = { 0.0f, 0.0f, (float_t)screen_param.width, (float_t)screen_param.height };
 
         view_projection = mat4_identity;
         mat = mat4_identity;
@@ -1151,34 +1168,34 @@ namespace spr {
                 return false;
 
             for (int32_t i = 0; i < left.num_texture; i++)
-                if (left.textures[i] != right.textures[i])
+                if (left.texs[i] != right.texs[i])
                     return false;
 
             return left.blend == right.blend && left.blend != 5 && right.blend != 5
-                && left.shader == right.shader && left.kind == right.kind
+                && left.shader_name == right.shader_name && left.kind == right.kind
                 && left.kind != SPR_KIND_POLY_LINE && right.kind != SPR_KIND_POLY_LINE
                 && left.kind != SPR_KIND_STRIP && right.kind != SPR_KIND_STRIP;
         };
 
         auto get_args_draw = [](const SprArgs& args, SprArgsDraw& args_draw) {
             int32_t num_texture = 0;
-            if (args.texture) {
-                const spr::SprArgs* _args = &args;
+            if (args.tex) {
+                const SprArgs* _args = &args;
                 while (_args) {
-                    args_draw.textures[num_texture++] = _args->texture;
+                    args_draw.texs[num_texture++] = _args->tex;
                     _args = _args->next;
                 }
             }
 
             args_draw.num_texture = num_texture;
             args_draw.blend = args.blend;
-            args_draw.shader = args.shader;
+            args_draw.shader_name = args.shader_name;
             args_draw.kind = args.kind;
         };
 
         SprArgsDraw args_draw[2];
         SprArgs* args_array[256];
-        for (int32_t i = 0; i < 4; i++)
+        for (int32_t i = 0; i < SPR_TARGET_MAX; i++)
             for (int32_t j = 0; j < 2; j++)
                 for (int32_t k = 0; k < SPR_PRIO_MAX; k++) {
                     int32_t args_count = 0;
@@ -1238,65 +1255,65 @@ namespace spr {
         }
     }
 
-    static void calc_sprite_vertex(spr::SprArgs* args, vec3 vtx[4], mat4* mat, bool font) {
+    static void calc_sprite_vertex(SprArgs* args, vec3 vtx[4], mat4* mat, bool font) {
         vtx[0].x = 0.0f;
         vtx[0].y = 0.0f;
         vtx[0].z = 0.0f;
         vtx[1].x = 0.0f;
-        vtx[1].y = args->sprite_size.y;
+        vtx[1].y = args->size.y;
         vtx[1].z = 0.0f;
-        vtx[2].x = args->sprite_size.x;
-        vtx[2].y = args->sprite_size.y;
+        vtx[2].x = args->size.x;
+        vtx[2].y = args->size.y;
         vtx[2].z = 0.0f;
-        vtx[3].x = args->sprite_size.x;
+        vtx[3].x = args->size.x;
         vtx[3].y = 0.0f;
         vtx[3].z = 0.0f;
 
         mat4 m;
         SprAttr attr = args->attr;
-        if (!(attr & SPR_ATTR_MATRIX)) {
-            if (attr & SPR_ATTR_CTR) {
+        if (!(attr & SPR_ATTR_NOTRANSFORM)) {
+            if (attr & SPR_ATTR_CTR_ALL) {
                 if (attr & SPR_ATTR_CTR_LT)
-                    args->center = 0.0f;
+                    args->anchor = 0.0f;
                 else if (attr & SPR_ATTR_CTR_LC) {
-                    args->center.x = 0.0f;
-                    args->center.y = args->sprite_size.y * 0.5f;
-                    args->center.z = 0.0f;
+                    args->anchor.x = 0.0f;
+                    args->anchor.y = args->size.y * 0.5f;
+                    args->anchor.z = 0.0f;
                 }
                 else if (attr & SPR_ATTR_CTR_LB) {
-                    args->center.x = 0.0f;
-                    args->center.y = args->sprite_size.y;
-                    args->center.z = 0.0f;
+                    args->anchor.x = 0.0f;
+                    args->anchor.y = args->size.y;
+                    args->anchor.z = 0.0f;
                 }
                 else if (attr & SPR_ATTR_CTR_CT) {
-                    args->center.x = args->sprite_size.x * 0.5f;
-                    args->center.y = 0.0f;
-                    args->center.z = 0.0f;
+                    args->anchor.x = args->size.x * 0.5f;
+                    args->anchor.y = 0.0f;
+                    args->anchor.z = 0.0f;
                 }
                 else if (attr & SPR_ATTR_CTR_CC) {
-                    args->center.x = args->sprite_size.x * 0.5f;
-                    args->center.y = args->sprite_size.y * 0.5f;
-                    args->center.z = 0.0f;
+                    args->anchor.x = args->size.x * 0.5f;
+                    args->anchor.y = args->size.y * 0.5f;
+                    args->anchor.z = 0.0f;
                 }
                 else if (attr & SPR_ATTR_CTR_CB) {
-                    args->center.x = args->sprite_size.x * 0.5f;
-                    args->center.y = args->sprite_size.y;
-                    args->center.z = 0.0f;
+                    args->anchor.x = args->size.x * 0.5f;
+                    args->anchor.y = args->size.y;
+                    args->anchor.z = 0.0f;
                 }
                 else if (attr & SPR_ATTR_CTR_RT) {
-                    args->center.x = args->sprite_size.x;
-                    args->center.y = 0.0f;
-                    args->center.z = 0.0f;
+                    args->anchor.x = args->size.x;
+                    args->anchor.y = 0.0f;
+                    args->anchor.z = 0.0f;
                 }
                 else if (attr & SPR_ATTR_CTR_RC) {
-                    args->center.x = args->sprite_size.x;
-                    args->center.y = args->sprite_size.y * 0.5f;
-                    args->center.z = 0.0f;
+                    args->anchor.x = args->size.x;
+                    args->anchor.y = args->size.y * 0.5f;
+                    args->anchor.z = 0.0f;
                 }
                 else if (attr & SPR_ATTR_CTR_RB) {
-                    args->center.x = args->sprite_size.x;
-                    args->center.y = args->sprite_size.y;
-                    args->center.z = 0.0f;
+                    args->anchor.x = args->size.x;
+                    args->anchor.y = args->size.y;
+                    args->anchor.z = 0.0f;
                 }
             }
 
@@ -1311,16 +1328,16 @@ namespace spr {
                 }
             }
 
-            if (fabsf(args->skew_angle.x) > 0.000001f) {
-                float_t skew_width = tanf(args->skew_angle.x) * args->sprite_size.y * 0.5f;
+            if (fabsf(args->slant) > 0.000001f) {
+                float_t skew_width = tanf(args->slant) * args->size.y * 0.5f;
                 vtx[0].x = vtx[0].x + skew_width;
                 vtx[1].x = vtx[1].x - skew_width;
                 vtx[2].x = vtx[2].x - skew_width;
                 vtx[3].x = vtx[3].x + skew_width;
             }
 
-            if (fabsf(args->skew_angle.y) > 0.000001f) {
-                float_t skew_height = tanf(args->skew_angle.y) * args->sprite_size.x * 0.5f;
+            if (fabsf(args->shear) > 0.000001f) {
+                float_t skew_height = tanf(args->shear) * args->size.x * 0.5f;
                 vtx[0].y = vtx[0].y - skew_height;
                 vtx[1].y = vtx[1].y - skew_height;
                 vtx[2].y = vtx[2].y + skew_height;
@@ -1335,15 +1352,15 @@ namespace spr {
             if (fabsf(args->rot.z) > 0.000001f)
                 mat4_mul_rotate_z(&m, args->rot.z, &m);
             mat4_scale_rot(&m, &args->scale, &m);
-            const vec3 center = -args->center;
-            mat4_mul_translate(&m, &center, &m);
+            const vec3 anchor = -args->anchor;
+            mat4_mul_translate(&m, &anchor, &m);
         }
         else {
             mat4_translate(&args->trans, &m);
             mat4_scale_rot(&m, &args->scale, &m);
         }
 
-        mat4_mul(&args->mat, &m, &m);
+        mat4_mul(&args->matrix, &m, &m);
 
         mat4_transform_point(&m, &vtx[0], &vtx[0]);
         mat4_transform_point(&m, &vtx[1], &vtx[1]);
@@ -1354,24 +1371,24 @@ namespace spr {
             *mat = m;
     }
 
-    static int32_t calc_sprite_texture_param(SprArgs* args, spr::TexParam* param, vec3 vtx[4], bool font) {
+    static int32_t calc_sprite_texture_param(SprArgs* args, TexParam* param, vec3 vtx[4], bool font) {
         int32_t tex_param_count = 0;
-        const texture* tex = args->texture;
+        const texture* tex = args->tex;
         while (args) {
-            param->texture = args->texture;
+            param->tex = args->tex;
 
-            float_t width = (float_t)args->texture->width;
-            float_t height = (float_t)args->texture->height;
+            float_t width = (float_t)args->tex->width;
+            float_t height = (float_t)args->tex->height;
 
             float_t u_scale = 1.0f / width;
             float_t v_scale = 1.0f / height;
 
-            if (!args->num_vertex) {
+            if (!args->nb_quad) {
                 vec2 uv00;
                 vec2 uv01;
                 vec2 uv10;
                 vec2 uv11;
-                if (args->kind == SPR_KIND_CHILD) {
+                if (args->kind == SPR_KIND_MULTI) {
                     vec3 v42[4];
                     mat4 mat;
                     calc_sprite_vertex(args, v42, &mat, font);
@@ -1389,26 +1406,27 @@ namespace spr {
                     uv00.x = 0.0f;
                     uv00.y = 0.0f;
                     uv01.x = 0.0f;
-                    uv01.y = args->texture_size.y;
-                    uv10.x = args->texture_size.x;
-                    uv10.y = args->texture_size.y;
-                    uv11.x = args->texture_size.x;
+                    uv01.y = args->rect.height;
+                    uv10.x = args->rect.width;
+                    uv10.y = args->rect.height;
+                    uv11.x = args->rect.width;
                     uv11.y = 0.0f;
                 }
 
-                vec2 texture_pos = args->texture_pos;
-                param->texcoord.uv[0].u = (uv00.x + texture_pos.x) * u_scale;
-                param->texcoord.uv[0].v = (height - (uv00.y + texture_pos.y)) * v_scale;
-                param->texcoord.uv[1].u = (uv01.x + texture_pos.x) * u_scale;
-                param->texcoord.uv[1].v = (height - (uv01.y + texture_pos.y)) * v_scale;
-                param->texcoord.uv[2].u = (uv10.x + texture_pos.x) * u_scale;
-                param->texcoord.uv[2].v = (height - (uv10.y + texture_pos.y)) * v_scale;
-                param->texcoord.uv[3].u = (uv11.x + texture_pos.x) * u_scale;
-                param->texcoord.uv[3].v = (height - (uv11.y + texture_pos.y)) * v_scale;
+                const float_t rect_x = args->rect.x;
+                const float_t rect_y = args->rect.y;
+                param->texcoord.uv[0].u = (uv00.x + rect_x) * u_scale;
+                param->texcoord.uv[0].v = (height - (uv00.y + rect_y)) * v_scale;
+                param->texcoord.uv[1].u = (uv01.x + rect_x) * u_scale;
+                param->texcoord.uv[1].v = (height - (uv01.y + rect_y)) * v_scale;
+                param->texcoord.uv[2].u = (uv10.x + rect_x) * u_scale;
+                param->texcoord.uv[2].v = (height - (uv10.y + rect_y)) * v_scale;
+                param->texcoord.uv[3].u = (uv11.x + rect_x) * u_scale;
+                param->texcoord.uv[3].v = (height - (uv11.y + rect_y)) * v_scale;
             }
             else if (font) {
-                SpriteVertex* vtx = args->GetVertexArray();
-                for (size_t i = args->num_vertex; i; i--, vtx++) {
+                SprArgs::Quad* vtx = args->GetVertexArray();
+                for (size_t i = args->nb_quad; i; i--, vtx++) {
                     vtx->uv.x = vtx->uv.x * u_scale;
                     vtx->uv.y = (height - vtx->uv.y) * v_scale;
                 }
@@ -1421,13 +1439,13 @@ namespace spr {
         return tex_param_count;
     }
 
-    static int32_t calc_sprite_vertex_texture_param(SprArgs& args, vec3 vtx[4], spr::TexParam* param, bool font) {
+    static int32_t calc_sprite_vertex_texture_param(SprArgs& args, vec3 vtx[4], TexParam* param, bool font) {
         vec3 _vtx[4] = {};
         if (args.flags & SprArgs::SPRITE_SIZE)
             calc_sprite_vertex(&args, _vtx, 0, font);
 
         int32_t tex_param_count = 0;
-        if ((args.flags & SprArgs::TEXTURE_POS_SIZE) && args.texture)
+        if ((args.flags & SprArgs::TEXTURE_POS_SIZE) && args.tex)
             tex_param_count = calc_sprite_texture_param(&args, param, _vtx, font);
         vtx[0] = _vtx[0];
         vtx[1] = _vtx[1];
@@ -1439,7 +1457,7 @@ namespace spr {
     static void add_draw_sprite(SprArgs* args_array[0x100], const int32_t args_count, bool font,
         SprArgsDraw& args_draw, SpriteManager::RenderData& render_data) {
         SprArgs& args = *args_array[0];
-        if (args.kind == SPR_KIND_CHILD)
+        if (args.kind == SPR_KIND_MULTI)
             return;
 
         const color4u8 color = args.color;
@@ -1448,7 +1466,7 @@ namespace spr {
             draw_sprite_scale(&args);
 
         vec3 spr_vtx[4] = {};
-        spr::TexParam tex_param[4] = {};
+        TexParam tex_param[4] = {};
         calc_sprite_vertex_texture_param(args, spr_vtx, tex_param, font);
 
         std::vector<sprite_draw_param>& draw_param_buffer = render_data.draw_param_buffer;
@@ -1457,7 +1475,7 @@ namespace spr {
         draw_param_buffer.push_back({});
         sprite_draw_param& draw_param = draw_param_buffer.back();
 
-        if (args.attr & SPR_ATTR_NOBLEND) {
+        if (args.attr & SPR_ATTR_IGNORE_ALPHA) {
             draw_param.attrib.m.enable_blend = 0;
             draw_param.attrib.m.blend = 0;
         }
@@ -1466,9 +1484,9 @@ namespace spr {
             draw_param.attrib.m.blend = args_draw.blend;
         }
 
-        draw_param.shader = args_draw.shader;
-        if (draw_param.shader == SHADER_FT_FFP)
-            draw_param.shader = SHADER_FT_SPRITE;
+        draw_param.shader_name = args_draw.shader_name;
+        if (draw_param.shader_name == SHADER_FT_FFP)
+            draw_param.shader_name = SHADER_FT_SPRITE;
 
         switch (args_draw.num_texture) {
         case 0:
@@ -1502,7 +1520,7 @@ namespace spr {
                     vtx_data += 2;
                 }
             } break;
-            case SPR_KIND_RECT_FILL: {
+            case SPR_KIND_RECT: {
                 sprite_vertex_data_uv0* vtx_data = 0;
                 size_t vtx_count = 4ULL * args_count;
                 size_t idx_count = 6ULL * args_count;
@@ -1554,7 +1572,7 @@ namespace spr {
                     start += 4;
                 }
             } break;
-            case SPR_KIND_RECT_DRAW: {
+            case SPR_KIND_LINE_BOX: {
                 sprite_vertex_data_uv0* vtx_data = 0;
                 size_t count = 5;
                 size_t first = render_data.AddData(vtx_data, count);
@@ -1571,17 +1589,17 @@ namespace spr {
 
             } break;
             case SPR_KIND_LINES: {
-                if (args.num_vertex) {
+                if (args.nb_quad) {
                     sprite_vertex_data_uv0* vtx_data = 0;
-                    size_t count = args.num_vertex & ~0x01;
+                    size_t count = args.nb_quad & ~0x01;
                     size_t first = render_data.AddData(vtx_data, count);
 
                     draw_param.attrib.m.primitive = GL_LINES;
                     draw_param.first = (GLint)first;
                     draw_param.count = (GLsizei)count;
 
-                    SpriteVertex* vtx = args.GetVertexArray();
-                    for (size_t i = args.num_vertex / 2; i; i--, vtx += 2, vtx_data += 2) {
+                    SprArgs::Quad* vtx = args.GetVertexArray();
+                    for (size_t i = args.nb_quad / 2; i; i--, vtx += 2, vtx_data += 2) {
                         vtx_data[0] = { vtx[0].pos, color };
                         vtx_data[1] = { vtx[1].pos, color };
                     }
@@ -1609,15 +1627,15 @@ namespace spr {
 
                     calc_sprite_vertex_texture_param(args, spr_vtx, tex_param, font);
 
-                    if (args.num_vertex) {
+                    if (args.nb_quad) {
                         sprite_vertex_data_uv0* vtx_data = 0;
-                        size_t count = args.num_vertex & ~0x01;
+                        size_t count = args.nb_quad & ~0x01;
                         render_data.AddData(vtx_data, count);
 
                         draw_param.count += (GLsizei)count;
 
-                        SpriteVertex* vtx = args.GetVertexArray();
-                        for (size_t i = args.num_vertex / 2; i; i--, vtx += 2, vtx_data += 2) {
+                        SprArgs::Quad* vtx = args.GetVertexArray();
+                        for (size_t i = args.nb_quad / 2; i; i--, vtx += 2, vtx_data += 2) {
                             vtx_data[0] = { vtx[0].pos, color };
                             vtx_data[1] = { vtx[1].pos, color };
                         }
@@ -1637,58 +1655,58 @@ namespace spr {
             } break;
             case SPR_KIND_POLY_LINE: {
                 sprite_vertex_data_uv0* vtx_data = 0;
-                size_t count = args.num_vertex;
+                size_t count = args.nb_quad;
                 size_t first = render_data.AddData(vtx_data, count);
 
                 draw_param.attrib.m.primitive = GL_LINE_STRIP;
                 draw_param.first = (GLint)first;
                 draw_param.count = (GLsizei)count;
 
-                SpriteVertex* vtx = args.GetVertexArray();
-                for (size_t i = args.num_vertex; i; i--, vtx++, vtx_data++)
+                SprArgs::Quad* vtx = args.GetVertexArray();
+                for (size_t i = args.nb_quad; i; i--, vtx++, vtx_data++)
                     *vtx_data = { vtx->pos, color };
             } break;
             case SPR_KIND_STRIP: {
                 sprite_vertex_data_uv0* vtx_data = 0;
-                size_t count = args.num_vertex;
+                size_t count = args.nb_quad;
                 size_t first = render_data.AddData(vtx_data, count);
 
                 draw_param.attrib.m.primitive = GL_TRIANGLE_STRIP;
                 draw_param.first = (GLint)first;
                 draw_param.count = (GLsizei)count;
 
-                SpriteVertex* vtx = args.GetVertexArray();
-                for (size_t i = args.num_vertex; i; i--, vtx++, vtx_data++)
+                SprArgs::Quad* vtx = args.GetVertexArray();
+                for (size_t i = args.nb_quad; i; i--, vtx++, vtx_data++)
                     *vtx_data = { vtx->pos, vtx->color };
 
             } break;
             }
             break;
         case 1:
-            draw_param.textures[0] = tex_param[0].texture;
+            draw_param.texs[0] = tex_param[0].tex;
             draw_param.attrib.m.sampler = 0;
             draw_param.attrib.m.vao = 1;
 
-            if (args.num_vertex) {
+            if (args.nb_quad) {
                 if (args_draw.kind == SPR_KIND_STRIP) {
                     draw_param.attrib.m.sampler = 1;
 
                     sprite_vertex_data_uv1* vtx_data = 0;
-                    size_t count = args.num_vertex;
+                    size_t count = args.nb_quad;
                     size_t first = render_data.AddData(vtx_data, count);
 
                     draw_param.attrib.m.primitive = GL_TRIANGLE_STRIP;
                     draw_param.first = (GLint)first;
                     draw_param.count = (GLsizei)count;
 
-                    SpriteVertex* vtx = args.GetVertexArray();
-                    for (size_t i = args.num_vertex; i; i--, vtx++, vtx_data++)
+                    SprArgs::Quad* vtx = args.GetVertexArray();
+                    for (size_t i = args.nb_quad; i; i--, vtx++, vtx_data++)
                         *vtx_data = { vtx->pos, vtx->color, vtx->uv };
                 }
                 else {
                     sprite_vertex_data_uv1* vtx_data = 0;
-                    size_t vtx_count = args.num_vertex;
-                    size_t idx_count = args.num_vertex / 4 * 6;
+                    size_t vtx_count = args.nb_quad;
+                    size_t idx_count = args.nb_quad / 4 * 6;
                     size_t start = render_data.AddData(vtx_data, vtx_count);
                     index_buffer.reserve(idx_count);
 
@@ -1698,8 +1716,8 @@ namespace spr {
                     draw_param.count = (GLsizei)idx_count;
                     draw_param.offset = (GLintptr)(index_buffer.size() * sizeof(uint32_t));
 
-                    SpriteVertex* vtx = args.GetVertexArray();
-                    for (size_t i = args.num_vertex / 4, j = 0; i; i--, j += 4, vtx += 4) {
+                    SprArgs::Quad* vtx = args.GetVertexArray();
+                    for (size_t i = args.nb_quad / 4, j = 0; i; i--, j += 4, vtx += 4) {
                         vtx_data[0] = { vtx[0].pos, vtx[0].color, vtx[0].uv }; // LB
                         vtx_data[1] = { vtx[1].pos, vtx[1].color, vtx[1].uv }; // LT
                         vtx_data[2] = { vtx[2].pos, vtx[2].color, vtx[2].uv }; // RT
@@ -1713,13 +1731,13 @@ namespace spr {
                         index_buffer.push_back((uint32_t)(start + j + 2)); // RT
                         index_buffer.push_back((uint32_t)(start + j + 3)); // RB
                     }
-                    start += args.num_vertex;
+                    start += args.nb_quad;
 
                     for (int32_t i = 1; i < args_count; i++) {
                         SprArgs& args = *args_array[i];
 
-                        size_t vtx_count = args.num_vertex;
-                        size_t idx_count = args.num_vertex / 4 * 6;
+                        size_t vtx_count = args.nb_quad;
+                        size_t idx_count = args.nb_quad / 4 * 6;
 
                         draw_param.end += (GLuint)vtx_count;
                         draw_param.count += (GLsizei)idx_count;
@@ -1732,8 +1750,8 @@ namespace spr {
 
                         calc_sprite_vertex_texture_param(args, spr_vtx, tex_param, font);
 
-                        SpriteVertex* vtx = args.GetVertexArray();
-                        for (size_t i = args.num_vertex / 4, j = 0; i; i--, j += 4, vtx += 4) {
+                        SprArgs::Quad* vtx = args.GetVertexArray();
+                        for (size_t i = args.nb_quad / 4, j = 0; i; i--, j += 4, vtx += 4) {
 
                             vtx_data[0] = { vtx[0].pos, vtx[0].color, vtx[0].uv }; // LB
                             vtx_data[1] = { vtx[1].pos, vtx[1].color, vtx[1].uv }; // LT
@@ -1748,7 +1766,7 @@ namespace spr {
                             index_buffer.push_back((uint32_t)(start + j + 2)); // RT
                             index_buffer.push_back((uint32_t)(start + j + 3)); // RB
                         }
-                        start += args.num_vertex;
+                        start += args.nb_quad;
                     }
                 }
             }
@@ -1806,8 +1824,8 @@ namespace spr {
             }
             break;
         case 2: {
-            draw_param.textures[0] = tex_param[0].texture;
-            draw_param.textures[1] = tex_param[1].texture;
+            draw_param.texs[0] = tex_param[0].tex;
+            draw_param.texs[1] = tex_param[1].tex;
             draw_param.attrib.m.sampler = 2;
             draw_param.attrib.m.vao = 2;
 
@@ -1893,7 +1911,7 @@ namespace spr {
     }
 
     static void draw_sprite(render_data_context& rend_data_ctx,
-        spr::SpriteManager* sprite_manager, const SprArgs& args,
+        SpriteManager* sprite_manager, const SprArgs& args,
         const mat4& mat, int32_t x_min, int32_t y_min, int32_t x_max, int32_t y_max, texture* overlay_tex) {
         sprite_draw_param& draw_param
             = sprite_manager->render_data.draw_param_buffer.data()[args.sprite_draw_param_index];
@@ -1917,21 +1935,21 @@ namespace spr {
         else
             rend_data_ctx.state.disable_blend();
 
-        if (draw_param.shader == SHADER_FT_SPRITE) {
+        if (draw_param.shader_name == SHADER_FT_SPRITE) {
             int32_t tex_0_type = 0;
             int32_t tex_1_type = 0;
-            if (draw_param.textures[0]) {
-                if (draw_param.textures[0]->internal_format == GL_COMPRESSED_RED_RGTC1)
+            if (draw_param.texs[0]) {
+                if (draw_param.texs[0]->internal_format == GL_COMPRESSED_RED_RGTC1)
                     tex_0_type = 3;
-                else if (draw_param.textures[0]->internal_format == GL_COMPRESSED_RG_RGTC2)
+                else if (draw_param.texs[0]->internal_format == GL_COMPRESSED_RG_RGTC2)
                     tex_0_type = 2;
                 else
                     tex_0_type = 1;
 
-                if (draw_param.textures[1]) {
-                    if (draw_param.textures[1]->internal_format == GL_COMPRESSED_RED_RGTC1)
+                if (draw_param.texs[1]) {
+                    if (draw_param.texs[1]->internal_format == GL_COMPRESSED_RED_RGTC1)
                         tex_1_type = 3;
-                    else if (draw_param.textures[1]->internal_format == GL_COMPRESSED_RG_RGTC2)
+                    else if (draw_param.texs[1]->internal_format == GL_COMPRESSED_RG_RGTC2)
                         tex_1_type = 2;
                     else
                         tex_1_type = 1;
@@ -1943,13 +1961,13 @@ namespace spr {
             rend_data_ctx.shader_flags.arr[U_COMBINER] = combiner;
         }
 
-        shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, draw_param.shader);
-        if (draw_param.textures[0]) {
-            rend_data_ctx.state.active_bind_texture_2d(0, draw_param.textures[0]->glid);
+        shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, draw_param.shader_name);
+        if (draw_param.texs[0]) {
+            rend_data_ctx.state.active_bind_texture_2d(0, draw_param.texs[0]->glid);
             rend_data_ctx.state.bind_sampler(0, rctx_ptr->sprite_samplers[draw_param.attrib.m.sampler]);
 
-            if (draw_param.textures[1]) {
-                rend_data_ctx.state.active_bind_texture_2d(1, draw_param.textures[1]->glid);
+            if (draw_param.texs[1]) {
+                rend_data_ctx.state.active_bind_texture_2d(1, draw_param.texs[1]->glid);
                 rend_data_ctx.state.bind_sampler(1, rctx_ptr->sprite_samplers[draw_param.attrib.m.sampler]);
             }
             else
@@ -1983,7 +2001,7 @@ namespace spr {
     static void draw_sprite_copy_overlay_texture(
         render_data_context& rend_data_ctx, const SprArgs& args, const mat4& mat, const vec3 vtx[4],
         int32_t overlay_x_min, int32_t overlay_y_min, int32_t overlay_x_max, int32_t overlay_y_max) {
-        if (args.num_vertex || args.kind != SPR_KIND_NORMAL)
+        if (args.nb_quad || args.kind != SPR_KIND_NORMAL)
             return;
 
         mat4 mat_t;
@@ -2055,13 +2073,13 @@ namespace spr {
         shader::unbind(rend_data_ctx.state);
     }
 
-    static void draw_sprite_scale(spr::SprArgs* args) {
-        int32_t index = args->index;
-        resolution_mode mode = res_window_get()->resolution_mode;
+    static void draw_sprite_scale(SprArgs* args) {
+        SprTarget target = args->target;
+        SCREEN_MODE screen_mode = get_screen_param().mode;
         while (args) {
-            resolution_mode_scale_data data(args->resolution_mode_screen, mode);
-            if (args->resolution_mode_screen != RESOLUTION_MODE_MAX
-                && args->resolution_mode_screen != mode && (index <= 0 || index >= 3)) {
+            screen_mode_scale_data data(args->screen_trans, screen_mode);
+            if (args->screen_trans != SCREEN_MODE_MAX
+                && args->screen_trans != screen_mode && (target < SPR_TARGET_FRONT_3D_SURF || target > SPR_TARGET_BACK)) {
                 float_t scale_x = data.scale.x;
                 float_t scale_y = data.scale.y;
                 float_t src_res_x = data.src_res.x;
@@ -2072,15 +2090,15 @@ namespace spr {
                 args->trans.y = (args->trans.y - src_res_y) * scale_y + src_res_y;
                 args->trans.z = args->trans.z * scale_y;
 
-                SpriteVertex* vtx = args->GetVertexArray();
-                for (size_t i = args->num_vertex; i; i--, vtx++) {
+                SprArgs::Quad* vtx = args->GetVertexArray();
+                for (size_t i = args->nb_quad; i; i--, vtx++) {
                     vtx->pos.x = (vtx->pos.x - src_res_x) * scale_x + dst_res_x;
                     vtx->pos.y = (vtx->pos.y - src_res_y) * scale_y + dst_res_y;
                 }
             }
 
-            if (args->resolution_mode_sprite != RESOLUTION_MODE_MAX) {
-                vec2 scale = resolution_mode_get_scale(mode, args->resolution_mode_sprite);
+            if (args->screen_scale != SCREEN_MODE_MAX) {
+                vec2 scale = get_screen_conv_scale(screen_mode, args->screen_scale);
                 args->scale.x = scale.x * args->scale.x;
                 args->scale.y = scale.y * args->scale.y;
             }
@@ -2119,12 +2137,12 @@ rectangle SprSet::GetRectangle(spr_info info) {
         (float_t)(int32_t)sprinfo->width, (float_t)(int32_t)sprinfo->height };
 }
 
-resolution_mode SprSet::GetResolutionMode(spr_info info) {
+SCREEN_MODE SprSet::GetResolutionMode(spr_info info) {
     //if (info.set_index & 0x1000)
     if (info.set_index & 0x4000)
-        return RESOLUTION_MODE_HD;
+        return SCREEN_MODE_HD;
     else
-        return spr_set->sprdata[info.index].resolution_mode;
+        return spr_set->sprdata[info.index].screen_mode;
 }
 
 texture* SprSet::GetTexture(spr_info info) {

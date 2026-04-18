@@ -656,7 +656,7 @@ static bool app_init(const app_init_struct& ais) {
     width = 1280;
     height = 720;
 
-    res_window_set(RESOLUTION_MODE_HD);
+    init_screen(SCREEN_MODE_HD);
 
 #if BAKE_PNG || BAKE_VIDEO
     width = BAKE_BASE_WIDTH;

@@ -1287,15 +1287,15 @@ void render_manager_init_data(int32_t ssaa, int32_t hd_res, int32_t ss_alpha_mas
     render_manager.npr = npr;
     render_texture_counter_reset();
 
-    resolution_struct* res_wind = res_window_get();
-    resolution_struct* res_wind_int = res_window_internal_get();
+    ScreenParam& screen_param = get_screen_param();
+    ScreenParam& render_screen_param = get_render_screen_param();
     render_manager.render = &rctx_ptr->render;
-    render_manager.render->init_render_buffers(res_wind_int->width,
-        res_wind_int->height, ssaa, hd_res, ss_alpha_mask);
-    render_manager.render->set_screen_res(res_wind_int->x_offset,
-        res_wind_int->y_offset, res_wind_int->width, res_wind_int->height);
-    render_manager.width = res_wind->width;
-    render_manager.height = res_wind->height;
+    render_manager.render->init_render_buffers(render_screen_param.width,
+        render_screen_param.height, ssaa, hd_res, ss_alpha_mask);
+    render_manager.render->set_screen_res(render_screen_param.xoffset,
+        render_screen_param.yoffset, render_screen_param.width, render_screen_param.height);
+    render_manager.width = screen_param.width;
+    render_manager.height = screen_param.height;
     render_manager_init_render_textures(1);
     render_manager.render->init_post_process_buffers();
 

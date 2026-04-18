@@ -381,17 +381,17 @@ void ColorChangeDw::Draw() {
 
         if (org_tex) {
             spr::SprArgs args;
-            args.texture = org_tex;
+            args.tex = org_tex;
             if (auto_resize)
-                args.SetSpriteSize(256.0f);
+                args.SetSize(256.0f);
             spr::put_sprite(args, aft_spr_db);
         }
         if (chg_tex) {
             spr::SprArgs args;
-            args.texture = chg_tex;
+            args.tex = chg_tex;
             args.trans.x = (float_t)chg_tex->width;
             if (auto_resize) {
-                args.SetSpriteSize(256.0f);
+                args.SetSize(256.0f);
                 args.trans.x = 266.0;
             }
             spr::put_sprite(args, aft_spr_db);

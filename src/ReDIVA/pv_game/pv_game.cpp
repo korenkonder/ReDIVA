@@ -2648,18 +2648,19 @@ bool pv_game::load() {
         const pv_db_pv_difficulty* diff = get_pv_db_pv()->get_difficulty(
             sub_14013C8C0()->difficulty, sub_14013C8C0()->edition);
          if (diff && diff->movie_list.size()) {
-            resolution_struct* res_wind = res_window_get();
-            resolution_struct* res_wind_int = res_window_internal_get();
+            ScreenParam& screen_param = get_screen_param();
+            ScreenParam& render_screen_param = get_render_screen_param();
 
             TaskMovie::SprParams spr_params;
             spr_params.disp.rect.pos.x = 0.0f;
-            spr_params.disp.rect.pos.y = (float_t)(res_wind->height - res_wind_int->height) * 0.5f;
-            spr_params.disp.rect.size.x = (float_t)res_wind_int->width;
-            spr_params.disp.rect.size.y = (float_t)res_wind_int->height;
-            spr_params.disp.resolution_mode = res_wind->resolution_mode;
+            spr_params.disp.rect.pos.y = (float_t)(screen_param.height - render_screen_param.height) * 0.5f;
+            spr_params.disp.rect.size.x = (float_t)render_screen_param.width;
+            spr_params.disp.rect.size.y = (float_t)render_screen_param.height;
+            spr_params.disp.screen_mode = screen_param.mode;
             spr_params.disp.scale = -1.0f;
-            spr_params.disp.index = diff->movie_surface == PV_MOVIE_SURFACE_FRONT ? 0 : 2;
-            spr_params.prio = spr::SPR_PRIO_01;
+            spr_params.disp.target = diff->movie_surface == PV_MOVIE_SURFACE_FRONT
+                ? spr::SPR_TARGET_FRONT : spr::SPR_TARGET_BACK;
+            spr_params.prio = spr::SPR_PRIO_BACKGROUND;
 
             for (const pv_db_pv_movie& i : diff->movie_list)
                 if (i.name.size() && aft_data->check_file_exists(i.name.c_str())) {

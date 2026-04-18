@@ -14,7 +14,7 @@
 #include "../../CRE/hand_item.hpp"
 #include "../../CRE/module_table.hpp"
 #include "../../CRE/pv_db.hpp"
-#include "../../CRE/resolution_mode.hpp"
+#include "../../CRE/screen_param.hpp"
 #include "../../CRE/stage.hpp"
 #include "../../CRE/stage_param.hpp"
 #include "../dw.hpp"
@@ -2724,7 +2724,7 @@ DataTestMotA3dDw::DataTestMotA3dDw() {
 
     UpdateLayout();
 
-    rect.pos.x = (float_t)res_window_get()->width * 0.3f - rect.size.x * 0.3f;
+    rect.pos.x = (float_t)get_screen_param().width * 0.3f - rect.size.x * 0.3f;
 
     SetSize(rect.size);
 }
@@ -2830,7 +2830,7 @@ DataTestMotCtrlDw::DataTestMotCtrlDw() {
 
     UpdateLayout();
 
-    rect.pos.x = (float_t)res_window_get()->width - rect.size.x;
+    rect.pos.x = (float_t)get_screen_param().width - rect.size.x;
 
     SetSize(rect.size);
 }
@@ -2951,9 +2951,9 @@ static void data_test_mot_dw_array_init(int32_t chara_id, DtmMot* dtm_mot) {
         test_mot_dw->rect.pos.y += 14.0f;
     } break;
     case 1: {
-        resolution_struct* res_wind = res_window_get();
-        test_mot_dw->rect.pos.x = (float_t)res_wind->width - test_mot_dw->rect.size.x;
-        test_mot_dw->rect.pos.y = (float_t)res_wind->height - 24.0f;
+        ScreenParam& screen_param = get_screen_param();
+        test_mot_dw->rect.pos.x = (float_t)screen_param.width - test_mot_dw->rect.size.x;
+        test_mot_dw->rect.pos.y = (float_t)screen_param.height - 24.0f;
     } break;
     }
 }

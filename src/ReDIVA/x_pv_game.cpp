@@ -2306,7 +2306,7 @@ bool aet_obj_data_comp::init_comp(uint32_t aet_id, const std::string&& layer_nam
     this->frame = frame;
 
     aet_manager_init_aet_layout(&comp, aet_id, layer_name.c_str(),
-        (AetFlags)0, RESOLUTION_MODE_HD, 0, frame, aet_db, spr_db);
+        (AetFlags)0, SCREEN_MODE_HD, 0, frame, aet_db, spr_db);
     return true;
 }
 
@@ -2480,7 +2480,7 @@ void x_pv_game_title::ctrl() {
             if (set) {
                 SpriteData* sprdata = set->sprdata;
                 for (uint32_t i = set->num_of_sprite; i; i--, sprdata++)
-                    sprdata->resolution_mode = RESOLUTION_MODE_HD;
+                    sprdata->screen_mode = SCREEN_MODE_HD;
             }
             state = 3;
         }
@@ -4683,7 +4683,7 @@ void x_pv_game_stage_env::ctrl(float_t delta_time) {
             if (set) {
                 SpriteData* sprdata = set->sprdata;
                 for (uint32_t i = set->num_of_sprite; i; i--, sprdata++)
-                    sprdata->resolution_mode = RESOLUTION_MODE_HD;
+                    sprdata->screen_mode = SCREEN_MODE_HD;
             }
             state = 20;
         }
@@ -4826,23 +4826,23 @@ void x_pv_game_stage_env::set(int32_t env_index, float_t end_time, float_t start
                     args.flags = AET_PLAY_ONCE;
                     switch (type) {
                     case 0:
-                        args.index = 0;
+                        args.target = spr::SPR_TARGET_FRONT;
                         args.prio = spr::SPR_PRIO_01;
                         break;
                     case 1:
-                        args.index = 0;
+                        args.target = spr::SPR_TARGET_FRONT;
                         args.prio = spr::SPR_PRIO_00;
                         break;
                     case 2:
-                        args.index = 2;
+                        args.target = spr::SPR_TARGET_BACK;
                         args.prio = spr::SPR_PRIO_00;
                         break;
                     case 3:
-                        args.index = 1;
+                        args.target = spr::SPR_TARGET_FRONT_3D_SURF;
                         args.prio = spr::SPR_PRIO_00;
                         break;
                     case 4:
-                        args.index = 1;
+                        args.target = spr::SPR_TARGET_FRONT_3D_SURF;
                         args.prio = spr::SPR_PRIO_01;
                         break;
                     }
@@ -4933,23 +4933,23 @@ void x_pv_game_stage_env::sub_810EE03E() {
                     args.flags = AET_PLAY_ONCE;
                     switch (type) {
                     case 0:
-                        args.index = 0;
+                        args.target = spr::SPR_TARGET_FRONT;
                         args.prio = spr::SPR_PRIO_01;
                         break;
                     case 1:
-                        args.index = 0;
+                        args.target = spr::SPR_TARGET_FRONT;
                         args.prio = spr::SPR_PRIO_00;
                         break;
                     case 2:
-                        args.index = 2;
+                        args.target = spr::SPR_TARGET_BACK;
                         args.prio = spr::SPR_PRIO_00;
                         break;
                     case 3:
-                        args.index = 1;
+                        args.target = spr::SPR_TARGET_FRONT_3D_SURF;
                         args.prio = spr::SPR_PRIO_00;
                         break;
                     case 4:
-                        args.index = 1;
+                        args.target = spr::SPR_TARGET_FRONT_3D_SURF;
                         args.prio = spr::SPR_PRIO_01;
                         break;
                     }
@@ -5013,23 +5013,23 @@ bool x_pv_game_stage_env::sub_810EE198(float_t delta_time) {
                         args.flags = AET_PLAY_ONCE;
                         switch (type) {
                         case 0:
-                            args.index = 0;
+                            args.target = spr::SPR_TARGET_FRONT;
                             args.prio = spr::SPR_PRIO_01;
                             break;
                         case 1:
-                            args.index = 0;
+                            args.target = spr::SPR_TARGET_FRONT;
                             args.prio = spr::SPR_PRIO_00;
                             break;
                         case 2:
-                            args.index = 2;
+                            args.target = spr::SPR_TARGET_BACK;
                             args.prio = spr::SPR_PRIO_00;
                             break;
                         case 3:
-                            args.index = 1;
+                            args.target = spr::SPR_TARGET_FRONT_3D_SURF;
                             args.prio = spr::SPR_PRIO_00;
                             break;
                         case 4:
-                            args.index = 1;
+                            args.target = spr::SPR_TARGET_FRONT_3D_SURF;
                             args.prio = spr::SPR_PRIO_01;
                             break;
                         }
@@ -6557,7 +6557,7 @@ bool x_pv_game::ctrl() {
                 if (set) {
                     SpriteData* sprdata = set->sprdata;
                     for (uint32_t i = set->num_of_sprite; i; i--, sprdata++)
-                        sprdata->resolution_mode = RESOLUTION_MODE_HD;
+                        sprdata->screen_mode = SCREEN_MODE_HD;
                 }
             }
             else

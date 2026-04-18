@@ -54,7 +54,7 @@ void Game2dEnergyUnit::init() {
     field_1D4 = 0;
 
     AetComp comp;
-    aet_manager_init_aet_layout(&comp, 3, 0, (AetFlags)0, RESOLUTION_MODE_HD, 0, 0.0f, aft_aet_db, aft_spr_db);
+    aet_manager_init_aet_layout(&comp, 3, 0, (AetFlags)0, SCREEN_MODE_HD, 0, 0.0f, aft_aet_db, aft_spr_db);
 
     field_8[0] = *comp.Find("lifegauge_start_l");
     field_8[1] = *comp.Find("lifegauge_end_r");
@@ -104,16 +104,16 @@ void Game2dEnergyUnit::init() {
     args.prio = spr::SPR_PRIO_13;
     args.flags = AET_PLAY_ONCE;
     args.layer_name = "life_safe_txt";
-    args.mode = RESOLUTION_MODE_HD;
-    args.pos.x = life_gauge_border * field_1E0.x / max_value * 0.5f + field_8[0].position.x;
-    args.pos.y = field_1D8.y * 0.5f + field_8[0].position.y;
+    args.screen = SCREEN_MODE_HD;
+    args.trans.x = life_gauge_border * field_1E0.x / max_value * 0.5f + field_8[0].position.x;
+    args.trans.y = field_1D8.y * 0.5f + field_8[0].position.y;
     args.spr_db = aft_spr_db;
 
     field_1B8[2] = aet_manager_init_aet_object(args, aft_aet_db);
     field_1CC[2] = true;
 
-    field_1E8 = *(vec2*)&args.pos;
-    field_1F0 = *(vec2*)&args.pos;
+    field_1E8 = *(vec2*)&args.trans;
+    field_1F0 = *(vec2*)&args.trans;
 
     field_1B8[4] = aet_manager_init_aet_object(3, "life_gauge_insurance", spr::SPR_PRIO_13, AET_PLAY_ONCE, 0, 0, aft_aet_db, aft_spr_db);
     field_1CC[4] = false;
@@ -250,32 +250,32 @@ void Game2dEnergyUnit::disp_inner() {
         v11.x = v9 * 0.5f;
 
     spr::SprArgs v49;
-    v49.SetSpriteSize({ v9, v11.y});
+    v49.SetSize({ v9, v11.y});
     v49.id.index = 2570;
     v49.trans = field_8[0].position;
     v49.trans.y = field_8[0].position.y + (float_t)field_1D4;
-    v49.resolution_mode_screen = field_8[0].mode;
-    v49.resolution_mode_sprite = field_8[0].mode;
+    v49.screen_trans = field_8[0].mode;
+    v49.screen_scale = field_8[0].mode;
     v49.prio = spr::SPR_PRIO_12;
 
     spr::SprArgs v51;
-    v51.SetSpriteSize(v11);
+    v51.SetSize(v11);
     v51.id.index = 2569;
     v51.trans = field_8[0].position;
     v51.trans.y = field_8[0].position.y + (float_t)field_1D4;
-    v51.resolution_mode_screen = field_8[0].mode;
-    v51.resolution_mode_sprite = field_8[0].mode;
+    v51.screen_trans = field_8[0].mode;
+    v51.screen_scale = field_8[0].mode;
     v51.prio = spr::SPR_PRIO_12;
 
     spr::SprArgs v43;
-    v43.SetSpriteSize(v11);
+    v43.SetSize(v11);
     v43.id.index = 2569;
     v43.trans.x = field_8[0].position.x + v9;
     v43.trans.y = field_8[0].position.y + (float_t)field_1D4;
     v43.trans.z = field_8[0].position.z;
     v43.scale.x = -1.0f;
-    v43.resolution_mode_screen = field_8[0].mode;
-    v43.resolution_mode_sprite = field_8[0].mode;
+    v43.screen_trans = field_8[0].mode;
+    v43.screen_scale = field_8[0].mode;
     v43.prio = spr::SPR_PRIO_12;
 
     float_t v12 = life_gauge_decrease * field_1E0.x * (1.0f / max_value);
@@ -285,32 +285,32 @@ void Game2dEnergyUnit::disp_inner() {
         v14.x = v12 * 0.5f;
 
     spr::SprArgs v54;
-    v54.SetSpriteSize({ v12, v14.y });
+    v54.SetSize({ v12, v14.y });
     v54.id.index = 2583;
     v54.trans = field_8[0].position;
     v54.trans.y = field_8[0].position.y + (float_t)field_1D4;
-    v54.resolution_mode_screen = field_8[0].mode;
-    v54.resolution_mode_sprite = field_8[0].mode;
+    v54.screen_trans = field_8[0].mode;
+    v54.screen_scale = field_8[0].mode;
     v54.prio = spr::SPR_PRIO_12;
 
     spr::SprArgs v52;
-    v52.SetSpriteSize(v14);
+    v52.SetSize(v14);
     v52.id.index = 2581;
     v52.trans = field_8[0].position;
     v52.trans.y = field_8[0].position.y + (float_t)field_1D4;
-    v52.resolution_mode_screen = field_8[0].mode;
-    v52.resolution_mode_sprite = field_8[0].mode;
+    v52.screen_trans = field_8[0].mode;
+    v52.screen_scale = field_8[0].mode;
     v52.prio = spr::SPR_PRIO_12;
 
     spr::SprArgs v46;
-    v46.SetSpriteSize(v14);
+    v46.SetSize(v14);
     v46.id.index = 2581;
     v46.trans.x = field_8[0].position.x + v12;
     v46.trans.y = field_8[0].position.y + (float_t)field_1D4;
     v46.trans.z = field_8[0].position.z;
     v46.scale.x = -1.0f;
-    v46.resolution_mode_screen = field_8[0].mode;
-    v46.resolution_mode_sprite = field_8[0].mode;
+    v46.screen_trans = field_8[0].mode;
+    v46.screen_scale = field_8[0].mode;
     v46.prio = spr::SPR_PRIO_12;
 
     float_t v15 = life_gauge_increase * field_1E0.x * (1.0f / max_value);
@@ -320,32 +320,32 @@ void Game2dEnergyUnit::disp_inner() {
         v17.x = v15 * 0.5f;
 
     spr::SprArgs v50;
-    v50.SetSpriteSize({ v15, v17.y });
+    v50.SetSize({ v15, v17.y });
     v50.id.index = 2582;
     v50.trans = field_8[0].position;
     v50.trans.y = field_8[0].position.y + (float_t)field_1D4;
-    v50.resolution_mode_screen = field_8[0].mode;
-    v50.resolution_mode_sprite = field_8[0].mode;
+    v50.screen_trans = field_8[0].mode;
+    v50.screen_scale = field_8[0].mode;
     v50.prio = spr::SPR_PRIO_12;
 
     spr::SprArgs v48;
-    v48.SetSpriteSize(v17);
+    v48.SetSize(v17);
     v48.id.index = 2580;
     v48.trans = field_8[0].position;
     v48.trans.y = field_8[0].position.y + (float_t)field_1D4;
-    v48.resolution_mode_screen = field_8[0].mode;
-    v48.resolution_mode_sprite = field_8[0].mode;
+    v48.screen_trans = field_8[0].mode;
+    v48.screen_scale = field_8[0].mode;
     v48.prio = spr::SPR_PRIO_12;
 
     spr::SprArgs v44;
-    v44.SetSpriteSize(v17);
+    v44.SetSize(v17);
     v44.id.index = 2580;
     v44.trans.x = field_8[0].position.x + v15;
     v44.trans.y = field_8[0].position.y + (float_t)field_1D4;
     v44.trans.z = field_8[0].position.z;
     v44.scale.x = -1.0f;
-    v44.resolution_mode_screen = field_8[0].mode;
-    v44.resolution_mode_sprite = field_8[0].mode;
+    v44.screen_trans = field_8[0].mode;
+    v44.screen_scale = field_8[0].mode;
     v44.prio = spr::SPR_PRIO_12;
 
     float_t v18 = life_gauge_border * field_1E0.x * (1.0f / max_value);
@@ -355,42 +355,42 @@ void Game2dEnergyUnit::disp_inner() {
         v19.x = v15 * 0.5f;
 
     spr::SprArgs v53;
-    v53.SetSpriteSize({ v18, v19.y });
+    v53.SetSize({ v18, v19.y });
     v53.id.index = 2866;
     v53.trans = field_8[0].position;
     v53.trans.y = field_8[0].position.y + (float_t)field_1D4;
-    v53.resolution_mode_screen = field_8[0].mode;
-    v53.resolution_mode_sprite = field_8[0].mode;
+    v53.screen_trans = field_8[0].mode;
+    v53.screen_scale = field_8[0].mode;
     v53.prio = spr::SPR_PRIO_13;
 
     spr::SprArgs v55;
-    v55.SetSpriteSize(v19);
+    v55.SetSize(v19);
     v55.id.index = 2865;
     v55.trans = field_8[0].position;
     v55.trans.y = field_8[0].position.y + (float_t)field_1D4;
-    v55.resolution_mode_screen = field_8[0].mode;
-    v55.resolution_mode_sprite = field_8[0].mode;
+    v55.screen_trans = field_8[0].mode;
+    v55.screen_scale = field_8[0].mode;
     v55.prio = spr::SPR_PRIO_13;
 
     spr::SprArgs v45;
-    v45.SetSpriteSize(v19);
+    v45.SetSize(v19);
     v45.id.index = 2865;
     v45.trans.z = field_8[0].position.z;
     v45.trans.x = v18 + field_8[0].position.x;
     v45.trans.y = field_8[0].position.y + (float_t)field_1D4;
     v45.scale.x = -1.0f;
-    v45.resolution_mode_screen = field_8[0].mode;
-    v45.resolution_mode_sprite = field_8[0].mode;
+    v45.screen_trans = field_8[0].mode;
+    v45.screen_scale = field_8[0].mode;
     v45.prio = spr::SPR_PRIO_13;
 
     spr::SprArgs v47;
-    v47.SetSpriteSize({ (life_gauge_prev - life_gauge_stable) * field_1E0.x * (1.0f / max_value), field_1D8.y });
-    v47.kind = spr::SPR_KIND_RECT_FILL;
+    v47.SetSize({ (life_gauge_prev - life_gauge_stable) * field_1E0.x * (1.0f / max_value), field_1D8.y });
+    v47.kind = spr::SPR_KIND_RECT;
     v47.trans.z = field_8[0].position.z;
     v47.trans.x = field_8[0].position.x + field_1E0.x * life_gauge_stable * (1.0f / max_value);
     v47.trans.y = field_8[0].position.y + (float_t)field_1D4;
-    v47.resolution_mode_screen = field_8[0].mode;
-    v47.resolution_mode_sprite = field_8[0].mode;
+    v47.screen_trans = field_8[0].mode;
+    v47.screen_scale = field_8[0].mode;
     v47.prio = spr::SPR_PRIO_12;
     v47.color = { 0xFF, 0xFF, 0xFF, (uint8_t)(int32_t)(life_gauge_delay * 0.05f * 255.0f) };
 
@@ -451,7 +451,7 @@ void Game2dEnergyUnit::disp_inner() {
         }
 
     AetComp comp;
-    aet_manager_init_aet_layout(&comp, 3, spr_life_bonus[0], (AetFlags)0, RESOLUTION_MODE_HD, 0,
+    aet_manager_init_aet_layout(&comp, 3, spr_life_bonus[0], (AetFlags)0, SCREEN_MODE_HD, 0,
         aet_manager_get_obj_frame(field_1B8[3]), aft_aet_db, aft_spr_db);
 
     vec2 size;

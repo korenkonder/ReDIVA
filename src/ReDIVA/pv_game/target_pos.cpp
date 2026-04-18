@@ -4,7 +4,7 @@
 */
 
 #include "target_pos.hpp"
-#include "../../CRE/resolution_mode.hpp"
+#include "../../CRE/screen_param.hpp"
 
 vec2 target_pos_scale;
 vec2 target_pos_offset;
@@ -15,8 +15,8 @@ void target_pos_scale_offset_apply(const vec2* src, vec2* dst) {
 }
 
 void target_pos_scale_offset_get() {
-    resolution_struct v0(RESOLUTION_MODE_HD);
+    ScreenParam screen_param(SCREEN_MODE_HD);
     target_pos_offset = 0.0f;
-    target_pos_scale.x = (float_t)v0.width * (float_t)(1.0 / 480.0);
-    target_pos_scale.y = (float_t)v0.height * (float_t)(1.0 / 272.0);
+    target_pos_scale.x = (float_t)screen_param.width * (float_t)(1.0 / 480.0);
+    target_pos_scale.y = (float_t)screen_param.height * (float_t)(1.0 / 272.0);
 }

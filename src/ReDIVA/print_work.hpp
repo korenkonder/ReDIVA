@@ -34,17 +34,17 @@ namespace app {
 
 struct sprite_text_mesh {
     int32_t sprite_id;
-    std::vector<spr::SpriteVertex> vertices;
+    std::vector<spr::SprArgs::Quad> quads;
 
     sprite_text_mesh();
     ~sprite_text_mesh();
 
-    spr::SpriteVertex* add_char();
+    spr::SprArgs::Quad* add_char();
     void add_set_char(app::text_flags flags,
         rectangle pos, rectangle uv, color4u8 color);
     void apply_scale_offset(vec2 scale, vec2 offset);
 
-    static void set_char(spr::SpriteVertex* vtx, app::text_flags flags,
+    static void set_char(spr::SprArgs::Quad* vtx, app::text_flags flags,
         rectangle pos, rectangle uv, color4u8 color);
 };
 
@@ -54,8 +54,8 @@ struct PrintWork {
     bool clip;
     rectangle clip_data;
     spr::SprPrio prio;
-    uint32_t layer;
-    resolution_mode resolution_mode;
+    spr::SprLayer layer;
+    SCREEN_MODE screen_mode;
     uint32_t field_28;
     vec2 text_current_loc;
     vec2 line_origin_loc;
@@ -86,7 +86,7 @@ struct PrintWork {
     void PrintText(app::text_flags flags, const wchar_t* str_begin, const wchar_t* str_end);
     void PutText(app::text_flags flags, const wchar_t* str_begin, const wchar_t* str_end);
     void set_font(const font_info* value);
-    void set_resolution_mode(const ::resolution_mode value);
+    void set_screen_mode(const SCREEN_MODE value);
     void set_text_position(const float_t column, const float_t line);
 
     void printf(app::text_flags flags,

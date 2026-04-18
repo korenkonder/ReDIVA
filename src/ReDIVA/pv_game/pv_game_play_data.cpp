@@ -579,7 +579,7 @@ void pv_game_play_data::disp_chance_point() {
         v5 = 5 - digits;
     }
 
-    aet_manager_init_aet_layout(&comp, 3, spr_chance_point[chance_point], (AetFlags)0, RESOLUTION_MODE_HD,
+    aet_manager_init_aet_layout(&comp, 3, spr_chance_point[chance_point], (AetFlags)0, SCREEN_MODE_HD,
         0, aet_manager_get_obj_frame(aet_ids[PV_GAME_AET_CHANCE_POINT]), aft_aet_db, aft_spr_db);
 
     vec2 pos;
@@ -632,7 +632,7 @@ void pv_game_play_data::disp_chance_txt() {
     sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
 
     vec2 pos = { ((float_t)(6 - digits) * field_350) * -0.5f, 0.0f };
-    aet_manager_init_aet_layout(&comp, 3, spr_chance_txt[1], (AetFlags)0, RESOLUTION_MODE_HD,
+    aet_manager_init_aet_layout(&comp, 3, spr_chance_txt[1], (AetFlags)0, SCREEN_MODE_HD,
         0, aet_manager_get_obj_frame(aet_ids[PV_GAME_AET_CHANCE_TXT]), aft_aet_db, aft_spr_db);
     AetComp::put_number_sprite(chance_result, 6, &comp, spr_p_chance_rslt_num,
         spr_p_chance_rslt_num_spr, spr::SPR_PRIO_06, &pos, 0, aft_spr_db);
@@ -655,7 +655,7 @@ void pv_game_play_data::disp_combo() {
         name = spr_combo_just_cool_fine[value_text_spr_index];
 
     AetComp comp;
-    aet_manager_init_aet_layout(&comp, 3, name, (AetFlags)0, RESOLUTION_MODE_HD,
+    aet_manager_init_aet_layout(&comp, 3, name, (AetFlags)0, SCREEN_MODE_HD,
         0, aet_manager_get_obj_frame(aet_ids[PV_GAME_AET_COMBO]), aft_aet_db, aft_spr_db);
 
     vec2 pos;
@@ -692,7 +692,7 @@ void pv_game_play_data::disp_max_slide_point() {
 
     AetComp comp;
     aet_manager_init_aet_layout(&comp, 3,
-        spr_max_slide_point[max_slide_point], (AetFlags)0, RESOLUTION_MODE_HD, 0,
+        spr_max_slide_point[max_slide_point], (AetFlags)0, SCREEN_MODE_HD, 0,
         aet_manager_get_obj_frame(aet_ids[PV_GAME_AET_MAX_SLIDE_POINT]), aft_aet_db, aft_spr_db);
 
     vec2 pos;
@@ -759,7 +759,7 @@ void pv_game_play_data::disp_slide_point() {
         v5 = 5 - digits;
     }
 
-    aet_manager_init_aet_layout(&comp, 3, spr_chance_point[chance_point], (AetFlags)0, RESOLUTION_MODE_HD,
+    aet_manager_init_aet_layout(&comp, 3, spr_chance_point[chance_point], (AetFlags)0, SCREEN_MODE_HD,
         0, aet_manager_get_obj_frame(aet_ids[PV_GAME_AET_SLIDE_POINT]), aft_aet_db, aft_spr_db);
 
     vec2 pos;
@@ -851,7 +851,7 @@ void pv_game_play_data::disp_spr_set_back() {
     spr::SprArgs args;
     args.id.id = spr_set_back_id;
     args.prio = spr::SPR_PRIO_01;
-    args.index = 2;
+    args.target = spr::SPR_TARGET_BACK;
     spr::put_sprite(args, aft_spr_db);
 }
 
@@ -1091,27 +1091,27 @@ void pv_game_play_data::init_aet(pv_aet aet, int32_t index, std::string&& layer_
         aet_id = aft_aet_db->get_aet_by_name(aet_name.c_str())->id;
     }
 
-    int32_t spr_index;
+    spr::SprTarget target;
     pv_game_aet aet_index;
     spr::SprPrio prio;
     switch (aet) {
     case PV_AET_FRONT:
-        spr_index = 0;
+        target = spr::SPR_TARGET_FRONT;
         aet_index = (pv_game_aet)(index + PV_GAME_AET_FRONT);
         prio = spr::SPR_PRIO_01;
         break;
     case PV_AET_FRONT_LOW:
-        spr_index = 0;
+        target = spr::SPR_TARGET_FRONT;
         aet_index = (pv_game_aet)(index + PV_GAME_AET_FRONT_LOW);
         prio = spr::SPR_PRIO_00;
         break;
     case PV_AET_FRONT_3D_SURF:
-        spr_index = 1;
+        target = spr::SPR_TARGET_FRONT_3D_SURF;
         aet_index = (pv_game_aet)(index + PV_GAME_AET_FRONT_3D_SURF);
         prio = spr::SPR_PRIO_00;
         break;
     case PV_AET_BACK:
-        spr_index = 2;
+        target = spr::SPR_TARGET_BACK;
         aet_index = (pv_game_aet)(index + PV_GAME_AET_BACK);
         prio = spr::SPR_PRIO_01;
         break;
@@ -1119,7 +1119,7 @@ void pv_game_play_data::init_aet(pv_aet aet, int32_t index, std::string&& layer_
         return;
     }
 
-    init_aet_id(aet_id, layer_name.c_str(), spr_index, aet_index,
+    init_aet_id(aet_id, layer_name.c_str(), target, aet_index,
         prio, not_init, start_time, end_time, frame_rate_control);
 
 }
@@ -1206,8 +1206,8 @@ void pv_game_play_data::init_aet_demo_font() {
     sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
 
     aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_DEMO_FONT]);
-    aet_ids[PV_GAME_AET_DEMO_FONT] = aet_manager_init_aet_object(33, spr::SPR_PRIO_16,
-        AET_PLAY_ONCE, spr_demo_font[0], 0, 0, 0, 0, -1.0f, -1.0f, 0, 0, aft_aet_db, aft_spr_db);
+    aet_ids[PV_GAME_AET_DEMO_FONT] = aet_manager_init_aet_object(33, spr::SPR_PRIO_16, AET_PLAY_ONCE,
+        spr_demo_font[0], 0, spr::SPR_TARGET_FRONT, 0, 0, -1.0f, -1.0f, 0, 0, aft_aet_db, aft_spr_db);
 }
 
 void pv_game_play_data::init_aet_demo_logo() {
@@ -1216,8 +1216,8 @@ void pv_game_play_data::init_aet_demo_logo() {
     sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
 
     aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_DEMO_LOGO]);
-    aet_ids[PV_GAME_AET_DEMO_LOGO] = aet_manager_init_aet_object(33, spr::SPR_PRIO_16,
-        AET_LOOP, spr_demo_logo[0], 0, 0, 0, 0, -1.0f, -1.0f, 0, 0, aft_aet_db, aft_spr_db);
+    aet_ids[PV_GAME_AET_DEMO_LOGO] = aet_manager_init_aet_object(33, spr::SPR_PRIO_16, AET_LOOP,
+        spr_demo_logo[0], 0, spr::SPR_TARGET_FRONT, 0, 0, -1.0f, -1.0f, 0, 0, aft_aet_db, aft_spr_db);
 }
 
 float_t pv_game_play_data::init_aet_edit_effect(int32_t aet_id, const char* name, bool loop, bool low_field) {
@@ -1246,7 +1246,7 @@ float_t pv_game_play_data::init_aet_edit_effect(int32_t aet_id, const char* name
 
     aet_ids[PV_GAME_AET_EDIT_EFFECT] = aet_manager_init_aet_object(aet_id,
         low_field ? spr::SPR_PRIO_00 : spr::SPR_PRIO_01, loop ? AET_LOOP : AET_PLAY_ONCE,
-        name, 0, 0, 0, 0, -1.0f, -1.0f, 0, frame_rate_control, aft_aet_db, aft_spr_db);
+        name, 0, spr::SPR_TARGET_FRONT, 0, 0, -1.0f, -1.0f, 0, frame_rate_control, aft_aet_db, aft_spr_db);
     set_aet_id_play(PV_GAME_AET_EDIT_EFFECT, false);
 
     return aet_manager_get_scene_layer_end_time(aet_id, name, aft_aet_db);
@@ -1301,13 +1301,13 @@ uint32_t pv_game_play_data::init_aet_gam_cmn(pv_game_aet aet_index, spr::SprPrio
     sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
 
     uint32_t aet_id = aet_manager_init_aet_object(3, prio, flags, layer_name, pos,
-        0, 0, 0, -1.0f, -1.0f, scale, 0, aft_aet_db, aft_spr_db);
+        spr::SPR_TARGET_FRONT, 0, 0, -1.0f, -1.0f, scale, 0, aft_aet_db, aft_spr_db);
     aet_ids_enable[aet_index] = true;
     return aet_id;
 }
 
 void pv_game_play_data::init_aet_id(int32_t aet_id, const char* layer_name,
-    int32_t index, pv_game_aet aet_index, spr::SprPrio prio, bool* not_init,
+    spr::SprTarget target, pv_game_aet aet_index, spr::SprPrio prio, bool* not_init,
     float_t start_time, float_t end_time, FrameRateControl* frame_rate_control) {
     aet_manager_free_aet_object_reset(&aet_ids[aet_index]);
     if (!pv_set || !layer_name || !*layer_name)
@@ -1318,7 +1318,7 @@ void pv_game_play_data::init_aet_id(int32_t aet_id, const char* layer_name,
     sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
 
     aet_ids[aet_index] = aet_manager_init_aet_object(aet_id, prio, AET_PLAY_ONCE, layer_name, 0,
-        index, 0, 0, start_time, end_time, 0, frame_rate_control, aft_aet_db, aft_spr_db);
+        target, 0, 0, start_time, end_time, 0, frame_rate_control, aft_aet_db, aft_spr_db);
     if (!aet_ids[aet_index] && not_init)
         *not_init = true;
 }
@@ -1414,7 +1414,7 @@ void pv_game_play_data::init_aet_slide_max(int32_t slide_point, float_t pos_x, f
     sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
 
     AetComp comp;
-    aet_manager_init_aet_layout(&comp, 3, spr_max_slide_point[v10], (AetFlags)0, RESOLUTION_MODE_HD,
+    aet_manager_init_aet_layout(&comp, 3, spr_max_slide_point[v10], (AetFlags)0, SCREEN_MODE_HD,
         0, aet_manager_get_obj_frame(aet_ids[PV_GAME_AET_MAX_SLIDE_POINT]), aft_aet_db, aft_spr_db);
 
     vec2 pos ;
@@ -1533,8 +1533,8 @@ void pv_game_play_data::init_aet_title_image(const char* name) {
     FrameRateControl* frame_rate_control = 0;
 #endif
 
-    aet_ids[PV_GAME_AET_TITLE_IMAGE] = aet_manager_init_aet_object(pv_aet_id, spr::SPR_PRIO_02,
-        (AetFlags)0, name, 0, 0, 0, 0, -1.0f, -1.0f, 0, frame_rate_control, aft_aet_db, aft_spr_db);
+    aet_ids[PV_GAME_AET_TITLE_IMAGE] = aet_manager_init_aet_object(pv_aet_id, spr::SPR_PRIO_02, (AetFlags)0,
+        name, 0, spr::SPR_TARGET_FRONT, 0, 0, -1.0f, -1.0f, 0, frame_rate_control, aft_aet_db, aft_spr_db);
 }
 
 void pv_game_play_data::init_aet_white_fade() {
@@ -2018,9 +2018,9 @@ void pv_game_play_data::sub_1401349C0(uint32_t set_id) {
         spr::SprArgs args;
         args.id.id = -1;
         args.prio = spr::SPR_PRIO_04;
-        args.texture = tex;
-        args.SetSpriteSize({ (float_t)tex->width, (float_t)tex->height });
-        args.SetTexturePosSize(0.0f, 0.0f, (float_t)tex->width, (float_t)tex->height);
+        args.tex = tex;
+        args.SetSize({ (float_t)tex->width, (float_t)tex->height });
+        args.SetRect(0.0f, 0.0f, (float_t)tex->width, (float_t)tex->height);
         spr::put_sprite(args, aft_spr_db);
     }
 }
@@ -2032,7 +2032,7 @@ void pv_game_play_data::sub_140135ED0() {
 
     AetArgs args;
     args.id.id = 3;
-    args.mode = RESOLUTION_MODE_HD;
+    args.screen = SCREEN_MODE_HD;
     args.spr_db = aft_spr_db;
 
     comp.Clear();
@@ -2228,7 +2228,7 @@ static void sub_14013AAE0(float_t pos_x, float_t pos_y, spr::SprPrio prio,
     PrintWork print_work;
     print_work.set_font(&font);
     print_work.set_position(pos_x, pos_y);
-    print_work.set_resolution_mode(RESOLUTION_MODE_HD);
+    print_work.set_screen_mode(SCREEN_MODE_HD);
     print_work.set_prio(prio);
     print_work.set_color(color);
 

@@ -6,6 +6,7 @@
 #pragma once
 
 #include "../KKdLib/default.hpp"
+#include "../CRE/screen_param.hpp"
 #include "../CRE/sprite.hpp"
 #include "../CRE/task.hpp"
 #include "../CRE/texture.hpp"
@@ -40,10 +41,10 @@ public:
 
     struct DispParams {
         rectangle rect;
-        resolution_mode resolution_mode;
+        SCREEN_MODE screen_mode;
         float_t scale;
         uint32_t field_18;
-        int32_t index;
+        spr::SprTarget target;
 
         DispParams();
     };

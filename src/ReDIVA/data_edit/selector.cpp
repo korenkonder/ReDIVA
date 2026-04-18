@@ -66,7 +66,7 @@ void DataEditSel::disp() {
     font_info font(16);
     print_work.set_font(&font);
     print_work.set_position({ 540.0f, 180.0f });
-    print_work.set_resolution_mode(RESOLUTION_MODE_HD);
+    print_work.set_screen_mode(SCREEN_MODE_HD);
     print_work.set_prio(spr::SPR_PRIO_02);
 
     int32_t index = 0;

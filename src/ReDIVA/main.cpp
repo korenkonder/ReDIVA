@@ -63,59 +63,59 @@ bool cpu_caps_avx2;
         else if (!i->compare(L"-aa"))
             stru_140EDA5B0.ssaa = 1;
         else if (!i->compare(L"-qvga")) {
-            stru_140EDA5B0.res_launch = RESOLUTION_MODE_QVGA;
+            stru_140EDA5B0.res_launch = SCREEN_MODE_QVGA;
             stru_140EDA5B0.hd_res = 0;
         }
         else if (!i->compare(L"-vga")) {
-            stru_140EDA5B0.res_launch = RESOLUTION_MODE_VGA;
+            stru_140EDA5B0.res_launch = SCREEN_MODE_VGA;
             stru_140EDA5B0.hd_res = 0;
         }
         else if (!i->compare(L"-wvga")) {
-            stru_140EDA5B0.res_launch = RESOLUTION_MODE_WVGA;
+            stru_140EDA5B0.res_launch = SCREEN_MODE_WVGA;
             stru_140EDA5B0.hd_res = 0;
         }
         else if (!i->compare(L"-svga")) {
-            stru_140EDA5B0.res_launch = RESOLUTION_MODE_SVGA;
+            stru_140EDA5B0.res_launch = SCREEN_MODE_SVGA;
             stru_140EDA5B0.hd_res = 0;
         }
         else if (!i->compare(L"-xga")) {
-            stru_140EDA5B0.res_launch = RESOLUTION_MODE_XGA;
+            stru_140EDA5B0.res_launch = SCREEN_MODE_XGA;
             stru_140EDA5B0.hd_res = 0;
         }
         else if (!i->compare(L"-wxga")) {
-            stru_140EDA5B0.res_launch = RESOLUTION_MODE_WXGA;
+            stru_140EDA5B0.res_launch = SCREEN_MODE_WXGA;
             stru_140EDA5B0.hd_res = 1;
         }
         else if (!i->compare(L"-wxga_dbd")) {
-            stru_140EDA5B0.res_launch = RESOLUTION_MODE_WXGA;
+            stru_140EDA5B0.res_launch = SCREEN_MODE_WXGA;
             stru_140EDA5B0.hd_res = 0;
         }
         else if (!i->compare(L"-uxga")) {
-            stru_140EDA5B0.res_launch = RESOLUTION_MODE_UXGA;
+            stru_140EDA5B0.res_launch = SCREEN_MODE_UXGA;
             stru_140EDA5B0.hd_res = 0;
         }
         else if (!i->compare(L"-wuxga")) {
-            stru_140EDA5B0.res_launch = RESOLUTION_MODE_WUXGA;
+            stru_140EDA5B0.res_launch = SCREEN_MODE_WUXGA;
             stru_140EDA5B0.hd_res = 0;
         }
         else if (!i->compare(L"-wqxga")) {
-            stru_140EDA5B0.res_launch = RESOLUTION_MODE_WQXGA;
+            stru_140EDA5B0.res_launch = SCREEN_MODE_WQXGA;
             stru_140EDA5B0.hd_res = 0;
         }
         else if (!i->compare(L"-hdtv720")) {
-            stru_140EDA5B0.res_launch = RESOLUTION_MODE_HD;
+            stru_140EDA5B0.res_launch = SCREEN_MODE_HD;
             stru_140EDA5B0.hd_res = 1;
         }
         else if (!i->compare(L"-hdtv720_dbd")) {
-            stru_140EDA5B0.res_launch = RESOLUTION_MODE_HD;
+            stru_140EDA5B0.res_launch = SCREEN_MODE_HD;
             stru_140EDA5B0.hd_res = 0;
         }
         else if (!i->compare(L"-hdtv1080")) {
-            stru_140EDA5B0.res_launch = RESOLUTION_MODE_FHD;
+            stru_140EDA5B0.res_launch = SCREEN_MODE_FHD;
             stru_140EDA5B0.hd_res = 0;
         }
         else if (!i->compare(L"-wqhd")) {
-            stru_140EDA5B0.res_launch = RESOLUTION_MODE_QHD;
+            stru_140EDA5B0.res_launch = SCREEN_MODE_QHD;
             stru_140EDA5B0.hd_res = 0;
         }
         else if (!i->compare(L"-ss")) {

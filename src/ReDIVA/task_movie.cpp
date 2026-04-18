@@ -48,18 +48,18 @@ static void movie_reset();
 
 static texture* sub_14041E560();
 
-inline TaskMovie::DispParams::DispParams() : rect(), resolution_mode(), field_18() {
+inline TaskMovie::DispParams::DispParams() : rect(), screen_mode(), field_18() {
     scale = -1.0f;
-    index = -1;
+    target = spr::SPR_TARGET_DEFAULT;
 }
 
 TaskMovie::SprParams::SprParams() {
     prio = spr::SPR_PRIO_07;
 
-    resolution_struct* res_wind = res_window_get();
-    disp.rect.size.x = (float_t)res_wind->width;
-    disp.rect.size.y = (float_t)res_wind->height;
-    disp.resolution_mode = res_wind->resolution_mode;
+    ScreenParam& screen_param = get_screen_param();
+    disp.rect.size.x = (float_t)screen_param.width;
+    disp.rect.size.y = (float_t)screen_param.height;
+    disp.screen_mode = screen_param.mode;
 }
 
 TaskMovie::Player::Player() : pause_flag(), volume(), state(), player(),
@@ -334,14 +334,14 @@ void TaskMovie::disp() {
 
     spr::SprArgs args;
     args.Reset();
-    args.texture = tex;
-    args.SetSpriteSize(sprite_size);
-    args.SetTexturePosSize(tex_x, tex_y, tex_width, tex_height);
+    args.tex = tex;
+    args.SetSize(sprite_size);
+    args.SetRect(tex_x, tex_y, tex_width, tex_height);
     args.attr = (spr::SprAttr)(spr::SPR_ATTR_CTR_CC | spr::SPR_ATTR_FLIP_V);
-    args.index = spr_params.disp.index;
+    args.target = spr_params.disp.target;
     args.prio = spr_params.prio;
-    args.resolution_mode_screen = spr_params.disp.resolution_mode;
-    args.resolution_mode_sprite = spr_params.disp.resolution_mode;
+    args.screen_trans = spr_params.disp.screen_mode;
+    args.screen_scale = spr_params.disp.screen_mode;
     args.trans.x = spr_params.disp.rect.pos.x + spr_params.disp.rect.size.x * 0.5f;
     args.trans.y = spr_params.disp.rect.pos.y + spr_params.disp.rect.size.y * 0.5f;
     args.trans.z = 0.0f;

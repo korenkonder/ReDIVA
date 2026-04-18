@@ -8,7 +8,7 @@
 #include "../../CRE/rob/rob.hpp"
 #include "../../CRE/data.hpp"
 #include "../../CRE/render_context.hpp"
-#include "../../CRE/resolution_mode.hpp"
+#include "../../CRE/screen_param.hpp"
 #include "../../CRE/sprite.hpp"
 #include "../../KKdLib/io/file_stream.hpp"
 #include "../../KKdLib/io/path.hpp"
@@ -1170,8 +1170,8 @@ void RobOsageTest::disp_line() {
             spr::put_sprite_3d_line(j[-1].pos, j[0].pos, line_color);
 
         for (const RobOsageNode* j = j_begin; j != j_end; j++)
-            spr::put_sprite_rect_fill({ spr::proj_sprite_3d_line(j->pos, true) - 2.0f, 4.0f },
-                RESOLUTION_MODE_MAX, spr::SPR_PRIO_DEBUG, rect_color, 0);
+            spr::put_sprite_rect({ spr::proj_sprite_3d_line(j->pos, true) - 2.0f, 4.0f },
+                SCREEN_MODE_MAX, spr::SPR_PRIO_DW, rect_color);
 
         mat4_scale_rot(i->rob.end_node.bone_node_mat, 0.05f, &mat);
         spr::put_cross(mat, color_dark_red, color_dark_green, color_dark_blue);
@@ -1254,8 +1254,8 @@ void RobOsageTest::disp_line_cls_param(const mat4& transform, const vec3& pos) {
     mat4_get_translation(&transform, &p_node);
     spr::put_sprite_3d_line(p, p_node, color_grey);
 
-    spr::put_sprite_rect_fill({ spr::proj_sprite_3d_line(p, true) - 1.0f, 2.0f },
-        RESOLUTION_MODE_MAX, spr::SPR_PRIO_DEBUG, color_yellow, 0);
+    spr::put_sprite_rect({ spr::proj_sprite_3d_line(p, true) - 1.0f, 2.0f },
+        SCREEN_MODE_MAX, spr::SPR_PRIO_DW, color_yellow);
 }
 
 inline ExClothBlock* RobOsageTest::get_cloth_block(rob_chara_item_equip_object* itm_eq_obj) const {
@@ -2930,7 +2930,7 @@ RobOsageTestDw::RobOsageTestDw() : rob(), flags(), root(), node(), boc(), collis
 
     UpdateLayout();
 
-    rect.pos.x = (float_t)res_window_get()->width - rect.size.x;
+    rect.pos.x = (float_t)get_screen_param().width - rect.size.x;
     rect.pos.y = 160.0f;
 
     SetSize(rect.size);

@@ -201,15 +201,15 @@ bool DtmAet::ctrl() {
         if (type) {
             comp.data.clear();
             aet_manager_init_aet_layout(&comp, aet_id, layer_name,
-                (AetFlags)0, RESOLUTION_MODE_HD, 0, frame, aft_aet_db, aft_spr_db);
+                (AetFlags)0, SCREEN_MODE_HD, 0, frame, aft_aet_db, aft_spr_db);
         }
         else {
             float_t x = 0.0f;
             float_t y = 0.0f;
 
             if (centering) {
-                x = res_window_get()->width * 0.5f;
-                y = res_window_get()->height * 0.5f;
+                x = get_screen_param().width * 0.5f;
+                y = get_screen_param().height * 0.5f;
             }
 
             AetArgs args;
@@ -217,9 +217,9 @@ bool DtmAet::ctrl() {
             args.layer_name = layer_name;
             args.start_time = frame;
             args.end_time = frame;
-            args.pos.x = x;
-            args.pos.y = y;
-            args.pos.z = 0.0f;
+            args.trans.x = x;
+            args.trans.y = y;
+            args.trans.z = 0.0f;
             args.sound_voice = true;
             args.spr_db = aft_spr_db;
             aet_manager_init_aet_object(args, aft_aet_db);
@@ -258,18 +258,18 @@ void DtmAet::disp() {
     for (const auto& i : comp.data) {
         vec2 v7 = 0.0f;
         if (centering)
-            v7 = vec2((float_t)res_window_get()->width, (float_t)res_window_get()->height) * 0.5f;
+            v7 = vec2((float_t)get_screen_param().width, (float_t)get_screen_param().height) * 0.5f;
 
         vec3 pos;
         *(vec2*)&pos = *(vec2*)&i.second.position + v7;
         pos.z = i.second.position.z;
 
         spr::SprArgs v34;
-        v34.SetSpriteSize({ 10.0f, 10.0f});
+        v34.SetSize({ 10.0f, 10.0f});
         v34.trans = pos;
-        v34.center = { 5.0f, 5.0f, 0.0f };
+        v34.anchor = { 5.0f, 5.0f, 0.0f };
         v34.kind = spr::SPR_KIND_LINE;
-        v34.resolution_mode_screen = i.second.mode;
+        v34.screen_trans = i.second.mode;
 
         spr::SprArgs v35 = v34;
         v35.rot.z = v34.rot.z + (float_t)(M_PI / 2.0f);
@@ -279,9 +279,9 @@ void DtmAet::disp() {
         font.init_font_data(0);
 
         print_work.set_font(&font);
-        print_work.set_prio(spr::SPR_PRIO_DEBUG);
+        print_work.set_prio(spr::SPR_PRIO_DW);
         print_work.set_position(*(vec2*)&pos);
-        print_work.set_resolution_mode(i.second.mode);
+        print_work.set_screen_mode(i.second.mode);
         print_work.set_color(color_red);
         print_work.printf_align_left("%s\n", i.first.c_str());
 
