@@ -134,18 +134,18 @@ public:
         if (!ex_node)
             return 0;
 
-        if (ex_node->type == EX_OSAGE)
-            return ((ExOsageBlock*)ex_node)->rob.skin_param_ptr;
-        else if (ex_node->type == EX_CLOTH)
-            return ((ExClothBlock*)ex_node)->rob.skin_param_ptr;
+        if (ex_node->type == EX_NODE_TYPE_OSAGE)
+            return ((ExOsageBlock*)ex_node)->osage_work.skin_param_ptr;
+        else if (ex_node->type == EX_NODE_TYPE_CLOTH)
+            return ((ExClothBlock*)ex_node)->cloth_work.skin_param_ptr;
         return 0;
     }
 
     inline skin_param_osage_node* get_skin_param_osage_node() const {
         rob_chara_item_equip_object* itm_eq_obj = get_item_equip_object();
         ExOsageBlock* osg = get_osage_block(itm_eq_obj);
-        if (osg && osg->rob.nodes.size() > 1)
-            return &osg->rob.nodes.data()[1].data_ptr->skp_osg_node;
+        if (osg && osg->osage_work.joint_node_vec.size() > 1)
+            return &osg->osage_work.joint_node_vec.data()[1].data_ptr->skp_osg_node;
         return 0;
     }
 

@@ -19,13 +19,13 @@
 #include "../object.hpp"
 #include "../static_var.hpp"
 
-enum ex_expression_block_stack_type {
-    EX_EXPRESSION_BLOCK_STACK_NUMBER          = 0x00,
-    EX_EXPRESSION_BLOCK_STACK_VARIABLE        = 0x01,
-    EX_EXPRESSION_BLOCK_STACK_VARIABLE_RADIAN = 0x02,
-    EX_EXPRESSION_BLOCK_STACK_OP1             = 0x03,
-    EX_EXPRESSION_BLOCK_STACK_OP2             = 0x04,
-    EX_EXPRESSION_BLOCK_STACK_OP3             = 0x05,
+enum Expr_type {
+    Expr_constant     = 0x00,
+    Expr_variable     = 0x01,
+    Expr_variable_rad = 0x02,
+    Expr_func1        = 0x03,
+    Expr_func2        = 0x04,
+    Expr_func3        = 0x05,
 };
 
 enum eyes_base_adjust_type {
@@ -822,11 +822,12 @@ enum rob_partial_motion_playback_state : uint32_t {
 };
 
 enum ExNodeType {
-    EX_NONE       = 0x00,
-    EX_OSAGE      = 0x01,
-    EX_EXPRESSION = 0x02,
-    EX_CONSTRAINT = 0x03,
-    EX_CLOTH      = 0x04,
+    EX_NODE_TYPE_NULL       = 0x00,
+    EX_NODE_TYPE_OSAGE      = 0x01,
+    EX_NODE_TYPE_EXPRESSION = 0x02,
+    EX_NODE_TYPE_CONSTRAINT = 0x03,
+    EX_NODE_TYPE_CLOTH      = 0x04,
+    EX_NODE_TYPE_MAX        = 0x05,
 };
 
 enum SubActExecType {
@@ -871,33 +872,35 @@ namespace SkinParam {
 struct rob_chara;
 struct rob_chara_bone_data;
 
-struct bone_node_expression_data {
-    vec3 position;
-    vec3 rotation;
+struct RobTransform {
+    vec3 pos;
+    vec3 rot;
     vec3 scale;
-    vec3 parent_scale;
+    vec3 hsc;
 
-    bone_node_expression_data();
+    RobTransform();
 
-    void mat_set(const vec3& parent_scale, mat4& ex_data_mat, mat4& mat);
+    void CalcMatrixHS(const vec3& hsc, mat4& mat, mat4& dsp_mat);
+
+    void init(float_t px, float_t py, float_t pz,
+        float_t rx, float_t ry, float_t rz);
+    void init(const vec3& p, const vec3& r);
+    void reset();
     void reset_scale();
-    void set_position_rotation(float_t position_x, float_t position_y, float_t position_z,
-        float_t rotation_x, float_t rotation_y, float_t rotation_z);
-    void set_position_rotation(const vec3& position, const vec3& rotation);
-
 };
 
 struct bone_node {
     const char* name;
-    mat4* mat;
-    bone_node* parent;
-    bone_node_expression_data exp_data;
-    mat4* ex_data_mat;
+    mat4* mat_ptr;
+    const bone_node* parent;
+    RobTransform transform;
+    mat4* no_scale_mat;
 
     bone_node();
 
-    float_t* get_exp_data_component(size_t index, ex_expression_block_stack_type& type);
-    void set_name_mat_ex_data_mat(const char* name, mat4* mat, mat4* ex_data_mat);
+    float_t* get_transform_component(size_t index, Expr_type& type);
+    const float_t* get_transform_component(size_t index, Expr_type& type) const;
+    void set_name_mat_no_scale_mat(const char* name, mat4* mat, mat4* no_scale_mat);
 };
 
 struct struc_314 {
@@ -987,7 +990,7 @@ struct bone_data {
     void copy_rot_trans(const bone_data& other);
     bool check_flags_not_null();
     bool get_constraint_ik(const bone_data* bones);
-    bool get_ex_rotation(bone_node_expression_data& exp_data, const bone_data* bones);
+    bool get_ex_rotation(RobTransform& transform, const bone_data* bones);
     void get_mat(int32_t skeleton_select);
     void get_mat_ik(int32_t skeleton_select);
     void mult_mat(const mat4& parent_mat, const bone_data* bones, bool solve_ik);
@@ -1549,15 +1552,22 @@ struct chara_init_data {
 
 struct rob_chara_item_equip_object;
 
+struct RobSkinOfs {
+    bool flag;
+    RobTransform transform;
+
+    RobSkinOfs();
+};
+
 class ExNodeBlock {
 public:
-    bone_node* bone_node_ptr;
+    bone_node* dst_node;
     ExNodeType type;
     const char* name;
-    bone_node* parent_bone_node;
+    const bone_node* parent;
     std::string parent_name;
     ExNodeBlock* parent_node;
-    rob_chara_item_equip_object* item_equip_object;
+    const rob_chara_item_equip_object* skin_disp;
     bool is_parent;
     bool done;
     bool has_children_node;
@@ -1565,55 +1575,56 @@ public:
     ExNodeBlock();
     virtual ~ExNodeBlock();
 
-    virtual void Init() = 0;
+    virtual void init() = 0;
     virtual void CtrlBegin() = 0;
-    virtual void CtrlStep(int32_t stage, bool disable_external_force) = 0;
-    virtual void CtrlMain() = 0;
+    virtual void CtrlStep(int32_t stage, bool disable_ex_force) = 0;
+    virtual void ctrl() = 0;
     virtual void CtrlOsagePlayData() = 0;
-    virtual void Disp(const mat4& mat, render_context* rctx) = 0;
-    virtual void Reset();
-    virtual void Field_40() = 0;
-    virtual void CtrlInitBegin() = 0;
-    virtual void CtrlInitMain() = 0;
+    virtual void disp(const mat4& mat, render_context* rctx) = 0;
+    virtual void dest();
+    virtual void disp_debug() = 0;
+    virtual void pos_init() = 0;
+    virtual void pos_init_cont() = 0;
     virtual void CtrlEnd();
 
-    void InitData(bone_node* bone_node, ExNodeType type,
-        const char* name, rob_chara_item_equip_object* itm_eq_obj);
+    void init_members();
+    void set_data(bone_node* node, ExNodeType type,
+        const char* name, const rob_chara_item_equip_object* skin_disp);
 };
 
 class ExNullBlock : public ExNodeBlock {
 public:
-    obj_skin_block_constraint* cns_data;
+    const obj_skin_ex_node_constraint* data;
 
     ExNullBlock();
     virtual ~ExNullBlock() override;
 
-    virtual void Init() override;
-    virtual void CtrlBegin();
-    virtual void CtrlStep(int32_t stage, bool disable_external_force) override;
-    virtual void CtrlMain() override;
+    virtual void init() override;
+    virtual void CtrlBegin() override;
+    virtual void CtrlStep(int32_t stage, bool disable_ex_force) override;
+    virtual void ctrl() override;
     virtual void CtrlOsagePlayData() override;
-    virtual void Disp(const mat4& mat, render_context* rctx) override;
-    virtual void Field_40() override;
-    virtual void CtrlInitBegin() override;
-    virtual void CtrlInitMain() override;
+    virtual void disp(const mat4& mat, render_context* rctx) override;
+    virtual void disp_debug() override;
+    virtual void pos_init() override;
+    virtual void pos_init_cont() override;
 
-    void InitData(rob_chara_item_equip_object* itm_eq_obj, obj_skin_block_constraint* cns_data,
-        const char* cns_data_name, const bone_database* bone_data);
+    void set_data(const rob_chara_item_equip_object* skin_disp, const obj_skin_ex_node_constraint* data,
+        const char* name, const bone_database* bone_data);
 };
 
-struct RobOsageNode;
+struct RobJointNode;
 
-struct RobOsageNodeDataNormalRef {
+struct RobJointNodeDataNormalRef {
     bool set;
-    RobOsageNode* n;
-    RobOsageNode* u;
-    RobOsageNode* d;
-    RobOsageNode* l;
-    RobOsageNode* r;
+    RobJointNode* n;
+    RobJointNode* u;
+    RobJointNode* d;
+    RobJointNode* l;
+    RobJointNode* r;
     mat4 mat;
 
-    RobOsageNodeDataNormalRef();
+    RobJointNodeDataNormalRef();
 
     bool Check();
     void GetMat(mat4* mat);
@@ -1649,29 +1660,30 @@ struct skin_param_osage_node {
     skin_param_osage_node();
 };
 
-struct RobOsageNodeResetData {
+struct RobJointNodeResetData {
     vec3 pos;
-    vec3 delta_pos;
+    vec3 vec;
     vec3 rotation;
     float_t length;
 
-    RobOsageNodeResetData();
+    RobJointNodeResetData();
 };
 
 struct skin_param_osage_root;
 
-struct RobOsageNodeData {
+struct RobJointNodeData {
     float_t force;
-    std::vector<RobOsageNode*> boc;
-    RobOsageNodeDataNormalRef normal_ref;
+    std::vector<RobJointNode*> boc;
+    RobJointNodeDataNormalRef normal_ref;
     skin_param_osage_node skp_osg_node;
 
-    RobOsageNodeData();
-    ~RobOsageNodeData();
+    RobJointNodeData();
+    ~RobJointNodeData();
 
-    void Reset();
     void SetForce(const skin_param_osage_root& skp_root,
         skin_param_osage_node* skp_osg_node, size_t index);
+
+    void reset();
 };
 
 struct opd_blend_data {
@@ -1708,58 +1720,59 @@ struct opd_node_data_pair {
 
     opd_node_data_pair();
 
-    void set_data(opd_blend_data* blend_data, const opd_node_data& node_data);
+    void set_data(const opd_blend_data* blend_data, const opd_node_data& node_data);
 };
 
-struct RobOsageNode {
-    float_t length;
+struct RobJointNode {
+    float_t length_back;
     vec3 pos;
-    vec3 fixed_pos;
-    vec3 delta_pos;
+    vec3 old_pos;
+    vec3 vec;
     vec3 vel;
-    float_t child_length;
-    bone_node* bone_node_ptr;
-    mat4* bone_node_mat;
+    float_t length_next;
+    bone_node* dst_node;
+    mat4* dst_node_mat;
     mat4 mat;
-    RobOsageNode* sibling_node;
-    float_t max_distance;
+    RobJointNode* distance;
+    float_t length_dist;
     vec3 rel_pos;
-    RobOsageNodeResetData reset_data;
+    RobJointNodeResetData reset_data;
     float_t hit;
     float_t friction;
-    vec3 external_force;
+    vec3 ex_force;
     float_t force;
-    RobOsageNodeData* data_ptr;
-    RobOsageNodeData data;
+    RobJointNodeData* data_ptr;
+    RobJointNodeData data;
     std::vector<opd_vec3_data> opd_data;
     opd_node_data_pair opd_node_data;
 
-    RobOsageNode();
-    ~RobOsageNode();
+    RobJointNode();
+    ~RobJointNode();
 
     void CheckFloorCollision(const float_t& floor_height);
-    void CheckNodeDistance(const float_t& step, const float_t& parent_scale);
-    void Reset();
+    void CheckNodeDistance(const float_t& step, const float_t& hsc);
 
-    inline RobOsageNode& GetNextNode() {
+    void reset();
+
+    inline RobJointNode& GetNextNode() {
         return *(this + 1);
     }
 
-    inline const RobOsageNode& GetNextNode() const {
+    inline const RobJointNode& GetNextNode() const {
         return *(this + 1);
     }
 
-    inline RobOsageNode& GetPrevNode() {
+    inline RobJointNode& GetPrevNode() {
         return *(this - 1);
     }
 
-    inline const RobOsageNode& GetPrevNode() const {
+    inline const RobJointNode& GetPrevNode() const {
         return *(this - 1);
     }
 
-    inline float_t TranslateMat(mat4& mat, const bool rot_clamped, const float_t parent_scale_x) {
+    inline float_t TranslateMat(mat4& mat, const bool rot_clamped, const float_t hsc_x) {
         const float_t dist = vec3::distance_squared(pos, GetPrevNode().pos);
-        const float_t len = length * parent_scale_x;
+        const float_t len = length_back * hsc_x;
 
         float_t length;
         bool length_clamped;
@@ -1826,7 +1839,7 @@ struct skin_param_osage_root {
     float_t coli_r;
     float_t friction;
     float_t wind_afc;
-    int32_t yz_order;
+    ROTTYPE rottype;
     std::vector<skin_param_osage_root_boc> boc;
     SkinParam::RootCollisionType coli_type;
     float_t stiffness;
@@ -1852,7 +1865,7 @@ struct skin_param {
     skin_param_hinge hinge;
     float_t force;
     float_t force_gain;
-    std::vector<RobOsageNode>* colli_tgt_osg;
+    std::vector<RobJointNode>* colli_tgt_osg;
 
     skin_param();
     ~skin_param();
@@ -1890,10 +1903,10 @@ struct OsageCollision {
 
         Work();
 
-        static void update_cls_work(OsageCollision::Work* cls,
-            SkinParam::CollisionParam* cls_param, const mat4* tranform);
-        static void update_cls_work(OsageCollision::Work* cls,
-            std::vector<SkinParam::CollisionParam>& cls_list, const mat4* tranform);
+        static void update_cls_work(OsageCollision::Work* work,
+            const SkinParam::CollisionParam* cls, const mat4* motmat);
+        static void update_cls_work(OsageCollision::Work* work,
+            const std::vector<SkinParam::CollisionParam>& cls_list, const mat4* motmat);
     };
 
     std::vector<Work> work_list;
@@ -1944,183 +1957,185 @@ struct osage_ring_data {
 
 struct skin_param_file_data;
 
-struct CLOTHNode {
-    uint32_t flags;
+struct CLOTH_VERTEX {
+    uint32_t flag;
     vec3 pos;
-    vec3 fixed_pos;
-    vec3 prev_pos;
-    vec3 delta_pos;
+    vec3 org_pos;
+    vec3 old_pos;
+    vec3 vec;
     vec3 normal;
     vec3 tangent;
     vec3 binormal;
-    float_t tangent_sign;
-    vec2 texcoord;
-    vec3 direction;
-    float_t dist_top;
-    float_t dist_bottom;
-    float_t dist_right;
-    float_t dist_left;
-    vec3 field_80;
-    RobOsageNodeResetData reset_data;
+    float_t m;
+    vec2 uv;
+    vec3 localvec;
+    float_t length_up;
+    float_t length_down;
+    float_t length_left;
+    float_t length_right;
+    vec3 F;
+    RobJointNodeResetData reset_data;
     std::vector<opd_vec3_data> opd_data;
     opd_node_data_pair opd_node_data;
 
-    CLOTHNode();
-    ~CLOTHNode();
-
-    void CalculateTBN(const CLOTHNode* right, const CLOTHNode* left,
-        const CLOTHNode* top, const CLOTHNode* bottom);
+    CLOTH_VERTEX();
+    ~CLOTH_VERTEX();
 };
 
-struct CLOTHLine {
-    size_t idx[2];
+struct CLOTH_FLAG {
+    uint32_t exec : 1;
+    uint32_t disp : 1;
+    uint32_t ring : 1;
+};
+
+struct CLOTH_SPRING {
+    size_t index0;
+    size_t index1;
     float_t length;
 };
 
 struct CLOTH {
-    int32_t flags;
-    size_t root_count;
-    size_t nodes_count;
-    std::vector<CLOTHNode> nodes;
-    vec3 wind_direction;
-    float_t inertia;
-    bool set_external_force;
-    vec3 external_force;
-    std::vector<CLOTHLine> lines;
+    CLOTH_FLAG flag;
+    size_t width;
+    size_t height;
+    std::vector<CLOTH_VERTEX> vtxarg;
+    vec3 wind_dir;
+    float_t wet;
+    bool use_ex_force;
+    vec3 ex_force;
+    std::vector<CLOTH_SPRING> spring;
     skin_param* skin_param_ptr;
     skin_param skin_param;
     OsageCollision::Work coli_chara[64];
     OsageCollision::Work coli_ring[64];
     osage_ring_data ring;
-    mat4* mats;
 
     CLOTH();
+    virtual void set_spring();
     virtual ~CLOTH();
 
-    virtual void Init();
-    virtual void SetSkinParamColiR(float_t value);
-    virtual void SetSkinParamFriction(float_t value);
-    virtual void SetSkinParamWindAfc(float_t value);
-    virtual void SetWindDirection(const vec3& value);
-    virtual void SetInertia(float_t value);
-    virtual void SetSkinParamHinge(float_t hinge_y, float_t hinge_z);
-    virtual CLOTHNode* GetNodes();
-    virtual void Reset();
-    virtual void ResetData();
+    virtual void set_coli_r(float_t value);
+    virtual void set_friction(float_t value);
+    virtual void set_wind_affect(float_t value);
+    virtual void set_wind_dir(const vec3& value);
+    virtual void set_wetness(float_t value);
+    virtual void set_angle_limit(float_t y, float_t z);
+    virtual CLOTH_VERTEX* get_vertex();
+    virtual void init();
+    virtual void disp_debug();
+    virtual void dest();
 };
 
-struct RobClothRoot {
+struct CLOTH_WEIGHTED_ROOT {
     vec3 pos;
     vec3 normal;
     vec4 tangent;
-    bone_node* node[4];
-    mat4* node_mat[4];
-    mat4* bone_mat[4];
+    const bone_node* node[4];
+    const mat4* node_mat[4];
+    const mat4* bone_mat[4];
     float_t weight[4];
     mat4 mat;
     mat4 mat_pos;
     mat4 inv_mat_pos;
 };
 
-struct RobClothSubMeshArray {
-    obj_sub_mesh arr[4];
-
-    RobClothSubMeshArray();
-};
-
 struct RobCloth : public CLOTH {
-    std::vector<RobClothRoot> root;
-    rob_chara_item_equip_object* itm_eq_obj;
-    obj_skin_block_cloth_root* cls_root;
-    obj_skin_block_cloth* cls_data;
+    const mat4* local_mat;
+    std::vector<CLOTH_WEIGHTED_ROOT> root;
+    const rob_chara_item_equip_object* skin_disp;
+    const obj_skin_ex_node_cloth_root* root_data;
+    const obj_skin_ex_node_cloth* data;
     float_t move_cancel;
     bool osage_reset;
     obj_mesh mesh[2];
-    RobClothSubMeshArray submesh[2];
-    obj_mesh_vertex_buffer vertex_buffer[2];
-    obj_mesh_index_buffer index_buffer[2];
-    std::map<std::pair<int32_t, int32_t>, std::list<RobOsageNodeResetData>> motion_reset_data;
-    std::list<RobOsageNodeResetData>* reset_data_list;
+    obj_sub_mesh submesh[2][4];
+    obj_mesh_vertex_buffer vb[2];
+    obj_mesh_index_buffer ib[2];
+    std::map<std::pair<int32_t, int32_t>, std::list<RobJointNodeResetData>> motion_reset_data;
+    std::list<RobJointNodeResetData>* reset_data_list;
 
     RobCloth();
     virtual ~RobCloth() override;
 
-    virtual void ResetData() override;
+    virtual void disp_debug() override;
+    virtual void dest() override;
 
     void AddMotionResetData(uint32_t motion_id, float_t frame);
-    void ApplyPhysics(bool ignore_friction);
     void ApplyResetData();
-    void ColiSet(const mat4* mats);
-    void CollideNodes(const float_t step, bool a3);
-    void CtrlInitBegin();
-    void CtrlInitMain();
-    void CtrlMain(const float_t step, bool ignore_friction);
-    void CtrlOsagePlayData(std::vector<opd_blend_data>& opd_blend_data);
-    void CtrlStep(const float_t step);
-    void Disp(const mat4& mat, render_context* rctx);
-    void GetRootData();
-    void InitData(size_t root_count, size_t nodes_count, obj_skin_block_cloth_root* root,
-        obj_skin_block_cloth_node* nodes, mat4* mats, int32_t loop,
-        rob_chara_item_equip_object* itm_eq_obj, const bone_database* bone_data);
-    void InitDataParent(obj_skin_block_cloth* cls_data,
-        rob_chara_item_equip_object* itm_eq_obj, const bone_database* bone_data);
+    void CtrlOsagePlayData(const std::vector<opd_blend_data>& opd_blend_data);
     const float_t* LoadOpdData(size_t node_index, const float_t* opd_data, size_t opd_count);
     void LoadSkinParam(void* kv, const char* name, const bone_database* bone_data);
-    void NodesLimitDistance();
-    void ResetExtrenalForce();
-    void SetForceAirRes(float_t force, float_t force_gain, float_t air_res);
     void SetMotionResetData(uint32_t motion_id, float_t frame);
-    void SetMoveCancel(const float_t& value);
     const float_t* SetOsagePlayDataInit(const float_t* opdi_data);
     void SetOsageReset();
     void SetRing(const osage_ring_data& ring);
     void SetSkinParam(skin_param_file_data* skp);
     void SetSkinParamOsageRoot(const skin_param_osage_root& skp_root);
-    void UpdateDisp();
-    void UpdateNormals();
 
-    static void UpdateVertexBuffer(obj_mesh* mesh, obj_mesh_vertex_buffer* vertex_buffer,
-        CLOTHNode* node, float_t facing, int32_t indices_count, uint16_t* indices, bool double_faced);
+    void calc(const float_t dt);
+    void calc_force(float_t time, bool init_flag);
+    void calc_normal();
+    void calc_root();
+    void calc_stretch();
+    void calc_velocity(const float_t dt, bool a3);
+    void ctrl(const float_t dt, bool init_flag);
+    void disp(const mat4& mat, render_context* rctx);
+    void make_osage_coli(const mat4* motmat);
+    void modify_obj();
+    void pos_init();
+    void pos_init_cont();
+    void reset_ex_force();
+    void set_data(size_t w, size_t h, const obj_skin_ex_node_cloth_root* rt_data,
+        const obj_skin_ex_node_cloth_point* move, const mat4* lcl_mat, uint32_t ring_flag,
+        const rob_chara_item_equip_object* skin, const bone_database* bone_data);
+    void set_data(const obj_skin_ex_node_cloth* cldata,
+        const rob_chara_item_equip_object* skin, const bone_database* bone_data);
+    void set_ex_force(const vec3& f);
+    void set_move_cancel(const float_t& mv_ccl);
+    void set_param(float_t force, float_t force_gain, float_t air_res);
 };
 
 class ExClothBlock : public ExNodeBlock {
 public:
-    RobCloth rob;
-    obj_skin_block_cloth* cls_data;
-    mat4* mats;
-    size_t index;
+    RobCloth cloth_work;
+    const obj_skin_ex_node_cloth* data;
+    const mat4* motion_matrix;
+    size_t block_idx;
 
     ExClothBlock();
     virtual ~ExClothBlock() override;
 
-    virtual void Init() override;
-    virtual void CtrlBegin();
-    virtual void CtrlStep(int32_t stage, bool disable_external_force) override;
-    virtual void CtrlMain() override;
+    virtual void init() override;
+    virtual void CtrlBegin() override;
+    virtual void CtrlStep(int32_t stage, bool disable_ex_force) override;
+    virtual void ctrl() override;
     virtual void CtrlOsagePlayData() override;
-    virtual void Disp(const mat4& mat, render_context* rctx) override;
-    virtual void Reset() override;
-    virtual void Field_40() override;
-    virtual void CtrlInitBegin() override;
-    virtual void CtrlInitMain() override;
+    virtual void disp(const mat4& mat, render_context* rctx) override;
+    virtual void dest() override;
+    virtual void disp_debug() override;
+    virtual void pos_init() override;
+    virtual void pos_init_cont() override;
 
     void AddMotionResetData(uint32_t motion_id, float_t frame);
-    void ColiSet();
-    void InitData(rob_chara_item_equip_object* itm_eq_obj, obj_skin_block_cloth* cls_data,
-        skin_param_osage_root* skp_root, const bone_database* bone_data);
     const float_t* LoadOpdData(size_t node_index, const float_t* opd_data, size_t opd_count);
     void SetMotionResetData(uint32_t motion_id, float_t frame);
-    void SetMoveCancel(const float_t& value);
     const float_t* SetOsagePlayDataInit(const float_t* opdi_data);
     void SetOsageReset();
     void SetRing(const osage_ring_data& ring);
     void SetSkinParam(skin_param_file_data* skp);
     void SetSkinParamOsageRoot(const skin_param_osage_root* skp_root);
+
+    void reset_ex_force();
+    void set_data(const rob_chara_item_equip_object* skin_disp, const obj_skin_ex_node_cloth* cls_data,
+        const skin_param_osage_root* skp_root, const bone_database* bone_data);
+    void set_ex_force(const vec3& f);
+    void set_move_cancel(const float_t& mv_ccl);
+    void set_param();
 };
 
 struct skin_param_file_data {
     skin_param skin_param;
-    std::vector<RobOsageNodeData> nodes_data;
+    std::vector<RobJointNodeData> nodes_data;
     bool depends_on_others;
 
     skin_param_file_data();
@@ -2136,9 +2151,9 @@ struct osage_setting_osg_cat {
 
 struct RobOsage {
     skin_param* skin_param_ptr;
-    bone_node_expression_data exp_data;
-    std::vector<RobOsageNode> nodes;
-    RobOsageNode end_node;
+    RobTransform transform;
+    std::vector<RobJointNode> joint_node_vec;
+    RobJointNode effector;
     skin_param skin_param;
     osage_setting_osg_cat osage_setting;
     bool apply_physics;
@@ -2146,9 +2161,9 @@ struct RobOsage {
     float_t field_2A4;
     OsageCollision::Work coli_chara[64];
     OsageCollision::Work coli_ring[64];
-    vec3 wind_direction;
-    float_t inertia;
-    int32_t yz_order;
+    vec3 wind_dir;
+    float_t wet;
+    ROTTYPE rottype;
     mat4* root_matrix_ptr;
     mat4 root_matrix_prev;
     float_t move_cancel;
@@ -2157,247 +2172,232 @@ struct RobOsage {
     bool osage_reset_done;
     bool disable_collision;
     osage_ring_data ring;
-    std::map<std::pair<int32_t, int32_t>, std::list<RobOsageNodeResetData>> motion_reset_data;
-    std::list<RobOsageNodeResetData>* reset_data_list;
-    bool set_external_force;
-    vec3 external_force;
+    std::map<std::pair<int32_t, int32_t>, std::list<RobJointNodeResetData>> motion_reset_data;
+    std::list<RobJointNodeResetData>* reset_data_list;
+    bool use_ex_force;
+    vec3 ex_force;
 
     RobOsage();
     ~RobOsage();
 
     void AddMotionResetData(uint32_t motion_id, float_t frame);
     void ApplyBocRootColi(const float_t step);
-    void ApplyPhysics(const mat4& root_matrix, const vec3& parent_scale,
-        const float_t step, bool disable_external_force, bool ring_coli, bool has_children_node);
+    void ApplyPhysics(const mat4& root_matrix, const vec3& hsc,
+        const float_t step, bool disable_ex_force, bool ring_coli, bool has_children_node);
     void ApplyResetData(const mat4& mat);
-    void BeginCalc(const mat4& root_matrix, const vec3& parent_scale, bool has_children_node);
+    void BeginCalc(const mat4& root_matrix, const vec3& hsc, bool has_children_node);
     bool CheckPartsBits(const rob_osage_parts_bit& parts_bits);
-    void ColiSet(const mat4* mats);
     void CollideNodes(const float_t step);
     void CollideNodesTargetOsage(const mat4& root_matrix,
-        const vec3& parent_scale, const float_t step, bool collide_nodes);
-    void CtrlEnd(const vec3& parent_scale);
-    void CtrlInitBegin(const mat4& root_matrix, const vec3& parent_scale, bool sibling_node);
-    void CtrlInitMain(const mat4& root_matrix, const vec3& parent_scale,
-        const float_t step, bool disable_external_force);
-    void CtrlMain(const mat4& root_matrix, const vec3& parent_scale, const float_t step);
+        const vec3& hsc, const float_t step, bool collide_nodes);
+    void CtrlEnd(const vec3& hsc);
     void CtrlOsagePlayData(const mat4& root_matrix,
-        const vec3& parent_scale, std::vector<opd_blend_data>& opd_blend_data);
-    void EndCalc(const mat4& root_matrix, const vec3& parent_scale,
-        const float_t step, bool disable_external_force);
-    RobOsageNode* GetNode(size_t index);
-    void InitData(obj_skin_block_osage* osg_data, obj_skin_osage_node* osg_nodes,
-        bone_node* ex_data_bone_nodes, obj_skin* skin);
+        const vec3& hsc, const std::vector<opd_blend_data>& opd_blend_data);
+    void EndCalc(const mat4& root_matrix, const vec3& hsc,
+        const float_t step, bool disable_ex_force);
     const float_t* LoadOpdData(size_t node_index, const float_t* opd_data, size_t opd_count);
     void LoadSkinParam(void* kv, const char* name,
         skin_param_osage_root& skp_root, object_info* obj_info, const bone_database* bone_data);
-    void Reset();
-    void ResetBoc();
-    void ResetExtrenalForce();
-    void RotateMat(mat4& mat, const vec3& parent_scale, bool init_rot = false);
-    void SetAirRes(float_t air_res);
-    void SetColiR(float_t coli_r);
+    void RotateMat(mat4& mat, const vec3& hsc, bool init_rot = false);
     void SetDisableCollision(const bool& value);
-    void SetForce(float_t force, float_t force_gain);
-    void SetHinge(float_t hinge_y, float_t hinge_z);
-    void SetInitRot(float_t init_rot_y, float_t init_rot_z);
     void SetMotionResetData(uint32_t motion_id, float_t frame);
-    void SetMoveCancel(const float_t& value);
-    void SetNodesExternalForce(const vec3* external_force, const float_t& strength);
+    void SetNodesExternalForce(const vec3* ex_force, const float_t& gain);
     void SetNodesForce(const float_t& force);
     const float_t* SetOsagePlayDataInit(const float_t* opdi_data);
     void SetOsageReset();
     void SetRing(const osage_ring_data& ring);
-    void SetRot(float_t rot_y, float_t rot_z);
     void SetSkinParam(skin_param_file_data* skp);
     void SetSkinParamOsageRoot(const skin_param_osage_root& skp_root);
-    void SetSkpOsgNodes(std::vector<skin_param_osage_node>* skp_osg_nodes);
+    void SetSkpOsgNodes(const std::vector<skin_param_osage_node>* skp_osg_nodes);
     void SetWindDirection(const vec3* value);
-    void SetYZOrder(int32_t yz_order);
+
+    void ctrl(const mat4& root_matrix, const vec3& hsc, const float_t step);
+    void dest();
+    void dest_boc();
+    RobJointNode* get_joint_node(size_t index);
+    void init(const obj_skin_ex_node_osage* osg_data, const obj_skin_osage_joint* joint,
+        bone_node* ex_node, const obj_skin* skin);
+    void make_osage_coli(const mat4* motmat);
+    void pos_init(const mat4& root_matrix, const vec3& hsc, bool dist_flag);
+    void pos_init_cont(const mat4& root_matrix, const vec3& hsc,
+        const float_t step, bool disable_ex_force);
+    void reset_ex_force();
+    void set_air_res(float_t air);
+    void set_angle(float_t angle_y, float_t angle_z);
+    void set_coli_r(float_t coli_r);
+    void set_ex_force(const vec3& f);
+    void set_force(float_t force, float_t gain);
+    void set_init_angle(float_t angle_y, float_t angle_z);
+    void set_limit_angle(float_t angle_y, float_t angle_z);
+    void set_move_cancel(const float_t& mv_ccl);
+    void set_rot_type(ROTTYPE rot_type);
+};
+
+struct ExOsageBlockFlag {
+    uint32_t alive : 1;
+    uint32_t pos_init : 1;
 };
 
 class ExOsageBlock : public ExNodeBlock {
 public:
-    size_t index;
-    RobOsage rob;
-    mat4* mats;
-    int32_t field_1FF8;
-    float_t step;
+    size_t block_idx;
+    RobOsage osage_work;
+    const mat4* motion_matrix;
+    ExOsageBlockFlag flag;
+    float_t init_coma_step;
 
     ExOsageBlock();
     virtual ~ExOsageBlock() override;
 
-    virtual void Init() override;
-    virtual void CtrlBegin();
-    virtual void CtrlStep(int32_t stage, bool disable_external_force) override;
-    virtual void CtrlMain() override;
+    virtual void init() override;
+    virtual void CtrlBegin() override;
+    virtual void CtrlStep(int32_t stage, bool disable_ex_force) override;
+    virtual void ctrl() override;
     virtual void CtrlOsagePlayData() override;
-    virtual void Disp(const mat4& mat, render_context* rctx) override;
-    virtual void Reset() override;
-    virtual void Field_40() override;
-    virtual void CtrlInitBegin() override;
-    virtual void CtrlInitMain() override;
+    virtual void disp(const mat4& mat, render_context* rctx) override;
+    virtual void dest() override;
+    virtual void disp_debug() override;
+    virtual void pos_init() override;
+    virtual void pos_init_cont() override;
     virtual void CtrlEnd() override;
 
     void AddMotionResetData(uint32_t motion_id, float_t frame);
-    void GetNodeList(obj_skin_block_osage* osg_data, obj_skin_osage_node* osg_nodes,
-        prj::vector_pair<uint32_t, RobOsageNode*>& osage_node_list,
-        std::map<std::string, ExNodeBlock*>& node_list);
-    void InitData(rob_chara_item_equip_object* itm_eq_obj, obj_skin_block_osage* osg_data,
-        const char* osg_data_name, obj_skin_osage_node* osg_nodes, bone_node* bone_nodes,
-        bone_node* ex_data_bone_nodes, obj_skin* skin);
     const float_t* LoadOpdData(size_t node_index, const float_t* opd_data, size_t opd_count);
     void SetDisableCollision(const bool& value);
     void SetMotionResetData(uint32_t motion_id, float_t frame);
-    void SetMoveCancel(const float_t& value);
     const float_t* SetOsagePlayDataInit(const float_t* opdi_data);
     void SetOsageReset();
     void SetRing(const osage_ring_data& ring);
     void SetSkinParam(skin_param_file_data* skp);
     void SetWindDirection();
+
+    void get_node_list(
+        const obj_skin_ex_node_osage* osg_data, const obj_skin_osage_joint* joint,
+        prj::vector_pair<uint32_t, RobJointNode*>& joint_node_list,
+        std::map<std::string, ExNodeBlock*>& ex_node_list);
+    void reset_ex_force();
+    void set_data(const rob_chara_item_equip_object* skin_disp, const obj_skin_ex_node_osage* root,
+        const char* name, const obj_skin_osage_joint* joint, const bone_node* mot_node,
+        bone_node* ex_node, const obj_skin* skin);
+    void set_ex_force(const vec3& f);
+    void set_move_cancel(const float_t& mv_ccl);
 };
 
 class ExConstraintBlock : public ExNodeBlock {
 public:
-    obj_skin_block_constraint_type constraint_type;
-    bone_node* source_node_ref;
-    bone_node* up_vector_ref;
-    obj_skin_block_constraint* cns_data;
-    int64_t field_80;
+    obj_skin_ex_node_constraint_type cns_type;
+    const bone_node* src_node;
+    const bone_node* upvector_node;
+    const obj_skin_ex_node_constraint* data;
+    uint32_t dst_node_id;
+    uint32_t src_node_id;
 
     ExConstraintBlock();
     virtual ~ExConstraintBlock() override;
 
-    virtual void Init() override;
+    virtual void init() override;
     virtual void CtrlBegin() override;
-    virtual void CtrlStep(int32_t stage, bool disable_external_force) override;
-    virtual void CtrlMain() override;
+    virtual void CtrlStep(int32_t stage, bool disable_ex_force) override;
+    virtual void ctrl() override;
     virtual void CtrlOsagePlayData() override;
-    virtual void Disp(const mat4& mat, render_context* rctx) override;
-    virtual void Field_40() override;
-    virtual void CtrlInitBegin() override;
-    virtual void CtrlInitMain() override;
+    virtual void disp(const mat4& mat, render_context* rctx) override;
+    virtual void disp_debug() override;
+    virtual void pos_init() override;
+    virtual void pos_init_cont() override;
 
     void Calc();
     void CalcConstraintDirection(mat4 mat);
     void CalcConstraintDistance(mat4 mat);
     void CalcConstraintOrientation(mat4 mat);
     void CalcConstraintPosition(mat4 mat);
-    void DataSet();
-    void InitData(rob_chara_item_equip_object* itm_eq_obj, obj_skin_block_constraint* cns_data,
-        const char* cns_data_name, const bone_database* bone_data);
+    void CalcMatrixHS();
+
+    void set_data(const rob_chara_item_equip_object* skin_disp, const obj_skin_ex_node_constraint* data,
+        const char* name, const bone_database* bone_data);
 };
 
-struct ex_expression_block_stack;
-
-struct ex_expression_block_stack_number {
-    float_t value;
+union Expr_value {
+    float_t constant;
+    const float* variable;
+    float_t(*func1)(float_t);
+    float_t(*func2)(float_t, float_t);
+    float_t(*func3)(float_t, float_t, float_t);
 };
 
-struct ex_expression_block_stack_variable {
-    float_t* value;
-};
+struct Expr_node {
+    Expr_type type;
+    Expr_value data;
+    Expr_node* operand[3];
 
-struct ex_expression_block_stack_variable_radian {
-    float_t* value;
-};
-
-struct ex_expression_block_stack_op1 {
-    float_t(*func)(float_t v1);
-    ex_expression_block_stack* v1;
-};
-
-struct ex_expression_block_stack_op2 {
-    float_t(*func)(float_t v1, float_t v2);
-    ex_expression_block_stack* v1;
-    ex_expression_block_stack* v2;
-};
-
-struct ex_expression_block_stack_op3 {
-    float_t(*func)(float_t v1, float_t v2, float_t v3);
-    ex_expression_block_stack* v1;
-    ex_expression_block_stack* v2;
-    ex_expression_block_stack* v3;
-};
-
-struct ex_expression_block_stack {
-    ex_expression_block_stack_type type;
-    union {
-        ex_expression_block_stack_number number;
-        ex_expression_block_stack_variable var;
-        ex_expression_block_stack_variable_radian var_rad;
-        ex_expression_block_stack_op1 op1;
-        ex_expression_block_stack_op2 op2;
-        ex_expression_block_stack_op3 op3;
-    };
+    float_t eval();
 };
 
 class ExExpressionBlock : public ExNodeBlock {
 public:
-    float_t* values[9];
-    ex_expression_block_stack_type types[9];
-    ex_expression_block_stack* expressions[9];
-    ex_expression_block_stack stack_data[384];
-    obj_skin_block_expression* exp_data;
+    float_t* result[9];
+    Expr_type result_type[9];
+    Expr_node* expr_node[9];
+    Expr_node expr_work[384];
+    const obj_skin_ex_node_expression* data;
     bool field_3D20;
-    void(*field_3D28)(bone_node_expression_data*);
-    float_t frame;
+    void(*hard_coded_func)(RobTransform*);
+    float_t timer;
     bool step;
 
     ExExpressionBlock();
     virtual ~ExExpressionBlock() override;
 
-    virtual void Init() override;
+    virtual void init() override;
     virtual void CtrlBegin() override;
-    virtual void CtrlStep(int32_t stage, bool disable_external_force) override;
-    virtual void CtrlMain() override;
+    virtual void CtrlStep(int32_t stage, bool disable_ex_force) override;
+    virtual void ctrl() override;
     virtual void CtrlOsagePlayData() override;
-    virtual void Disp(const mat4& mat, render_context* rctx) override;
-    virtual void Field_40() override;
-    virtual void CtrlInitBegin() override;
-    virtual void CtrlInitMain() override;
+    virtual void disp(const mat4& mat, render_context* rctx) override;
+    virtual void disp_debug() override;
+    virtual void pos_init() override;
+    virtual void pos_init_cont() override;
 
     void Calc();
-    void DataSet();
-    void InitData(rob_chara_item_equip_object* itm_eq_obj, obj_skin_block_expression* exp_data,
-        const char* exp_data_name, object_info a4, size_t index, const bone_database* bone_data);
+    void CalcMatrixHS();
+
+    void set_data(const rob_chara_item_equip_object* skin_disp, const obj_skin_ex_node_expression* data,
+        const char* node_name, object_info a4, size_t index, const bone_database* bone_data);
 };
 
 struct rob_chara_item_equip;
 
 struct rob_chara_item_equip_object {
     size_t index;
-    mat4* mats;
+    const mat4* motion_matrix;
     object_info obj_info;
-    int32_t field_14;
-    std::vector<texture_pattern_struct> texture_pattern;
-    texture_data_struct texture_data;
-    bool null_blocks_data_set;
-    bone_node_expression_data exp_data;
+    object_info obj_uid_sub;
+    std::vector<texture_pattern_struct> texchg_vec;
+    RobSkinCol skn_col;
+    RobSkinOfs skn_ofs;
     float_t alpha;
     mdl::ObjFlags obj_flags;
     bool can_disp;
-    int32_t field_A4;
+    uint32_t bone_kind;
     mat4* mat;
-    int32_t init_iterations;
-    bone_node* bone_nodes;
-    std::vector<ExNodeBlock*> node_blocks;
-    std::vector<bone_node> ex_data_bone_nodes;
-    std::vector<mat4> ex_data_bone_mats;
-    std::vector<mat4> ex_data_mats;
-    prj::vector_pair<const char*, uint32_t> ex_bones;
+    int32_t init_cnt;
+    const bone_node* motion_node;
+    std::vector<ExNodeBlock*> ex_node_block;
+    std::vector<bone_node> ex_node;
+    std::vector<mat4> matrix;
+    std::vector<mat4> no_scale_matrix;
+    prj::vector_pair<const char*, uint32_t> node_name_map;
     int64_t field_138;
-    std::vector<ExNullBlock*> null_blocks;
-    std::vector<ExOsageBlock*> osage_blocks;
-    std::vector<ExConstraintBlock*> constraint_blocks;
-    std::vector<ExExpressionBlock*> expression_blocks;
-    std::vector<ExClothBlock*> cloth_blocks;
+    std::vector<ExNullBlock*> null_blk;
+    std::vector<ExOsageBlock*> osage_blk;
+    std::vector<ExConstraintBlock*> constraint;
+    std::vector<ExExpressionBlock*> expression;
+    std::vector<ExClothBlock*> cloth;
     bool osage_depends_on_others;
     size_t osage_nodes_count;
     bool use_opd;
-    obj_skin_ex_data* skin_ex_data;
-    obj_skin* skin;
-    rob_chara_item_equip* item_equip;
+    const obj_skin_ex_data* skin_ex_data;
+    const obj_skin* skin;
+    const rob_chara_item_equip* rob_disp;
 
     rob_chara_item_equip_object();
     ~rob_chara_item_equip_object();
@@ -2406,20 +2406,21 @@ struct rob_chara_item_equip_object {
     void check_no_opd(std::vector<opd_blend_data>& opd_blend_data);
     void clear_ex_data();
     void disp(const mat4& mat, render_context* rctx);
-    int32_t get_bone_index(const char* name, const bone_database* bone_data);
-    bone_node* get_bone_node(int32_t bone_index);
-    bone_node* get_bone_node(const char* name, const bone_database* bone_data);
+    const bone_node* get_node(int32_t bone_index) const;
+    const bone_node* get_node(const char* name, const bone_database* bone_data) const;
+    int32_t get_node_index(const char* name, const bone_database* bone_data) const;
     const mat4* get_ex_data_bone_node_mat(const char* name);
-    RobOsageNode* get_normal_ref_osage_node(const std::string& str, size_t* index);
+    RobJointNode* get_normal_ref_osage_node(const std::string& str, size_t* index);
     void get_parent_bone_nodes(bone_node* bone_nodes, const bone_database* bone_data);
     void init_ex_data_bone_nodes(obj_skin_ex_data* ex_data);
     void init_members(size_t index = 0xDEADBEEF);
     void load_ex_data(obj_skin_ex_data* ex_data,
         const bone_database* bone_data, void* data, const object_database* obj_db);
-    void load_object_info_ex_data(object_info object_info, bone_node* bone_nodes,
+    void load_object_info_ex_data(object_info object_info, const bone_node* motion_node,
         bool osage_reset, const bone_database* bone_data, void* data, const object_database* obj_db);
-    void reset_external_force();
-    void reset_nodes_external_force(rob_osage_parts_bit parts_bits);
+    void pos_reset(int32_t init_cnt);
+    void reset_ex_force();
+    void reset_nodes_ex_force(rob_osage_parts_bit parts_bits);
     void set_alpha_obj_flags(float_t alpha, int32_t flags);
     bool set_boc(const skin_param_osage_root& skp_root, ExOsageBlock* osg);
     void set_collision_target_osage(const skin_param_osage_root& skp_root, skin_param* skp);
@@ -2429,14 +2430,14 @@ struct rob_chara_item_equip_object {
     void set_null_blocks_expression_data(const vec3& position, const vec3& rotation, const vec3& scale);
     void set_osage_play_data_init(const float_t* opdi_data);
     void set_osage_reset();
-    void set_osage_move_cancel(const float_t& value);
+    void set_osage_move_cancel(const float_t& mv_ccl);
     void set_texture_pattern(texture_pattern_struct* tex_pat, size_t count);
     void skp_load(void* kv, const bone_database* bone_data);
     void skp_load(const skin_param_osage_root& skp_root, std::vector<skin_param_osage_node>& vec,
         skin_param_file_data* skp_file_data, const bone_database* bone_data);
-    bool skp_load_boc(const skin_param_osage_root& skp_root, std::vector<RobOsageNodeData>* node_data);
+    bool skp_load_boc(const skin_param_osage_root& skp_root, std::vector<RobJointNodeData>* node_data);
     void skp_load_file(void* data, const bone_database* bone_data, const object_database* obj_db);
-    bool skp_load_normal_ref(const skin_param_osage_root& skp_root, std::vector<RobOsageNodeData>* node_data);
+    bool skp_load_normal_ref(const skin_param_osage_root& skp_root, std::vector<RobJointNodeData>* node_data);
 };
 
 struct rob_chara_item_equip {
@@ -2508,10 +2509,11 @@ struct rob_chara_item_equip {
         bool osage_reset, const bone_database* bone_data, void* data, const object_database* obj_db);
     void load_outfit_object_info(item_id id, object_info obj_info,
         bool osage_reset, const bone_database* bone_data, void* data, const object_database* obj_db);
+    void pos_reset(uint8_t init_cnt);
     void reset();
-    void reset_external_force();
+    void reset_ex_force();
     void reset_init_data(bone_node* bone_nodes);
-    void reset_nodes_external_force(rob_osage_parts parts);
+    void reset_nodes_ex_force(rob_osage_parts parts);
     void set_alpha_obj_flags(float_t alpha, mdl::ObjFlags flags);
     void set_disable_collision(rob_osage_parts parts, bool disable);
     void set_disp(item_id id, bool value);
@@ -2525,7 +2527,7 @@ struct rob_chara_item_equip {
     void set_osage_play_data_init(item_id id, const float_t* opdi_data);
     void set_osage_reset();
     void set_osage_step(float_t value);
-    void set_osage_move_cancel(uint8_t id, const float_t& value);
+    void set_osage_move_cancel(uint8_t id, const float_t& mv_ccl);
     void set_shadow_type(int32_t chara_id);
     void set_texture_pattern(texture_pattern_struct* tex_pat, size_t count);
     void skp_load(item_id id, const skin_param_osage_root& skp_root, std::vector<skin_param_osage_node>& vec,
@@ -3021,7 +3023,7 @@ struct rob_chara_data_adjust {
     bool enable;
     float_t frame;
     float_t transition_frame;
-    vec3 curr_external_force;
+    vec3 curr_ex_force;
     float_t curr_force;
     float_t curr_strength;
     uint32_t motion_id;
@@ -3030,9 +3032,9 @@ struct rob_chara_data_adjust {
     int32_t type;
     int32_t cycle_type;
     bool ignore_gravity;
-    vec3 external_force;
-    vec3 external_force_cycle_strength;
-    vec3 external_force_cycle;
+    vec3 ex_force;
+    vec3 ex_force_cycle_strength;
+    vec3 ex_force_cycle;
     float_t cycle;
     float_t phase;
     float_t force;
@@ -3680,6 +3682,7 @@ struct rob_chara {
         MotionBlendType blend_type, const bone_database* bone_data, const motion_database* mot_db);
     void load_outfit_object_info(item_id id, object_info obj_info,
         bool osage_reset, const bone_database* bone_data, void* data, const object_database* obj_db);
+    void pos_reset();
     void rob_info_ctrl();
     void rob_motion_modifier_ctrl();
     void reset_data(const rob_chara_pv_data* pv_data,
@@ -3741,7 +3744,7 @@ struct rob_chara {
         float_t value, rob_partial_motion_playback_state playback_state, float_t blend_duration,
         float_t play_duration, float_t step, rob_partial_motion_loop_state loop_state,
         float_t blend_offset, const motion_database* mot_db);
-    void set_osage_move_cancel(uint8_t id, float_t value);
+    void set_osage_move_cancel(uint8_t id, float_t mv_ccl);
     void set_osage_reset();
     void set_osage_step(float_t value);
     void set_parts_disp(item_id id, bool disp);
@@ -3867,7 +3870,7 @@ extern const uint32_t* get_opd_motion_set_ids();
 
 const char* get_dev_ram_opdi_dir();
 
-extern const float_t get_osage_gravity_const();
+extern const float_t get_gravity();
 
 extern const char* get_ram_osage_play_data_dir();
 extern const char* get_ram_osage_play_data_tmp_dir();

@@ -18,6 +18,16 @@
 #define TEXTURE_PATTERN_COUNT 24
 #define TEXTURE_TRANSFORM_COUNT 24
 
+struct RobSkinCol {
+    int32_t type;
+    vec3 blend_color;
+    vec3 offset_color;
+    vec3 blend_specular;
+    vec3 offset_specular;
+
+    RobSkinCol();
+};
+
 struct material_list_struct {
     uint32_t hash;
     vec4 blend_color;
@@ -51,16 +61,6 @@ struct morph_struct {
     float_t weight;
 
     morph_struct();
-};
-
-struct texture_data_struct {
-    int32_t field_0;
-    vec3 texture_color_coefficients;
-    vec3 texture_color_offset;
-    vec3 texture_specular_coefficients;
-    vec3 texture_specular_offset;
-
-    texture_data_struct();
 };
 
 struct cam_data;
@@ -566,7 +566,7 @@ namespace mdl {
             const std::vector<mat4>& instances, float_t r, float_t g, float_t b, float_t a);
         void entry_obj_by_object_info_object_skin(object_info obj_info,
             const std::vector<texture_pattern_struct>* texture_pattern,
-            const texture_data_struct* texture_data, float_t alpha,
+            const RobSkinCol* skin_col, float_t alpha,
             const mat4* matrices, const mat4* ex_data_matrices, const mat4* mat, const mat4& global_mat);
         void entry_obj_etc(const mat4& mat, const EtcObj& etc);
         void entry_obj_etc_screen(const mat4& mat, const EtcObj& etc);

@@ -176,7 +176,7 @@ skin_param_osage_root_boc::~skin_param_osage_root_boc() {
 }
 
 skin_param_osage_root::skin_param_osage_root() : field_0(), force(), force_gain(),
-rot_y(), rot_z(), init_rot_y(), init_rot_z(), coli_r(), yz_order(), stiffness() {
+rot_y(), rot_z(), init_rot_y(), init_rot_z(), coli_r(), rottype(), stiffness() {
     air_res = 0.5f;
     hinge_y = 90.0f;
     hinge_z = 90.0f;
@@ -800,11 +800,11 @@ void SkinParamManager::AddFiles() {
             int32_t osage_count = 0;
             int32_t cloth_count = 0;
 
-            obj_skin_block* b = ex_data->block_array;
-            for (int32_t k = ex_data->num_block; k; k--, b++)
-                if (b->type == OBJ_SKIN_BLOCK_OSAGE)
+            obj_skin_ex_node* b = ex_data->ex_node_table;
+            for (int32_t k = ex_data->num_ex_node; k; k--, b++)
+                if (b->type == OBJ_SKIN_EX_NODE_OSAGE)
                     osage_count++;
-                else if (b->type == OBJ_SKIN_BLOCK_CLOTH)
+                else if (b->type == OBJ_SKIN_EX_NODE_CLOTH)
                     cloth_count++;
 
             if (!ex_data || !(osage_count + cloth_count))
@@ -938,8 +938,8 @@ bool SkinParamManager::CtrlFiles() {
         rob_chara_item_equip_object* itm_eq_obj = &rob_itm_equip->item_equip_object[skp_file->id];
 
         skin_param_file_data* skp_file_data = skp_file->data->data();
-        for (ExNodeBlock* j : itm_eq_obj->node_blocks) {
-            if (j->type != EX_OSAGE && j->type != EX_CLOTH)
+        for (ExNodeBlock* j : itm_eq_obj->ex_node_block) {
+            if (j->type != EX_NODE_TYPE_OSAGE && j->type != EX_NODE_TYPE_CLOTH)
                 continue;
 
             const char* name = j->name;
