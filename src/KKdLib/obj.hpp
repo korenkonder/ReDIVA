@@ -100,26 +100,21 @@ enum obj_primitive_type : uint32_t {
     OBJ_PRIMITIVE_POLYGON        = 0x09,
 };
 
-enum obj_skin_block_constraint_type : uint32_t {
-    OBJ_SKIN_BLOCK_CONSTRAINT_NONE = 0,
-    OBJ_SKIN_BLOCK_CONSTRAINT_ORIENTATION,
-    OBJ_SKIN_BLOCK_CONSTRAINT_DIRECTION,
-    OBJ_SKIN_BLOCK_CONSTRAINT_POSITION,
-    OBJ_SKIN_BLOCK_CONSTRAINT_DISTANCE,
+enum obj_skin_ex_node_constraint_type : uint32_t {
+    OBJ_SKIN_EX_NODE_CONSTRAINT_NONE = 0,
+    OBJ_SKIN_EX_NODE_CONSTRAINT_ORIENTATION,
+    OBJ_SKIN_EX_NODE_CONSTRAINT_DIRECTION,
+    OBJ_SKIN_EX_NODE_CONSTRAINT_POSITION,
+    OBJ_SKIN_EX_NODE_CONSTRAINT_DISTANCE,
 };
 
-enum obj_skin_block_constraint_coupling : uint32_t {
-    OBJ_SKIN_BLOCK_CONSTRAINT_COUPLING_RIGID = 0x01,
-    OBJ_SKIN_BLOCK_CONSTRAINT_COUPLING_SOFT  = 0x03,
-};
-
-enum obj_skin_block_type : uint32_t {
-    OBJ_SKIN_BLOCK_NONE = 0,
-    OBJ_SKIN_BLOCK_CLOTH,
-    OBJ_SKIN_BLOCK_CONSTRAINT,
-    OBJ_SKIN_BLOCK_EXPRESSION,
-    OBJ_SKIN_BLOCK_MOTION,
-    OBJ_SKIN_BLOCK_OSAGE,
+enum obj_skin_ex_node_type : uint32_t {
+    OBJ_SKIN_EX_NODE_NONE = 0,
+    OBJ_SKIN_EX_NODE_CLOTH,
+    OBJ_SKIN_EX_NODE_CONSTRAINT,
+    OBJ_SKIN_EX_NODE_EXPRESSION,
+    OBJ_SKIN_EX_NODE_MOTION,
+    OBJ_SKIN_EX_NODE_OSAGE,
 };
 
 enum obj_skin_skin_param_coli_type {
@@ -144,6 +139,11 @@ enum obj_vertex_format : uint32_t {
     OBJ_VERTEX_COLOR1    = 0x200,
     OBJ_VERTEX_BONE_DATA = 0x400,
     OBJ_VERTEX_UNKNOWN   = 0x800,
+};
+
+enum ROTTYPE {
+    ROTTYPE_YZ = 0x00,
+    ROTTYPE_ZY = 0x01,
 };
 
 struct obj_axis_aligned_bounding_box {
@@ -414,247 +414,247 @@ struct obj_mesh {
     obj_mesh();
 };
 
-struct obj_skin_block_node {
+struct obj_skin_ex_node_transform {
     const char* parent_name;
     vec3 position;
     vec3 rotation;
     vec3 scale;
 
-    obj_skin_block_node();
+    obj_skin_ex_node_transform();
 };
 
 struct obj_skin_skin_param_coli {
     obj_skin_skin_param_coli_type type;
-    int32_t bone0_index;
-    int32_t bone1_index;
+    int32_t nid0;
+    int32_t nid1;
     float_t radius;
-    vec3 bone0_pos;
-    vec3 bone1_pos;
+    vec3 pos0;
+    vec3 pos1;
 
     obj_skin_skin_param_coli();
 };
 
 struct obj_skin_skin_param {
-    int32_t unk0;
+    int32_t root_nid;
     float_t force;
     float_t force_gain;
     float_t air_res;
-    float_t rot_y;
-    float_t rot_z;
-    float_t hinge_y;
-    float_t hinge_z;
+    float_t angle[2];
+    float_t limit[2];
     const char* name;
-    obj_skin_skin_param_coli* coli;
-    int32_t coli_count;
+    obj_skin_skin_param_coli* coli_array;
+    int32_t num_coli;
     float_t coli_r;
     float_t friction;
     float_t wind_afc;
-    int32_t unk44;
+    ROTTYPE rottype;
 
     obj_skin_skin_param();
 };
 
-struct obj_skin_block_cloth_root_bone_weight {
+struct obj_skin_ex_node_cloth_weight {
     const char* bone_name;
     float_t weight;
-    int32_t matrix_index;
-    int32_t reserved;
+    int32_t mat_idx;
+    int32_t dummy;
 
-    obj_skin_block_cloth_root_bone_weight();
+    obj_skin_ex_node_cloth_weight();
 };
 
-struct obj_skin_block_cloth_root {
+struct obj_skin_ex_node_cloth_root {
     vec3 pos;
     vec3 normal;
-    float_t field_18;
-    int32_t field_1C;
-    int32_t field_20;
-    int32_t field_24;
-    obj_skin_block_cloth_root_bone_weight bone_weights[4];
+    vec4 tangent;
+    obj_skin_ex_node_cloth_weight weight[4];
 
-    obj_skin_block_cloth_root();
+    obj_skin_ex_node_cloth_root();
 };
 
-struct obj_skin_block_cloth_node {
-    uint32_t flags;
+struct obj_skin_ex_node_cloth_point {
+    uint32_t link_flag;
     vec3 pos;
-    vec3 delta_pos;
-    float_t dist_top;
-    float_t dist_bottom;
-    float_t dist_right;
-    float_t dist_left;
+    vec3 vec;
+    float_t length[4];
 
-    obj_skin_block_cloth_node();
+    obj_skin_ex_node_cloth_point();
 };
 
-struct obj_skin_block_cloth {
-    const char* mesh_name;
-    const char* backface_mesh_name;
-    uint32_t field_8;
-    int32_t num_root;
-    int32_t num_node;
-    uint32_t loop;
+struct obj_skin_ex_node_cloth {
+    const char* omote_name;
+    const char* ura_name;
+    uint32_t version;
+    uint32_t width;
+    uint32_t height;
+    uint32_t ring_flag;
     mat4* mat_array;
-    int32_t num_mat;
-    obj_skin_block_cloth_root* root_array;
-    obj_skin_block_cloth_node* node_array;
-    uint16_t* mesh_index_array;
-    int32_t num_mesh_index;
-    uint16_t* backface_mesh_index_array;
-    int32_t num_backface_mesh_index;
-    obj_skin_skin_param* skin_param;
-    uint32_t reserved;
+    uint32_t num_mat;
+    obj_skin_ex_node_cloth_root* fix_point;
+    obj_skin_ex_node_cloth_point* move_point;
+    uint16_t* omote_index_array;
+    uint32_t num_omote_index;
+    uint16_t* ura_index_array;
+    uint32_t num_ura_index;
+    obj_skin_skin_param* param;
+    uint32_t dummy;
 
-    obj_skin_block_cloth();
+    obj_skin_ex_node_cloth();
 };
 
-struct obj_skin_block_constraint_attach_point {
+struct obj_skin_ex_node_constraint_attach_point {
     bool affected_by_orientation;
     bool affected_by_scaling;
     vec3 offset;
 
-    obj_skin_block_constraint_attach_point();
+    obj_skin_ex_node_constraint_attach_point();
 };
 
-struct obj_skin_block_constraint_up_vector {
+struct obj_skin_ex_node_constraint_up_vector {
     bool active;
     float_t roll;
     vec3 affected_axis;
     vec3 point_at;
     const char* name;
 
-    obj_skin_block_constraint_up_vector();
+    obj_skin_ex_node_constraint_up_vector();
 };
 
-struct obj_skin_block_constraint_direction {
-    obj_skin_block_constraint_up_vector up_vector;
+struct obj_skin_ex_node_constraint_direction {
+    obj_skin_ex_node_constraint_up_vector up_vector;
     vec3 align_axis;
     vec3 target_offset;
 
-    obj_skin_block_constraint_direction();
+    obj_skin_ex_node_constraint_direction();
 };
 
-struct obj_skin_block_constraint_distance {
-    obj_skin_block_constraint_up_vector up_vector;
+struct obj_skin_ex_node_constraint_distance {
+    obj_skin_ex_node_constraint_up_vector up_vector;
     float_t distance;
-    obj_skin_block_constraint_attach_point constrained_object;
-    obj_skin_block_constraint_attach_point constraining_object;
+    obj_skin_ex_node_constraint_attach_point constrained_object;
+    obj_skin_ex_node_constraint_attach_point constraining_object;
 
-    obj_skin_block_constraint_distance();
+    obj_skin_ex_node_constraint_distance();
 };
 
-struct obj_skin_block_constraint_orientation {
+struct obj_skin_ex_node_constraint_orientation {
     vec3 offset;
 
-    obj_skin_block_constraint_orientation();
+    obj_skin_ex_node_constraint_orientation();
 };
 
-struct obj_skin_block_constraint_position {
-    obj_skin_block_constraint_up_vector up_vector;
-    obj_skin_block_constraint_attach_point constrained_object;
-    obj_skin_block_constraint_attach_point constraining_object;
+struct obj_skin_ex_node_constraint_position {
+    obj_skin_ex_node_constraint_up_vector up_vector;
+    obj_skin_ex_node_constraint_attach_point constrained_object;
+    obj_skin_ex_node_constraint_attach_point constraining_object;
 
-    obj_skin_block_constraint_position();
+    obj_skin_ex_node_constraint_position();
 };
 
-struct obj_skin_block_constraint {
-    obj_skin_block_node node;
-    uint32_t name_index;
-    const char* source_node_name;
-    obj_skin_block_constraint_coupling coupling;
-    obj_skin_block_constraint_type type;
+struct obj_skin_ex_node_constraint {
+    obj_skin_ex_node_transform transform;
+    uint32_t node_name;
+    uint32_t nb_src;
+    const char* src_name;
+    obj_skin_ex_node_constraint_type type;
     union {
         void* data;
-        obj_skin_block_constraint_direction* direction;
-        obj_skin_block_constraint_distance* distance;
-        obj_skin_block_constraint_orientation* orientation;
-        obj_skin_block_constraint_position* position;
+        obj_skin_ex_node_constraint_direction* direction;
+        obj_skin_ex_node_constraint_distance* distance;
+        obj_skin_ex_node_constraint_orientation* orientation;
+        obj_skin_ex_node_constraint_position* position;
     };
 
-    obj_skin_block_constraint();
+    obj_skin_ex_node_constraint();
 };
 
-struct obj_skin_block_expression {
-    obj_skin_block_node node;
-    uint32_t name_index;
-    int32_t num_expression;
-    const char* expression_array[9];
+struct obj_skin_ex_node_expression {
+    obj_skin_ex_node_transform transform;
+    uint32_t node_name;
+    int32_t nb_src;
+    const char* script[9];
 
-    obj_skin_block_expression();
+    obj_skin_ex_node_expression();
 };
 
 struct obj_skin_motion_node {
-    uint32_t name_index;
+    uint32_t node_name;
     mat4 inv_bind_pose_mat;
 
     obj_skin_motion_node();
 };
 
-struct obj_skin_block_motion {
-    obj_skin_block_node node;
+struct obj_skin_ex_node_motion {
+    obj_skin_ex_node_transform transform;
     union {
         const char* name;
-        uint32_t name_index;
+        uint32_t node_name;
     };
     obj_skin_motion_node* node_array;
     int32_t num_node;
 
-    obj_skin_block_motion();
+    obj_skin_ex_node_motion();
 };
 
-struct obj_skin_osage_node {
-    uint32_t name_index;
+struct obj_skin_osage_joint_rotation {
+    uint32_t nid;
     float_t length;
     vec3 rotation;
 
-    obj_skin_osage_node();
+    obj_skin_osage_joint_rotation();
 };
 
-struct obj_skin_block_osage {
-    obj_skin_block_node node;
-    uint32_t start_index;
-    int32_t count;
-    obj_skin_osage_node* node_array;
-    int32_t num_node;
+struct obj_skin_ex_node_osage {
+    obj_skin_ex_node_transform transform;
+    uint32_t joint_ofs;
+    uint32_t nb_joint;
+    obj_skin_osage_joint_rotation* joint_rotation_array;
+    int32_t num_joint_rotation;
     obj_skin_skin_param* skin_param;
-    uint32_t name_index;
-    uint32_t end_name_index;
+    uint32_t root_idx;
+    uint32_t efc_idx;
     const char* motion_node_name;
 
-    obj_skin_block_osage();
+    obj_skin_ex_node_osage();
 };
 
-struct obj_skin_block {
-    obj_skin_block_type type;
+struct obj_skin_ex_node {
+    obj_skin_ex_node_type type;
     union {
-        obj_skin_block_node* node;
-        obj_skin_block_cloth* cloth;
-        obj_skin_block_constraint* constraint;
-        obj_skin_block_expression* expression;
-        obj_skin_block_motion* motion;
-        obj_skin_block_osage* osage;
+        obj_skin_ex_node_transform* transform;
+        obj_skin_ex_node_cloth* cloth;
+        obj_skin_ex_node_constraint* constraint;
+        obj_skin_ex_node_expression* expression;
+        obj_skin_ex_node_motion* motion;
+        obj_skin_ex_node_osage* osage;
     };
 
-    obj_skin_block();
+    obj_skin_ex_node();
 };
 
-struct obj_skin_osage_sibling_info {
-    uint32_t name_index;
-    uint32_t sibling_name_index;
-    float_t max_distance;
+struct obj_skin_osage_constraint_info {
+    uint32_t dst_joint;
+    uint32_t src_joint;
+    float_t length;
 
-    obj_skin_osage_sibling_info();
+    obj_skin_osage_constraint_info();
+};
+
+struct obj_skin_osage_joint {
+    uint32_t nid;
+    float_t length;
+
+    obj_skin_osage_joint();
 };
 
 struct obj_skin_ex_data {
-    obj_skin_osage_node* osage_node_array;
-    int32_t num_osage_node;
-    obj_skin_block* block_array;
-    int32_t num_block;
-    const char** bone_name_array;
-    int32_t num_bone_name;
-    obj_skin_osage_sibling_info* osage_sibling_info_array;
-    int32_t num_osage_sibling_info;
+    int32_t nb_jointX;
+    const char* osage_root;
+    obj_skin_osage_joint* osage_joint;
+    obj_skin_ex_node* ex_node_table;
+    int32_t num_ex_node;
+    int32_t nb_node_name;
+    const char** ex_node_name;
+    obj_skin_osage_constraint_info* osage_constraint_tbl;
+    int32_t num_osage_constraint;
     int64_t reserved[7];
 
     obj_skin_ex_data();

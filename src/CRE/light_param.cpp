@@ -657,7 +657,7 @@ void light_param_data::set_light(const light_param_light* light) {
 }
 
 void light_param_data::set_wind(const light_param_wind* w) {
-    ::wind* wind = task_wind->ptr;
+    Wind* wind = task_wind->stage_wind.wind;
     if (w->has_scale)
         wind->scale = w->scale;
 
@@ -665,8 +665,8 @@ void light_param_data::set_wind(const light_param_wind* w) {
         wind->cycle = w->cycle;
 
     if (w->has_rot) {
-        wind->rot_y = w->rot_y;
-        wind->rot_z = w->rot_z;
+        wind->yrot = w->rot_y;
+        wind->zrot = w->rot_z;
     }
 
     if (w->has_bias)
@@ -674,8 +674,8 @@ void light_param_data::set_wind(const light_param_wind* w) {
 
     for (int32_t i = 0; i < 16; i++)
         if (w->has_spc[i]) {
-            wind->spc[i].cos = w->spc[i].cos;
-            wind->spc[i].sin = w->spc[i].sin;
+            wind->spectrum[i].cos = w->spc[i].cos;
+            wind->spectrum[i].sin = w->spc[i].sin;
         }
 }
 

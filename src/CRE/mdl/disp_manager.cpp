@@ -37,6 +37,10 @@ static const GLuint      BONE_INDEX_INDEX = 15;
 
 static void sub_140436760(const cam_data& cam);
 
+RobSkinCol::RobSkinCol() : type() {
+
+}
+
 material_list_struct::material_list_struct() : blend_color(), has_blend_color(), emission(), has_emission() {
     hash = (uint32_t)-1;
 }
@@ -65,10 +69,6 @@ texture_transform_struct::texture_transform_struct(uint32_t id, const mat4& mat)
 }
 
 morph_struct::morph_struct() : weight() {
-
-}
-
-texture_data_struct::texture_data_struct() : field_0() {
 
 }
 
@@ -2836,7 +2836,7 @@ namespace mdl {
 
     void DispManager::entry_obj_by_object_info_object_skin(object_info obj_info,
         const std::vector<texture_pattern_struct>* texture_pattern,
-        const texture_data_struct* texture_data, float_t alpha,
+        const RobSkinCol* skin_col, float_t alpha,
         const mat4* matrices, const mat4* ex_data_matrices, const mat4* mat, const mat4& global_mat) {
         obj_skin* skin = objset_info_storage_get_obj_skin(obj_info);
         if (!skin)
@@ -2844,29 +2844,29 @@ namespace mdl {
 
         obj_skin_set_matrix_buffer(skin, matrices, ex_data_matrices, rctx_ptr->matrix_buffer, mat, global_mat);
 
-        vec4 texture_color_coefficients;
-        vec4 texture_color_offset;
-        vec4 texture_specular_coefficients;
-        vec4 texture_specular_offset;
-        if (texture_data && !texture_data->field_0) {
+        vec4 blend_color;
+        vec4 offset_color;
+        vec4 blend_specular;
+        vec4 offset_specular;
+        if (skin_col && !skin_col->type) {
             vec4 value;
-            get_texture_color_coeff(texture_color_coefficients);
-            *(vec3*)&value = texture_data->texture_color_coefficients * *(vec3*)&texture_color_coefficients;
+            get_texture_color_coeff(blend_color);
+            *(vec3*)&value = skin_col->blend_color * *(vec3*)&blend_color;
             value.w = 0.0f;
             set_texture_color_coefficients(value);
 
-            get_texture_color_offset(texture_color_offset);
-            *(vec3*)&value = texture_data->texture_color_offset;
+            get_texture_color_offset(offset_color);
+            *(vec3*)&value = skin_col->offset_color;
             value.w = 0.0f;
             set_texture_color_offset(value);
 
-            get_texture_specular_coeff(texture_specular_coefficients);
-            *(vec3*)&value = texture_data->texture_specular_coefficients * *(vec3*)&texture_specular_coefficients;
+            get_texture_specular_coeff(blend_specular);
+            *(vec3*)&value = skin_col->blend_specular * *(vec3*)&blend_specular;
             value.w = 0.0f;
             set_texture_specular_coefficients(value);
 
-            get_texture_specular_offset(texture_specular_offset);
-            *(vec3*)&value = texture_data->texture_specular_offset;
+            get_texture_specular_offset(offset_specular);
+            *(vec3*)&value = skin_col->offset_specular;
             value.w = 0.0f;
             set_texture_specular_offset(value);
         }
@@ -2883,11 +2883,11 @@ namespace mdl {
         if (texture_pattern && texture_pattern_count)
             set_texture_pattern();
 
-        if (texture_data && !texture_data->field_0) {
-            set_texture_color_coefficients(texture_color_coefficients);
-            set_texture_color_offset(texture_color_offset);
-            set_texture_specular_coefficients(texture_specular_coefficients);
-            set_texture_specular_offset(texture_specular_offset);
+        if (skin_col && !skin_col->type) {
+            set_texture_color_coefficients(blend_color);
+            set_texture_color_offset(offset_color);
+            set_texture_specular_coefficients(blend_specular);
+            set_texture_specular_offset(offset_specular);
         }
     }
 
