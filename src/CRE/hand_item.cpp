@@ -16,13 +16,13 @@
 struct hand_item_handler {
     std::list<p_file_handler*> file_handlers;
     bool ready;
-    std::map<std::pair<int32_t, chara_index>, hand_item> hand_items;
+    std::map<std::pair<int32_t, CHARA_NUM>, hand_item> hand_items;
 
     hand_item_handler();
     ~hand_item_handler();
 
     void clear();
-    const hand_item* get_hand_item(int32_t uid, chara_index chara_index);
+    const hand_item* get_hand_item(int32_t uid, CHARA_NUM chara_num);
     int32_t get_hand_item_uid(const char* str);
     bool load();
     void parse(p_file_handler* pfhndl);
@@ -30,7 +30,7 @@ struct hand_item_handler {
 };
 
 static void hand_item_load(const object_database* obj_db,
-    std::map<std::pair<int32_t, chara_index>, hand_item>& hand_items, hnd_itm& hnd_itm_file);
+    std::map<std::pair<int32_t, CHARA_NUM>, hand_item>& hand_items, hnd_itm& hnd_itm_file);
 
 static int32_t mtp_hand_array_get_mottbl_index(const char* str);
 
@@ -49,13 +49,13 @@ void hand_item_handler_data_init() {
         hand_item_handler_data = new hand_item_handler;
 }
 
-const hand_item* hand_item_handler_data_get_hand_item(int32_t uid, chara_index chara_index) {
+const hand_item* hand_item_handler_data_get_hand_item(int32_t uid, CHARA_NUM chara_num) {
     if (uid >= 0)
-        return hand_item_handler_data->get_hand_item(uid, chara_index);
+        return hand_item_handler_data->get_hand_item(uid, chara_num);
     return 0;
 }
 
-const std::map<std::pair<int32_t, chara_index>, hand_item>& hand_item_handler_data_get_hand_items() {
+const std::map<std::pair<int32_t, CHARA_NUM>, hand_item>& hand_item_handler_data_get_hand_items() {
     return hand_item_handler_data->hand_items;
 }
 
@@ -100,12 +100,12 @@ void hand_item_handler::clear() {
     file_handlers.clear();
 }
 
-const hand_item* hand_item_handler::get_hand_item(int32_t uid, chara_index chara_index) {
-    auto elem0 = hand_items.find({ uid, chara_index });
+const hand_item* hand_item_handler::get_hand_item(int32_t uid, CHARA_NUM chara_num) {
+    auto elem0 = hand_items.find({ uid, chara_num });
     if (elem0 != hand_items.end())
         return &elem0->second;
 
-    auto elem1 = hand_items.find({ uid, CHARA_NONE });
+    auto elem1 = hand_items.find({ uid, CN_NONE });
     if (elem1 != hand_items.end())
         return &elem1->second;
     return 0;
@@ -166,7 +166,7 @@ void hand_item_handler::read() {
 }
 
 static void hand_item_load(const object_database* obj_db,
-    std::map<std::pair<int32_t, chara_index>, hand_item>& hand_items, hnd_itm& hnd_itm_file) {
+    std::map<std::pair<int32_t, CHARA_NUM>, hand_item>& hand_items, hnd_itm& hnd_itm_file) {
     for (hnd_itm_data& i : hnd_itm_file.data) {
         hand_item itm;
         itm.obj_left = obj_db->get_object_info(i.objname_left.c_str());
@@ -182,7 +182,7 @@ static void hand_item_load(const object_database* obj_db,
             continue;
 
         itm.hand_mottbl_index = hand_motion_id;
-        hand_items.insert({ { itm.uid, CHARA_NONE }, itm });
+        hand_items.insert({ { itm.uid, CN_NONE }, itm });
     }
 }
 

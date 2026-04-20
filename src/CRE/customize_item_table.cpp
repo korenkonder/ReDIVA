@@ -38,7 +38,7 @@ struct customize_item_data_handler {
     ~customize_item_data_handler();
 
     void add_all_customize_items();
-    void get_chara_item(const std::string& name, chara_index& chara_index, int32_t& item_no);
+    void get_chara_item(const std::string& name, CHARA_NUM& chara_num, int32_t& item_no);
     void add_customize_items();
     bool get_customize_item(int32_t id, customize_item_data& data);
     int32_t get_customize_item_obj_id(int32_t id);
@@ -57,7 +57,7 @@ customize_item::~customize_item() {
 
 }
 
-customize_item_data::customize_item_data() : id(), obj_id(), sort_index(), chara_index(), parts(),
+customize_item_data::customize_item_data() : id(), obj_id(), sort_index(), chara_num(), parts(),
 spr_cmnitm_thmb_id_itm_img_spr_id(), field_3C(), field_3D(), field_40(), spr_cmnitm_thmb_id_spr_set_id() {
     reset();
 }
@@ -71,7 +71,7 @@ void customize_item_data::reset() {
     obj_id = -1;
     sort_index = 0;
     name.assign("");
-    chara_index = CHARA_MIKU;
+    chara_num = CN_MIKU;
     parts = -1;
     spr_cmnitm_thmb_id_itm_img_spr_id = -1;
     field_3C = false;
@@ -120,8 +120,8 @@ void customize_item_data_handler_data_add_all_customize_items() {
 }
 
 void customize_item_table_handler_data_get_chara_item(
-    const std::string& name, chara_index& chara_index, int32_t& item_no) {
-    customize_item_data_handler_data->get_chara_item(name, chara_index, item_no);
+    const std::string& name, CHARA_NUM& chara_num, int32_t& item_no) {
+    customize_item_data_handler_data->get_chara_item(name, chara_num, item_no);
 }
 
 bool customize_item_data_handler_data_get_customize_item(int32_t id, customize_item_data& data) {
@@ -316,12 +316,12 @@ void customize_item_data_handler::add_all_customize_items() {
 }
 
 void customize_item_data_handler::get_chara_item(
-    const std::string& name, chara_index& chara_index, int32_t& item_no) {
+    const std::string& name, CHARA_NUM& chara_num, int32_t& item_no) {
     size_t pos = name.find('_');
     if (pos < 6)
         return;
 
-    ::chara_index _chara_index = CHARA_MAX;
+    CHARA_NUM cn = CN_MAX;
     int32_t _item_no = atoi(name.substr(6, pos - 6).c_str());
     if (!_item_no)
         return;
@@ -330,17 +330,17 @@ void customize_item_data_handler::get_chara_item(
 
     std::string chara(name.substr(0, 3));
     if (chara.compare("CMN"))
-        _chara_index = chara_index_get_from_chara_name(chara.c_str());
+        cn = get_chara_num_from_char_id(chara.c_str());
     else
         for (const auto& i : customize_item_table_handler_data_get_customize_items())
             if (i.second.obj_id == item_no) {
                 if (i.second.chara == 10)
-                    _chara_index = CHARA_MIKU;
+                    cn = CN_MIKU;
                 break;
             }
 
-    if (_chara_index != CHARA_MAX)
-        chara_index = _chara_index;
+    if (cn != CN_MAX)
+        chara_num = cn;
 }
 
 void customize_item_data_handler::add_customize_items() {
@@ -357,7 +357,7 @@ void customize_item_data_handler::add_customize_items() {
         cstm_itm.obj_id = i.second.obj_id;
         cstm_itm.sort_index = i.second.sort_index;
         cstm_itm.name.assign(i.second.name);
-        cstm_itm.chara_index = (chara_index)i.second.chara;
+        cstm_itm.chara_num = (CHARA_NUM)i.second.chara;
         cstm_itm.parts = i.second.parts;
 
         /*struc_781 v24;

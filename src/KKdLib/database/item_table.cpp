@@ -1,4 +1,4 @@
-/*
+﻿/*
     by korenkonder
     GitHub/GitLab: korenkonder
 */
@@ -11,63 +11,15 @@
 #include "../sort.hpp"
 #include "../str_utils.hpp"
 
-const char* chara_auth_3d_names[] = {
-    "MIK",
-    "RIN",
-    "LEN",
-    "LUK",
-    "NER",
-    "HAK",
-    "KAI",
-    "MEI",
-    "SAK",
-    "TET",
-    "EXT",
+struct RobCharaData {
+    const char* name;
+    const char* name_short;
+    const char* triplet;
+    const char* name_face_mot;
+    const char* name_kana;
 };
 
-const char* chara_face_mot_names[] = {
-    "MIK",
-    "RIN",
-    "LEN",
-    "LUK",
-    "NER",
-    "HAK",
-    "KAI",
-    "MEI",
-    "SAK",
-    "TET",
-    "EXT",
-};
-
-const char* chara_full_names[] = {
-    "MIKU",
-    "RIN",
-    "LEN",
-    "LUKA",
-    "NERU",
-    "HAKU",
-    "KAITO",
-    "MEIKO",
-    "SAKINE",
-    "TETO",
-    "EXTRA",
-};
-
-const char* chara_names[] = {
-    "MIK",
-    "RIN",
-    "LEN",
-    "LUK",
-    "NER",
-    "HAK",
-    "KAI",
-    "MEI",
-    "SAK",
-    "TET",
-    "EXT",
-};
-
-const char* item_id_names[] = {
+const char* rob_parts_kind_str[] = {
     "BODY",
     "ATAMA",
     "KATA_R",
@@ -101,7 +53,7 @@ const char* item_id_names[] = {
     "ITEM16",
 };
 
-const char* item_sub_id_names[] = {
+const char* rob_item_equip_sub_id_str[] = {
     "ZUJO",
     "KAMI",
     "HITAI",
@@ -127,6 +79,20 @@ const char* item_sub_id_names[] = {
     "KUTSU",
     "HADA",
     "HEAD",
+};
+
+static RobCharaData rob_chara_data_list[] = {
+    { "MIKU"  , "MIK", "MIK", "MIK", u8"ミク" },
+    { "RIN"   , "RIN", "RIN", "RIN", u8"リン" },
+    { "LEN"   , "LEN", "LEN", "LEN", u8"レン" },
+    { "LUKA"  , "LUK", "LUK", "LUK", u8"ルカ" },
+    { "NERU"  , "NER", "NER", "NER", u8"ネル" },
+    { "HAKU"  , "HAK", "HAK", "HAK", u8"ハク" },
+    { "KAITO" , "KAI", "KAI", "KAI", u8"カイト" },
+    { "MEIKO" , "MEI", "MEI", "MEI", u8"メイコ" },
+    { "SAKINE", "SAK", "SAK", "SAK", u8"サキネ" },
+    { "TETO"  , "TET", "TET", "TET", u8"テト" },
+    { "EXTRA" , "EXT", "EXT", "EXT", u8"エクストラ" },
 };
 
 static void itm_table_read_inner(itm_table* itm_tbl, stream& s);
@@ -302,31 +268,37 @@ bool itm_table::load_file(void* data, const char* dir, const char* file, uint32_
     return itm_tbl->ready;
 }
 
-const char* chara_index_get_auth_3d_name(chara_index chara_index) {
-    if (chara_index >= 0 && chara_index < CHARA_MAX)
-        return chara_auth_3d_names[chara_index];
+const char* get_char_id_str(CHARA_NUM cname) {
+    if (cname >= 0 && cname < CN_MAX)
+        return rob_chara_data_list[cname].triplet;
     return 0;
 }
 
-const char* chara_index_get_chara_name(chara_index chara_index) {
-    if (chara_index >= 0 && chara_index < CHARA_MAX)
-        return chara_names[chara_index];
+const char* get_chara_name(CHARA_NUM cname) {
+    if (cname >= 0 && cname < CN_MAX)
+        return rob_chara_data_list[cname].name_short;
     return 0;
 }
 
-const char* chara_index_get_face_mot_name(chara_index chara_index) {
-    if (chara_index >= 0 && chara_index < CHARA_MAX)
-        return chara_face_mot_names[chara_index];
+const char* get_chara_name_face_mot(CHARA_NUM cname) {
+    if (cname >= 0 && cname < CN_MAX)
+        return rob_chara_data_list[cname].name_face_mot;
     return 0;
 }
 
-chara_index chara_index_get_from_chara_name(const char* str) {
-    if (!str)
-        return CHARA_MAX;
+const char* get_chara_name_full(CHARA_NUM cname) {
+    if (cname >= 0 && cname < CN_MAX)
+        return rob_chara_data_list[cname].name;
+    return 0;
+}
 
-    for (int32_t i = 0; i < CHARA_MAX; i++) {
-        const char* chr_s = chara_names[i];
-        const char* s = str;
+CHARA_NUM get_chara_num_from_char_id(const char* in_name) {
+    if (!in_name)
+        return CN_MAX;
+
+    for (int32_t i = 0; i < CN_MAX; i++) {
+        const char* chr_s = rob_chara_data_list[i].triplet;
+        const char* s = in_name;
 
         char chr_c;
         char diff;
@@ -341,26 +313,20 @@ chara_index chara_index_get_from_chara_name(const char* str) {
         } while (chr_c);
 
         if (!diff)
-            return (chara_index)i;
+            return (CHARA_NUM)i;
     }
-    return CHARA_MAX;
+    return CN_MAX;
 }
 
-const char* chara_index_get_name(chara_index chara_index) {
-    if (chara_index >= 0 && chara_index < CHARA_MAX)
-        return chara_full_names[chara_index];
-    return 0;
-}
-
-const char* item_id_get_name(item_id id) {
-    if (id >= 0 && id < ITEM_MAX)
-        return item_id_names[id];
+const char* item_id_get_name(ROB_PARTS_KIND rpk) {
+    if (rpk >= 0 && rpk < RPK_MAX)
+        return rob_parts_kind_str[rpk];
     return 0;
 }
 
 const char* item_sub_id_get_name(item_sub_id sub_id) {
     if (sub_id >= 0 && sub_id < ITEM_SUB_MAX)
-        return item_sub_id_names[sub_id];
+        return rob_item_equip_sub_id_str[sub_id];
     return 0;
 }
 
@@ -512,7 +478,7 @@ static void itm_table_read_text(itm_table* itm_tbl, void* data, size_t size) {
                         itm_table_item_data_obj obj;
                         int32_t rpk = 0;
                         if (kv.read("rpk", rpk))
-                            obj.rpk = (item_id)rpk;
+                            obj.rpk = (ROB_PARTS_KIND)rpk;
                         kv.read("uid", obj.uid);
                         vido.push_back(obj);
 

@@ -25,7 +25,7 @@ pv_db_pv_lyric::~pv_db_pv_lyric() {
 
 pv_db_pv_performer::pv_db_pv_performer() {
     type = PV_PERFORMER_VOCAL;
-    chara = (chara_index)-1;
+    chara = CN_NONE;
     costume = -1;
     pv_costume[0] = -1;
     pv_costume[1] = -1;
@@ -255,7 +255,7 @@ int32_t pv_db_pv_difficulty::get_hand_item_uid(int32_t index) const {
 const pv_db_pv_motion& pv_db_pv_difficulty::get_motion_or_default(int32_t chara_id, int32_t index) const {
     static const pv_db_pv_motion pv_db_pv_motion_null;
 
-    if (chara_id < 0 || chara_id >= ROB_CHARA_COUNT)
+    if (chara_id < 0 || chara_id >= ROB_ID_MAX)
         return pv_db_pv_motion_null;
 
     for (const pv_db_pv_motion& i : motion[chara_id])
@@ -341,8 +341,8 @@ pv_db_pv_ex_song::~pv_db_pv_ex_song() {
 }
 
 void pv_db_pv_ex_song::reset() {
-    for (chara_index& i : chara)
-        i = (chara_index)-1;
+    for (CHARA_NUM& i : chara)
+        i = CN_NONE;
     file.clear();
     file.shrink_to_fit();
     name.clear();
@@ -490,7 +490,7 @@ pv_db_pv::~pv_db_pv() {
 }
 
 int32_t pv_db_pv::get_chrmot_motion_id(int32_t chara_id,
-    chara_index chara_index, const pv_db_pv_motion& motion) const {
+    CHARA_NUM chara_num, const pv_db_pv_motion& motion) const {
     if (!chrmot.size())
         return motion.id;
 
@@ -498,8 +498,8 @@ int32_t pv_db_pv::get_chrmot_motion_id(int32_t chara_id,
     motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
     for (const pv_db_pv_chrmot& i : chrmot)
-        if (i.id == chara_id && chara_index_get_from_chara_name(i.chara.c_str())
-            == chara_index && !i.org_name.compare(motion.name)) {
+        if (i.id == chara_id && get_chara_num_from_char_id(i.chara.c_str()) == chara_num
+            && !i.org_name.compare(motion.name)) {
             uint32_t motion_id = aft_mot_db->get_motion_id(i.name.c_str());
             if (motion_id != -1)
                 return motion_id;
@@ -529,11 +529,11 @@ const pv_db_pv_difficulty* pv_db_pv::get_difficulty(pv_difficulty difficulty, pv
     return 0;
 }
 
-chara_index pv_db_pv::get_performer_chara(int32_t performer) const {
-    if (performer < 0 || performer >= ROB_CHARA_COUNT || performer >= this->performer.size())
-        return CHARA_MIKU;
+CHARA_NUM pv_db_pv::get_performer_chara(int32_t performer) const {
+    if (performer < 0 || performer >= ROB_ID_MAX || performer >= this->performer.size())
+        return CN_MIKU;
 
-    chara_index chara = this->performer[performer].chara;
+    CHARA_NUM chara = this->performer[performer].chara;
     pv_performer_type type = this->performer[performer].type;
     if (type >= PV_PERFORMER_PSEUDO_DEFAULT && type <= PV_PERFORMER_PSEUDO_MYCHARA) {
         performer = get_performer_pseudo_same_id(performer);
@@ -541,14 +541,14 @@ chara_index pv_db_pv::get_performer_chara(int32_t performer) const {
             chara = this->performer[performer].chara;
     }
 
-    if (chara < 0 || chara >= CHARA_MAX)
-        chara = CHARA_MIKU;
+    if (chara < 0 || chara >= CN_MAX)
+        chara = CN_MIKU;
 
     return chara;
 }
 
 int32_t pv_db_pv::get_performer_costume(int32_t performer) const {
-    if (performer < 0 || performer >= ROB_CHARA_COUNT || performer >= this->performer.size())
+    if (performer < 0 || performer >= ROB_ID_MAX || performer >= this->performer.size())
         return -1;
 
     int32_t costume = this->performer[performer].costume;
@@ -570,14 +570,14 @@ size_t pv_db_pv::get_performer_count() const {
 }
 
 int32_t pv_db_pv::get_performer_exclude(int32_t performer) const {
-    if (performer < 0 || performer >= ROB_CHARA_COUNT || performer >= this->performer.size())
+    if (performer < 0 || performer >= ROB_ID_MAX || performer >= this->performer.size())
         return -1;
 
     return this->performer[performer].exclude;
 }
 
 bool pv_db_pv::get_performer_fixed(int32_t performer) const {
-    if (performer < 0 || performer >= ROB_CHARA_COUNT || performer >= this->performer.size())
+    if (performer < 0 || performer >= ROB_ID_MAX || performer >= this->performer.size())
         return false;
 
     return this->performer[performer].fixed;
@@ -592,7 +592,7 @@ size_t pv_db_pv::get_performer_fixed_count() const {
 }
 
 int32_t pv_db_pv::get_performer_item(int32_t performer, pv_performer_item item) const {
-    if (performer < 0 || performer >= ROB_CHARA_COUNT || performer >= this->performer.size())
+    if (performer < 0 || performer >= ROB_ID_MAX || performer >= this->performer.size())
         return -1;
 
     if (item >= 0 && item < PV_PERFORMER_ITEM_MAX)
@@ -600,23 +600,23 @@ int32_t pv_db_pv::get_performer_item(int32_t performer, pv_performer_item item) 
     return -1;
 }
 
-bool pv_db_pv::get_performer_pseudo_fixed(chara_index chara_index, int32_t performer, bool a4, bool a5) const {
-    if (performer < 0 || performer >= ROB_CHARA_COUNT
-        || chara_index < 0 || chara_index >= CHARA_MAX || performer >= this->performer.size())
+bool pv_db_pv::get_performer_pseudo_fixed(CHARA_NUM chara_num, int32_t performer, bool a4, bool a5) const {
+    if (performer < 0 || performer >= ROB_ID_MAX
+        || chara_num < 0 || chara_num >= CN_MAX || performer >= this->performer.size())
         return false;
 
-    ::chara_index chara = this->performer[performer].chara;
+    CHARA_NUM chara = this->performer[performer].chara;
     pv_performer_type type = this->performer[performer].type;
     bool v11 = (!a5 ? !a4 : false) || get_performer_fixed(performer);
     if (type >= PV_PERFORMER_PSEUDO_DEFAULT && type <= PV_PERFORMER_PSEUDO_MYCHARA)
         return true;
-    else if (chara < 0 || chara >= CHARA_MAX)
+    else if (chara < 0 || chara >= CN_MAX)
         return false;
     return v11;
 }
 
 int32_t pv_db_pv::get_performer_pseudo_same_id(int32_t performer) const {
-    if (performer < 0 || performer >= ROB_CHARA_COUNT || performer >= this->performer.size())
+    if (performer < 0 || performer >= ROB_ID_MAX || performer >= this->performer.size())
         return -1;
 
     pv_performer_type type = this->performer[performer].type;
@@ -640,7 +640,7 @@ int32_t pv_db_pv::get_performer_pseudo_same_id(int32_t performer) const {
 }
 
 int32_t pv_db_pv::get_performer_pv_costume(int32_t performer, pv_difficulty difficulty) const {
-    if (performer < 0 || performer >= ROB_CHARA_COUNT || performer >= this->performer.size())
+    if (performer < 0 || performer >= ROB_ID_MAX || performer >= this->performer.size())
         return -1;
 
     const pv_db_pv_performer* perf = &this->performer[performer];
@@ -666,7 +666,7 @@ int32_t pv_db_pv::get_performer_pv_costume(int32_t performer, pv_difficulty diff
 }
 
 pv_performer_size pv_db_pv::get_performer_size(int32_t performer) const {
-    if (performer < 0 || performer >= ROB_CHARA_COUNT || performer >= this->performer.size())
+    if (performer < 0 || performer >= ROB_ID_MAX || performer >= this->performer.size())
         return PV_PERFORMER_NORMAL;
 
     pv_performer_size size = this->performer[performer].size;
@@ -680,14 +680,14 @@ pv_performer_size pv_db_pv::get_performer_size(int32_t performer) const {
 }
 
 pv_performer_type pv_db_pv::get_performer_type(int32_t performer) const {
-    if (performer < 0 || performer >= ROB_CHARA_COUNT || performer >= this->performer.size())
+    if (performer < 0 || performer >= ROB_ID_MAX || performer >= this->performer.size())
         return PV_PERFORMER_VOCAL;
 
     return this->performer[performer].type;
 }
 
 bool pv_db_pv::is_performer_type_pseudo(int32_t performer) const {
-    if (performer < 0 || performer >= ROB_CHARA_COUNT || performer >= this->performer.size())
+    if (performer < 0 || performer >= ROB_ID_MAX || performer >= this->performer.size())
         return false;
 
     pv_performer_type type = this->performer[performer].type;
@@ -695,7 +695,7 @@ bool pv_db_pv::is_performer_type_pseudo(int32_t performer) const {
 }
 
 bool pv_db_pv::is_performer_type_vocal(int32_t performer) const {
-    if (performer < 0 || performer >= ROB_CHARA_COUNT || performer >= this->performer.size())
+    if (performer < 0 || performer >= ROB_ID_MAX || performer >= this->performer.size())
         return false;
 
     return this->performer[performer].type == PV_PERFORMER_VOCAL;
@@ -756,14 +756,14 @@ void pv_db_pv::reset() {
     auth_replace_by_module.shrink_to_fit();
 }
 
-int32_t pv_db_pv::get_pseudo_costume(pv_performer_type type, chara_index chara_index, int32_t costume) {
+int32_t pv_db_pv::get_pseudo_costume(pv_performer_type type, CHARA_NUM chara_num, int32_t costume) {
     switch (type) {
     case PV_PERFORMER_PSEUDO_SAME:
         return costume;
     case PV_PERFORMER_PSEUDO_SWIM:
-        return chara_init_data_get_swim_costume(chara_index);
+        return rob_data_get_swim_costume(chara_num);
     case PV_PERFORMER_PSEUDO_SWIM_S:
-        return chara_init_data_get_swim_s_costume(chara_index);
+        return rob_data_get_swim_s_costume(chara_num);
     case PV_PERFORMER_PSEUDO_MYCHARA:
         return -1;
     default:
@@ -1136,9 +1136,9 @@ namespace pv_db {
 
                 const char* chara;
                 if (kv.read("chara", chara)) {
-                    chara_index chara_index = chara_index_get_from_chara_name(chara);
-                    if (chara_index != CHARA_MAX)
-                        performer.chara = chara_index;
+                    CHARA_NUM chara_num = get_chara_num_from_char_id(chara);
+                    if (chara_num != CN_MAX)
+                        performer.chara = chara_num;
                 }
 
                 int32_t costume;
@@ -1309,14 +1309,14 @@ namespace pv_db {
 
                 const char* chr;
                 if (kv.read("chr", chr)) {
-                    chara_index chara_index = chara_index_get_from_chara_name(chr);
+                    CHARA_NUM chara_num = get_chara_num_from_char_id(chr);
                     float_t xp_rate;
                     float_t xn_rate;
-                    if (chara_index != CHARA_MAX && kv.read("xp_rate", xp_rate) && kv.read("xn_rate", xn_rate)) {
+                    if (chara_num != CN_MAX && kv.read("xp_rate", xp_rate) && kv.read("xn_rate", xn_rate)) {
                         pv_db_pv_eyes_rot_rate eyes_rot_rate;
                         eyes_rot_rate.xp_rate = xp_rate;
                         eyes_rot_rate.xn_rate = xn_rate;
-                        pv->eyes_rot_rate.insert_or_assign(chara_index, eyes_rot_rate);
+                        pv->eyes_rot_rate.insert_or_assign(chara_num, eyes_rot_rate);
                     }
                 }
 
@@ -1325,8 +1325,8 @@ namespace pv_db {
             kv.close_scope();
         }
 
-        int32_t pv_costumes[ROB_CHARA_COUNT][PV_DIFFICULTY_MAX];
-        for (int32_t i = 0; i < ROB_CHARA_COUNT; i++)
+        int32_t pv_costumes[ROB_ID_MAX][PV_DIFFICULTY_MAX];
+        for (int32_t i = 0; i < ROB_ID_MAX; i++)
             for (int32_t j = 0; j < PV_DIFFICULTY_MAX; j++)
                 pv_costumes[i][j] = -1;
 
@@ -1462,7 +1462,7 @@ namespace pv_db {
                         if (kv.read("slidertouch_name", slidertouch_name))
                             d.slidertouch_name.assign(slidertouch_name);
 
-                        for (size_t l = 0; l < ROB_CHARA_COUNT; l++) {
+                        for (size_t l = 0; l < ROB_ID_MAX; l++) {
                             if (l)
                                 sprintf_s(buf, sizeof(buf), "motion%zuP", l + 1);
 
@@ -1710,7 +1710,7 @@ namespace pv_db {
                         if (kv.read("edit_chara_scale", edit_chara_scale))
                             d.edit_chara_scale = edit_chara_scale == 1;
 
-                        for (int32_t l = 0; l < ROB_CHARA_COUNT; l++) {
+                        for (int32_t l = 0; l < ROB_ID_MAX; l++) {
                             if (!kv.open_scope_fmt("performer.%d.pv_costume", l))
                                 continue;
 
@@ -1752,17 +1752,17 @@ namespace pv_db {
                 kv.read("name", name);
 
                 pv_db_pv_ex_song ex_song;
-                ex_song.chara[0] = chara_index_get_from_chara_name(chara);
+                ex_song.chara[0] = get_chara_num_from_char_id(chara);
 
                 int32_t _chara_count = 1;
                 bool v533 = false;
 
-                for (size_t j = 1; j < ROB_CHARA_COUNT; j++) {
+                for (size_t j = 1; j < ROB_ID_MAX; j++) {
                     sprintf_s(buf, sizeof(buf), "chara%zuP", j + 1);
 
                     const char* chara;
                     if (kv.read(buf, chara)) {
-                        ex_song.chara[j] = chara_index_get_from_chara_name(chara);
+                        ex_song.chara[j] = get_chara_num_from_char_id(chara);
                         if (v533)
                             goto ex_song_reset;
                     }
@@ -1972,7 +1972,7 @@ namespace pv_db {
                 frame_texture.type = PV_FRAME_TEXTURE_POST_PP;
         }
 
-        for (int32_t i = 0; i < ROB_CHARA_COUNT; i++)
+        for (int32_t i = 0; i < ROB_ID_MAX; i++)
             for (int32_t j = 0; j < PV_DIFFICULTY_MAX; j++) {
                 int32_t pv_costume = pv_costumes[i][j];
                 if (pv_costume == -1)
@@ -2247,14 +2247,14 @@ namespace pv_db {
     }
 }
 
-item_id pv_performer_item_to_item_id(pv_performer_item item) {
-    static const item_id pv_performer_item_id_to_item_id_table[] = {
-         ITEM_ZUJO, ITEM_MEGANE, ITEM_KUBI, ITEM_JOHA_USHIRO,
+ROB_PARTS_KIND pv_performer_item_to_rob_parts_kind(pv_performer_item item) {
+    static const ROB_PARTS_KIND pv_performer_item_to_rob_parts_kind_table[] = {
+         RPK_ZUJO, RPK_MEGANE, RPK_KUBI, RPK_JOHA_USHIRO,
     };
 
     if (item >= 0 && item < PV_PERFORMER_ITEM_MAX)
-        return pv_performer_item_id_to_item_id_table[item];
-    return ITEM_NONE;
+        return pv_performer_item_to_rob_parts_kind_table[item];
+    return RPK_NONE;
 }
 
 item_sub_id pv_performer_item_to_item_sub_id(pv_performer_item item) {

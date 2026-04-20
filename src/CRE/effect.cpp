@@ -254,7 +254,7 @@ struct struc_371 {
 
 struct struc_573 {
     int32_t chara_index;
-    rob_bone_index bone_index;
+    BONE_ID bone_index;
     vec3 position;
 
     struc_573();
@@ -2481,7 +2481,7 @@ void EffectFogRing::restart_effect() {
     for (int32_t i = 0; i < 2; i++, v2++) {
         struc_573* v3 = *v2;
         for (int32_t j = 0; j < 5; j++, v3++) {
-            v3->bone_index = (rob_bone_index)0;
+            v3->bone_index = (BONE_ID)0;
             v3->position = 0.0f;
         }
     }
@@ -2545,19 +2545,19 @@ void EffectFogRing::set_stage_indices(const std::vector<int32_t>& stage_indices)
     for (int32_t i = 0; i < 2; i++, v2++) {
         struc_573* v3 = *v2;
         v3[0].chara_index = i;
-        v3[0].bone_index = ROB_BONE_KL_TOE_R_WJ;
+        v3[0].bone_index = BONE_ID_KL_TOE_R_WJ;
         v3[0].position = 0.0f;
         v3[1].chara_index = i;
-        v3[1].bone_index = ROB_BONE_KL_TOE_L_WJ;
+        v3[1].bone_index = BONE_ID_KL_TOE_L_WJ;
         v3[1].position = 0.0f;
         v3[2].chara_index = i;
-        v3[2].bone_index = ROB_BONE_KL_TE_L_WJ;
+        v3[2].bone_index = BONE_ID_KL_TE_L_WJ;
         v3[2].position = 0.0f;
         v3[3].chara_index = i;
-        v3[3].bone_index = ROB_BONE_KL_TE_R_WJ;
+        v3[3].bone_index = BONE_ID_KL_TE_R_WJ;
         v3[3].position = 0.0f;
         v3[4].chara_index = i;
-        v3[4].bone_index = ROB_BONE_N_HARA_CP;
+        v3[4].bone_index = BONE_ID_N_HARA_CP;
         v3[4].position = 0.0f;
     }
 
@@ -4431,7 +4431,7 @@ bool EffectSplashParticle::init(int32_t splash_tex_id, object_info splash_obj_id
     if (!splash)
         return false;
 
-    emitter_rob_count = dword_1409E59A8_size * ROB_CHARA_COUNT;
+    emitter_rob_count = dword_1409E59A8_size * ROB_ID_MAX;
     emitter_rob = new ParticleEmitterRob[emitter_rob_count];
 
     if (!emitter_rob)
@@ -4446,7 +4446,7 @@ bool EffectSplashParticle::init(int32_t splash_tex_id, object_info splash_obj_id
     for (int32_t i = 0; i < splash_count; i++)
         splash[i].init(5000);
 
-    for (int32_t i = 0, j = 0; i < ROB_CHARA_COUNT; i++)
+    for (int32_t i = 0, j = 0; i < ROB_ID_MAX; i++)
         for (const int32_t& l : dword_1409E59A8) {
             ParticleEmitterRob& ptcl_emit_rob = emitter_rob[j++];
             ptcl_emit_rob.set_chara(i, l, in_water);
@@ -4461,13 +4461,13 @@ bool EffectSplashParticle::init(int32_t splash_tex_id, object_info splash_obj_id
     if (splash_obj_id.not_null()) {
         splash_object.init(100);
 
-        object_emitter_rob_count = dword_1409E59A8_size * ROB_CHARA_COUNT;
+        object_emitter_rob_count = dword_1409E59A8_size * ROB_ID_MAX;
         object_emitter_rob = new ParticleEmitterRob[object_emitter_rob_count];
 
         if (!object_emitter_rob)
             return false;
 
-        for (int32_t i = 0, j = 0; i < ROB_CHARA_COUNT; i++)
+        for (int32_t i = 0, j = 0; i < ROB_ID_MAX; i++)
             for (const int32_t& l : dword_1409E59A8) {
                 ParticleEmitterRob& ptcl_emit_rob = object_emitter_rob[j++];
                 ptcl_emit_rob.set_chara(i, l, in_water);

@@ -32,8 +32,8 @@ public:
             Step();
         };
 
-        ::chara_index chara_index[2];
-        ::chara_index curr_chara_index[2];
+        CHARA_NUM chara_num[2];
+        CHARA_NUM curr_chara_num[2];
         uint32_t cos_id[2];
         uint32_t curr_cos_id[2];
         uint32_t motion_set_index[2];
@@ -105,7 +105,7 @@ public:
     rob_chara_bone_data* rob_bone_data;
     int32_t chara_id;
     int32_t type;
-    ::chara_index chara_index;
+    CHARA_NUM chara_num;
     int32_t cos_id;
     union {
         uint32_t motion_set_id;
@@ -154,9 +154,9 @@ public:
     virtual bool dest() override;
     virtual void basic() override;
 
-    virtual bool add_task(::chara_index chara_index,
+    virtual bool add_task(CHARA_NUM chara_num,
         int32_t cos_id, uint32_t motion_set_index, uint32_t motion_index);
-    virtual bool add_task(::chara_index chara_index,
+    virtual bool add_task(CHARA_NUM chara_num,
         int32_t cos_id, uint32_t motion_id);
     virtual bool del_task();
 

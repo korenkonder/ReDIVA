@@ -160,7 +160,7 @@ static void auth_3d_object_hrc_load(auth_3d* auth, auth_3d_object_hrc* oh,
 static void auth_3d_object_hrc_store(auth_3d* auth, auth_3d_object_hrc* oh,
     auth_3d_object_hrc_file* ohf);
 static bool auth_3d_object_hrc_replace_chara(auth_3d_object_hrc* oh,
-    chara_index src_chara, chara_index dst_chara, object_database* obj_db);
+    CHARA_NUM src_chara, CHARA_NUM dst_chara, object_database* obj_db);
 static void auth_3d_object_hrc_nodes_mat_mult(auth_3d_object_hrc* oh, const mat4* mat);
 static void auth_3d_object_instance_load(auth_3d* auth, auth_3d_object_instance* oi,
     auth_3d_object_instance_file* oif, auth_3d_m_object_hrc* moh, object_database* obj_db);
@@ -242,8 +242,8 @@ auth_3d::auth_3d() : uid(), id(), mat(), enable(), camera_root_update(), visible
 left_right_reverse(), once(), alpha(), chara_id(), chara_item(), shadow(), reflect(), pos(), frame_rate(), frame(),
 req_frame(), max_frame(), frame_changed(), frame_offset(), last_frame(), paused(), event_time_next() {
     hash = hash_murmurhash_empty;
-    src_chara = CHARA_MAX;
-    dst_chara = CHARA_MAX;
+    src_chara = CN_MAX;
+    dst_chara = CN_MAX;
     reset();
 }
 
@@ -575,7 +575,7 @@ void auth_3d::load(a3da* auth_file,
             auth_3d_object_hrc_load(this, &object_hrc[object_hrc_index++], &i, obj_db);
 
         for (auth_3d_object_hrc& i : object_hrc)
-            auth_3d_object_hrc_replace_chara(&i, (chara_index)src_chara, (chara_index)dst_chara, obj_db);
+            auth_3d_object_hrc_replace_chara(&i, (CHARA_NUM)src_chara, (CHARA_NUM)dst_chara, obj_db);
     }
 
     if (auth_file->point.size()) {
@@ -815,8 +815,8 @@ void auth_3d::reset() {
     chara_item = false;
     shadow = false;
     reflect = false;
-    src_chara = CHARA_MAX;
-    dst_chara = CHARA_MAX;
+    src_chara = CN_MAX;
+    dst_chara = CN_MAX;
     pos = 0;
     frame_rate = get_sys_frame_rate();
     frame = 0.0f;
@@ -1314,7 +1314,7 @@ namespace auth_3d_detail {
         for (auth_3d_chara& i : auth->chara) {
             rob_chara* rob_chr = rob_chara_array_get(i.index);
             if (rob_chr)
-                rob_chr->item_equip->disable_update = true;
+                rob_chr->rob_disp->disable_update = true;
         }
         effect_manager_set_frame_rate_control(&frame_rate_time_stop);
     }
@@ -1323,7 +1323,7 @@ namespace auth_3d_detail {
         for (auth_3d_chara& i : auth->chara) {
             rob_chara* rob_chr = rob_chara_array_get(i.index);
             if (rob_chr)
-                rob_chr->item_equip->disable_update = true;
+                rob_chr->rob_disp->disable_update = true;
         }
         effect_manager_set_frame_rate_control(get_sys_frame_rate());
     }
@@ -1390,7 +1390,7 @@ namespace auth_3d_detail {
         if (auth->chara.size())
             index = auth->chara.front().index;
 
-        if (index >= 0 && index < ROB_CHARA_COUNT)
+        if (index >= 0 && index < ROB_ID_MAX)
             sub_140532980(index, param1.c_str());
         else if (sound_work_has_property(param1.c_str()))
             sound_work_play_se(1, param1.c_str());
@@ -2789,7 +2789,7 @@ void auth_3d_id::set_chara_id(int32_t value) {
     }
 }
 
-void auth_3d_id::set_chara_index(size_t auth_chara_id, int32_t index) {
+void auth_3d_id::set_chara_num(size_t auth_chara_id, int32_t index) {
     if (id >= 0 && ((id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
         auth_3d* auth = &auth_3d_data->data[id & 0x7FFF];
         if (auth->id == id)
@@ -4411,7 +4411,7 @@ static void auth_3d_camera_root_view_point_store(auth_3d* auth, auth_3d_camera_r
 }
 
 static void auth_3d_chara_disp(auth_3d_chara* c, auth_3d* auth, render_context* rctx) {
-    if (c->index <= ROB_CHARA_COUNT)
+    if (c->index <= ROB_ID_MAX)
         rob_chara_array_set_visibility(c->index, c->model_transform.visible);
 
     if (auth->pos) {
@@ -4906,20 +4906,20 @@ static void auth_3d_m_object_hrc_disp(auth_3d_m_object_hrc* moh, auth_3d* auth, 
             continue;
 
         mdl::ObjFlags flags = mdl::OBJ_SSS;
-        shadow_type_enum shadow_type = SHADOW_CHARA;
+        SHADOW_GROUP shadow_group = SHADOW_GROUP_CHARA;
         if (auth->shadow || i.shadow) {
             enum_or(flags, mdl::OBJ_4 | mdl::OBJ_SHADOW);
-            shadow_type = SHADOW_STAGE;
+            shadow_group = SHADOW_GROUP_STAGE;
         }
         if (auth->alpha < 1.0f)
             enum_or(flags, auth->obj_flags);
 
         disp_manager.set_obj_flags(flags);
-        disp_manager.set_shadow_type(shadow_type);
+        disp_manager.set_shadow_group(shadow_group);
 
         Shadow* shad = shadow_ptr_get();
         if (shad && (flags & mdl::OBJ_SHADOW)) {
-            disp_manager.set_shadow_type(SHADOW_STAGE);
+            disp_manager.set_shadow_group(SHADOW_GROUP_STAGE);
 
             mat4* m = &moh->model_transform.mat;
             for (auth_3d_object_node& j : moh->node)
@@ -4934,7 +4934,7 @@ static void auth_3d_m_object_hrc_disp(auth_3d_m_object_hrc* moh, auth_3d* auth, 
             vec3 pos;
             mat4_get_translation(&mat, &pos);
             pos.y -= 0.2f;
-            shad->positions[shadow_type].push_back(pos);
+            shad->positions[shadow_group].push_back(pos);
         }
 
         if (i.mats.size())
@@ -4943,7 +4943,7 @@ static void auth_3d_m_object_hrc_disp(auth_3d_m_object_hrc* moh, auth_3d* auth, 
     }
 
     disp_manager.set_obj_flags();
-    disp_manager.set_shadow_type(SHADOW_CHARA);
+    disp_manager.set_shadow_group(SHADOW_GROUP_CHARA);
 }
 
 static void auth_3d_m_object_hrc_load(auth_3d* auth, auth_3d_m_object_hrc* moh,
@@ -6533,16 +6533,16 @@ static void auth_3d_object_disp(auth_3d_object* o, auth_3d* auth, render_context
     object_database* obj_db = auth->obj_db;
     texture_database* tex_db = auth->tex_db;
 
-    if (auth->chara_id >= 0 && auth->chara_id < ROB_CHARA_COUNT) {
+    if (auth->chara_id >= 0 && auth->chara_id < ROB_ID_MAX) {
         if (rob_chara_pv_data_array_check_chara_id(auth->chara_id)) {
             rob_chara* rob_chr = rob_chara_array_get(auth->chara_id);
             mat4 m;
-            mat4_mul(&rob_chr->data.miku_rot.mat,
+            mat4_mul(&rob_chr->data.position.rob_mat,
                 auth->chara_item
                 ? &rob_chr->data.adjust_data.item_mat
                 : &rob_chr->data.adjust_data.mat, &m);
             mat4_mul(&mat, &m, &mat);
-            disp_manager.set_shadow_type(auth->chara_id ? SHADOW_STAGE : SHADOW_CHARA);
+            disp_manager.set_shadow_group(auth->chara_id ? SHADOW_GROUP_STAGE : SHADOW_GROUP_CHARA);
         }
     }
 
@@ -6827,22 +6827,22 @@ static void auth_3d_object_hrc_disp(auth_3d_object_hrc* oh, auth_3d* auth, rende
         enum_or(flags, auth->obj_flags);
 
     disp_manager.set_obj_flags(flags);
-    disp_manager.set_shadow_type(SHADOW_CHARA);
+    disp_manager.set_shadow_group(SHADOW_GROUP_CHARA);
 
     mat4 mat = mat4_identity;
-    if (auth->chara_id >= 0 && auth->chara_id < ROB_CHARA_COUNT) {
+    if (auth->chara_id >= 0 && auth->chara_id < ROB_ID_MAX) {
         if (rob_chara_pv_data_array_check_chara_id(auth->chara_id)) {
             rob_chara* rob_chr = rob_chara_array_get(auth->chara_id);
-            mat4_mul(&rob_chr->data.miku_rot.mat,
+            mat4_mul(&rob_chr->data.position.rob_mat,
                 auth->chara_item
                     ? &rob_chr->data.adjust_data.item_mat
                     : &rob_chr->data.adjust_data.mat, &mat);
             if (auth->chara_id)
-                disp_manager.set_shadow_type(SHADOW_STAGE);
+                disp_manager.set_shadow_group(SHADOW_GROUP_STAGE);
         }
     }
     else if (flags & mdl::OBJ_SHADOW) {
-        disp_manager.set_shadow_type(SHADOW_STAGE);
+        disp_manager.set_shadow_group(SHADOW_GROUP_STAGE);
 
         mat4 mat = oh->node.front().model_transform.mat;
         for (auth_3d_object_node& i : oh->node)
@@ -6856,7 +6856,7 @@ static void auth_3d_object_hrc_disp(auth_3d_object_hrc* oh, auth_3d* auth, rende
             vec3 pos;
             mat4_get_translation(&mat, &pos);
             pos.y -= 0.2f;
-            shad->positions[SHADOW_STAGE].push_back(pos);
+            shad->positions[SHADOW_GROUP_STAGE].push_back(pos);
         }
     }
 
@@ -6865,7 +6865,7 @@ static void auth_3d_object_hrc_disp(auth_3d_object_hrc* oh, auth_3d* auth, rende
             oh->object_info, 0, 0, auth->alpha, oh->mats.data(), 0, 0, mat);
 
     disp_manager.set_obj_flags();
-    disp_manager.set_shadow_type(SHADOW_CHARA);
+    disp_manager.set_shadow_group(SHADOW_GROUP_CHARA);
 
     for (auth_3d_object*& i : oh->children_object)
         auth_3d_object_disp(i, auth, rctx);
@@ -6933,12 +6933,12 @@ static void auth_3d_object_hrc_store(auth_3d* auth, auth_3d_object_hrc* oh,
 }
 
 static bool auth_3d_object_hrc_replace_chara(auth_3d_object_hrc* oh,
-    chara_index src_chara, chara_index dst_chara, object_database* obj_db) {
-    if (src_chara < 0 || src_chara >= CHARA_MAX || dst_chara < 0 || dst_chara >= CHARA_MAX || src_chara == dst_chara)
+    CHARA_NUM src_chara, CHARA_NUM dst_chara, object_database* obj_db) {
+    if (src_chara < 0 || src_chara >= CN_MAX || dst_chara < 0 || dst_chara >= CN_MAX || src_chara == dst_chara)
         return false;
 
-    std::string src_chara_str = chara_index_get_auth_3d_name(src_chara);
-    std::string dst_chara_str = chara_index_get_auth_3d_name(dst_chara);
+    std::string src_chara_str = get_char_id_str(src_chara);
+    std::string dst_chara_str = get_char_id_str(dst_chara);
 
     std::string uid_name = oh->uid_name;
     size_t pos = uid_name.find(src_chara_str);

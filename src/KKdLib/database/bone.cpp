@@ -14,11 +14,11 @@
 struct bone_database_skeleton_header {
     int64_t offset;
     int64_t bones_offset;
-    int64_t positions_offset;
-    int64_t unknown_value_offset;
-    int64_t object_bone_names_offset;
-    int64_t motion_bone_names_offset;
-    int64_t parent_indices_offset;
+    int64_t chain_pos_rad_offset;
+    int64_t heel_height_offset;
+    int64_t bone_name_offset;
+    int64_t bone_node_offset;
+    int64_t parent_node_offset;
 };
 
 static void bone_database_classic_read_inner(bone_database* bone_data, stream& s);
@@ -29,20 +29,20 @@ static int64_t bone_database_strings_get_string_offset(std::vector<std::string>&
     std::vector<int64_t>& vec_off, const char* str);
 static bool bone_database_strings_push_back_check(std::vector<std::string>& vec, const char* str);
 
-bone_database_bone::bone_database_bone() : type(),
-has_parent(), parent(), pole_target(), mirror(), flags() {
+BODYTYPE::BODYTYPE() : ik_type(), inherit_type(),
+inherit_mat_id(), up_vector_id(), flip_block_id(), expression_id() {
 
 }
 
-bone_database_bone::~bone_database_bone() {
+BODYTYPE::~BODYTYPE() {
 
 }
 
-bone_database_skeleton::bone_database_skeleton() : heel_height() {
+BoneData::BoneData() : heel_height() {
 
 }
 
-bone_database_skeleton::~bone_database_skeleton() {
+BoneData::~BoneData() {
 
 }
 
@@ -230,153 +230,153 @@ void bone_database::write(void** data, size_t* size) {
 }
 
 void bone_database::clear() {
-    skeleton.clear();
-    skeleton.shrink_to_fit();
-    skeleton_names.clear();
-    skeleton_names.shrink_to_fit();
+    bonedata.clear();
+    bonedata.shrink_to_fit();
+    bonedata_map.clear();
+    bonedata_map.shrink_to_fit();
 }
 
 void bone_database::update() {
-    skeleton_names.clear();
+    bonedata_map.clear();
 
-    skeleton_names.reserve(skeleton.size());
+    bonedata_map.reserve(bonedata.size());
 
-    for (bone_database_skeleton& i : skeleton) {
-        skeleton_names.push_back(hash_string_murmurhash(i.name), &i);
+    for (BoneData& i : bonedata) {
+        bonedata_map.push_back(hash_string_murmurhash(i.name), &i);
 
-        i.bone_names.clear();
-        i.object_bone_names.clear();
-        i.motion_bone_names.clear();
+        i.body_type_map.clear();
+        i.bone_name_map.clear();
+        i.bone_node_name_map.clear();
 
-        i.bone_names.reserve(i.bone.size());
-        i.object_bone_names.reserve(i.object_bone.size());
-        i.motion_bone_names.reserve(i.motion_bone.size());
+        i.body_type_map.reserve(i.body_type.size());
+        i.bone_name_map.reserve(i.bone_name.size());
+        i.bone_node_name_map.reserve(i.bone_node_name.size());
 
-        for (bone_database_bone& j : i.bone)
-            i.bone_names.push_back(hash_string_murmurhash(j.name), &j);
+        for (BODYTYPE& j : i.body_type)
+            i.body_type_map.push_back(hash_string_murmurhash(j.name), &j);
 
-        for (std::string& j : i.object_bone)
-            i.object_bone_names.push_back(hash_string_murmurhash(j), &j);
+        for (std::string& j : i.bone_name)
+            i.bone_name_map.push_back(hash_string_murmurhash(j), &j);
 
-        for (std::string& j : i.motion_bone)
-            i.motion_bone_names.push_back(hash_string_murmurhash(j), &j);
+        for (std::string& j : i.bone_node_name)
+            i.bone_node_name_map.push_back(hash_string_murmurhash(j), &j);
 
-        i.bone_names.sort_unique();
-        i.object_bone_names.sort_unique();
-        i.motion_bone_names.sort_unique();
+        i.body_type_map.sort_unique();
+        i.bone_name_map.sort_unique();
+        i.bone_node_name_map.sort_unique();
     }
 
-    skeleton_names.sort_unique();
+    bonedata_map.sort_unique();
 }
 
-const bone_database_skeleton* bone_database::get_skeleton(const char* name) const {
-    if (!name)
+const BoneData* bone_database::get_bone_data(const char* kind_name) const {
+    if (!kind_name)
         return 0;
 
-    auto elem = skeleton_names.find(hash_utf8_murmurhash(name));
-    if (elem != skeleton_names.end())
+    auto elem = bonedata_map.find(hash_utf8_murmurhash(kind_name));
+    if (elem != bonedata_map.end())
         return elem->second;
     return 0;
 }
 
-int32_t bone_database::get_skeleton_bone_index(const char* name, const char* bone_name) const {
-    if (!name || !bone_name)
+int32_t bone_database::get_block_index(const char* kind_name, const char* name) const {
+    if (!kind_name || !name)
         return -1;
 
-    auto elem = skeleton_names.find(hash_utf8_murmurhash(name));
-    if (elem != skeleton_names.end()) {
-        const bone_database_skeleton* skel = elem->second;
-        auto elem = skel->bone_names.find(hash_utf8_murmurhash(bone_name));
-        if (elem != skel->bone_names.end())
-            return (int32_t)(elem->second - skel->bone.data());
+    auto elem = bonedata_map.find(hash_utf8_murmurhash(kind_name));
+    if (elem != bonedata_map.end()) {
+        const BoneData* skel = elem->second;
+        auto elem = skel->body_type_map.find(hash_utf8_murmurhash(name));
+        if (elem != skel->body_type_map.end())
+            return (int32_t)(elem->second - skel->body_type.data());
     }
     return -1;
 }
 
-const std::vector<bone_database_bone>* bone_database::get_skeleton_bones(const char* name) const {
-    if (!name)
+const std::vector<BODYTYPE>* bone_database::get_body_type(const char* kind_name) const {
+    if (!kind_name)
         return 0;
 
-    auto elem = skeleton_names.find(hash_utf8_murmurhash(name));
-    if (elem != skeleton_names.end())
-        return &elem->second->bone;
+    auto elem = bonedata_map.find(hash_utf8_murmurhash(kind_name));
+    if (elem != bonedata_map.end())
+        return &elem->second->body_type;
     return 0;
 }
 
-const std::vector<vec3>* bone_database::get_skeleton_positions(const char* name) const {
-    if (!name)
+const std::vector<CHAINPOSRADIUS>* bone_database::get_chain_pos_rad(const char* kind_name) const {
+    if (!kind_name)
         return 0;
 
-    auto elem = skeleton_names.find(hash_utf8_murmurhash(name));
-    if (elem != skeleton_names.end())
-        return &elem->second->position;
+    auto elem = bonedata_map.find(hash_utf8_murmurhash(kind_name));
+    if (elem != bonedata_map.end())
+        return &elem->second->chain_pos_rad;
     return 0;
 }
 
-int32_t bone_database::get_skeleton_object_bone_index(const char* name, const char* bone_name) const {
-    if (!name || !bone_name)
+int32_t bone_database::get_bone_index(const char* kind_name, const char* name) const {
+    if (!kind_name || !name)
         return -1;
 
-    auto elem = skeleton_names.find(hash_utf8_murmurhash(name));
-    if (elem != skeleton_names.end()) {
-        const bone_database_skeleton* skel = elem->second;
-        auto elem = skel->object_bone_names.find(hash_utf8_murmurhash(bone_name));
-        if (elem != skel->object_bone_names.end())
-            return (int32_t)(elem->second - skel->object_bone.data());
+    auto elem = bonedata_map.find(hash_utf8_murmurhash(kind_name));
+    if (elem != bonedata_map.end()) {
+        const BoneData* skel = elem->second;
+        auto elem = skel->bone_name_map.find(hash_utf8_murmurhash(name));
+        if (elem != skel->bone_name_map.end())
+            return (int32_t)(elem->second - skel->bone_name.data());
     }
     return -1;
 }
 
-const std::vector<std::string>* bone_database::get_skeleton_object_bones(const char* name) const {
-    if (!name)
+const std::vector<std::string>* bone_database::get_bone_name(const char* kind_name) const {
+    if (!kind_name)
         return 0;
 
-    auto elem = skeleton_names.find(hash_utf8_murmurhash(name));
-    if (elem != skeleton_names.end())
-        return &elem->second->object_bone;
+    auto elem = bonedata_map.find(hash_utf8_murmurhash(kind_name));
+    if (elem != bonedata_map.end())
+        return &elem->second->bone_name;
     return 0;
 }
 
-int32_t bone_database::get_skeleton_motion_bone_index(const char* name, const char* bone_name) const {
-    if (!name || !bone_name)
+int32_t bone_database::get_bone_node_index(const char* kind_name, const char* name) const {
+    if (!kind_name || !name)
         return -1;
 
-    auto elem = skeleton_names.find(hash_utf8_murmurhash(name));
-    if (elem != skeleton_names.end()) {
-        const bone_database_skeleton* skel = elem->second;
-        auto elem = skel->motion_bone_names.find(hash_utf8_murmurhash(bone_name));
-        if (elem != skel->motion_bone_names.end())
-            return (int32_t)(elem->second - skel->motion_bone.data());
+    auto elem = bonedata_map.find(hash_utf8_murmurhash(kind_name));
+    if (elem != bonedata_map.end()) {
+        const BoneData* skel = elem->second;
+        auto elem = skel->bone_node_name_map.find(hash_utf8_murmurhash(name));
+        if (elem != skel->bone_node_name_map.end())
+            return (int32_t)(elem->second - skel->bone_node_name.data());
     }
     return -1;
 }
 
-const std::vector<std::string>* bone_database::get_skeleton_motion_bones(const char* name) const {
-    if (!name)
+const std::vector<std::string>* bone_database::get_bone_node_name(const char* kind_name) const {
+    if (!kind_name)
         return 0;
 
-    auto elem = skeleton_names.find(hash_utf8_murmurhash(name));
-    if (elem != skeleton_names.end())
-        return &elem->second->motion_bone;
+    auto elem = bonedata_map.find(hash_utf8_murmurhash(kind_name));
+    if (elem != bonedata_map.end())
+        return &elem->second->bone_node_name;
     return 0;
 }
 
-const std::vector<std::uint16_t>* bone_database::get_skeleton_parent_indices(const char* name) const {
-    if (!name)
+const std::vector<std::uint16_t>* bone_database::get_parent_node(const char* kind_name) const {
+    if (!kind_name)
         return 0;
 
-    auto elem = skeleton_names.find(hash_utf8_murmurhash(name));
-    if (elem != skeleton_names.end())
-        return &elem->second->parent_index;
+    auto elem = bonedata_map.find(hash_utf8_murmurhash(kind_name));
+    if (elem != bonedata_map.end())
+        return &elem->second->parent_node;
     return 0;
 }
 
-const float_t* bone_database::get_skeleton_heel_height(const char* name) const {
-    if (!name)
+const float_t* bone_database::get_heel_height(const char* kind_name) const {
+    if (!kind_name)
         return 0;
 
-    auto elem = skeleton_names.find(hash_utf8_murmurhash(name));
-    if (elem != skeleton_names.end())
+    auto elem = bonedata_map.find(hash_utf8_murmurhash(kind_name));
+    if (elem != bonedata_map.end())
         return &elem->second->heel_height;
     return 0;
 }
@@ -397,61 +397,61 @@ bool bone_database::load_file(void* data, const char* dir, const char* file, uin
     return bone_data->ready;
 }
 
-void bone_database_bones_calculate_count(const std::vector<bone_database_bone>* bones,
-    size_t& object_bone_count, size_t& motion_bone_count,
+void bone_database_bones_calculate_count(const std::vector<BODYTYPE>* bones,
+    size_t& bone_name_num, size_t& bone_node_num,
     size_t& node_count, size_t& leaf_pos, size_t& chain_pos) {
-    object_bone_count = 0;
-    motion_bone_count = 0;
+    bone_name_num = 0;
+    bone_node_num = 0;
     node_count = 0;
     leaf_pos = 0;
     chain_pos = 0;
 
-    for (const bone_database_bone& i : *bones) {
-        object_bone_count++;
+    for (const BODYTYPE& i : *bones) {
+        bone_name_num++;
         node_count++;
-        if (i.type >= BONE_DATABASE_BONE_ARM_IK_ROTATION)
-            object_bone_count += 2;
+        if (i.ik_type >= IKT_2)
+            bone_name_num += 2;
         chain_pos++;
 
-        if (i.type >= BONE_DATABASE_BONE_HEAD_IK_ROTATION) {
+        if (i.ik_type >= IKT_1) {
             chain_pos++;
             node_count += 2;
 
-            if (i.type >= BONE_DATABASE_BONE_ARM_IK_ROTATION) {
+            if (i.ik_type >= IKT_2) {
                 chain_pos++;
                 node_count++;
             }
         }
 
-        if (i.type >= BONE_DATABASE_BONE_POSITION_ROTATION)
+        if (i.ik_type >= IKT_ROOT)
             leaf_pos++;
-        motion_bone_count++;
+        bone_node_num++;
     }
 }
 
-const char* bone_database_skeleton_type_to_string(bone_database_skeleton_type type) {
-    switch (type) {
-    case BONE_DATABASE_SKELETON_COMMON:
+const char* bone_database_skeleton_type_to_string(BONE_KIND kind) {
+    switch (kind) {
+    case BONE_KIND_CMN:
         return "CMN";
-    case BONE_DATABASE_SKELETON_MIKU:
+    case BONE_KIND_MIK:
         return "MIK";
-    case BONE_DATABASE_SKELETON_KAITO:
+    case BONE_KIND_KAI:
         return "KAI";
-    case BONE_DATABASE_SKELETON_LEN:
+    case BONE_KIND_LEN:
         return "LEN";
-    case BONE_DATABASE_SKELETON_LUKA:
+    case BONE_KIND_LUK:
         return "LUK";
-    case BONE_DATABASE_SKELETON_MEIKO:
+    case BONE_KIND_MEI:
         return "MEI";
-    case BONE_DATABASE_SKELETON_RIN:
+    case BONE_KIND_RIN:
         return "RIN";
-    case BONE_DATABASE_SKELETON_HAKU:
+    case BONE_KIND_HAK:
         return "HAK";
-    case BONE_DATABASE_SKELETON_NERU:
+    case BONE_KIND_NER:
         return "NER";
-    case BONE_DATABASE_SKELETON_SAKINE:
+    case BONE_KIND_SAK:
         return "SAK";
-    case BONE_DATABASE_SKELETON_TETO:
+    case BONE_KIND_TET:
         return "TET";
     default:
         return 0;
@@ -468,93 +468,93 @@ static void bone_database_classic_read_inner(bone_database* bone_data, stream& s
     uint32_t skeleton_name_offsets_offset = s.read_uint32_t();
     s.read(0x14);
 
-    bone_data->skeleton.resize(skeleton_count);
+    bone_data->bonedata.resize(skeleton_count);
 
     s.position_push(skeleton_offsets_offset, SEEK_SET);
     for (uint32_t i = 0; i < skeleton_count; i++) {
-        bone_database_skeleton* skel = &bone_data->skeleton[i];
+        BoneData* skel = &bone_data->bonedata[i];
         uint32_t skeleton_offset = s.read_uint32_t();
 
         s.position_push(skeleton_offset, SEEK_SET);
         uint32_t bones_offset = s.read_uint32_t();
-        uint32_t position_count = s.read_uint32_t();
-        uint32_t positions_offset = s.read_uint32_t();
-        uint32_t unknown_value_offset = s.read_uint32_t();
-        uint32_t object_bone_count = s.read_uint32_t();
-        uint32_t object_bone_names_offset = s.read_uint32_t();
-        uint32_t motion_bone_count = s.read_uint32_t();
-        uint32_t motion_bone_names_offset = s.read_uint32_t();
-        uint32_t parent_indices_offset = s.read_uint32_t();
+        uint32_t chain_pos_rad_num = s.read_uint32_t();
+        uint32_t chain_pos_rad_offset = s.read_uint32_t();
+        uint32_t heel_height_offset = s.read_uint32_t();
+        uint32_t bone_name_num = s.read_uint32_t();
+        uint32_t bone_name_offset = s.read_uint32_t();
+        uint32_t bone_node_num = s.read_uint32_t();
+        uint32_t bone_node_offset = s.read_uint32_t();
+        uint32_t parent_node_offset = s.read_uint32_t();
         s.read(0x14);
 
-        uint32_t bone_count = 0;
+        uint32_t body_type_num = 0;
         s.position_push(bones_offset, SEEK_SET);
         while (true) {
             if (s.read_uint8_t() == 0xFF)
                 break;
 
             s.read(0x0B);
-            bone_count++;
+            body_type_num++;
         }
         s.position_pop();
 
-        skel->bone.resize(bone_count);
+        skel->body_type.resize(body_type_num);
 
-        bone_database_bone* _bone = skel->bone.data();
+        BODYTYPE* body_type = skel->body_type.data();
 
         s.position_push(bones_offset, SEEK_SET);
-        for (uint32_t j = 0; j < bone_count; j++) {
-            bone_database_bone* bone = &_bone[j];
-            bone->type = (bone_database_bone_type)s.read_uint8_t();
-            bone->has_parent = s.read_uint8_t() ? true : false;
-            bone->parent = s.read_uint8_t();
-            bone->pole_target = s.read_uint8_t();
-            bone->mirror = s.read_uint8_t();
-            bone->flags = s.read_uint8_t();
+        for (uint32_t j = 0; j < body_type_num; j++) {
+            BODYTYPE* bone = &body_type[j];
+            bone->ik_type = (IK_TYPE)s.read_uint8_t();
+            bone->inherit_type = (IH_TYPE)s.read_uint8_t();
+            bone->inherit_mat_id = s.read_uint8_t();
+            bone->up_vector_id = s.read_uint8_t();
+            bone->flip_block_id = s.read_uint8_t();
+            bone->expression_id = s.read_uint8_t();
             s.read(0x02);
             bone->name = s.read_string_null_terminated_offset(s.read_uint32_t());
         }
         s.position_pop();
 
-        skel->position.resize(position_count);
+        skel->chain_pos_rad.resize(chain_pos_rad_num);
 
-        vec3* _position = skel->position.data();
+        CHAINPOSRADIUS* chain_pos_rad = skel->chain_pos_rad.data();
 
-        s.position_push(positions_offset, SEEK_SET);
-        for (uint32_t j = 0; j < position_count; j++) {
-            vec3* position = &_position[j];
-            position->x = s.read_float_t();
-            position->y = s.read_float_t();
-            position->z = s.read_float_t();
+        s.position_push(chain_pos_rad_offset, SEEK_SET);
+        for (uint32_t j = 0; j < chain_pos_rad_num; j++) {
+            vec3& chain_pos = chain_pos_rad[j].chain_pos;
+            chain_pos.x = s.read_float_t();
+            chain_pos.y = s.read_float_t();
+            chain_pos.z = s.read_float_t();
         }
         s.position_pop();
 
-        s.position_push(unknown_value_offset, SEEK_SET);
+        s.position_push(heel_height_offset, SEEK_SET);
         skel->heel_height = s.read_float_t();
         s.position_pop();
 
-        skel->object_bone.resize(object_bone_count);
+        skel->bone_name.resize(bone_name_num);
 
-        std::string* object_bone = skel->object_bone.data();
+        std::string* bone_name = skel->bone_name.data();
 
-        s.position_push(object_bone_names_offset, SEEK_SET);
-        for (uint32_t j = 0; j < object_bone_count; j++)
-            object_bone[j] = s.read_string_null_terminated_offset(s.read_uint32_t());
+        s.position_push(bone_name_offset, SEEK_SET);
+        for (uint32_t j = 0; j < bone_name_num; j++)
+            bone_name[j] = s.read_string_null_terminated_offset(s.read_uint32_t());
         s.position_pop();
 
-        skel->motion_bone.resize(motion_bone_count);
+        skel->bone_node_name.resize(bone_node_num);
 
-        std::string* motion_bone = skel->motion_bone.data();
+        std::string* bone_node_name = skel->bone_node_name.data();
 
-        s.position_push(motion_bone_names_offset, SEEK_SET);
-        for (uint32_t j = 0; j < motion_bone_count; j++)
-            motion_bone[j] = s.read_string_null_terminated_offset(s.read_uint32_t());
+        s.position_push(bone_node_offset, SEEK_SET);
+        for (uint32_t j = 0; j < bone_node_num; j++)
+            bone_node_name[j] = s.read_string_null_terminated_offset(s.read_uint32_t());
         s.position_pop();
 
-        skel->parent_index.resize(motion_bone_count);
+        skel->parent_node.resize(bone_node_num);
 
-        s.position_push(parent_indices_offset, SEEK_SET);
-        s.read(skel->parent_index.data(), motion_bone_count * sizeof(uint16_t));
+        s.position_push(parent_node_offset, SEEK_SET);
+        s.read(skel->parent_node.data(), bone_node_num * sizeof(uint16_t));
         s.position_pop();
         s.position_pop();
     }
@@ -562,7 +562,7 @@ static void bone_database_classic_read_inner(bone_database* bone_data, stream& s
 
     s.position_push(skeleton_name_offsets_offset, SEEK_SET);
     for (uint32_t i = 0; i < skeleton_count; i++)
-        bone_data->skeleton[i].name =  s.read_string_null_terminated_offset(s.read_uint32_t());
+        bone_data->bonedata[i].name =  s.read_string_null_terminated_offset(s.read_uint32_t());
     s.position_pop();
 
     bone_data->ready = true;
@@ -584,16 +584,16 @@ static void bone_database_classic_write_inner(bone_database* bone_data, stream& 
     s.write_int32_t(0);
     s.write_int32_t(0);
 
-    uint32_t skeleton_count = (uint32_t)bone_data->skeleton.size();
+    uint32_t skeleton_count = (uint32_t)bone_data->bonedata.size();
     int64_t skeleton_offsets_offset = s.get_position();
     s.write(skeleton_count * 0x04ULL);
 
     int64_t skeleton_name_offset = s.get_position();
-    for (bone_database_skeleton& i : bone_data->skeleton)
+    for (BoneData& i : bone_data->bonedata)
         s.write_string_null_terminated(i.name);
 
     int64_t skeleton_name_offsets_offset = s.get_position();
-    for (bone_database_skeleton& i : bone_data->skeleton) {
+    for (BoneData& i : bone_data->bonedata) {
         s.write_uint32_t((uint32_t)skeleton_name_offset);
         skeleton_name_offset += i.name.size() + 1;
     }
@@ -604,17 +604,17 @@ static void bone_database_classic_write_inner(bone_database* bone_data, stream& 
     int64_t* skeleton_offsets = force_malloc<int64_t>(skeleton_count);
 
     for (uint32_t i = 0; i < skeleton_count; i++) {
-        bone_database_skeleton* skel = &bone_data->skeleton[i];
+        BoneData* skel = &bone_data->bonedata[i];
 
-        uint32_t bone_count = (uint32_t)skel->bone.size();
-        uint32_t position_count = (uint32_t)skel->position.size();
-        uint32_t object_bone_count = (uint32_t)skel->object_bone.size();
-        uint32_t motion_bone_count = (uint32_t)skel->motion_bone.size();
+        uint32_t body_type_num = (uint32_t)skel->body_type.size();
+        uint32_t chain_pos_rad_num = (uint32_t)skel->chain_pos_rad.size();
+        uint32_t bone_name_num = (uint32_t)skel->bone_name.size();
+        uint32_t bone_node_num = (uint32_t)skel->bone_node_name.size();
 
-        strings.reserve(bone_count);
-        string_offsets.reserve(bone_count);
+        strings.reserve(body_type_num);
+        string_offsets.reserve(body_type_num);
 
-        for (bone_database_bone& j : skel->bone)
+        for (BODYTYPE& j : skel->body_type)
             if (bone_database_strings_push_back_check(strings, j.name.c_str())) {
                 string_offsets.push_back(s.get_position());
                 s.write_string_null_terminated(j.name);
@@ -627,13 +627,13 @@ static void bone_database_classic_write_inner(bone_database* bone_data, stream& 
         s.align_write(0x04);
 
         int64_t bones_offset = s.get_position();
-        for (bone_database_bone& j : skel->bone) {
-            s.write_uint8_t((uint8_t)j.type);
-            s.write_uint8_t(j.has_parent ? 1 : 0);
-            s.write_uint8_t(j.parent);
-            s.write_uint8_t(j.pole_target);
-            s.write_uint8_t(j.mirror);
-            s.write_uint8_t(j.flags);
+        for (BODYTYPE& j : skel->body_type) {
+            s.write_uint8_t((uint8_t)j.ik_type);
+            s.write_uint8_t((uint8_t)j.inherit_type);
+            s.write_uint8_t((uint8_t)j.inherit_mat_id);
+            s.write_uint8_t((uint8_t)j.up_vector_id);
+            s.write_uint8_t((uint8_t)j.flip_block_id);
+            s.write_uint8_t(j.expression_id);
             s.write(0x02);
             s.write_uint32_t((uint32_t)bone_database_strings_get_string_offset(strings,
                 string_offsets, j.name.c_str()));
@@ -644,50 +644,50 @@ static void bone_database_classic_write_inner(bone_database* bone_data, stream& 
         s.write_uint32_t((uint32_t)bone_database_strings_get_string_offset(strings,
             string_offsets, "End"));
 
-        int64_t positions_offset = s.get_position();
-        s.write(skel->position.data(), sizeof(vec3) * position_count);
+        int64_t chain_pos_rad_offset = s.get_position();
+        s.write(skel->chain_pos_rad.data(), sizeof(vec3) * chain_pos_rad_num);
 
-        int64_t unknown_value_offset = s.get_position();
+        int64_t heel_height_offset = s.get_position();
         s.write_float_t(skel->heel_height);
 
-        for (std::string& j : skel->object_bone)
+        for (std::string& j : skel->bone_name)
             if (bone_database_strings_push_back_check(strings, j.c_str())) {
                 string_offsets.push_back(s.get_position());
                 s.write_string_null_terminated(j);
             }
         s.align_write(0x04);
 
-        int64_t object_bone_names_offset = s.get_position();
-        for (std::string& j : skel->object_bone)
+        int64_t bone_name_offset = s.get_position();
+        for (std::string& j : skel->bone_name)
             s.write_uint32_t((uint32_t)bone_database_strings_get_string_offset(strings,
                 string_offsets, j.c_str()));
 
-        for (std::string& j : skel->motion_bone)
+        for (std::string& j : skel->bone_node_name)
             if (bone_database_strings_push_back_check(strings, j.c_str())) {
                 string_offsets.push_back(s.get_position());
                 s.write_string_null_terminated(j);
             }
         s.align_write(0x04);
 
-        int64_t motion_bone_names_offset = s.get_position();
-        for (std::string& j : skel->motion_bone)
+        int64_t bone_node_offset = s.get_position();
+        for (std::string& j : skel->bone_node_name)
             s.write_uint32_t((uint32_t)bone_database_strings_get_string_offset(strings,
                 string_offsets, j.c_str()));
 
-        int64_t parent_indices_offset = s.get_position();
-        s.write(skel->parent_index.data(), sizeof(uint16_t) * motion_bone_count);
+        int64_t parent_node_offset = s.get_position();
+        s.write(skel->parent_node.data(), sizeof(uint16_t) * bone_node_num);
         s.align_write(0x04);
 
-        skeleton_offsets[skel - bone_data->skeleton.data()] = s.get_position();
+        skeleton_offsets[skel - bone_data->bonedata.data()] = s.get_position();
         s.write_uint32_t((uint32_t)bones_offset);
-        s.write_uint32_t(position_count);
-        s.write_uint32_t((uint32_t)positions_offset);
-        s.write_uint32_t((uint32_t)unknown_value_offset);
-        s.write_uint32_t(object_bone_count);
-        s.write_uint32_t((uint32_t)object_bone_names_offset);
-        s.write_uint32_t(motion_bone_count);
-        s.write_uint32_t((uint32_t)motion_bone_names_offset);
-        s.write_uint32_t((uint32_t)parent_indices_offset);
+        s.write_uint32_t(chain_pos_rad_num);
+        s.write_uint32_t((uint32_t)chain_pos_rad_offset);
+        s.write_uint32_t((uint32_t)heel_height_offset);
+        s.write_uint32_t(bone_name_num);
+        s.write_uint32_t((uint32_t)bone_name_offset);
+        s.write_uint32_t(bone_node_num);
+        s.write_uint32_t((uint32_t)bone_node_offset);
+        s.write_uint32_t((uint32_t)parent_node_offset);
         s.write(0x14);
 
         strings.clear();
@@ -726,49 +726,49 @@ static void bone_database_modern_read_inner(bone_database* bone_data, stream& s,
     int64_t skeleton_offsets_offset = s.read_offset(header_length, is_x);
     int64_t skeleton_name_offsets_offset = s.read_offset(header_length, is_x);
 
-    bone_data->skeleton.resize(skeleton_count);
+    bone_data->bonedata.resize(skeleton_count);
 
     s.position_push(skeleton_offsets_offset, SEEK_SET);
     for (uint32_t i = 0; i < skeleton_count; i++) {
-        bone_database_skeleton* skel = &bone_data->skeleton[i];
+        BoneData* skel = &bone_data->bonedata[i];
         int64_t skeleton_offset = s.read_offset(header_length, is_x);
 
         s.position_push(skeleton_offset, SEEK_SET);
         int64_t bones_offset;
-        uint32_t position_count;
-        int64_t positions_offset;
-        int64_t unknown_value_offset;
-        uint32_t object_bone_count;
-        int64_t object_bone_names_offset;
-        uint32_t motion_bone_count;
-        int64_t motion_bone_names_offset;
-        int64_t parent_indices_offset;
+        uint32_t chain_pos_rad_num;
+        int64_t chain_pos_rad_offset;
+        int64_t heel_height_offset;
+        uint32_t bone_name_num;
+        int64_t bone_name_offset;
+        uint32_t bone_node_num;
+        int64_t bone_node_offset;
+        int64_t parent_node_offset;
         if (!is_x) {
             bones_offset = s.read_offset_f2(header_length);
-            position_count = s.read_uint32_t_reverse_endianness();
-            positions_offset = s.read_offset_f2(header_length);
-            unknown_value_offset = s.read_offset_f2(header_length);
-            object_bone_count = s.read_uint32_t_reverse_endianness();
-            object_bone_names_offset = s.read_offset_f2(header_length);
-            motion_bone_count = s.read_uint32_t_reverse_endianness();
-            motion_bone_names_offset = s.read_offset_f2(header_length);
-            parent_indices_offset = s.read_offset_f2(header_length);
+            chain_pos_rad_num = s.read_uint32_t_reverse_endianness();
+            chain_pos_rad_offset = s.read_offset_f2(header_length);
+            heel_height_offset = s.read_offset_f2(header_length);
+            bone_name_num = s.read_uint32_t_reverse_endianness();
+            bone_name_offset = s.read_offset_f2(header_length);
+            bone_node_num = s.read_uint32_t_reverse_endianness();
+            bone_node_offset = s.read_offset_f2(header_length);
+            parent_node_offset = s.read_offset_f2(header_length);
             s.read(0x14);
         }
         else {
             bones_offset = s.read_offset_x();
-            position_count = s.read_uint32_t_reverse_endianness();
-            positions_offset = s.read_offset_x();
-            unknown_value_offset = s.read_offset_x();
-            object_bone_count = s.read_uint32_t_reverse_endianness();
-            object_bone_names_offset = s.read_offset_x();
-            motion_bone_count = s.read_uint32_t_reverse_endianness();
-            motion_bone_names_offset = s.read_offset_x();
-            parent_indices_offset = s.read_offset_x();
+            chain_pos_rad_num = s.read_uint32_t_reverse_endianness();
+            chain_pos_rad_offset = s.read_offset_x();
+            heel_height_offset = s.read_offset_x();
+            bone_name_num = s.read_uint32_t_reverse_endianness();
+            bone_name_offset = s.read_offset_x();
+            bone_node_num = s.read_uint32_t_reverse_endianness();
+            bone_node_offset = s.read_offset_x();
+            parent_node_offset = s.read_offset_x();
             s.read(0x28);
         }
 
-        uint32_t bone_count = 0;
+        uint32_t body_type_num = 0;
         s.position_push(bones_offset, SEEK_SET);
         if (!is_x)
             while (true) {
@@ -776,7 +776,7 @@ static void bone_database_modern_read_inner(bone_database* bone_data, stream& s,
                     break;
 
                 s.read(0x0B);
-                bone_count++;
+                body_type_num++;
             }
         else
             while (true) {
@@ -784,96 +784,96 @@ static void bone_database_modern_read_inner(bone_database* bone_data, stream& s,
                     break;
 
                 s.read(0x0F);
-                bone_count++;
+                body_type_num++;
             }
         s.position_pop();
 
-        skel->bone.resize(bone_count);
+        skel->body_type.resize(body_type_num);
 
-        bone_database_bone* _bone = skel->bone.data();
+        BODYTYPE* body_type = skel->body_type.data();
 
         s.position_push(bones_offset, SEEK_SET);
         if (!is_x)
-            for (uint32_t j = 0; j < bone_count; j++) {
-                bone_database_bone* bone = &_bone[j];
-                bone->type = (bone_database_bone_type)s.read_uint8_t();
-                bone->has_parent = s.read_uint8_t() ? true : false;
-                bone->parent = s.read_uint8_t();
-                bone->pole_target = s.read_uint8_t();
-                bone->mirror = s.read_uint8_t();
-                bone->flags = s.read_uint8_t();
+            for (uint32_t j = 0; j < body_type_num; j++) {
+                BODYTYPE* bone = &body_type[j];
+                bone->ik_type = (IK_TYPE)s.read_uint8_t();
+                bone->inherit_type = (IH_TYPE)s.read_uint8_t();
+                bone->inherit_mat_id = s.read_uint8_t();
+                bone->up_vector_id = s.read_uint8_t();
+                bone->flip_block_id = s.read_uint8_t();
+                bone->expression_id = s.read_uint8_t();
                 s.read(0x02);
                 bone->name = s.read_string_null_terminated_offset(s.read_offset_f2(header_length));
             }
         else
-            for (uint32_t j = 0; j < bone_count; j++) {
-                bone_database_bone* bone = &_bone[j];
-                bone->type = (bone_database_bone_type)s.read_uint8_t();
-                bone->has_parent = s.read_uint8_t() ? true : false;
-                bone->parent = s.read_uint8_t();
-                bone->pole_target = s.read_uint8_t();
-                bone->mirror = s.read_uint8_t();
-                bone->flags = s.read_uint8_t();
+            for (uint32_t j = 0; j < body_type_num; j++) {
+                BODYTYPE* bone = &body_type[j];
+                bone->ik_type = (IK_TYPE)s.read_uint8_t();
+                bone->inherit_type = (IH_TYPE)s.read_uint8_t();
+                bone->inherit_mat_id = s.read_uint8_t();
+                bone->up_vector_id = s.read_uint8_t();
+                bone->flip_block_id = s.read_uint8_t();
+                bone->expression_id = s.read_uint8_t();
                 s.read(0x02);
                 bone->name = s.read_string_null_terminated_offset(s.read_offset_x());
             }
         s.position_pop();
 
-        skel->position.resize(position_count);
+        skel->chain_pos_rad.resize(chain_pos_rad_num);
 
-        vec3* _position = skel->position.data();
+        CHAINPOSRADIUS* chain_pos_rad = skel->chain_pos_rad.data();
 
-        s.position_push(positions_offset, SEEK_SET);
-        for (uint32_t j = 0; j < position_count; j++) {
-            vec3* position = &_position[j];
-            position->x = s.read_float_t_reverse_endianness();
-            position->y = s.read_float_t_reverse_endianness();
-            position->z = s.read_float_t_reverse_endianness();
+        s.position_push(chain_pos_rad_offset, SEEK_SET);
+        for (uint32_t j = 0; j < chain_pos_rad_num; j++) {
+            vec3& chain_pos = chain_pos_rad[j].chain_pos;
+            chain_pos.x = s.read_float_t_reverse_endianness();
+            chain_pos.y = s.read_float_t_reverse_endianness();
+            chain_pos.z = s.read_float_t_reverse_endianness();
         }
         s.position_pop();
 
-        s.position_push(unknown_value_offset, SEEK_SET);
+        s.position_push(heel_height_offset, SEEK_SET);
         skel->heel_height = s.read_float_t_reverse_endianness();
         s.position_pop();
 
-        skel->object_bone.resize(object_bone_count);
+        skel->bone_name.resize(bone_name_num);
 
-        std::string* object_bone = skel->object_bone.data();
+        std::string* bone_name = skel->bone_name.data();
 
-        s.position_push(object_bone_names_offset, SEEK_SET);
+        s.position_push(bone_name_offset, SEEK_SET);
         if (!is_x)
-            for (uint32_t j = 0; j < object_bone_count; j++)
-                object_bone[j] = s.read_string_null_terminated_offset(
+            for (uint32_t j = 0; j < bone_name_num; j++)
+                bone_name[j] = s.read_string_null_terminated_offset(
                     s.read_offset_f2(header_length));
         else
-            for (uint32_t j = 0; j < object_bone_count; j++)
-                object_bone[j] = s.read_string_null_terminated_offset(
+            for (uint32_t j = 0; j < bone_name_num; j++)
+                bone_name[j] = s.read_string_null_terminated_offset(
                     s.read_offset_x());
         s.position_pop();
 
-        skel->motion_bone.resize(motion_bone_count);
+        skel->bone_node_name.resize(bone_node_num);
 
-        std::string* motion_bone = skel->motion_bone.data();
+        std::string* bone_node_name = skel->bone_node_name.data();
 
-        s.position_push(motion_bone_names_offset, SEEK_SET);
+        s.position_push(bone_node_offset, SEEK_SET);
         if (!is_x)
-            for (uint32_t j = 0; j < motion_bone_count; j++)
-                motion_bone[j] = s.read_string_null_terminated_offset(
+            for (uint32_t j = 0; j < bone_node_num; j++)
+                bone_node_name[j] = s.read_string_null_terminated_offset(
                     s.read_offset_f2(header_length));
         else
-            for (uint32_t j = 0; j < motion_bone_count; j++)
-                motion_bone[j] = s.read_string_null_terminated_offset(
+            for (uint32_t j = 0; j < bone_node_num; j++)
+                bone_node_name[j] = s.read_string_null_terminated_offset(
                     s.read_offset_x());
         s.position_pop();
 
-        skel->parent_index.resize(motion_bone_count);
+        skel->parent_node.resize(bone_node_num);
 
-        s.position_push(parent_indices_offset, SEEK_SET);
-        s.read(skel->parent_index.data(), motion_bone_count * sizeof(uint16_t));
+        s.position_push(parent_node_offset, SEEK_SET);
+        s.read(skel->parent_node.data(), bone_node_num * sizeof(uint16_t));
         if (big_endian) {
-            uint16_t* parent_index = skel->parent_index.data();
-            for (uint32_t j = 0; j < motion_bone_count; j++)
-                parent_index[j] = reverse_endianness_uint16_t(parent_index[j]);
+            uint16_t* parent_node = skel->parent_node.data();
+            for (uint32_t j = 0; j < bone_node_num; j++)
+                parent_node[j] = reverse_endianness_uint16_t(parent_node[j]);
         }
         s.position_pop();
         s.position_pop();
@@ -883,11 +883,11 @@ static void bone_database_modern_read_inner(bone_database* bone_data, stream& s,
     s.position_push(skeleton_name_offsets_offset, SEEK_SET);
     if (!is_x)
         for (uint32_t i = 0; i < skeleton_count; i++)
-            bone_data->skeleton[i].name = s.read_string_null_terminated_offset(
+            bone_data->bonedata[i].name = s.read_string_null_terminated_offset(
                 s.read_offset_f2(header_length));
     else
         for (uint32_t i = 0; i < skeleton_count; i++)
-            bone_data->skeleton[i].name = s.read_string_null_terminated_offset(
+            bone_data->bonedata[i].name = s.read_string_null_terminated_offset(
                 s.read_offset_x());
     s.position_pop();
 
@@ -912,7 +912,7 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream& s
     enrs_entry ee;
     pof pof;
 
-    uint32_t skeleton_count = (uint32_t)bone_data->skeleton.size();
+    uint32_t skeleton_count = (uint32_t)bone_data->bonedata.size();
 
     if (!is_x) {
         uint32_t pos;
@@ -929,34 +929,34 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream& s
         skeleton_count /= 2;
 
         for (uint32_t i = 0; i < skeleton_count; i++) {
-            bone_database_skeleton* skel = &bone_data->skeleton[i];
+            BoneData* skel = &bone_data->bonedata[i];
 
-            uint32_t bone_count = (uint32_t)skel->bone.size();
-            uint32_t position_count = (uint32_t)skel->position.size();
-            uint32_t object_bone_count = (uint32_t)skel->object_bone.size();
-            uint32_t motion_bone_count = (uint32_t)skel->motion_bone.size();
+            uint32_t body_type_num = (uint32_t)skel->body_type.size();
+            uint32_t chain_pos_rad_num = (uint32_t)skel->chain_pos_rad.size();
+            uint32_t bone_name_num = (uint32_t)skel->bone_name.size();
+            uint32_t bone_node_num = (uint32_t)skel->bone_node_name.size();
 
             ee = { off, 1, 56, 1 };
             ee.append(0, 14, ENRS_DWORD);
             e.vec.push_back(ee);
             pos += off = 56;
 
-            bone_count++;
+            body_type_num++;
             off += 8;
             pos += 8;
-            ee = { off, 1, 12, bone_count };
+            ee = { off, 1, 12, body_type_num };
             ee.append(0, 1, ENRS_DWORD);
             e.vec.push_back(ee);
-            off = (uint32_t)(bone_count * 12ULL);
+            off = (uint32_t)(body_type_num * 12ULL);
             if (pos + off % 0x10)
                 off -= 8;
             pos += off = align_val(pos + off, 0x10) - pos;
-            bone_count--;
+            body_type_num--;
 
-            ee = { off, 1, 12, position_count };
+            ee = { off, 1, 12, chain_pos_rad_num };
             ee.append(0, 3, ENRS_DWORD);
             e.vec.push_back(ee);
-            off = (uint32_t)(position_count * 12ULL);
+            off = (uint32_t)(chain_pos_rad_num * 12ULL);
             pos += off = align_val(off, 0x10);
 
             ee = { off, 1, 4, 1 };
@@ -964,17 +964,17 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream& s
             e.vec.push_back(ee);
             pos += off = 4;
 
-            object_bone_count += motion_bone_count;
-            ee = { off, 1, (uint32_t)(object_bone_count * 4ULL), 1 };
-            ee.append(0, object_bone_count, ENRS_DWORD);
+            bone_name_num += bone_node_num;
+            ee = { off, 1, (uint32_t)(bone_name_num * 4ULL), 1 };
+            ee.append(0, bone_name_num, ENRS_DWORD);
             e.vec.push_back(ee);
-            pos += off = (uint32_t)(object_bone_count * 4ULL);
-            object_bone_count -= motion_bone_count;
+            pos += off = (uint32_t)(bone_name_num * 4ULL);
+            bone_name_num -= bone_node_num;
 
-            ee = { off, 1, (uint32_t)(motion_bone_count * 2ULL), 1 };
-            ee.append(0, motion_bone_count, ENRS_WORD);
+            ee = { off, 1, (uint32_t)(bone_node_num * 2ULL), 1 };
+            ee.append(0, bone_node_num, ENRS_WORD);
             e.vec.push_back(ee);
-            off = (uint32_t)(motion_bone_count * 2ULL);
+            off = (uint32_t)(bone_node_num * 2ULL);
             pos += off = align_val(off, 0x04);
         }
     }
@@ -1022,25 +1022,25 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream& s
         off = align_val(off, 0x10);
 
         for (uint32_t i = 0; i < skeleton_count; i++) {
-            bone_database_skeleton* skel = &bone_data->skeleton[i];
+            BoneData* skel = &bone_data->bonedata[i];
 
-            uint32_t bone_count = (uint32_t)skel->bone.size();
-            uint32_t position_count = (uint32_t)skel->position.size();
-            uint32_t object_bone_count = (uint32_t)skel->object_bone.size();
-            uint32_t motion_bone_count = (uint32_t)skel->motion_bone.size();
+            uint32_t body_type_num = (uint32_t)skel->body_type.size();
+            uint32_t chain_pos_rad_num = (uint32_t)skel->chain_pos_rad.size();
+            uint32_t bone_name_num = (uint32_t)skel->bone_name.size();
+            uint32_t bone_node_num = (uint32_t)skel->bone_node_name.size();
 
-            bone_count++;
+            body_type_num++;
             off += 8;
-            ee = { off, 1, 16, bone_count };
+            ee = { off, 1, 16, body_type_num };
             ee.append(0, 1, ENRS_QWORD);
             e.vec.push_back(ee);
-            off = (uint32_t)(bone_count * 16ULL);
-            bone_count--;
+            off = (uint32_t)(body_type_num * 16ULL);
+            body_type_num--;
 
-            ee = { off, 1, 12, position_count };
+            ee = { off, 1, 12, chain_pos_rad_num };
             ee.append(0, 3, ENRS_DWORD);
             e.vec.push_back(ee);
-            off = (uint32_t)(position_count * 12ULL);
+            off = (uint32_t)(chain_pos_rad_num * 12ULL);
             off = align_val(off, 0x10);
 
             ee = { off, 1, 4, 1 };
@@ -1049,41 +1049,41 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream& s
             off = 4;
             off = align_val(off, 0x10);
 
-            if (object_bone_count % 1) {
-                ee = { off, 1, 12, position_count };
+            if (bone_name_num % 1) {
+                ee = { off, 1, 12, chain_pos_rad_num };
                 ee.append(0, 3, ENRS_DWORD);
                 e.vec.push_back(ee);
-                off = (uint32_t)(position_count * 12ULL);
+                off = (uint32_t)(chain_pos_rad_num * 12ULL);
                 off = align_val(off, 0x10);
             }
 
             if (skeleton_count % 2) {
-                ee = { off, 1, (uint32_t)(object_bone_count * 8ULL), 1 };
-                ee.append(0, object_bone_count, ENRS_QWORD);
+                ee = { off, 1, (uint32_t)(bone_name_num * 8ULL), 1 };
+                ee.append(0, bone_name_num, ENRS_QWORD);
                 e.vec.push_back(ee);
-                off = (uint32_t)(object_bone_count * 8ULL);
+                off = (uint32_t)(bone_name_num * 8ULL);
                 off = align_val(off, 0x10);
 
-                ee = { off, 1, (uint32_t)(motion_bone_count * 8ULL), 1 };
-                ee.append(0, motion_bone_count, ENRS_QWORD);
+                ee = { off, 1, (uint32_t)(bone_node_num * 8ULL), 1 };
+                ee.append(0, bone_node_num, ENRS_QWORD);
                 e.vec.push_back(ee);
-                off = (uint32_t)(motion_bone_count * 8ULL);
+                off = (uint32_t)(bone_node_num * 8ULL);
                 off = align_val(off, 0x10);
             }
             else {
-                object_bone_count += motion_bone_count;
-                ee = { off, 1, (uint32_t)(object_bone_count * 8ULL), 1 };
-                ee.append(0, object_bone_count, ENRS_QWORD);
+                bone_name_num += bone_node_num;
+                ee = { off, 1, (uint32_t)(bone_name_num * 8ULL), 1 };
+                ee.append(0, bone_name_num, ENRS_QWORD);
                 e.vec.push_back(ee);
-                off = (uint32_t)(object_bone_count * 8ULL);
+                off = (uint32_t)(bone_name_num * 8ULL);
                 off = align_val(off, 0x10);
-                object_bone_count -= motion_bone_count;
+                bone_name_num -= bone_node_num;
             }
 
-            ee = { off, 1, (uint32_t)(motion_bone_count * 2ULL), 1 };
-            ee.append(0, motion_bone_count, ENRS_WORD);
+            ee = { off, 1, (uint32_t)(bone_node_num * 2ULL), 1 };
+            ee.append(0, bone_node_num, ENRS_WORD);
             e.vec.push_back(ee);
-            off = (uint32_t)(motion_bone_count * 2ULL);
+            off = (uint32_t)(bone_node_num * 2ULL);
             off = align_val(off, 0x10);
         }
     }
@@ -1096,20 +1096,20 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream& s
 
     int64_t skeleton_offsets_offset = s_bone.get_position();
     if (!is_x)
-        for (bone_database_skeleton& i : bone_data->skeleton)
+        for (BoneData& i : bone_data->bonedata)
             io_write_offset_f2_pof_add(s_bone, 0, 0x40, &pof);
     else {
-        for (bone_database_skeleton& i : bone_data->skeleton)
+        for (BoneData& i : bone_data->bonedata)
             io_write_offset_x_pof_add(s_bone, 0, &pof);
         s_bone.align_write(0x10);
     }
 
     int64_t skeleton_name_offsets_offset = s_bone.get_position();
     if (!is_x)
-        for (bone_database_skeleton& i : bone_data->skeleton)
+        for (BoneData& i : bone_data->bonedata)
             io_write_offset_f2_pof_add(s_bone, 0, 0x40, &pof);
     else {
-        for (bone_database_skeleton& i : bone_data->skeleton)
+        for (BoneData& i : bone_data->bonedata)
             io_write_offset_x_pof_add(s_bone, 0, &pof);
         s_bone.align_write(0x10);
     }
@@ -1118,12 +1118,12 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream& s
 
     if (!is_x)
         for (uint32_t i = 0; i < skeleton_count; i++) {
-            bone_database_skeleton* skel = &bone_data->skeleton[i];
+            BoneData* skel = &bone_data->bonedata[i];
 
-            uint32_t bone_count = (uint32_t)skel->bone.size();
-            uint32_t position_count = (uint32_t)skel->position.size();
-            uint32_t object_bone_count = (uint32_t)skel->object_bone.size();
-            uint32_t motion_bone_count = (uint32_t)skel->motion_bone.size();
+            uint32_t body_type_num = (uint32_t)skel->body_type.size();
+            uint32_t chain_pos_rad_num = (uint32_t)skel->chain_pos_rad.size();
+            uint32_t bone_name_num = (uint32_t)skel->bone_name.size();
+            uint32_t bone_node_num = (uint32_t)skel->bone_node_name.size();
 
             skh[i].offset = s_bone.get_position();
             io_write_offset_f2_pof_add(s_bone, 0, 0x40, &pof);
@@ -1138,7 +1138,7 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream& s
             s_bone.write(0x14);
 
             skh[i].bones_offset = s_bone.get_position();
-            for (bone_database_bone& j : skel->bone) {
+            for (BODYTYPE& j : skel->body_type) {
                 s_bone.write(0x08);
                 io_write_offset_f2_pof_add(s_bone, 0, 0x40, &pof);
             }
@@ -1147,23 +1147,23 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream& s
             io_write_offset_f2_pof_add(s_bone, 0, 0x40, &pof);
             s_bone.align_write(0x10);
 
-            skh[i].positions_offset = s_bone.get_position();
-            s_bone.write(sizeof(vec3) * position_count);
+            skh[i].chain_pos_rad_offset = s_bone.get_position();
+            s_bone.write(sizeof(vec3) * chain_pos_rad_num);
             s_bone.align_write(0x10);
 
-            skh[i].unknown_value_offset = s_bone.get_position();
+            skh[i].heel_height_offset = s_bone.get_position();
             s_bone.write_float_t(0.0f);
 
-            skh[i].object_bone_names_offset = s_bone.get_position();
-            for (std::string& j : skel->object_bone)
+            skh[i].bone_name_offset = s_bone.get_position();
+            for (std::string& j : skel->bone_name)
                 io_write_offset_f2_pof_add(s_bone, 0, 0x40, &pof);
 
-            skh[i].motion_bone_names_offset = s_bone.get_position();
-            for (std::string& j : skel->motion_bone)
+            skh[i].bone_node_offset = s_bone.get_position();
+            for (std::string& j : skel->bone_node_name)
                 io_write_offset_f2_pof_add(s_bone, 0, 0x40, &pof);
 
-            skh[i].parent_indices_offset = s_bone.get_position();
-            s_bone.write(sizeof(uint16_t) * motion_bone_count);
+            skh[i].parent_node_offset = s_bone.get_position();
+            s_bone.write(sizeof(uint16_t) * bone_node_num);
             s_bone.align_write(0x04);
         }
     else {
@@ -1183,15 +1183,15 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream& s
         }
 
         for (uint32_t i = 0; i < skeleton_count; i++) {
-            bone_database_skeleton* skel = &bone_data->skeleton[i];
+            BoneData* skel = &bone_data->bonedata[i];
 
-            uint32_t bone_count = (uint32_t)skel->bone.size();
-            uint32_t position_count = (uint32_t)skel->position.size();
-            uint32_t object_bone_count = (uint32_t)skel->object_bone.size();
-            uint32_t motion_bone_count = (uint32_t)skel->motion_bone.size();
+            uint32_t body_type_num = (uint32_t)skel->body_type.size();
+            uint32_t chain_pos_rad_num = (uint32_t)skel->chain_pos_rad.size();
+            uint32_t bone_name_num = (uint32_t)skel->bone_name.size();
+            uint32_t bone_node_num = (uint32_t)skel->bone_node_name.size();
 
             skh[i].bones_offset = s_bone.get_position();
-            for (bone_database_bone& j : skel->bone) {
+            for (BODYTYPE& j : skel->body_type) {
                 s_bone.write(0x08);
                 io_write_offset_x_pof_add(s_bone, 0, &pof);
             }
@@ -1200,26 +1200,26 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream& s
             io_write_offset_x_pof_add(s_bone, 0, &pof);
             s_bone.align_write(0x10);
 
-            skh[i].positions_offset = s_bone.get_position();
-            s_bone.write(&s_bone, sizeof(vec3) * position_count);
+            skh[i].chain_pos_rad_offset = s_bone.get_position();
+            s_bone.write(&s_bone, sizeof(vec3) * chain_pos_rad_num);
             s_bone.align_write(0x10);
 
-            skh[i].unknown_value_offset = s_bone.get_position();
+            skh[i].heel_height_offset = s_bone.get_position();
             s_bone.write_float_t(0.0f);
             s_bone.align_write(0x10);
 
-            skh[i].object_bone_names_offset = s_bone.get_position();
-            for (std::string& j : skel->object_bone)
+            skh[i].bone_name_offset = s_bone.get_position();
+            for (std::string& j : skel->bone_name)
                 io_write_offset_x_pof_add(s_bone, 0, &pof);
             s_bone.align_write(0x10);
 
-            skh[i].motion_bone_names_offset = s_bone.get_position();
-            for (std::string& j : skel->motion_bone)
+            skh[i].bone_node_offset = s_bone.get_position();
+            for (std::string& j : skel->bone_node_name)
                 io_write_offset_x_pof_add(s_bone, 0, &pof);
             s_bone.align_write(0x10);
 
-            skh[i].parent_indices_offset = s_bone.get_position();
-            s_bone.write(sizeof(uint16_t) * motion_bone_count);
+            skh[i].parent_node_offset = s_bone.get_position();
+            s_bone.write(sizeof(uint16_t) * bone_node_num);
             s_bone.align_write(0x10);
         }
     }
@@ -1229,7 +1229,7 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream& s
 
     if (is_x)
         for (uint32_t i = 0; i < skeleton_count; i++) {
-            bone_database_skeleton* skel = &bone_data->skeleton[i];
+            BoneData* skel = &bone_data->bonedata[i];
 
             if (bone_database_strings_push_back_check(strings, skel->name.c_str())) {
                 string_offsets.push_back(s_bone.get_position());
@@ -1238,9 +1238,9 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream& s
         }
 
     for (uint32_t i = 0; i < skeleton_count; i++) {
-        bone_database_skeleton* skel = &bone_data->skeleton[i];
+        BoneData* skel = &bone_data->bonedata[i];
 
-        for (bone_database_bone& j : skel->bone)
+        for (BODYTYPE& j : skel->body_type)
             if (bone_database_strings_push_back_check(strings, j.name.c_str())) {
                 string_offsets.push_back(s_bone.get_position());
                 s_bone.write_string_null_terminated(j.name);
@@ -1251,13 +1251,13 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream& s
             s_bone.write_utf8_string_null_terminated("End");
         }
 
-        for (std::string& j : skel->object_bone)
+        for (std::string& j : skel->bone_name)
             if (bone_database_strings_push_back_check(strings, j.c_str())) {
                 string_offsets.push_back(s_bone.get_position());
                 s_bone.write_string_null_terminated(j);
             }
 
-        for (std::string& j : skel->motion_bone)
+        for (std::string& j : skel->bone_node_name)
             if (bone_database_strings_push_back_check(strings, j.c_str())) {
                 string_offsets.push_back(s_bone.get_position());
                 s_bone.write_string_null_terminated(j);
@@ -1266,7 +1266,7 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream& s
 
     if (!is_x)
         for (uint32_t i = 0; i < skeleton_count; i++) {
-            bone_database_skeleton* skel = &bone_data->skeleton[i];
+            BoneData* skel = &bone_data->bonedata[i];
 
             if (bone_database_strings_push_back_check(strings, skel->name.c_str())) {
                 string_offsets.push_back(s_bone.get_position());
@@ -1276,61 +1276,61 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream& s
     s_bone.align_write(0x10);
 
     for (uint32_t i = 0; i < skeleton_count; i++) {
-        bone_database_skeleton* skel = &bone_data->skeleton[i];
+        BoneData* skel = &bone_data->bonedata[i];
 
-        uint32_t bone_count = (uint32_t)skel->bone.size();
-        uint32_t position_count = (uint32_t)skel->position.size();
-        uint32_t object_bone_count = (uint32_t)skel->object_bone.size();
-        uint32_t motion_bone_count = (uint32_t)skel->motion_bone.size();
+        uint32_t body_type_num = (uint32_t)skel->body_type.size();
+        uint32_t chain_pos_rad_num = (uint32_t)skel->chain_pos_rad.size();
+        uint32_t bone_name_num = (uint32_t)skel->bone_name.size();
+        uint32_t bone_node_num = (uint32_t)skel->bone_node_name.size();
 
         s_bone.position_push(skh[i].offset, SEEK_SET);
         if (!is_x) {
             s_bone.write_offset_f2(skh[i].bones_offset, 0x40);
-            s_bone.write_uint32_t_reverse_endianness(position_count);
-            s_bone.write_offset_f2(skh[i].positions_offset, 0x40);
-            s_bone.write_offset_f2(skh[i].unknown_value_offset, 0x40);
-            s_bone.write_uint32_t_reverse_endianness(object_bone_count);
-            s_bone.write_offset_f2(skh[i].object_bone_names_offset, 0x40);
-            s_bone.write_uint32_t_reverse_endianness(motion_bone_count);
-            s_bone.write_offset_f2(skh[i].motion_bone_names_offset, 0x40);
-            s_bone.write_offset_f2(skh[i].parent_indices_offset, 0x40);
+            s_bone.write_uint32_t_reverse_endianness(chain_pos_rad_num);
+            s_bone.write_offset_f2(skh[i].chain_pos_rad_offset, 0x40);
+            s_bone.write_offset_f2(skh[i].heel_height_offset, 0x40);
+            s_bone.write_uint32_t_reverse_endianness(bone_name_num);
+            s_bone.write_offset_f2(skh[i].bone_name_offset, 0x40);
+            s_bone.write_uint32_t_reverse_endianness(bone_node_num);
+            s_bone.write_offset_f2(skh[i].bone_node_offset, 0x40);
+            s_bone.write_offset_f2(skh[i].parent_node_offset, 0x40);
             s_bone.write(0x14);
         }
         else {
             s_bone.write_offset_x(skh[i].bones_offset);
-            s_bone.write_uint32_t_reverse_endianness(position_count);
-            s_bone.write_offset_x(skh[i].positions_offset);
-            s_bone.write_offset_x(skh[i].unknown_value_offset);
-            s_bone.write_uint32_t_reverse_endianness(object_bone_count);
-            s_bone.write_offset_x(skh[i].object_bone_names_offset);
-            s_bone.write_uint32_t_reverse_endianness(motion_bone_count);
-            s_bone.write_offset_x(skh[i].motion_bone_names_offset);
-            s_bone.write_offset_x(skh[i].parent_indices_offset);
+            s_bone.write_uint32_t_reverse_endianness(chain_pos_rad_num);
+            s_bone.write_offset_x(skh[i].chain_pos_rad_offset);
+            s_bone.write_offset_x(skh[i].heel_height_offset);
+            s_bone.write_uint32_t_reverse_endianness(bone_name_num);
+            s_bone.write_offset_x(skh[i].bone_name_offset);
+            s_bone.write_uint32_t_reverse_endianness(bone_node_num);
+            s_bone.write_offset_x(skh[i].bone_node_offset);
+            s_bone.write_offset_x(skh[i].parent_node_offset);
             s_bone.write(0x28);
         }
         s_bone.position_pop();
 
         s_bone.position_push(skh[i].bones_offset, SEEK_SET);
         if (!is_x)
-            for (bone_database_bone& j : skel->bone) {
-                s_bone.write_uint8_t((uint8_t)j.type);
-                s_bone.write_uint8_t(j.has_parent ? 1 : 0);
-                s_bone.write_uint8_t(j.parent);
-                s_bone.write_uint8_t(j.pole_target);
-                s_bone.write_uint8_t(j.mirror);
-                s_bone.write_uint8_t(j.flags);
+            for (BODYTYPE& j : skel->body_type) {
+                s_bone.write_uint8_t((uint8_t)j.ik_type);
+                s_bone.write_uint8_t((uint8_t)j.inherit_type);
+                s_bone.write_uint8_t((uint8_t)j.inherit_mat_id);
+                s_bone.write_uint8_t((uint8_t)j.up_vector_id);
+                s_bone.write_uint8_t((uint8_t)j.flip_block_id);
+                s_bone.write_uint8_t(j.expression_id);
                 s_bone.write(0x02);
                 s_bone.write_offset_f2(bone_database_strings_get_string_offset(strings,
                     string_offsets, j.name.c_str()), 0x40);
             }
         else
-            for (bone_database_bone& j : skel->bone) {
-                s_bone.write_uint8_t((uint8_t)j.type);
-                s_bone.write_uint8_t(j.has_parent ? 1 : 0);
-                s_bone.write_uint8_t(j.parent);
-                s_bone.write_uint8_t(j.pole_target);
-                s_bone.write_uint8_t(j.mirror);
-                s_bone.write_uint8_t(j.flags);
+            for (BODYTYPE& j : skel->body_type) {
+                s_bone.write_uint8_t((uint8_t)j.ik_type);
+                s_bone.write_uint8_t((uint8_t)j.inherit_type);
+                s_bone.write_uint8_t((uint8_t)j.inherit_mat_id);
+                s_bone.write_uint8_t((uint8_t)j.up_vector_id);
+                s_bone.write_uint8_t((uint8_t)j.flip_block_id);
+                s_bone.write_uint8_t(j.expression_id);
                 s_bone.write(&s_bone, 0x02);
                 s_bone.write_offset_x(bone_database_strings_get_string_offset(strings,
                     string_offsets, j.name.c_str()));
@@ -1350,41 +1350,42 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream& s
         }
         s_bone.position_pop();
 
-        s_bone.position_push(skh[i].positions_offset, SEEK_SET);
-        for (vec3& j : skel->position) {
-            s_bone.write_float_t_reverse_endianness(j.x);
-            s_bone.write_float_t_reverse_endianness(j.y);
-            s_bone.write_float_t_reverse_endianness(j.z);
+        s_bone.position_push(skh[i].chain_pos_rad_offset, SEEK_SET);
+        for (CHAINPOSRADIUS& j : skel->chain_pos_rad) {
+            vec3& chain_pos = j.chain_pos;
+            s_bone.write_float_t_reverse_endianness(chain_pos.x);
+            s_bone.write_float_t_reverse_endianness(chain_pos.y);
+            s_bone.write_float_t_reverse_endianness(chain_pos.z);
         }
         s_bone.position_pop();
 
-        s_bone.position_push(skh[i].unknown_value_offset, SEEK_SET);
+        s_bone.position_push(skh[i].heel_height_offset, SEEK_SET);
         s_bone.write_float_t_reverse_endianness(skel->heel_height);
         s_bone.position_pop();
 
-        s_bone.position_push(skh[i].object_bone_names_offset, SEEK_SET);
+        s_bone.position_push(skh[i].bone_name_offset, SEEK_SET);
         if (!is_x)
-            for (std::string& j : skel->object_bone)
+            for (std::string& j : skel->bone_name)
                 s_bone.write_offset_f2(bone_database_strings_get_string_offset(strings,
                     string_offsets, j.c_str()), 0x40);
         else
-            for (std::string& j : skel->object_bone)
+            for (std::string& j : skel->bone_name)
                 s_bone.write_offset_x(bone_database_strings_get_string_offset(strings,
                     string_offsets, j.c_str()));
 
-        s_bone.position_push(skh[i].motion_bone_names_offset, SEEK_SET);
+        s_bone.position_push(skh[i].bone_node_offset, SEEK_SET);
         if (!is_x)
-            for (std::string& j : skel->motion_bone)
+            for (std::string& j : skel->bone_node_name)
                 s_bone.write_offset_f2(bone_database_strings_get_string_offset(strings,
                     string_offsets, j.c_str()), 0x40);
         else
-            for (std::string& j : skel->motion_bone)
+            for (std::string& j : skel->bone_node_name)
                 s_bone.write_offset_x(bone_database_strings_get_string_offset(strings,
                     string_offsets, j.c_str()));
         s_bone.position_pop();
 
-        s_bone.position_push(skh[i].parent_indices_offset, SEEK_SET);
-        for (uint16_t& j : skel->parent_index)
+        s_bone.position_push(skh[i].parent_node_offset, SEEK_SET);
+        for (uint16_t& j : skel->parent_node)
             s_bone.write_uint16_t_reverse_endianness(j);
         s_bone.position_pop();
     }
@@ -1407,11 +1408,11 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream& s
 
     s_bone.position_push(skeleton_name_offsets_offset, SEEK_SET);
     if (!is_x)
-        for (bone_database_skeleton& i : bone_data->skeleton)
+        for (BoneData& i : bone_data->bonedata)
             s_bone.write_offset_f2(bone_database_strings_get_string_offset(strings,
                 string_offsets, i.name.c_str()), 0x40);
     else
-        for (bone_database_skeleton& i : bone_data->skeleton)
+        for (BoneData& i : bone_data->bonedata)
             s_bone.write_offset_x(bone_database_strings_get_string_offset(strings,
                 string_offsets, i.name.c_str()));
     s_bone.position_pop();

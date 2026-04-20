@@ -26,7 +26,7 @@ struct module {
 struct module_data {
     int32_t id;
     int32_t sort_index;
-    chara_index chara_index;
+    CHARA_NUM chara_num;
     int32_t cos;
     rob_sleeve_data sleeve_l;
     rob_sleeve_data sleeve_r;
@@ -56,7 +56,7 @@ extern void module_table_handler_data_free();
 
 extern void module_data_handler_data_init();
 extern void module_data_handler_data_add_all_modules();
-extern bool module_data_handler_data_get_module(chara_index chara_index, int32_t cos, module_data& data);
+extern bool module_data_handler_data_get_module(CHARA_NUM chara_num, int32_t cos, module_data& data);
 extern bool module_data_handler_data_get_module(int32_t id, module_data& data);
 extern const std::vector<module_data>& module_data_handler_data_get_modules();
 extern void module_data_handler_data_free();

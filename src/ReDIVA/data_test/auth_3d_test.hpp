@@ -20,9 +20,9 @@ public:
             int32_t state;
             bool field_C;
             bool field_D;
-            ::chara_index load_chara_index[2];
-            ::chara_index chara_index[2];
-            ::chara_index prev_chara_index[2];
+            CHARA_NUM load_chara_num[2];
+            CHARA_NUM chara_num[2];
+            CHARA_NUM prev_chara_num[2];
             int32_t load_cos_id[2];
             int32_t cos_id[2];
             DtmEqVs dtm_eq_vs[2];

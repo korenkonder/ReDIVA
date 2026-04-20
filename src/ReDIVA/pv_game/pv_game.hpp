@@ -40,7 +40,7 @@ enum hit_state {
 };
 
 struct pv_game_chara {
-    chara_index chara_index;
+    CHARA_NUM chara_num;
     int32_t cos;
     int32_t chara_id;
     rob_chara_pv_data pv_data;
@@ -115,8 +115,8 @@ struct pv_game_edit_instrument {
 };
 
 struct pv_game_chreff {
-    chara_index src_chara_index;
-    chara_index dst_chara_index;
+    CHARA_NUM src_chara_num;
+    CHARA_NUM dst_chara_num;
     std::bitset<128> type;
     std::string src_auth_3d;
     std::string dst_auth_3d;
@@ -247,7 +247,7 @@ struct pv_game_data {
     bool has_frame_texture;
     int32_t movie_index;
     int32_t field_2D0C4;
-    pv_game_chara chara[ROB_CHARA_COUNT];
+    pv_game_chara chara[ROB_ID_MAX];
     std::vector<uint32_t> motion_set_ids;
     std::vector<uint32_t> motion_set_face_ids;
     std::vector<uint32_t> obj_set_itmpv;
@@ -282,7 +282,7 @@ struct pv_game_data {
     int32_t field_2D954;
     std::string itmpv_string;
     std::vector<int32_t> itmpv_auth_3d_uids;
-    std::map<int32_t, std::pair<auth_3d_id, int64_t>> itmpv[ROB_CHARA_COUNT];
+    std::map<int32_t, std::pair<auth_3d_id, int64_t>> itmpv[ROB_ID_MAX];
     std::vector<std::string> itmpv_uids;
     pv_game_edit_instrument edit_instrument[3];
     std::vector<int32_t> loaded_auth_3d_uids;
@@ -345,9 +345,9 @@ struct pv_game {
     int32_t field_C;
     int32_t pv_id;
     bool field_14;
-    int32_t modules[ROB_CHARA_COUNT];
-    rob_chara_pv_data_item items[ROB_CHARA_COUNT];
-    pv_game_item_mask items_mask[ROB_CHARA_COUNT];
+    int32_t modules[ROB_ID_MAX];
+    rob_chara_pv_data_item items[ROB_ID_MAX];
+    pv_game_item_mask items_mask[ROB_ID_MAX];
     pv_game_data data;
 
     pv_game();
@@ -482,9 +482,9 @@ struct pv_game_init_data {
     int32_t life_gauge_safety_time;
     int32_t life_gauge_border;
     int32_t stage_index;
-    int32_t modules[ROB_CHARA_COUNT];
-    rob_chara_pv_data_item items[ROB_CHARA_COUNT];
-    pv_game_item_mask items_mask[ROB_CHARA_COUNT];
+    int32_t modules[ROB_ID_MAX];
+    rob_chara_pv_data_item items[ROB_ID_MAX];
+    pv_game_item_mask items_mask[ROB_ID_MAX];
 
     pv_game_init_data();
 
@@ -553,10 +553,10 @@ struct struc_775 {
     int32_t field_44;
     int8_t field_48;
     int8_t field_49;
-    int32_t field_4C[ROB_CHARA_COUNT];
-    int32_t field_64[ROB_CHARA_COUNT];
-    pv_game_item field_7C[ROB_CHARA_COUNT];
-    pv_game_item_mask field_DC[ROB_CHARA_COUNT];
+    int32_t field_4C[ROB_ID_MAX];
+    int32_t field_64[ROB_ID_MAX];
+    pv_game_item field_7C[ROB_ID_MAX];
+    pv_game_item_mask field_DC[ROB_ID_MAX];
     int32_t field_F4;
     int32_t field_F8;
 
@@ -871,9 +871,9 @@ public:
     pv_difficulty difficulty;
     pv_edition edition;
     bool success;
-    chara_index charas[ROB_CHARA_COUNT];
-    int32_t modules[ROB_CHARA_COUNT];
-    std::string module_names[ROB_CHARA_COUNT];
+    CHARA_NUM charas[ROB_ID_MAX];
+    int32_t modules[ROB_ID_MAX];
+    std::string module_names[ROB_ID_MAX];
     bool start;
     bool exit;
 

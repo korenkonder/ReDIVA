@@ -323,7 +323,7 @@ namespace rndr {
         int32_t query_index = (this->exposure_query_index + 1) % 3;
         this->exposure_query_index = query_index;
         int32_t next_query_index = (query_index + 2) % 3;
-        for (int32_t i = 0; i < ROB_CHARA_COUNT; i++, chara_data++) {
+        for (int32_t i = 0; i < ROB_ID_MAX; i++, chara_data++) {
             rob_chara* rob_chr = rob_chara_array_get(i);
             if (!rob_chr || !rob_chr->is_visible())
                 continue;
@@ -1888,7 +1888,7 @@ namespace rndr {
         bool v2 = false;
         if (!reset_exposure) {
             ExposureCharaData* chara_data = exposure_chara_data;
-            for (int32_t i = 0; i < ROB_CHARA_COUNT; i++, chara_data++) {
+            for (int32_t i = 0; i < ROB_ID_MAX; i++, chara_data++) {
                 rob_chara* rob_chr = rob_chara_array_get(i);
                 if (!rob_chr || !rob_chr->is_visible())
                     continue;
@@ -1984,7 +1984,7 @@ namespace rndr {
             };
 
             ExposureCharaData* chara_data = exposure_chara_data;
-            for (int32_t i = 0; i < 4 && i < ROB_CHARA_COUNT; i++, chara_data++)
+            for (int32_t i = 0; i < 4 && i < ROB_ID_MAX; i++, chara_data++)
                 for (int32_t j = 0; j < 8; j++)
                     exposure_measure.g_spot_coefficients[i * 8 + j] = chara_data->spot_coefficients[j];
             rctx->exposure_measure_ubo.WriteMemory(rend_data_ctx.state, exposure_measure);

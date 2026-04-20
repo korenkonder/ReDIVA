@@ -731,7 +731,7 @@ namespace pv_param_task {
     class PostProcessCtrlCharaAlpha : public PostProcessCtrl {
     public:
         struct Data {
-            pv_param::chara_alpha data[ROB_CHARA_COUNT];
+            pv_param::chara_alpha data[ROB_ID_MAX];
 
             Data();
         } data;
@@ -745,8 +745,8 @@ namespace pv_param_task {
 
     class PostProcessCtrlCharaItemAlpha : public PostProcessCtrlCharaAlpha {
     public:
-        post_process_task_set_chara_item_alpha_callback callback[ROB_CHARA_COUNT];
-        void* callback_data[ROB_CHARA_COUNT];
+        post_process_task_set_chara_item_alpha_callback callback[ROB_ID_MAX];
+        void* callback_data[ROB_ID_MAX];
 
         PostProcessCtrlCharaItemAlpha();
         ~PostProcessCtrlCharaItemAlpha();
@@ -1156,7 +1156,7 @@ namespace pv_param_task {
             else {
                 rob_chara* rob_chr = rob_chara_array_get(data.data.chara_id);
                 if (rob_chr)
-                    mat4_get_translation(rob_chr->get_bone_data_mat(MOTION_BONE_CL_KAO), &trans);
+                    mat4_get_translation(rob_chr->get_bone_data_mat(BLK_CL_KAO), &trans);
             }
 
             camera* cam = rctx_ptr->camera;

@@ -126,7 +126,7 @@ struct pv_db_pv_sabi {
 
 struct pv_db_pv_performer {
     pv_performer_type type;
-    chara_index chara;
+    CHARA_NUM chara;
     int32_t costume;
     int32_t pv_costume[PV_DIFFICULTY_MAX];
     bool fixed;
@@ -290,7 +290,7 @@ struct pv_db_pv_difficulty {
     std::string chainslide_success_name;
     std::string chainslide_failure_name;
     std::string slidertouch_name;
-    std::vector<pv_db_pv_motion> motion[ROB_CHARA_COUNT];
+    std::vector<pv_db_pv_motion> motion[ROB_ID_MAX];
     pv_db_pv_field_parent field;
     std::vector<pv_db_pv_item> pv_item;
     std::vector<pv_db_pv_hand_item> hand_item;
@@ -326,7 +326,7 @@ struct pv_db_pv_ex_song_ex_auth {
 };
 
 struct pv_db_pv_ex_song {
-    chara_index chara[ROB_CHARA_COUNT];
+    CHARA_NUM chara[ROB_ID_MAX];
     std::string file;
     std::string name;
     std::vector<pv_db_pv_ex_song_ex_auth> ex_auth;
@@ -490,7 +490,7 @@ struct pv_db_pv {
     bool eyes_xrot_adjust;
     bool is_old_pv;
     eyes_base_adjust_type eyes_base_adjust_type;
-    std::map<chara_index, pv_db_pv_eyes_rot_rate> eyes_rot_rate;
+    std::map<CHARA_NUM, pv_db_pv_eyes_rot_rate> eyes_rot_rate;
     std::vector<pv_db_pv_another_song> another_song;
     bool pre_play_script;
     pv_db_pv_frame_texture frame_texture[6];
@@ -500,18 +500,18 @@ struct pv_db_pv {
     ~pv_db_pv();
 
     int32_t get_chrmot_motion_id(int32_t chara_id,
-        chara_index chara_index, const pv_db_pv_motion& motion) const;
+        CHARA_NUM chara_num, const pv_db_pv_motion& motion) const;
     const pv_db_pv_difficulty* get_difficulty(
         pv_difficulty difficulty, pv_attribute_type attribute_type) const;
     const pv_db_pv_difficulty* get_difficulty(pv_difficulty difficulty, pv_edition edition) const;
-    chara_index get_performer_chara(int32_t performer) const;
+    CHARA_NUM get_performer_chara(int32_t performer) const;
     int32_t get_performer_costume(int32_t performer) const;
     size_t get_performer_count() const;
     int32_t get_performer_exclude(int32_t performer) const;
     bool get_performer_fixed(int32_t performer) const;
     size_t get_performer_fixed_count() const;
     int32_t get_performer_item(int32_t performer, pv_performer_item item) const;
-    bool get_performer_pseudo_fixed(chara_index chara_index, int32_t performer, bool a4, bool a5) const;
+    bool get_performer_pseudo_fixed(CHARA_NUM chara_num, int32_t performer, bool a4, bool a5) const;
     int32_t get_performer_pseudo_same_id(int32_t performer) const;
     int32_t get_performer_pv_costume(int32_t performer, pv_difficulty difficulty) const;
     pv_performer_size get_performer_size(int32_t performer) const;
@@ -520,7 +520,7 @@ struct pv_db_pv {
     bool is_performer_type_vocal(int32_t performer) const;
     void reset();
 
-    static int32_t get_pseudo_costume(pv_performer_type type, chara_index chara_index, int32_t costume);
+    static int32_t get_pseudo_costume(pv_performer_type type, CHARA_NUM chara_num, int32_t costume);
 };
 
 namespace pv_db {
@@ -555,7 +555,7 @@ namespace pv_db {
     };
 }
 
-extern item_id pv_performer_item_to_item_id(pv_performer_item item);
+extern ROB_PARTS_KIND pv_performer_item_to_rob_parts_kind(pv_performer_item item);
 extern item_sub_id pv_performer_item_to_item_sub_id(pv_performer_item item);
 
 extern void task_pv_db_init();

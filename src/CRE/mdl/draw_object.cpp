@@ -669,7 +669,7 @@ static void draw_object_material_set_default(render_data_context& rend_data_ctx,
     else
         rend_data_ctx.shader_flags.arr[U_STAGE_SHADOW] = 1;
 
-    rend_data_ctx.shader_flags.arr[U_CHARA_SHADOW2] = args->shadow > SHADOW_CHARA ? 1 : 0;
+    rend_data_ctx.shader_flags.arr[U_CHARA_SHADOW2] = args->shadow > SHADOW_GROUP_CHARA ? 1 : 0;
     rend_data_ctx.shader_flags.arr[U_CHARA_SHADOW]
         = rctx_ptr->draw_state->rend_data[rend_data_ctx.index].self_shadow ? 1 : 0;
 

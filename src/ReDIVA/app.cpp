@@ -865,7 +865,7 @@ static render_context* render_context_load(const wchar_t* config_path) {
 
     Glitter::glt_particle_manager_add_task();
 
-    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++)
+    for (int32_t i = 0; i < ROB_ID_MAX; i++)
         rob_chara_array_reset_pv_data(i);
 
     light_param_data_storage_data_load();

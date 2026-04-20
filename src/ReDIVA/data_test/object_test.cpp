@@ -313,9 +313,9 @@ void DataTestObjectManager::disp() {
     mat4_rotate_xyz(&rotation, &mat);
 
     vec3 pos = 0.0f;
-    shadow_ptr_get()->positions[SHADOW_CHARA].push_back(pos);
+    shadow_ptr_get()->positions[SHADOW_GROUP_CHARA].push_back(pos);
 
-    rctx_ptr->disp_manager->set_shadow_type(SHADOW_CHARA);
+    rctx_ptr->disp_manager->set_shadow_group(SHADOW_GROUP_CHARA);
     rctx_ptr->disp_manager->entry_obj_by_object_info(mat, { obj_id, obj_set_id });
     rctx_ptr->disp_manager->set_obj_flags((mdl::ObjFlags)0);
 }

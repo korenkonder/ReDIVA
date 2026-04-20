@@ -175,7 +175,7 @@ void RobCharaAdjust::window() {
         if (ImGui::BeginCombo("##Chara", chara_name[chara_id], 0)) {
             input_locked |= true;
 
-            for (int32_t i = 0; i < ROB_CHARA_COUNT && i < 2; i++)
+            for (int32_t i = 0; i < ROB_ID_MAX && i < 2; i++)
                 if (ImGui::Selectable(chara_name[i], chara_id == i)
                     || ImGui::ItemKeyPressed(ImGuiKey_Enter))
                     chara_id = i;

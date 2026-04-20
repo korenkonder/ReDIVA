@@ -154,7 +154,7 @@ struct pv_db_auth_replace_by_module {
 };
 
 struct pv_db_chrcam {
-    null_def<chara_index> chara;
+    null_def<CHARA_NUM> chara;
 
     null_def<int32_t> id;
     std::string name;
@@ -175,7 +175,7 @@ struct pv_db_chreff {
 };
 
 struct pv_db_chrmot {
-    null_def<chara_index> chara;
+    null_def<CHARA_NUM> chara;
 
     null_def<int32_t> id;
     std::string name;
@@ -211,7 +211,7 @@ struct pv_db_duet {
 };
 
 struct pv_db_eyes_rot_rate {
-    null_def<chara_index> chr;
+    null_def<CHARA_NUM> chr;
     null_def<float_t> xn_rate;
     null_def<float_t> xp_rate;
 };
@@ -222,17 +222,17 @@ struct pv_db_ex_auth {
 };
 
 struct pv_db_ex_song_ac101 {
-    null_def<chara_index> chara;
+    null_def<CHARA_NUM> chara;
 
     std::string file;
     std::string name;
 };
 
 struct pv_db_ex_song_aft101 {
-    null_def<chara_index> chara;
-    null_def<chara_index> chara2P;                                      // not AFT101
-    null_def<chara_index> chara3P;                                      // not AFT101
-    null_def<chara_index> chara4P;                                      // not AFT101
+    null_def<CHARA_NUM> chara;
+    null_def<CHARA_NUM> chara2P;                                        // not AFT101
+    null_def<CHARA_NUM> chara3P;                                        // not AFT101
+    null_def<CHARA_NUM> chara4P;                                        // not AFT101
 
     std::string file;
     std::string name;
@@ -241,12 +241,12 @@ struct pv_db_ex_song_aft101 {
 struct pv_db_ex_song_aft300 {
     std::vector<pv_db_ex_auth> ex_auth;                                 // AFT621/AFT622/AFT701/FT/M39
 
-    null_def<chara_index> chara;
-    null_def<chara_index> chara2P;
-    null_def<chara_index> chara3P;
-    null_def<chara_index> chara4P;
-    null_def<chara_index> chara5P;                                      // not AFT300/AFT310/AFT400
-    null_def<chara_index> chara6P;                                      // not AFT300/AFT310/AFT400
+    null_def<CHARA_NUM> chara;
+    null_def<CHARA_NUM> chara2P;
+    null_def<CHARA_NUM> chara3P;
+    null_def<CHARA_NUM> chara4P;
+    null_def<CHARA_NUM> chara5P;                                        // not AFT300/AFT310/AFT400
+    null_def<CHARA_NUM> chara6P;                                        // not AFT300/AFT310/AFT400
 
     std::string file;
     std::string name;
@@ -429,7 +429,7 @@ struct pv_db_osage_init {
 };
 
 struct pv_db_performer_aft101 {
-    null_def<chara_index> chara;
+    null_def<CHARA_NUM> chara;
     null_def<pv_db_performer_size> size;
     null_def<pv_db_performer_type> type;
 
@@ -444,7 +444,7 @@ struct pv_db_performer_aft101 {
 };
 
 struct pv_db_performer_aft500 {
-    null_def<chara_index> chara;
+    null_def<CHARA_NUM> chara;
     null_def<pv_db_performer_size> size;
     null_def<pv_db_performer_type> type;
 
@@ -712,7 +712,7 @@ struct pv_db_pv_ac101 {
     pv_db_sel_2d sel_2d;                                                // AC101
     pv_db_song_info_ac200 song_info;
     pv_db_title_image_ac200 title_image;
-    null_def<chara_index> unlock;
+    null_def<CHARA_NUM> unlock;
 
     null_def<int32_t> bpm;
     null_def<int32_t> date;
@@ -745,8 +745,8 @@ struct pv_db_pv_ac200 {
     pv_db_sabi sabi;
     pv_db_song_info_ac200 song_info;
     pv_db_title_image_ac200 title_image;
-    null_def<chara_index> unlock1p;
-    null_def<chara_index> unlock2p;
+    null_def<CHARA_NUM> unlock1p;
+    null_def<CHARA_NUM> unlock2p;
 
     null_def<int32_t> bpm;
     null_def<int32_t> date;

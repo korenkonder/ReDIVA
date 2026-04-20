@@ -176,7 +176,7 @@ void TaskDataTestOpd::disp() {
 
         size_t worker = 0;
         for (OpdMakeManagerData::Worker& i : opd_make_manager_data->workers) {
-            if (i.chara >= CHARA_MAX) {
+            if (i.chara >= CN_MAX) {
                 worker++;
                 continue;
             }
@@ -262,7 +262,7 @@ void TaskDataTestOpd::GetCustomizeItemObjectNames(
     object_database* aft_obj_db = &aft_data->data_ft.obj_db;
 
     const item_table_item* item = item_table_handler_array_get_item(
-        cstm.chara != 10 ? (chara_index)cstm.chara : CHARA_MIKU, cstm.obj_id);
+        cstm.chara != 10 ? (CHARA_NUM)cstm.chara : CN_MIKU, cstm.obj_id);
     if (item)
         for (const item_table_item_data_obj& i : item->data.obj)
             objects.push_back(aft_obj_db->get_object_name(i.obj_info));

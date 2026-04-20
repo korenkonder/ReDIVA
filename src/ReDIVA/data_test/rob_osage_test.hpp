@@ -72,14 +72,14 @@ public:
 
     int32_t chara_id;
     int32_t load_chara_id;
-    chara_index chara_index;
+    CHARA_NUM chara_num;
     int32_t cos_id;
-    ::item_id item_id;
+    ROB_PARTS_KIND rpk;
     object_info obj_info;
     size_t osage_index;
     size_t collision_index;
 
-    prj::vector_pair<::item_id, object_info> objects;
+    prj::vector_pair<ROB_PARTS_KIND, object_info> objects;
     prj::vector_pair<ExOsageBlock*, std::vector<skin_param_osage_root_boc>> bocs;
     prj::vector_pair<ExOsageBlock*, std::vector<skin_param_osage_root_normal_ref>> normal_refs;
 
@@ -107,21 +107,21 @@ public:
     void disp_line();
     void disp_line_cls_param(const mat4& transform, const vec3& pos);
 
-    ExClothBlock* get_cloth_block(rob_chara_item_equip_object* itm_eq_obj) const;
+    ExClothBlock* get_cloth_block(rob_chara_item_equip_object* skin_disp) const;
     std::vector<SkinParam::CollisionParam>* get_cls_list(ExNodeBlock* cls) const;
     SkinParam::CollisionParam* get_cls_param(std::vector<SkinParam::CollisionParam>* cls_list) const;
-    rob_chara_item_equip_object* get_item_equip_object() const;
-    ExNodeBlock* get_node_block(rob_chara_item_equip_object* itm_eq_obj) const;
-    ExOsageBlock* get_osage_block(rob_chara_item_equip_object* itm_eq_obj) const;
+    rob_chara_item_equip_object* get_skin_disp() const;
+    ExNodeBlock* get_node_block(rob_chara_item_equip_object* skin_disp) const;
+    ExOsageBlock* get_osage_block(rob_chara_item_equip_object* skin_disp) const;
     void set_node(skin_param_osage_node* skp_osg_node);
     void set_root(skin_param* skp);
 
     inline std::vector<SkinParam::CollisionParam>* get_cls_list() const {
-        rob_chara_item_equip_object* itm_eq_obj = get_item_equip_object();
-        if (!itm_eq_obj)
+        rob_chara_item_equip_object* skin_disp = get_skin_disp();
+        if (!skin_disp)
             return 0;
 
-        return get_cls_list(get_node_block(itm_eq_obj));
+        return get_cls_list(get_node_block(skin_disp));
     }
 
     inline SkinParam::CollisionParam* get_cls_param() const {
@@ -129,8 +129,8 @@ public:
     }
 
     inline skin_param* get_skin_param() const {
-        rob_chara_item_equip_object* itm_eq_obj = get_item_equip_object();
-        ExNodeBlock* ex_node = get_node_block(itm_eq_obj);
+        rob_chara_item_equip_object* skin_disp = get_skin_disp();
+        ExNodeBlock* ex_node = get_node_block(skin_disp);
         if (!ex_node)
             return 0;
 
@@ -142,8 +142,8 @@ public:
     }
 
     inline skin_param_osage_node* get_skin_param_osage_node() const {
-        rob_chara_item_equip_object* itm_eq_obj = get_item_equip_object();
-        ExOsageBlock* osg = get_osage_block(itm_eq_obj);
+        rob_chara_item_equip_object* skin_disp = get_skin_disp();
+        ExOsageBlock* osg = get_osage_block(skin_disp);
         if (osg && osg->osage_work.joint_node_vec.size() > 1)
             return &osg->osage_work.joint_node_vec.data()[1].data_ptr->skp_osg_node;
         return 0;

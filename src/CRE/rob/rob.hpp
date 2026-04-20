@@ -19,13 +19,634 @@
 #include "../object.hpp"
 #include "../static_var.hpp"
 
+enum BONE_BLK {
+    BLK_DUMMY                   = -1,
+    BLK_N_HARA_CP               = 0x00,
+    BLK_KG_HARA_Y               = 0x01,
+    BLK_KL_HARA_XZ              = 0x02,
+    BLK_KL_HARA_ETC             = 0x03,
+    BLK_N_HARA                  = 0x04,
+    BLK_CL_MUNE                 = 0x05,
+    BLK_N_MUNE_B                = 0x06,
+    BLK_KL_MUNE_B_WJ            = 0x07,
+    BLK_KL_KUBI                 = 0x08,
+    BLK_N_KAO                   = 0x09,
+    BLK_CL_KAO                  = 0x0A,
+    BLK_FACE_ROOT               = 0x0B,
+    BLK_N_AGO                   = 0x0C,
+    BLK_KL_AGO_WJ               = 0x0D,
+    BLK_N_TOOTH_UNDER           = 0x0E,
+    BLK_TL_TOOTH_UNDER_WJ       = 0x0F,
+    BLK_N_EYE_L                 = 0x10,
+    BLK_KL_EYE_L                = 0x11,
+    BLK_N_EYE_L_WJ_EX           = 0x12,
+    BLK_KL_HIGHLIGHT_L_WJ       = 0x13,
+    BLK_N_EYE_R                 = 0x14,
+    BLK_KL_EYE_R                = 0x15,
+    BLK_N_EYE_R_WJ_EX           = 0x16,
+    BLK_KL_HIGHLIGHT_R_WJ       = 0x17,
+    BLK_N_EYELID_L_A            = 0x18,
+    BLK_TL_EYELID_L_A_WJ        = 0x19,
+    BLK_N_EYELID_L_B            = 0x1A,
+    BLK_TL_EYELID_L_B_WJ        = 0x1B,
+    BLK_N_EYELID_R_A            = 0x1C,
+    BLK_TL_EYELID_R_A_WJ        = 0x1D,
+    BLK_N_EYELID_R_B            = 0x1E,
+    BLK_TL_EYELID_R_B_WJ        = 0x1F,
+    BLK_N_KUTI_D                = 0x20,
+    BLK_TL_KUTI_D_WJ            = 0x21,
+    BLK_N_KUTI_D_L              = 0x22,
+    BLK_TL_KUTI_D_L_WJ          = 0x23,
+    BLK_N_KUTI_D_R              = 0x24,
+    BLK_TL_KUTI_D_R_WJ          = 0x25,
+    BLK_N_KUTI_DS_L             = 0x26,
+    BLK_TL_KUTI_DS_L_WJ         = 0x27,
+    BLK_N_KUTI_DS_R             = 0x28,
+    BLK_TL_KUTI_DS_R_WJ         = 0x29,
+    BLK_N_KUTI_L                = 0x2A,
+    BLK_TL_KUTI_L_WJ            = 0x2B,
+    BLK_N_KUTI_M_L              = 0x2C,
+    BLK_TL_KUTI_M_L_WJ          = 0x2D,
+    BLK_N_KUTI_M_R              = 0x2E,
+    BLK_TL_KUTI_M_R_WJ          = 0x2F,
+    BLK_N_KUTI_R                = 0x30,
+    BLK_TL_KUTI_R_WJ            = 0x31,
+    BLK_N_KUTI_U                = 0x32,
+    BLK_TL_KUTI_U_WJ            = 0x33,
+    BLK_N_KUTI_U_L              = 0x34,
+    BLK_TL_KUTI_U_L_WJ          = 0x35,
+    BLK_N_KUTI_U_R              = 0x36,
+    BLK_TL_KUTI_U_R_WJ          = 0x37,
+    BLK_N_MABU_L_D_A            = 0x38,
+    BLK_TL_MABU_L_D_A_WJ        = 0x39,
+    BLK_N_MABU_L_D_B            = 0x3A,
+    BLK_TL_MABU_L_D_B_WJ        = 0x3B,
+    BLK_N_MABU_L_D_C            = 0x3C,
+    BLK_TL_MABU_L_D_C_WJ        = 0x3D,
+    BLK_N_MABU_L_U_A            = 0x3E,
+    BLK_TL_MABU_L_U_A_WJ        = 0x3F,
+    BLK_N_MABU_L_U_B            = 0x40,
+    BLK_TL_MABU_L_U_B_WJ        = 0x41,
+    BLK_N_EYELASHES_L           = 0x42,
+    BLK_TL_EYELASHES_L_WJ       = 0x43,
+    BLK_N_MABU_L_U_C            = 0x44,
+    BLK_TL_MABU_L_U_C_WJ        = 0x45,
+    BLK_N_MABU_R_D_A            = 0x46,
+    BLK_TL_MABU_R_D_A_WJ        = 0x47,
+    BLK_N_MABU_R_D_B            = 0x48,
+    BLK_TL_MABU_R_D_B_WJ        = 0x49,
+    BLK_N_MABU_R_D_C            = 0x4A,
+    BLK_TL_MABU_R_D_C_WJ        = 0x4B,
+    BLK_N_MABU_R_U_A            = 0x4C,
+    BLK_TL_MABU_R_U_A_WJ        = 0x4D,
+    BLK_N_MABU_R_U_B            = 0x4E,
+    BLK_TL_MABU_R_U_B_WJ        = 0x4F,
+    BLK_N_EYELASHES_R           = 0x50,
+    BLK_TL_EYELASHES_R_WJ       = 0x51,
+    BLK_N_MABU_R_U_C            = 0x52,
+    BLK_TL_MABU_R_U_C_WJ        = 0x53,
+    BLK_N_MAYU_L                = 0x54,
+    BLK_TL_MAYU_L_WJ            = 0x55,
+    BLK_N_MAYU_L_B              = 0x56,
+    BLK_TL_MAYU_L_B_WJ          = 0x57,
+    BLK_N_MAYU_L_C              = 0x58,
+    BLK_TL_MAYU_L_C_WJ          = 0x59,
+    BLK_N_MAYU_R                = 0x5A,
+    BLK_TL_MAYU_R_WJ            = 0x5B,
+    BLK_N_MAYU_R_B              = 0x5C,
+    BLK_TL_MAYU_R_B_WJ          = 0x5D,
+    BLK_N_MAYU_R_C              = 0x5E,
+    BLK_TL_MAYU_R_C_WJ          = 0x5F,
+    BLK_N_TOOTH_UPPER           = 0x60,
+    BLK_TL_TOOTH_UPPER_WJ       = 0x61,
+    BLK_N_KUBI_WJ_EX            = 0x62,
+    BLK_N_WAKI_L                = 0x63,
+    BLK_KL_WAKI_L_WJ            = 0x64,
+    BLK_TL_UP_KATA_L            = 0x65,
+    BLK_C_KATA_L                = 0x66,
+    BLK_KL_TE_L_WJ              = 0x67,
+    BLK_N_HITO_L_EX             = 0x68,
+    BLK_NL_HITO_L_WJ            = 0x69,
+    BLK_NL_HITO_B_L_WJ          = 0x6A,
+    BLK_NL_HITO_C_L_WJ          = 0x6B,
+    BLK_N_KO_L_EX               = 0x6C,
+    BLK_NL_KO_L_WJ              = 0x6D,
+    BLK_NL_KO_B_L_WJ            = 0x6E,
+    BLK_NL_KO_C_L_WJ            = 0x6F,
+    BLK_N_KUSU_L_EX             = 0x70,
+    BLK_NL_KUSU_L_WJ            = 0x71,
+    BLK_NL_KUSU_B_L_WJ          = 0x72,
+    BLK_NL_KUSU_C_L_WJ          = 0x73,
+    BLK_N_NAKA_L_EX             = 0x74,
+    BLK_NL_NAKA_L_WJ            = 0x75,
+    BLK_NL_NAKA_B_L_WJ          = 0x76,
+    BLK_NL_NAKA_C_L_WJ          = 0x77,
+    BLK_N_OYA_L_EX              = 0x78,
+    BLK_NL_OYA_L_WJ             = 0x79,
+    BLK_NL_OYA_B_L_WJ           = 0x7A,
+    BLK_NL_OYA_C_L_WJ           = 0x7B,
+    BLK_N_STE_L_WJ_EX           = 0x7C,
+    BLK_N_SUDE_L_WJ_EX          = 0x7D,
+    BLK_N_SUDE_B_L_WJ_EX        = 0x7E,
+    BLK_N_HIJI_L_WJ_EX          = 0x7F,
+    BLK_N_UP_KATA_L_EX          = 0x80,
+    BLK_N_SKATA_L_WJ_CD_EX      = 0x81,
+    BLK_N_SKATA_B_L_WJ_CD_CU_EX = 0x82,
+    BLK_N_SKATA_C_L_WJ_CD_CU_EX = 0x83,
+    BLK_N_WAKI_R                = 0x84,
+    BLK_KL_WAKI_R_WJ            = 0x85,
+    BLK_TL_UP_KATA_R            = 0x86,
+    BLK_C_KATA_R                = 0x87,
+    BLK_KL_TE_R_WJ              = 0x88,
+    BLK_N_HITO_R_EX             = 0x89,
+    BLK_NL_HITO_R_WJ            = 0x8A,
+    BLK_NL_HITO_B_R_WJ          = 0x8B,
+    BLK_NL_HITO_C_R_WJ          = 0x8C,
+    BLK_N_KO_R_EX               = 0x8D,
+    BLK_NL_KO_R_WJ              = 0x8E,
+    BLK_NL_KO_B_R_WJ            = 0x8F,
+    BLK_NL_KO_C_R_WJ            = 0x90,
+    BLK_N_KUSU_R_EX             = 0x91,
+    BLK_NL_KUSU_R_WJ            = 0x92,
+    BLK_NL_KUSU_B_R_WJ          = 0x93,
+    BLK_NL_KUSU_C_R_WJ          = 0x94,
+    BLK_N_NAKA_R_EX             = 0x95,
+    BLK_NL_NAKA_R_WJ            = 0x96,
+    BLK_NL_NAKA_B_R_WJ          = 0x97,
+    BLK_NL_NAKA_C_R_WJ          = 0x98,
+    BLK_N_OYA_R_EX              = 0x99,
+    BLK_NL_OYA_R_WJ             = 0x9A,
+    BLK_NL_OYA_B_R_WJ           = 0x9B,
+    BLK_NL_OYA_C_R_WJ           = 0x9C,
+    BLK_N_STE_R_WJ_EX           = 0x9D,
+    BLK_N_SUDE_R_WJ_EX          = 0x9E,
+    BLK_N_SUDE_B_R_WJ_EX        = 0x9F,
+    BLK_N_HIJI_R_WJ_EX          = 0xA0,
+    BLK_N_UP_KATA_R_EX          = 0xA1,
+    BLK_N_SKATA_R_WJ_CD_EX      = 0xA2,
+    BLK_N_SKATA_B_R_WJ_CD_CU_EX = 0xA3,
+    BLK_N_SKATA_C_R_WJ_CD_CU_EX = 0xA4,
+    BLK_KL_KOSI_Y               = 0xA5,
+    BLK_KL_KOSI_XZ              = 0xA6,
+    BLK_KL_KOSI_ETC_WJ          = 0xA7,
+    BLK_CL_MOMO_L               = 0xA8,
+    BLK_KL_ASI_L_WJ_CO          = 0xA9,
+    BLK_KL_TOE_L_WJ             = 0xAA,
+    BLK_N_HIZA_L_WJ_EX          = 0xAB,
+    BLK_CL_MOMO_R               = 0xAC,
+    BLK_KL_ASI_R_WJ_CO          = 0xAD,
+    BLK_KL_TOE_R_WJ             = 0xAE,
+    BLK_N_HIZA_R_WJ_EX          = 0xAF,
+    BLK_N_MOMO_A_L_WJ_CD_EX     = 0xB0,
+    BLK_N_MOMO_B_L_WJ_EX        = 0xB1,
+    BLK_N_MOMO_C_L_WJ_EX        = 0xB2,
+    BLK_N_MOMO_A_R_WJ_CD_EX     = 0xB3,
+    BLK_N_MOMO_B_R_WJ_EX        = 0xB4,
+    BLK_N_MOMO_C_R_WJ_EX        = 0xB5,
+    BLK_N_HARA_CD_EX            = 0xB6,
+    BLK_N_HARA_B_WJ_EX          = 0xB7,
+    BLK_N_HARA_C_WJ_EX          = 0xB8,
+    BLK_MAX                     = 0xB9,
+};
+
+enum BONE_ID {
+    BONE_ID_DUMMY                   = -1,
+    BONE_ID_N_HARA_CP               = 0x00,
+    BONE_ID_KG_HARA_Y               = 0x01,
+    BONE_ID_KL_HARA_XZ              = 0x02,
+    BONE_ID_KL_HARA_ETC             = 0x03,
+    BONE_ID_N_HARA                  = 0x04,
+    BONE_ID_CL_MUNE                 = 0x05,
+    BONE_ID_N_MUNE_B                = 0x06,
+    BONE_ID_KL_MUNE_B_WJ            = 0x07,
+    BONE_ID_KL_KUBI                 = 0x08,
+    BONE_ID_N_KAO                   = 0x09,
+    BONE_ID_CL_KAO                  = 0x0A,
+    BONE_ID_FACE_ROOT               = 0x0B,
+    BONE_ID_N_AGO                   = 0x0C,
+    BONE_ID_KL_AGO_WJ               = 0x0D,
+    BONE_ID_N_TOOTH_UNDER           = 0x0E,
+    BONE_ID_TL_TOOTH_UNDER_WJ       = 0x0F,
+    BONE_ID_N_EYE_L                 = 0x10,
+    BONE_ID_KL_EYE_L                = 0x11,
+    BONE_ID_N_EYE_L_WJ_EX           = 0x12,
+    BONE_ID_KL_HIGHLIGHT_L_WJ       = 0x13,
+    BONE_ID_N_EYE_R                 = 0x14,
+    BONE_ID_KL_EYE_R                = 0x15,
+    BONE_ID_N_EYE_R_WJ_EX           = 0x16,
+    BONE_ID_KL_HIGHLIGHT_R_WJ       = 0x17,
+    BONE_ID_N_EYELID_L_A            = 0x18,
+    BONE_ID_TL_EYELID_L_A_WJ        = 0x19,
+    BONE_ID_N_EYELID_L_B            = 0x1A,
+    BONE_ID_TL_EYELID_L_B_WJ        = 0x1B,
+    BONE_ID_N_EYELID_R_A            = 0x1C,
+    BONE_ID_TL_EYELID_R_A_WJ        = 0x1D,
+    BONE_ID_N_EYELID_R_B            = 0x1E,
+    BONE_ID_TL_EYELID_R_B_WJ        = 0x1F,
+    BONE_ID_N_KUTI_D                = 0x20,
+    BONE_ID_TL_KUTI_D_WJ            = 0x21,
+    BONE_ID_N_KUTI_D_L              = 0x22,
+    BONE_ID_TL_KUTI_D_L_WJ          = 0x23,
+    BONE_ID_N_KUTI_D_R              = 0x24,
+    BONE_ID_TL_KUTI_D_R_WJ          = 0x25,
+    BONE_ID_N_KUTI_DS_L             = 0x26,
+    BONE_ID_TL_KUTI_DS_L_WJ         = 0x27,
+    BONE_ID_N_KUTI_DS_R             = 0x28,
+    BONE_ID_TL_KUTI_DS_R_WJ         = 0x29,
+    BONE_ID_N_KUTI_L                = 0x2A,
+    BONE_ID_TL_KUTI_L_WJ            = 0x2B,
+    BONE_ID_N_KUTI_M_L              = 0x2C,
+    BONE_ID_TL_KUTI_M_L_WJ          = 0x2D,
+    BONE_ID_N_KUTI_M_R              = 0x2E,
+    BONE_ID_TL_KUTI_M_R_WJ          = 0x2F,
+    BONE_ID_N_KUTI_R                = 0x30,
+    BONE_ID_TL_KUTI_R_WJ            = 0x31,
+    BONE_ID_N_KUTI_U                = 0x32,
+    BONE_ID_TL_KUTI_U_WJ            = 0x33,
+    BONE_ID_N_KUTI_U_L              = 0x34,
+    BONE_ID_TL_KUTI_U_L_WJ          = 0x35,
+    BONE_ID_N_KUTI_U_R              = 0x36,
+    BONE_ID_TL_KUTI_U_R_WJ          = 0x37,
+    BONE_ID_N_MABU_L_D_A            = 0x38,
+    BONE_ID_TL_MABU_L_D_A_WJ        = 0x39,
+    BONE_ID_N_MABU_L_D_B            = 0x3A,
+    BONE_ID_TL_MABU_L_D_B_WJ        = 0x3B,
+    BONE_ID_N_MABU_L_D_C            = 0x3C,
+    BONE_ID_TL_MABU_L_D_C_WJ        = 0x3D,
+    BONE_ID_N_MABU_L_U_A            = 0x3E,
+    BONE_ID_TL_MABU_L_U_A_WJ        = 0x3F,
+    BONE_ID_N_MABU_L_U_B            = 0x40,
+    BONE_ID_TL_MABU_L_U_B_WJ        = 0x41,
+    BONE_ID_N_EYELASHES_L           = 0x42,
+    BONE_ID_TL_EYELASHES_L_WJ       = 0x43,
+    BONE_ID_N_MABU_L_U_C            = 0x44,
+    BONE_ID_TL_MABU_L_U_C_WJ        = 0x45,
+    BONE_ID_N_MABU_R_D_A            = 0x46,
+    BONE_ID_TL_MABU_R_D_A_WJ        = 0x47,
+    BONE_ID_N_MABU_R_D_B            = 0x48,
+    BONE_ID_TL_MABU_R_D_B_WJ        = 0x49,
+    BONE_ID_N_MABU_R_D_C            = 0x4A,
+    BONE_ID_TL_MABU_R_D_C_WJ        = 0x4B,
+    BONE_ID_N_MABU_R_U_A            = 0x4C,
+    BONE_ID_TL_MABU_R_U_A_WJ        = 0x4D,
+    BONE_ID_N_MABU_R_U_B            = 0x4E,
+    BONE_ID_TL_MABU_R_U_B_WJ        = 0x4F,
+    BONE_ID_N_EYELASHES_R           = 0x50,
+    BONE_ID_TL_EYELASHES_R_WJ       = 0x51,
+    BONE_ID_N_MABU_R_U_C            = 0x52,
+    BONE_ID_TL_MABU_R_U_C_WJ        = 0x53,
+    BONE_ID_N_MAYU_L                = 0x54,
+    BONE_ID_TL_MAYU_L_WJ            = 0x55,
+    BONE_ID_N_MAYU_L_B              = 0x56,
+    BONE_ID_TL_MAYU_L_B_WJ          = 0x57,
+    BONE_ID_N_MAYU_L_C              = 0x58,
+    BONE_ID_TL_MAYU_L_C_WJ          = 0x59,
+    BONE_ID_N_MAYU_R                = 0x5A,
+    BONE_ID_TL_MAYU_R_WJ            = 0x5B,
+    BONE_ID_N_MAYU_R_B              = 0x5C,
+    BONE_ID_TL_MAYU_R_B_WJ          = 0x5D,
+    BONE_ID_N_MAYU_R_C              = 0x5E,
+    BONE_ID_TL_MAYU_R_C_WJ          = 0x5F,
+    BONE_ID_N_TOOTH_UPPER           = 0x60,
+    BONE_ID_TL_TOOTH_UPPER_WJ       = 0x61,
+    BONE_ID_N_KUBI_WJ_EX            = 0x62,
+    BONE_ID_N_WAKI_L                = 0x63,
+    BONE_ID_KL_WAKI_L_WJ            = 0x64,
+    BONE_ID_TL_UP_KATA_L            = 0x65,
+    BONE_ID_C_KATA_L                = 0x66,
+    BONE_ID_KATA_L_WJ_CU            = 0x67,
+    BONE_ID_UDE_L_WJ                = 0x68,
+    BONE_ID_KL_TE_L_WJ              = 0x69,
+    BONE_ID_N_HITO_L_EX             = 0x6A,
+    BONE_ID_NL_HITO_L_WJ            = 0x6B,
+    BONE_ID_NL_HITO_B_L_WJ          = 0x6C,
+    BONE_ID_NL_HITO_C_L_WJ          = 0x6D,
+    BONE_ID_N_KO_L_EX               = 0x6E,
+    BONE_ID_NL_KO_L_WJ              = 0x6F,
+    BONE_ID_NL_KO_B_L_WJ            = 0x70,
+    BONE_ID_NL_KO_C_L_WJ            = 0x71,
+    BONE_ID_N_KUSU_L_EX             = 0x72,
+    BONE_ID_NL_KUSU_L_WJ            = 0x73,
+    BONE_ID_NL_KUSU_B_L_WJ          = 0x74,
+    BONE_ID_NL_KUSU_C_L_WJ          = 0x75,
+    BONE_ID_N_NAKA_L_EX             = 0x76,
+    BONE_ID_NL_NAKA_L_WJ            = 0x77,
+    BONE_ID_NL_NAKA_B_L_WJ          = 0x78,
+    BONE_ID_NL_NAKA_C_L_WJ          = 0x79,
+    BONE_ID_N_OYA_L_EX              = 0x7A,
+    BONE_ID_NL_OYA_L_WJ             = 0x7B,
+    BONE_ID_NL_OYA_B_L_WJ           = 0x7C,
+    BONE_ID_NL_OYA_C_L_WJ           = 0x7D,
+    BONE_ID_N_STE_L_WJ_EX           = 0x7E,
+    BONE_ID_N_SUDE_L_WJ_EX          = 0x7F,
+    BONE_ID_N_SUDE_B_L_WJ_EX        = 0x80,
+    BONE_ID_N_HIJI_L_WJ_EX          = 0x81,
+    BONE_ID_N_UP_KATA_L_EX          = 0x82,
+    BONE_ID_N_SKATA_L_WJ_CD_EX      = 0x83,
+    BONE_ID_N_SKATA_B_L_WJ_CD_CU_EX = 0x84,
+    BONE_ID_N_SKATA_C_L_WJ_CD_CU_EX = 0x85,
+    BONE_ID_N_WAKI_R                = 0x86,
+    BONE_ID_KL_WAKI_R_WJ            = 0x87,
+    BONE_ID_TL_UP_KATA_R            = 0x88,
+    BONE_ID_C_KATA_R                = 0x89,
+    BONE_ID_KATA_R_WJ_CU            = 0x8A,
+    BONE_ID_UDE_R_WJ                = 0x8B,
+    BONE_ID_KL_TE_R_WJ              = 0x8C,
+    BONE_ID_N_HITO_R_EX             = 0x8D,
+    BONE_ID_NL_HITO_R_WJ            = 0x8E,
+    BONE_ID_NL_HITO_B_R_WJ          = 0x8F,
+    BONE_ID_NL_HITO_C_R_WJ          = 0x90,
+    BONE_ID_N_KO_R_EX               = 0x91,
+    BONE_ID_NL_KO_R_WJ              = 0x92,
+    BONE_ID_NL_KO_B_R_WJ            = 0x93,
+    BONE_ID_NL_KO_C_R_WJ            = 0x94,
+    BONE_ID_N_KUSU_R_EX             = 0x95,
+    BONE_ID_NL_KUSU_R_WJ            = 0x96,
+    BONE_ID_NL_KUSU_B_R_WJ          = 0x97,
+    BONE_ID_NL_KUSU_C_R_WJ          = 0x98,
+    BONE_ID_N_NAKA_R_EX             = 0x99,
+    BONE_ID_NL_NAKA_R_WJ            = 0x9A,
+    BONE_ID_NL_NAKA_B_R_WJ          = 0x9B,
+    BONE_ID_NL_NAKA_C_R_WJ          = 0x9C,
+    BONE_ID_N_OYA_R_EX              = 0x9D,
+    BONE_ID_NL_OYA_R_WJ             = 0x9E,
+    BONE_ID_NL_OYA_B_R_WJ           = 0x9F,
+    BONE_ID_NL_OYA_C_R_WJ           = 0xA0,
+    BONE_ID_N_STE_R_WJ_EX           = 0xA1,
+    BONE_ID_N_SUDE_R_WJ_EX          = 0xA2,
+    BONE_ID_N_SUDE_B_R_WJ_EX        = 0xA3,
+    BONE_ID_N_HIJI_R_WJ_EX          = 0xA4,
+    BONE_ID_N_UP_KATA_R_EX          = 0xA5,
+    BONE_ID_N_SKATA_R_WJ_CD_EX      = 0xA6,
+    BONE_ID_N_SKATA_B_R_WJ_CD_CU_EX = 0xA7,
+    BONE_ID_N_SKATA_C_R_WJ_CD_CU_EX = 0xA8,
+    BONE_ID_KL_KOSI_Y               = 0xA9,
+    BONE_ID_KL_KOSI_XZ              = 0xAA,
+    BONE_ID_KL_KOSI_ETC_WJ          = 0xAB,
+    BONE_ID_CL_MOMO_L               = 0xAC,
+    BONE_ID_J_MOMO_L_WJ             = 0xAD,
+    BONE_ID_J_SUNE_L_WJ             = 0xAE,
+    BONE_ID_KL_ASI_L_WJ_CO          = 0xAF,
+    BONE_ID_KL_TOE_L_WJ             = 0xB0,
+    BONE_ID_N_HIZA_L_WJ_EX          = 0xB1,
+    BONE_ID_CL_MOMO_R               = 0xB2,
+    BONE_ID_J_MOMO_R_WJ             = 0xB3,
+    BONE_ID_J_SUNE_R_WJ             = 0xB4,
+    BONE_ID_KL_ASI_R_WJ_CO          = 0xB5,
+    BONE_ID_KL_TOE_R_WJ             = 0xB6,
+    BONE_ID_N_HIZA_R_WJ_EX          = 0xB7,
+    BONE_ID_N_MOMO_A_L_WJ_CD_EX     = 0xB8,
+    BONE_ID_N_MOMO_B_L_WJ_EX        = 0xB9,
+    BONE_ID_N_MOMO_C_L_WJ_EX        = 0xBA,
+    BONE_ID_N_MOMO_A_R_WJ_CD_EX     = 0xBB,
+    BONE_ID_N_MOMO_B_R_WJ_EX        = 0xBC,
+    BONE_ID_N_MOMO_C_R_WJ_EX        = 0xBD,
+    BONE_ID_N_HARA_CD_EX            = 0xBE,
+    BONE_ID_N_HARA_B_WJ_EX          = 0xBF,
+    BONE_ID_N_HARA_C_WJ_EX          = 0xC0,
+    BONE_ID_MAX                     = 0xC1,
+};
+
+enum BONE_NODE {
+    BONE_NODE_N_HARA_CP               = 0x00,
+    BONE_NODE_KG_HARA_Y               = 0x01,
+    BONE_NODE_KL_HARA_XZ              = 0x02,
+    BONE_NODE_KL_HARA_ETC             = 0x03,
+    BONE_NODE_N_HARA                  = 0x04,
+    BONE_NODE_CL_MUNE                 = 0x05,
+    BONE_NODE_J_MUNE_WJ               = 0x06,
+    BONE_NODE_E_MUNE_CP               = 0x07,
+    BONE_NODE_N_MUNE_B                = 0x08,
+    BONE_NODE_KL_MUNE_B_WJ            = 0x09,
+    BONE_NODE_KL_KUBI                 = 0x0A,
+    BONE_NODE_N_KAO                   = 0x0B,
+    BONE_NODE_CL_KAO                  = 0x0C,
+    BONE_NODE_J_KAO_WJ                = 0x0D,
+    BONE_NODE_E_KAO_CP                = 0x0E,
+    BONE_NODE_FACE_ROOT               = 0x0F,
+    BONE_NODE_N_AGO                   = 0x10,
+    BONE_NODE_KL_AGO_WJ               = 0x11,
+    BONE_NODE_N_TOOTH_UNDER           = 0x12,
+    BONE_NODE_TL_TOOTH_UNDER_WJ       = 0x13,
+    BONE_NODE_N_EYE_L                 = 0x14,
+    BONE_NODE_KL_EYE_L                = 0x15,
+    BONE_NODE_N_EYE_L_WJ_EX           = 0x16,
+    BONE_NODE_KL_HIGHLIGHT_L_WJ       = 0x17,
+    BONE_NODE_N_EYE_R                 = 0x18,
+    BONE_NODE_KL_EYE_R                = 0x19,
+    BONE_NODE_N_EYE_R_WJ_EX           = 0x1A,
+    BONE_NODE_KL_HIGHLIGHT_R_WJ       = 0x1B,
+    BONE_NODE_N_EYELID_L_A            = 0x1C,
+    BONE_NODE_TL_EYELID_L_A_WJ        = 0x1D,
+    BONE_NODE_N_EYELID_L_B            = 0x1E,
+    BONE_NODE_TL_EYELID_L_B_WJ        = 0x1F,
+    BONE_NODE_N_EYELID_R_A            = 0x20,
+    BONE_NODE_TL_EYELID_R_A_WJ        = 0x21,
+    BONE_NODE_N_EYELID_R_B            = 0x22,
+    BONE_NODE_TL_EYELID_R_B_WJ        = 0x23,
+    BONE_NODE_N_KUTI_D                = 0x24,
+    BONE_NODE_TL_KUTI_D_WJ            = 0x25,
+    BONE_NODE_N_KUTI_D_L              = 0x26,
+    BONE_NODE_TL_KUTI_D_L_WJ          = 0x27,
+    BONE_NODE_N_KUTI_D_R              = 0x28,
+    BONE_NODE_TL_KUTI_D_R_WJ          = 0x29,
+    BONE_NODE_N_KUTI_DS_L             = 0x2A,
+    BONE_NODE_TL_KUTI_DS_L_WJ         = 0x2B,
+    BONE_NODE_N_KUTI_DS_R             = 0x2C,
+    BONE_NODE_TL_KUTI_DS_R_WJ         = 0x2D,
+    BONE_NODE_N_KUTI_L                = 0x2E,
+    BONE_NODE_TL_KUTI_L_WJ            = 0x2F,
+    BONE_NODE_N_KUTI_M_L              = 0x30,
+    BONE_NODE_TL_KUTI_M_L_WJ          = 0x31,
+    BONE_NODE_N_KUTI_M_R              = 0x32,
+    BONE_NODE_TL_KUTI_M_R_WJ          = 0x33,
+    BONE_NODE_N_KUTI_R                = 0x34,
+    BONE_NODE_TL_KUTI_R_WJ            = 0x35,
+    BONE_NODE_N_KUTI_U                = 0x36,
+    BONE_NODE_TL_KUTI_U_WJ            = 0x37,
+    BONE_NODE_N_KUTI_U_L              = 0x38,
+    BONE_NODE_TL_KUTI_U_L_WJ          = 0x39,
+    BONE_NODE_N_KUTI_U_R              = 0x3A,
+    BONE_NODE_TL_KUTI_U_R_WJ          = 0x3B,
+    BONE_NODE_N_MABU_L_D_A            = 0x3C,
+    BONE_NODE_TL_MABU_L_D_A_WJ        = 0x3D,
+    BONE_NODE_N_MABU_L_D_B            = 0x3E,
+    BONE_NODE_TL_MABU_L_D_B_WJ        = 0x3F,
+    BONE_NODE_N_MABU_L_D_C            = 0x40,
+    BONE_NODE_TL_MABU_L_D_C_WJ        = 0x41,
+    BONE_NODE_N_MABU_L_U_A            = 0x42,
+    BONE_NODE_TL_MABU_L_U_A_WJ        = 0x43,
+    BONE_NODE_N_MABU_L_U_B            = 0x44,
+    BONE_NODE_TL_MABU_L_U_B_WJ        = 0x45,
+    BONE_NODE_N_EYELASHES_L           = 0x46,
+    BONE_NODE_TL_EYELASHES_L_WJ       = 0x47,
+    BONE_NODE_N_MABU_L_U_C            = 0x48,
+    BONE_NODE_TL_MABU_L_U_C_WJ        = 0x49,
+    BONE_NODE_N_MABU_R_D_A            = 0x4A,
+    BONE_NODE_TL_MABU_R_D_A_WJ        = 0x4B,
+    BONE_NODE_N_MABU_R_D_B            = 0x4C,
+    BONE_NODE_TL_MABU_R_D_B_WJ        = 0x4D,
+    BONE_NODE_N_MABU_R_D_C            = 0x4E,
+    BONE_NODE_TL_MABU_R_D_C_WJ        = 0x4F,
+    BONE_NODE_N_MABU_R_U_A            = 0x50,
+    BONE_NODE_TL_MABU_R_U_A_WJ        = 0x51,
+    BONE_NODE_N_MABU_R_U_B            = 0x52,
+    BONE_NODE_TL_MABU_R_U_B_WJ        = 0x53,
+    BONE_NODE_N_EYELASHES_R           = 0x54,
+    BONE_NODE_TL_EYELASHES_R_WJ       = 0x55,
+    BONE_NODE_N_MABU_R_U_C            = 0x56,
+    BONE_NODE_TL_MABU_R_U_C_WJ        = 0x57,
+    BONE_NODE_N_MAYU_L                = 0x58,
+    BONE_NODE_TL_MAYU_L_WJ            = 0x59,
+    BONE_NODE_N_MAYU_L_B              = 0x5A,
+    BONE_NODE_TL_MAYU_L_B_WJ          = 0x5B,
+    BONE_NODE_N_MAYU_L_C              = 0x5C,
+    BONE_NODE_TL_MAYU_L_C_WJ          = 0x5D,
+    BONE_NODE_N_MAYU_R                = 0x5E,
+    BONE_NODE_TL_MAYU_R_WJ            = 0x5F,
+    BONE_NODE_N_MAYU_R_B              = 0x60,
+    BONE_NODE_TL_MAYU_R_B_WJ          = 0x61,
+    BONE_NODE_N_MAYU_R_C              = 0x62,
+    BONE_NODE_TL_MAYU_R_C_WJ          = 0x63,
+    BONE_NODE_N_TOOTH_UPPER           = 0x64,
+    BONE_NODE_TL_TOOTH_UPPER_WJ       = 0x65,
+    BONE_NODE_N_KUBI_WJ_EX            = 0x66,
+    BONE_NODE_N_WAKI_L                = 0x67,
+    BONE_NODE_KL_WAKI_L_WJ            = 0x68,
+    BONE_NODE_TL_UP_KATA_L            = 0x69,
+    BONE_NODE_C_KATA_L                = 0x6A,
+    BONE_NODE_J_KATA_L_WJ_CU          = 0x6B,
+    BONE_NODE_J_UDE_L_WJ              = 0x6C,
+    BONE_NODE_E_UDE_L_CP              = 0x6D,
+    BONE_NODE_KL_TE_L_WJ              = 0x6E,
+    BONE_NODE_N_HITO_L_EX             = 0x6F,
+    BONE_NODE_NL_HITO_L_WJ            = 0x70,
+    BONE_NODE_NL_HITO_B_L_WJ          = 0x71,
+    BONE_NODE_NL_HITO_C_L_WJ          = 0x72,
+    BONE_NODE_N_KO_L_EX               = 0x73,
+    BONE_NODE_NL_KO_L_WJ              = 0x74,
+    BONE_NODE_NL_KO_B_L_WJ            = 0x75,
+    BONE_NODE_NL_KO_C_L_WJ            = 0x76,
+    BONE_NODE_N_KUSU_L_EX             = 0x77,
+    BONE_NODE_NL_KUSU_L_WJ            = 0x78,
+    BONE_NODE_NL_KUSU_B_L_WJ          = 0x79,
+    BONE_NODE_NL_KUSU_C_L_WJ          = 0x7A,
+    BONE_NODE_N_NAKA_L_EX             = 0x7B,
+    BONE_NODE_NL_NAKA_L_WJ            = 0x7C,
+    BONE_NODE_NL_NAKA_B_L_WJ          = 0x7D,
+    BONE_NODE_NL_NAKA_C_L_WJ          = 0x7E,
+    BONE_NODE_N_OYA_L_EX              = 0x7F,
+    BONE_NODE_NL_OYA_L_WJ             = 0x80,
+    BONE_NODE_NL_OYA_B_L_WJ           = 0x81,
+    BONE_NODE_NL_OYA_C_L_WJ           = 0x82,
+    BONE_NODE_N_STE_L_WJ_EX           = 0x83,
+    BONE_NODE_N_SUDE_L_WJ_EX          = 0x84,
+    BONE_NODE_N_SUDE_B_L_WJ_EX        = 0x85,
+    BONE_NODE_N_HIJI_L_WJ_EX          = 0x86,
+    BONE_NODE_N_UP_KATA_L_EX          = 0x87,
+    BONE_NODE_N_SKATA_L_WJ_CD_EX      = 0x88,
+    BONE_NODE_N_SKATA_B_L_WJ_CD_CU_EX = 0x89,
+    BONE_NODE_N_SKATA_C_L_WJ_CD_CU_EX = 0x8A,
+    BONE_NODE_N_WAKI_R                = 0x8B,
+    BONE_NODE_KL_WAKI_R_WJ            = 0x8C,
+    BONE_NODE_TL_UP_KATA_R            = 0x8D,
+    BONE_NODE_C_KATA_R                = 0x8E,
+    BONE_NODE_J_KATA_R_WJ_CU          = 0x8F,
+    BONE_NODE_J_UDE_R_WJ              = 0x90,
+    BONE_NODE_E_UDE_R_CP              = 0x91,
+    BONE_NODE_KL_TE_R_WJ              = 0x92,
+    BONE_NODE_N_HITO_R_EX             = 0x93,
+    BONE_NODE_NL_HITO_R_WJ            = 0x94,
+    BONE_NODE_NL_HITO_B_R_WJ          = 0x95,
+    BONE_NODE_NL_HITO_C_R_WJ          = 0x96,
+    BONE_NODE_N_KO_R_EX               = 0x97,
+    BONE_NODE_NL_KO_R_WJ              = 0x98,
+    BONE_NODE_NL_KO_B_R_WJ            = 0x99,
+    BONE_NODE_NL_KO_C_R_WJ            = 0x9A,
+    BONE_NODE_N_KUSU_R_EX             = 0x9B,
+    BONE_NODE_NL_KUSU_R_WJ            = 0x9C,
+    BONE_NODE_NL_KUSU_B_R_WJ          = 0x9D,
+    BONE_NODE_NL_KUSU_C_R_WJ          = 0x9E,
+    BONE_NODE_N_NAKA_R_EX             = 0x9F,
+    BONE_NODE_NL_NAKA_R_WJ            = 0xA0,
+    BONE_NODE_NL_NAKA_B_R_WJ          = 0xA1,
+    BONE_NODE_NL_NAKA_C_R_WJ          = 0xA2,
+    BONE_NODE_N_OYA_R_EX              = 0xA3,
+    BONE_NODE_NL_OYA_R_WJ             = 0xA4,
+    BONE_NODE_NL_OYA_B_R_WJ           = 0xA5,
+    BONE_NODE_NL_OYA_C_R_WJ           = 0xA6,
+    BONE_NODE_N_STE_R_WJ_EX           = 0xA7,
+    BONE_NODE_N_SUDE_R_WJ_EX          = 0xA8,
+    BONE_NODE_N_SUDE_B_R_WJ_EX        = 0xA9,
+    BONE_NODE_N_HIJI_R_WJ_EX          = 0xAA,
+    BONE_NODE_N_UP_KATA_R_EX          = 0xAB,
+    BONE_NODE_N_SKATA_R_WJ_CD_EX      = 0xAC,
+    BONE_NODE_N_SKATA_B_R_WJ_CD_CU_EX = 0xAD,
+    BONE_NODE_N_SKATA_C_R_WJ_CD_CU_EX = 0xAE,
+    BONE_NODE_KL_KOSI_Y               = 0xAF,
+    BONE_NODE_KL_KOSI_XZ              = 0xB0,
+    BONE_NODE_KL_KOSI_ETC_WJ          = 0xB1,
+    BONE_NODE_CL_MOMO_L               = 0xB2,
+    BONE_NODE_J_MOMO_L_WJ             = 0xB3,
+    BONE_NODE_J_SUNE_L_WJ             = 0xB4,
+    BONE_NODE_E_SUNE_L_CP             = 0xB5,
+    BONE_NODE_KL_ASI_L_WJ_CO          = 0xB6,
+    BONE_NODE_KL_TOE_L_WJ             = 0xB7,
+    BONE_NODE_N_HIZA_L_WJ_EX          = 0xB8,
+    BONE_NODE_CL_MOMO_R               = 0xB9,
+    BONE_NODE_J_MOMO_R_WJ             = 0xBA,
+    BONE_NODE_J_SUNE_R_WJ             = 0xBB,
+    BONE_NODE_E_SUNE_R_CP             = 0xBC,
+    BONE_NODE_KL_ASI_R_WJ_CO          = 0xBD,
+    BONE_NODE_KL_TOE_R_WJ             = 0xBE,
+    BONE_NODE_N_HIZA_R_WJ_EX          = 0xBF,
+    BONE_NODE_N_MOMO_A_L_WJ_CD_EX     = 0xC0,
+    BONE_NODE_N_MOMO_B_L_WJ_EX        = 0xC1,
+    BONE_NODE_N_MOMO_C_L_WJ_EX        = 0xC2,
+    BONE_NODE_N_MOMO_A_R_WJ_CD_EX     = 0xC3,
+    BONE_NODE_N_MOMO_B_R_WJ_EX        = 0xC4,
+    BONE_NODE_N_MOMO_C_R_WJ_EX        = 0xC5,
+    BONE_NODE_N_HARA_CD_EX            = 0xC6,
+    BONE_NODE_N_HARA_B_WJ_EX          = 0xC7,
+    BONE_NODE_N_HARA_C_WJ_EX          = 0xC8,
+    BONE_NODE_MAX                     = 0xC9,
+};
+
 enum Expr_type {
-    Expr_constant     = 0x00,
-    Expr_variable     = 0x01,
-    Expr_variable_rad = 0x02,
-    Expr_func1        = 0x03,
-    Expr_func2        = 0x04,
-    Expr_func3        = 0x05,
+    Expr_constant = 0,
+    Expr_variable,
+    Expr_variable_rad,
+    Expr_func1,
+    Expr_func2,
+    Expr_func3,
+};
+
+enum ROB_ID {
+    ROB_ID_1P = 0,
+    ROB_ID_2P,
+    ROB_ID_3P,
+    ROB_ID_4P,
+    ROB_ID_5P,
+    ROB_ID_6P,
+    ROB_ID_MAX,
+
+    ROB_ID_NULL = -1,
+};
+
+enum ReviseType {
+    REVISE_NORMAL = 0x0,
+    REVISE_FAST,
+    REVISE_SLOW,
+    REVISE_GUARD,
+    REVISE_RISE,
+    REVISE_YARARE,
+    REVISE_STRISE,
+    REVISE_SLOW2,
+    REVISE_ATTACK_FOLLOW,
+    REVISE_SLOW_GUARD,
+    REVISE_GUARD2,
+    REVISE_RISE_SLOW,
+    REVISE_TYPE_MAX,
 };
 
 enum eyes_base_adjust_type {
@@ -34,211 +655,6 @@ enum eyes_base_adjust_type {
     EYES_BASE_ADJUST_CLEARANCE = 0x01,
     EYES_BASE_ADJUST_OFF       = 0x02,
     EYES_BASE_ADJUST_MAX       = 0x03,
-};
-
-enum mot_bone_index {
-    MOT_BONE_N_HARA_CP               = 0x00,
-    MOT_BONE_KG_HARA_Y               = 0x01,
-    MOT_BONE_KL_HARA_XZ              = 0x02,
-    MOT_BONE_KL_HARA_ETC             = 0x03,
-    MOT_BONE_N_HARA                  = 0x04,
-    MOT_BONE_CL_MUNE                 = 0x05,
-    MOT_BONE_J_MUNE_WJ               = 0x06,
-    MOT_BONE_E_MUNE_CP               = 0x07,
-    MOT_BONE_N_MUNE_B                = 0x08,
-    MOT_BONE_KL_MUNE_B_WJ            = 0x09,
-    MOT_BONE_KL_KUBI                 = 0x0A,
-    MOT_BONE_N_KAO                   = 0x0B,
-    MOT_BONE_CL_KAO                  = 0x0C,
-    MOT_BONE_J_KAO_WJ                = 0x0D,
-    MOT_BONE_E_KAO_CP                = 0x0E,
-    MOT_BONE_FACE_ROOT               = 0x0F,
-    MOT_BONE_N_AGO                   = 0x10,
-    MOT_BONE_KL_AGO_WJ               = 0x11,
-    MOT_BONE_N_TOOTH_UNDER           = 0x12,
-    MOT_BONE_TL_TOOTH_UNDER_WJ       = 0x13,
-    MOT_BONE_N_EYE_L                 = 0x14,
-    MOT_BONE_KL_EYE_L                = 0x15,
-    MOT_BONE_N_EYE_L_WJ_EX           = 0x16,
-    MOT_BONE_KL_HIGHLIGHT_L_WJ       = 0x17,
-    MOT_BONE_N_EYE_R                 = 0x18,
-    MOT_BONE_KL_EYE_R                = 0x19,
-    MOT_BONE_N_EYE_R_WJ_EX           = 0x1A,
-    MOT_BONE_KL_HIGHLIGHT_R_WJ       = 0x1B,
-    MOT_BONE_N_EYELID_L_A            = 0x1C,
-    MOT_BONE_TL_EYELID_L_A_WJ        = 0x1D,
-    MOT_BONE_N_EYELID_L_B            = 0x1E,
-    MOT_BONE_TL_EYELID_L_B_WJ        = 0x1F,
-    MOT_BONE_N_EYELID_R_A            = 0x20,
-    MOT_BONE_TL_EYELID_R_A_WJ        = 0x21,
-    MOT_BONE_N_EYELID_R_B            = 0x22,
-    MOT_BONE_TL_EYELID_R_B_WJ        = 0x23,
-    MOT_BONE_N_KUTI_D                = 0x24,
-    MOT_BONE_TL_KUTI_D_WJ            = 0x25,
-    MOT_BONE_N_KUTI_D_L              = 0x26,
-    MOT_BONE_TL_KUTI_D_L_WJ          = 0x27,
-    MOT_BONE_N_KUTI_D_R              = 0x28,
-    MOT_BONE_TL_KUTI_D_R_WJ          = 0x29,
-    MOT_BONE_N_KUTI_DS_L             = 0x2A,
-    MOT_BONE_TL_KUTI_DS_L_WJ         = 0x2B,
-    MOT_BONE_N_KUTI_DS_R             = 0x2C,
-    MOT_BONE_TL_KUTI_DS_R_WJ         = 0x2D,
-    MOT_BONE_N_KUTI_L                = 0x2E,
-    MOT_BONE_TL_KUTI_L_WJ            = 0x2F,
-    MOT_BONE_N_KUTI_M_L              = 0x30,
-    MOT_BONE_TL_KUTI_M_L_WJ          = 0x31,
-    MOT_BONE_N_KUTI_M_R              = 0x32,
-    MOT_BONE_TL_KUTI_M_R_WJ          = 0x33,
-    MOT_BONE_N_KUTI_R                = 0x34,
-    MOT_BONE_TL_KUTI_R_WJ            = 0x35,
-    MOT_BONE_N_KUTI_U                = 0x36,
-    MOT_BONE_TL_KUTI_U_WJ            = 0x37,
-    MOT_BONE_N_KUTI_U_L              = 0x38,
-    MOT_BONE_TL_KUTI_U_L_WJ          = 0x39,
-    MOT_BONE_N_KUTI_U_R              = 0x3A,
-    MOT_BONE_TL_KUTI_U_R_WJ          = 0x3B,
-    MOT_BONE_N_MABU_L_D_A            = 0x3C,
-    MOT_BONE_TL_MABU_L_D_A_WJ        = 0x3D,
-    MOT_BONE_N_MABU_L_D_B            = 0x3E,
-    MOT_BONE_TL_MABU_L_D_B_WJ        = 0x3F,
-    MOT_BONE_N_MABU_L_D_C            = 0x40,
-    MOT_BONE_TL_MABU_L_D_C_WJ        = 0x41,
-    MOT_BONE_N_MABU_L_U_A            = 0x42,
-    MOT_BONE_TL_MABU_L_U_A_WJ        = 0x43,
-    MOT_BONE_N_MABU_L_U_B            = 0x44,
-    MOT_BONE_TL_MABU_L_U_B_WJ        = 0x45,
-    MOT_BONE_N_EYELASHES_L           = 0x46,
-    MOT_BONE_TL_EYELASHES_L_WJ       = 0x47,
-    MOT_BONE_N_MABU_L_U_C            = 0x48,
-    MOT_BONE_TL_MABU_L_U_C_WJ        = 0x49,
-    MOT_BONE_N_MABU_R_D_A            = 0x4A,
-    MOT_BONE_TL_MABU_R_D_A_WJ        = 0x4B,
-    MOT_BONE_N_MABU_R_D_B            = 0x4C,
-    MOT_BONE_TL_MABU_R_D_B_WJ        = 0x4D,
-    MOT_BONE_N_MABU_R_D_C            = 0x4E,
-    MOT_BONE_TL_MABU_R_D_C_WJ        = 0x4F,
-    MOT_BONE_N_MABU_R_U_A            = 0x50,
-    MOT_BONE_TL_MABU_R_U_A_WJ        = 0x51,
-    MOT_BONE_N_MABU_R_U_B            = 0x52,
-    MOT_BONE_TL_MABU_R_U_B_WJ        = 0x53,
-    MOT_BONE_N_EYELASHES_R           = 0x54,
-    MOT_BONE_TL_EYELASHES_R_WJ       = 0x55,
-    MOT_BONE_N_MABU_R_U_C            = 0x56,
-    MOT_BONE_TL_MABU_R_U_C_WJ        = 0x57,
-    MOT_BONE_N_MAYU_L                = 0x58,
-    MOT_BONE_TL_MAYU_L_WJ            = 0x59,
-    MOT_BONE_N_MAYU_L_B              = 0x5A,
-    MOT_BONE_TL_MAYU_L_B_WJ          = 0x5B,
-    MOT_BONE_N_MAYU_L_C              = 0x5C,
-    MOT_BONE_TL_MAYU_L_C_WJ          = 0x5D,
-    MOT_BONE_N_MAYU_R                = 0x5E,
-    MOT_BONE_TL_MAYU_R_WJ            = 0x5F,
-    MOT_BONE_N_MAYU_R_B              = 0x60,
-    MOT_BONE_TL_MAYU_R_B_WJ          = 0x61,
-    MOT_BONE_N_MAYU_R_C              = 0x62,
-    MOT_BONE_TL_MAYU_R_C_WJ          = 0x63,
-    MOT_BONE_N_TOOTH_UPPER           = 0x64,
-    MOT_BONE_TL_TOOTH_UPPER_WJ       = 0x65,
-    MOT_BONE_N_KUBI_WJ_EX            = 0x66,
-    MOT_BONE_N_WAKI_L                = 0x67,
-    MOT_BONE_KL_WAKI_L_WJ            = 0x68,
-    MOT_BONE_TL_UP_KATA_L            = 0x69,
-    MOT_BONE_C_KATA_L                = 0x6A,
-    MOT_BONE_J_KATA_L_WJ_CU          = 0x6B,
-    MOT_BONE_J_UDE_L_WJ              = 0x6C,
-    MOT_BONE_E_UDE_L_CP              = 0x6D,
-    MOT_BONE_KL_TE_L_WJ              = 0x6E,
-    MOT_BONE_N_HITO_L_EX             = 0x6F,
-    MOT_BONE_NL_HITO_L_WJ            = 0x70,
-    MOT_BONE_NL_HITO_B_L_WJ          = 0x71,
-    MOT_BONE_NL_HITO_C_L_WJ          = 0x72,
-    MOT_BONE_N_KO_L_EX               = 0x73,
-    MOT_BONE_NL_KO_L_WJ              = 0x74,
-    MOT_BONE_NL_KO_B_L_WJ            = 0x75,
-    MOT_BONE_NL_KO_C_L_WJ            = 0x76,
-    MOT_BONE_N_KUSU_L_EX             = 0x77,
-    MOT_BONE_NL_KUSU_L_WJ            = 0x78,
-    MOT_BONE_NL_KUSU_B_L_WJ          = 0x79,
-    MOT_BONE_NL_KUSU_C_L_WJ          = 0x7A,
-    MOT_BONE_N_NAKA_L_EX             = 0x7B,
-    MOT_BONE_NL_NAKA_L_WJ            = 0x7C,
-    MOT_BONE_NL_NAKA_B_L_WJ          = 0x7D,
-    MOT_BONE_NL_NAKA_C_L_WJ          = 0x7E,
-    MOT_BONE_N_OYA_L_EX              = 0x7F,
-    MOT_BONE_NL_OYA_L_WJ             = 0x80,
-    MOT_BONE_NL_OYA_B_L_WJ           = 0x81,
-    MOT_BONE_NL_OYA_C_L_WJ           = 0x82,
-    MOT_BONE_N_STE_L_WJ_EX           = 0x83,
-    MOT_BONE_N_SUDE_L_WJ_EX          = 0x84,
-    MOT_BONE_N_SUDE_B_L_WJ_EX        = 0x85,
-    MOT_BONE_N_HIJI_L_WJ_EX          = 0x86,
-    MOT_BONE_N_UP_KATA_L_EX          = 0x87,
-    MOT_BONE_N_SKATA_L_WJ_CD_EX      = 0x88,
-    MOT_BONE_N_SKATA_B_L_WJ_CD_CU_EX = 0x89,
-    MOT_BONE_N_SKATA_C_L_WJ_CD_CU_EX = 0x8A,
-    MOT_BONE_N_WAKI_R                = 0x8B,
-    MOT_BONE_KL_WAKI_R_WJ            = 0x8C,
-    MOT_BONE_TL_UP_KATA_R            = 0x8D,
-    MOT_BONE_C_KATA_R                = 0x8E,
-    MOT_BONE_J_KATA_R_WJ_CU          = 0x8F,
-    MOT_BONE_J_UDE_R_WJ              = 0x90,
-    MOT_BONE_E_UDE_R_CP              = 0x91,
-    MOT_BONE_KL_TE_R_WJ              = 0x92,
-    MOT_BONE_N_HITO_R_EX             = 0x93,
-    MOT_BONE_NL_HITO_R_WJ            = 0x94,
-    MOT_BONE_NL_HITO_B_R_WJ          = 0x95,
-    MOT_BONE_NL_HITO_C_R_WJ          = 0x96,
-    MOT_BONE_N_KO_R_EX               = 0x97,
-    MOT_BONE_NL_KO_R_WJ              = 0x98,
-    MOT_BONE_NL_KO_B_R_WJ            = 0x99,
-    MOT_BONE_NL_KO_C_R_WJ            = 0x9A,
-    MOT_BONE_N_KUSU_R_EX             = 0x9B,
-    MOT_BONE_NL_KUSU_R_WJ            = 0x9C,
-    MOT_BONE_NL_KUSU_B_R_WJ          = 0x9D,
-    MOT_BONE_NL_KUSU_C_R_WJ          = 0x9E,
-    MOT_BONE_N_NAKA_R_EX             = 0x9F,
-    MOT_BONE_NL_NAKA_R_WJ            = 0xA0,
-    MOT_BONE_NL_NAKA_B_R_WJ          = 0xA1,
-    MOT_BONE_NL_NAKA_C_R_WJ          = 0xA2,
-    MOT_BONE_N_OYA_R_EX              = 0xA3,
-    MOT_BONE_NL_OYA_R_WJ             = 0xA4,
-    MOT_BONE_NL_OYA_B_R_WJ           = 0xA5,
-    MOT_BONE_NL_OYA_C_R_WJ           = 0xA6,
-    MOT_BONE_N_STE_R_WJ_EX           = 0xA7,
-    MOT_BONE_N_SUDE_R_WJ_EX          = 0xA8,
-    MOT_BONE_N_SUDE_B_R_WJ_EX        = 0xA9,
-    MOT_BONE_N_HIJI_R_WJ_EX          = 0xAA,
-    MOT_BONE_N_UP_KATA_R_EX          = 0xAB,
-    MOT_BONE_N_SKATA_R_WJ_CD_EX      = 0xAC,
-    MOT_BONE_N_SKATA_B_R_WJ_CD_CU_EX = 0xAD,
-    MOT_BONE_N_SKATA_C_R_WJ_CD_CU_EX = 0xAE,
-    MOT_BONE_KL_KOSI_Y               = 0xAF,
-    MOT_BONE_KL_KOSI_XZ              = 0xB0,
-    MOT_BONE_KL_KOSI_ETC_WJ          = 0xB1,
-    MOT_BONE_CL_MOMO_L               = 0xB2,
-    MOT_BONE_J_MOMO_L_WJ             = 0xB3,
-    MOT_BONE_J_SUNE_L_WJ             = 0xB4,
-    MOT_BONE_E_SUNE_L_CP             = 0xB5,
-    MOT_BONE_KL_ASI_L_WJ_CO          = 0xB6,
-    MOT_BONE_KL_TOE_L_WJ             = 0xB7,
-    MOT_BONE_N_HIZA_L_WJ_EX          = 0xB8,
-    MOT_BONE_CL_MOMO_R               = 0xB9,
-    MOT_BONE_J_MOMO_R_WJ             = 0xBA,
-    MOT_BONE_J_SUNE_R_WJ             = 0xBB,
-    MOT_BONE_E_SUNE_R_CP             = 0xBC,
-    MOT_BONE_KL_ASI_R_WJ_CO          = 0xBD,
-    MOT_BONE_KL_TOE_R_WJ             = 0xBE,
-    MOT_BONE_N_HIZA_R_WJ_EX          = 0xBF,
-    MOT_BONE_N_MOMO_A_L_WJ_CD_EX     = 0xC0,
-    MOT_BONE_N_MOMO_B_L_WJ_EX        = 0xC1,
-    MOT_BONE_N_MOMO_C_L_WJ_EX        = 0xC2,
-    MOT_BONE_N_MOMO_A_R_WJ_CD_EX     = 0xC3,
-    MOT_BONE_N_MOMO_B_R_WJ_EX        = 0xC4,
-    MOT_BONE_N_MOMO_C_R_WJ_EX        = 0xC5,
-    MOT_BONE_N_HARA_CD_EX            = 0xC6,
-    MOT_BONE_N_HARA_B_WJ_EX          = 0xC7,
-    MOT_BONE_N_HARA_C_WJ_EX          = 0xC8,
-    MOT_BONE_MAX                     = 0xC9,
 };
 
 enum mot_play_frame_data_loop_state : uint32_t {
@@ -350,394 +766,6 @@ enum MotionBlendType {
     MOTION_BLEND_FREEZE  = 0x01,
     MOTION_BLEND_CROSS   = 0x02,
     MOTION_BLEND_COMBINE = 0x03,
-};
-
-enum motion_bone_index {
-    MOTION_BONE_NONE                    = -1,
-    MOTION_BONE_N_HARA_CP               = 0x00,
-    MOTION_BONE_KG_HARA_Y               = 0x01,
-    MOTION_BONE_KL_HARA_XZ              = 0x02,
-    MOTION_BONE_KL_HARA_ETC             = 0x03,
-    MOTION_BONE_N_HARA                  = 0x04,
-    MOTION_BONE_CL_MUNE                 = 0x05,
-    MOTION_BONE_N_MUNE_B                = 0x06,
-    MOTION_BONE_KL_MUNE_B_WJ            = 0x07,
-    MOTION_BONE_KL_KUBI                 = 0x08,
-    MOTION_BONE_N_KAO                   = 0x09,
-    MOTION_BONE_CL_KAO                  = 0x0A,
-    MOTION_BONE_FACE_ROOT               = 0x0B,
-    MOTION_BONE_N_AGO                   = 0x0C,
-    MOTION_BONE_KL_AGO_WJ               = 0x0D,
-    MOTION_BONE_N_TOOTH_UNDER           = 0x0E,
-    MOTION_BONE_TL_TOOTH_UNDER_WJ       = 0x0F,
-    MOTION_BONE_N_EYE_L                 = 0x10,
-    MOTION_BONE_KL_EYE_L                = 0x11,
-    MOTION_BONE_N_EYE_L_WJ_EX           = 0x12,
-    MOTION_BONE_KL_HIGHLIGHT_L_WJ       = 0x13,
-    MOTION_BONE_N_EYE_R                 = 0x14,
-    MOTION_BONE_KL_EYE_R                = 0x15,
-    MOTION_BONE_N_EYE_R_WJ_EX           = 0x16,
-    MOTION_BONE_KL_HIGHLIGHT_R_WJ       = 0x17,
-    MOTION_BONE_N_EYELID_L_A            = 0x18,
-    MOTION_BONE_TL_EYELID_L_A_WJ        = 0x19,
-    MOTION_BONE_N_EYELID_L_B            = 0x1A,
-    MOTION_BONE_TL_EYELID_L_B_WJ        = 0x1B,
-    MOTION_BONE_N_EYELID_R_A            = 0x1C,
-    MOTION_BONE_TL_EYELID_R_A_WJ        = 0x1D,
-    MOTION_BONE_N_EYELID_R_B            = 0x1E,
-    MOTION_BONE_TL_EYELID_R_B_WJ        = 0x1F,
-    MOTION_BONE_N_KUTI_D                = 0x20,
-    MOTION_BONE_TL_KUTI_D_WJ            = 0x21,
-    MOTION_BONE_N_KUTI_D_L              = 0x22,
-    MOTION_BONE_TL_KUTI_D_L_WJ          = 0x23,
-    MOTION_BONE_N_KUTI_D_R              = 0x24,
-    MOTION_BONE_TL_KUTI_D_R_WJ          = 0x25,
-    MOTION_BONE_N_KUTI_DS_L             = 0x26,
-    MOTION_BONE_TL_KUTI_DS_L_WJ         = 0x27,
-    MOTION_BONE_N_KUTI_DS_R             = 0x28,
-    MOTION_BONE_TL_KUTI_DS_R_WJ         = 0x29,
-    MOTION_BONE_N_KUTI_L                = 0x2A,
-    MOTION_BONE_TL_KUTI_L_WJ            = 0x2B,
-    MOTION_BONE_N_KUTI_M_L              = 0x2C,
-    MOTION_BONE_TL_KUTI_M_L_WJ          = 0x2D,
-    MOTION_BONE_N_KUTI_M_R              = 0x2E,
-    MOTION_BONE_TL_KUTI_M_R_WJ          = 0x2F,
-    MOTION_BONE_N_KUTI_R                = 0x30,
-    MOTION_BONE_TL_KUTI_R_WJ            = 0x31,
-    MOTION_BONE_N_KUTI_U                = 0x32,
-    MOTION_BONE_TL_KUTI_U_WJ            = 0x33,
-    MOTION_BONE_N_KUTI_U_L              = 0x34,
-    MOTION_BONE_TL_KUTI_U_L_WJ          = 0x35,
-    MOTION_BONE_N_KUTI_U_R              = 0x36,
-    MOTION_BONE_TL_KUTI_U_R_WJ          = 0x37,
-    MOTION_BONE_N_MABU_L_D_A            = 0x38,
-    MOTION_BONE_TL_MABU_L_D_A_WJ        = 0x39,
-    MOTION_BONE_N_MABU_L_D_B            = 0x3A,
-    MOTION_BONE_TL_MABU_L_D_B_WJ        = 0x3B,
-    MOTION_BONE_N_MABU_L_D_C            = 0x3C,
-    MOTION_BONE_TL_MABU_L_D_C_WJ        = 0x3D,
-    MOTION_BONE_N_MABU_L_U_A            = 0x3E,
-    MOTION_BONE_TL_MABU_L_U_A_WJ        = 0x3F,
-    MOTION_BONE_N_MABU_L_U_B            = 0x40,
-    MOTION_BONE_TL_MABU_L_U_B_WJ        = 0x41,
-    MOTION_BONE_N_EYELASHES_L           = 0x42,
-    MOTION_BONE_TL_EYELASHES_L_WJ       = 0x43,
-    MOTION_BONE_N_MABU_L_U_C            = 0x44,
-    MOTION_BONE_TL_MABU_L_U_C_WJ        = 0x45,
-    MOTION_BONE_N_MABU_R_D_A            = 0x46,
-    MOTION_BONE_TL_MABU_R_D_A_WJ        = 0x47,
-    MOTION_BONE_N_MABU_R_D_B            = 0x48,
-    MOTION_BONE_TL_MABU_R_D_B_WJ        = 0x49,
-    MOTION_BONE_N_MABU_R_D_C            = 0x4A,
-    MOTION_BONE_TL_MABU_R_D_C_WJ        = 0x4B,
-    MOTION_BONE_N_MABU_R_U_A            = 0x4C,
-    MOTION_BONE_TL_MABU_R_U_A_WJ        = 0x4D,
-    MOTION_BONE_N_MABU_R_U_B            = 0x4E,
-    MOTION_BONE_TL_MABU_R_U_B_WJ        = 0x4F,
-    MOTION_BONE_N_EYELASHES_R           = 0x50,
-    MOTION_BONE_TL_EYELASHES_R_WJ       = 0x51,
-    MOTION_BONE_N_MABU_R_U_C            = 0x52,
-    MOTION_BONE_TL_MABU_R_U_C_WJ        = 0x53,
-    MOTION_BONE_N_MAYU_L                = 0x54,
-    MOTION_BONE_TL_MAYU_L_WJ            = 0x55,
-    MOTION_BONE_N_MAYU_L_B              = 0x56,
-    MOTION_BONE_TL_MAYU_L_B_WJ          = 0x57,
-    MOTION_BONE_N_MAYU_L_C              = 0x58,
-    MOTION_BONE_TL_MAYU_L_C_WJ          = 0x59,
-    MOTION_BONE_N_MAYU_R                = 0x5A,
-    MOTION_BONE_TL_MAYU_R_WJ            = 0x5B,
-    MOTION_BONE_N_MAYU_R_B              = 0x5C,
-    MOTION_BONE_TL_MAYU_R_B_WJ          = 0x5D,
-    MOTION_BONE_N_MAYU_R_C              = 0x5E,
-    MOTION_BONE_TL_MAYU_R_C_WJ          = 0x5F,
-    MOTION_BONE_N_TOOTH_UPPER           = 0x60,
-    MOTION_BONE_TL_TOOTH_UPPER_WJ       = 0x61,
-    MOTION_BONE_N_KUBI_WJ_EX            = 0x62,
-    MOTION_BONE_N_WAKI_L                = 0x63,
-    MOTION_BONE_KL_WAKI_L_WJ            = 0x64,
-    MOTION_BONE_TL_UP_KATA_L            = 0x65,
-    MOTION_BONE_C_KATA_L                = 0x66,
-    MOTION_BONE_KL_TE_L_WJ              = 0x67,
-    MOTION_BONE_N_HITO_L_EX             = 0x68,
-    MOTION_BONE_NL_HITO_L_WJ            = 0x69,
-    MOTION_BONE_NL_HITO_B_L_WJ          = 0x6A,
-    MOTION_BONE_NL_HITO_C_L_WJ          = 0x6B,
-    MOTION_BONE_N_KO_L_EX               = 0x6C,
-    MOTION_BONE_NL_KO_L_WJ              = 0x6D,
-    MOTION_BONE_NL_KO_B_L_WJ            = 0x6E,
-    MOTION_BONE_NL_KO_C_L_WJ            = 0x6F,
-    MOTION_BONE_N_KUSU_L_EX             = 0x70,
-    MOTION_BONE_NL_KUSU_L_WJ            = 0x71,
-    MOTION_BONE_NL_KUSU_B_L_WJ          = 0x72,
-    MOTION_BONE_NL_KUSU_C_L_WJ          = 0x73,
-    MOTION_BONE_N_NAKA_L_EX             = 0x74,
-    MOTION_BONE_NL_NAKA_L_WJ            = 0x75,
-    MOTION_BONE_NL_NAKA_B_L_WJ          = 0x76,
-    MOTION_BONE_NL_NAKA_C_L_WJ          = 0x77,
-    MOTION_BONE_N_OYA_L_EX              = 0x78,
-    MOTION_BONE_NL_OYA_L_WJ             = 0x79,
-    MOTION_BONE_NL_OYA_B_L_WJ           = 0x7A,
-    MOTION_BONE_NL_OYA_C_L_WJ           = 0x7B,
-    MOTION_BONE_N_STE_L_WJ_EX           = 0x7C,
-    MOTION_BONE_N_SUDE_L_WJ_EX          = 0x7D,
-    MOTION_BONE_N_SUDE_B_L_WJ_EX        = 0x7E,
-    MOTION_BONE_N_HIJI_L_WJ_EX          = 0x7F,
-    MOTION_BONE_N_UP_KATA_L_EX          = 0x80,
-    MOTION_BONE_N_SKATA_L_WJ_CD_EX      = 0x81,
-    MOTION_BONE_N_SKATA_B_L_WJ_CD_CU_EX = 0x82,
-    MOTION_BONE_N_SKATA_C_L_WJ_CD_CU_EX = 0x83,
-    MOTION_BONE_N_WAKI_R                = 0x84,
-    MOTION_BONE_KL_WAKI_R_WJ            = 0x85,
-    MOTION_BONE_TL_UP_KATA_R            = 0x86,
-    MOTION_BONE_C_KATA_R                = 0x87,
-    MOTION_BONE_KL_TE_R_WJ              = 0x88,
-    MOTION_BONE_N_HITO_R_EX             = 0x89,
-    MOTION_BONE_NL_HITO_R_WJ            = 0x8A,
-    MOTION_BONE_NL_HITO_B_R_WJ          = 0x8B,
-    MOTION_BONE_NL_HITO_C_R_WJ          = 0x8C,
-    MOTION_BONE_N_KO_R_EX               = 0x8D,
-    MOTION_BONE_NL_KO_R_WJ              = 0x8E,
-    MOTION_BONE_NL_KO_B_R_WJ            = 0x8F,
-    MOTION_BONE_NL_KO_C_R_WJ            = 0x90,
-    MOTION_BONE_N_KUSU_R_EX             = 0x91,
-    MOTION_BONE_NL_KUSU_R_WJ            = 0x92,
-    MOTION_BONE_NL_KUSU_B_R_WJ          = 0x93,
-    MOTION_BONE_NL_KUSU_C_R_WJ          = 0x94,
-    MOTION_BONE_N_NAKA_R_EX             = 0x95,
-    MOTION_BONE_NL_NAKA_R_WJ            = 0x96,
-    MOTION_BONE_NL_NAKA_B_R_WJ          = 0x97,
-    MOTION_BONE_NL_NAKA_C_R_WJ          = 0x98,
-    MOTION_BONE_N_OYA_R_EX              = 0x99,
-    MOTION_BONE_NL_OYA_R_WJ             = 0x9A,
-    MOTION_BONE_NL_OYA_B_R_WJ           = 0x9B,
-    MOTION_BONE_NL_OYA_C_R_WJ           = 0x9C,
-    MOTION_BONE_N_STE_R_WJ_EX           = 0x9D,
-    MOTION_BONE_N_SUDE_R_WJ_EX          = 0x9E,
-    MOTION_BONE_N_SUDE_B_R_WJ_EX        = 0x9F,
-    MOTION_BONE_N_HIJI_R_WJ_EX          = 0xA0,
-    MOTION_BONE_N_UP_KATA_R_EX          = 0xA1,
-    MOTION_BONE_N_SKATA_R_WJ_CD_EX      = 0xA2,
-    MOTION_BONE_N_SKATA_B_R_WJ_CD_CU_EX = 0xA3,
-    MOTION_BONE_N_SKATA_C_R_WJ_CD_CU_EX = 0xA4,
-    MOTION_BONE_KL_KOSI_Y               = 0xA5,
-    MOTION_BONE_KL_KOSI_XZ              = 0xA6,
-    MOTION_BONE_KL_KOSI_ETC_WJ          = 0xA7,
-    MOTION_BONE_CL_MOMO_L               = 0xA8,
-    MOTION_BONE_KL_ASI_L_WJ_CO          = 0xA9,
-    MOTION_BONE_KL_TOE_L_WJ             = 0xAA,
-    MOTION_BONE_N_HIZA_L_WJ_EX          = 0xAB,
-    MOTION_BONE_CL_MOMO_R               = 0xAC,
-    MOTION_BONE_KL_ASI_R_WJ_CO          = 0xAD,
-    MOTION_BONE_KL_TOE_R_WJ             = 0xAE,
-    MOTION_BONE_N_HIZA_R_WJ_EX          = 0xAF,
-    MOTION_BONE_N_MOMO_A_L_WJ_CD_EX     = 0xB0,
-    MOTION_BONE_N_MOMO_B_L_WJ_EX        = 0xB1,
-    MOTION_BONE_N_MOMO_C_L_WJ_EX        = 0xB2,
-    MOTION_BONE_N_MOMO_A_R_WJ_CD_EX     = 0xB3,
-    MOTION_BONE_N_MOMO_B_R_WJ_EX        = 0xB4,
-    MOTION_BONE_N_MOMO_C_R_WJ_EX        = 0xB5,
-    MOTION_BONE_N_HARA_CD_EX            = 0xB6,
-    MOTION_BONE_N_HARA_B_WJ_EX          = 0xB7,
-    MOTION_BONE_N_HARA_C_WJ_EX          = 0xB8,
-    MOTION_BONE_MAX                     = 0xB9,
-};
-
-enum rob_bone_index {
-    ROB_BONE_NONE                    = -1,
-    ROB_BONE_N_HARA_CP               = 0x00,
-    ROB_BONE_KG_HARA_Y               = 0x01,
-    ROB_BONE_KL_HARA_XZ              = 0x02,
-    ROB_BONE_KL_HARA_ETC             = 0x03,
-    ROB_BONE_N_HARA                  = 0x04,
-    ROB_BONE_CL_MUNE                 = 0x05,
-    ROB_BONE_N_MUNE_B                = 0x06,
-    ROB_BONE_KL_MUNE_B_WJ            = 0x07,
-    ROB_BONE_KL_KUBI                 = 0x08,
-    ROB_BONE_N_KAO                   = 0x09,
-    ROB_BONE_CL_KAO                  = 0x0A,
-    ROB_BONE_FACE_ROOT               = 0x0B,
-    ROB_BONE_N_AGO                   = 0x0C,
-    ROB_BONE_KL_AGO_WJ               = 0x0D,
-    ROB_BONE_N_TOOTH_UNDER           = 0x0E,
-    ROB_BONE_TL_TOOTH_UNDER_WJ       = 0x0F,
-    ROB_BONE_N_EYE_L                 = 0x10,
-    ROB_BONE_KL_EYE_L                = 0x11,
-    ROB_BONE_N_EYE_L_WJ_EX           = 0x12,
-    ROB_BONE_KL_HIGHLIGHT_L_WJ       = 0x13,
-    ROB_BONE_N_EYE_R                 = 0x14,
-    ROB_BONE_KL_EYE_R                = 0x15,
-    ROB_BONE_N_EYE_R_WJ_EX           = 0x16,
-    ROB_BONE_KL_HIGHLIGHT_R_WJ       = 0x17,
-    ROB_BONE_N_EYELID_L_A            = 0x18,
-    ROB_BONE_TL_EYELID_L_A_WJ        = 0x19,
-    ROB_BONE_N_EYELID_L_B            = 0x1A,
-    ROB_BONE_TL_EYELID_L_B_WJ        = 0x1B,
-    ROB_BONE_N_EYELID_R_A            = 0x1C,
-    ROB_BONE_TL_EYELID_R_A_WJ        = 0x1D,
-    ROB_BONE_N_EYELID_R_B            = 0x1E,
-    ROB_BONE_TL_EYELID_R_B_WJ        = 0x1F,
-    ROB_BONE_N_KUTI_D                = 0x20,
-    ROB_BONE_TL_KUTI_D_WJ            = 0x21,
-    ROB_BONE_N_KUTI_D_L              = 0x22,
-    ROB_BONE_TL_KUTI_D_L_WJ          = 0x23,
-    ROB_BONE_N_KUTI_D_R              = 0x24,
-    ROB_BONE_TL_KUTI_D_R_WJ          = 0x25,
-    ROB_BONE_N_KUTI_DS_L             = 0x26,
-    ROB_BONE_TL_KUTI_DS_L_WJ         = 0x27,
-    ROB_BONE_N_KUTI_DS_R             = 0x28,
-    ROB_BONE_TL_KUTI_DS_R_WJ         = 0x29,
-    ROB_BONE_N_KUTI_L                = 0x2A,
-    ROB_BONE_TL_KUTI_L_WJ            = 0x2B,
-    ROB_BONE_N_KUTI_M_L              = 0x2C,
-    ROB_BONE_TL_KUTI_M_L_WJ          = 0x2D,
-    ROB_BONE_N_KUTI_M_R              = 0x2E,
-    ROB_BONE_TL_KUTI_M_R_WJ          = 0x2F,
-    ROB_BONE_N_KUTI_R                = 0x30,
-    ROB_BONE_TL_KUTI_R_WJ            = 0x31,
-    ROB_BONE_N_KUTI_U                = 0x32,
-    ROB_BONE_TL_KUTI_U_WJ            = 0x33,
-    ROB_BONE_N_KUTI_U_L              = 0x34,
-    ROB_BONE_TL_KUTI_U_L_WJ          = 0x35,
-    ROB_BONE_N_KUTI_U_R              = 0x36,
-    ROB_BONE_TL_KUTI_U_R_WJ          = 0x37,
-    ROB_BONE_N_MABU_L_D_A            = 0x38,
-    ROB_BONE_TL_MABU_L_D_A_WJ        = 0x39,
-    ROB_BONE_N_MABU_L_D_B            = 0x3A,
-    ROB_BONE_TL_MABU_L_D_B_WJ        = 0x3B,
-    ROB_BONE_N_MABU_L_D_C            = 0x3C,
-    ROB_BONE_TL_MABU_L_D_C_WJ        = 0x3D,
-    ROB_BONE_N_MABU_L_U_A            = 0x3E,
-    ROB_BONE_TL_MABU_L_U_A_WJ        = 0x3F,
-    ROB_BONE_N_MABU_L_U_B            = 0x40,
-    ROB_BONE_TL_MABU_L_U_B_WJ        = 0x41,
-    ROB_BONE_N_EYELASHES_L           = 0x42,
-    ROB_BONE_TL_EYELASHES_L_WJ       = 0x43,
-    ROB_BONE_N_MABU_L_U_C            = 0x44,
-    ROB_BONE_TL_MABU_L_U_C_WJ        = 0x45,
-    ROB_BONE_N_MABU_R_D_A            = 0x46,
-    ROB_BONE_TL_MABU_R_D_A_WJ        = 0x47,
-    ROB_BONE_N_MABU_R_D_B            = 0x48,
-    ROB_BONE_TL_MABU_R_D_B_WJ        = 0x49,
-    ROB_BONE_N_MABU_R_D_C            = 0x4A,
-    ROB_BONE_TL_MABU_R_D_C_WJ        = 0x4B,
-    ROB_BONE_N_MABU_R_U_A            = 0x4C,
-    ROB_BONE_TL_MABU_R_U_A_WJ        = 0x4D,
-    ROB_BONE_N_MABU_R_U_B            = 0x4E,
-    ROB_BONE_TL_MABU_R_U_B_WJ        = 0x4F,
-    ROB_BONE_N_EYELASHES_R           = 0x50,
-    ROB_BONE_TL_EYELASHES_R_WJ       = 0x51,
-    ROB_BONE_N_MABU_R_U_C            = 0x52,
-    ROB_BONE_TL_MABU_R_U_C_WJ        = 0x53,
-    ROB_BONE_N_MAYU_L                = 0x54,
-    ROB_BONE_TL_MAYU_L_WJ            = 0x55,
-    ROB_BONE_N_MAYU_L_B              = 0x56,
-    ROB_BONE_TL_MAYU_L_B_WJ          = 0x57,
-    ROB_BONE_N_MAYU_L_C              = 0x58,
-    ROB_BONE_TL_MAYU_L_C_WJ          = 0x59,
-    ROB_BONE_N_MAYU_R                = 0x5A,
-    ROB_BONE_TL_MAYU_R_WJ            = 0x5B,
-    ROB_BONE_N_MAYU_R_B              = 0x5C,
-    ROB_BONE_TL_MAYU_R_B_WJ          = 0x5D,
-    ROB_BONE_N_MAYU_R_C              = 0x5E,
-    ROB_BONE_TL_MAYU_R_C_WJ          = 0x5F,
-    ROB_BONE_N_TOOTH_UPPER           = 0x60,
-    ROB_BONE_TL_TOOTH_UPPER_WJ       = 0x61,
-    ROB_BONE_N_KUBI_WJ_EX            = 0x62,
-    ROB_BONE_N_WAKI_L                = 0x63,
-    ROB_BONE_KL_WAKI_L_WJ            = 0x64,
-    ROB_BONE_TL_UP_KATA_L            = 0x65,
-    ROB_BONE_C_KATA_L                = 0x66,
-    ROB_BONE_KATA_L_WJ_CU            = 0x67,
-    ROB_BONE_UDE_L_WJ                = 0x68,
-    ROB_BONE_KL_TE_L_WJ              = 0x69,
-    ROB_BONE_N_HITO_L_EX             = 0x6A,
-    ROB_BONE_NL_HITO_L_WJ            = 0x6B,
-    ROB_BONE_NL_HITO_B_L_WJ          = 0x6C,
-    ROB_BONE_NL_HITO_C_L_WJ          = 0x6D,
-    ROB_BONE_N_KO_L_EX               = 0x6E,
-    ROB_BONE_NL_KO_L_WJ              = 0x6F,
-    ROB_BONE_NL_KO_B_L_WJ            = 0x70,
-    ROB_BONE_NL_KO_C_L_WJ            = 0x71,
-    ROB_BONE_N_KUSU_L_EX             = 0x72,
-    ROB_BONE_NL_KUSU_L_WJ            = 0x73,
-    ROB_BONE_NL_KUSU_B_L_WJ          = 0x74,
-    ROB_BONE_NL_KUSU_C_L_WJ          = 0x75,
-    ROB_BONE_N_NAKA_L_EX             = 0x76,
-    ROB_BONE_NL_NAKA_L_WJ            = 0x77,
-    ROB_BONE_NL_NAKA_B_L_WJ          = 0x78,
-    ROB_BONE_NL_NAKA_C_L_WJ          = 0x79,
-    ROB_BONE_N_OYA_L_EX              = 0x7A,
-    ROB_BONE_NL_OYA_L_WJ             = 0x7B,
-    ROB_BONE_NL_OYA_B_L_WJ           = 0x7C,
-    ROB_BONE_NL_OYA_C_L_WJ           = 0x7D,
-    ROB_BONE_N_STE_L_WJ_EX           = 0x7E,
-    ROB_BONE_N_SUDE_L_WJ_EX          = 0x7F,
-    ROB_BONE_N_SUDE_B_L_WJ_EX        = 0x80,
-    ROB_BONE_N_HIJI_L_WJ_EX          = 0x81,
-    ROB_BONE_N_UP_KATA_L_EX          = 0x82,
-    ROB_BONE_N_SKATA_L_WJ_CD_EX      = 0x83,
-    ROB_BONE_N_SKATA_B_L_WJ_CD_CU_EX = 0x84,
-    ROB_BONE_N_SKATA_C_L_WJ_CD_CU_EX = 0x85,
-    ROB_BONE_N_WAKI_R                = 0x86,
-    ROB_BONE_KL_WAKI_R_WJ            = 0x87,
-    ROB_BONE_TL_UP_KATA_R            = 0x88,
-    ROB_BONE_C_KATA_R                = 0x89,
-    ROB_BONE_KATA_R_WJ_CU            = 0x8A,
-    ROB_BONE_UDE_R_WJ                = 0x8B,
-    ROB_BONE_KL_TE_R_WJ              = 0x8C,
-    ROB_BONE_N_HITO_R_EX             = 0x8D,
-    ROB_BONE_NL_HITO_R_WJ            = 0x8E,
-    ROB_BONE_NL_HITO_B_R_WJ          = 0x8F,
-    ROB_BONE_NL_HITO_C_R_WJ          = 0x90,
-    ROB_BONE_N_KO_R_EX               = 0x91,
-    ROB_BONE_NL_KO_R_WJ              = 0x92,
-    ROB_BONE_NL_KO_B_R_WJ            = 0x93,
-    ROB_BONE_NL_KO_C_R_WJ            = 0x94,
-    ROB_BONE_N_KUSU_R_EX             = 0x95,
-    ROB_BONE_NL_KUSU_R_WJ            = 0x96,
-    ROB_BONE_NL_KUSU_B_R_WJ          = 0x97,
-    ROB_BONE_NL_KUSU_C_R_WJ          = 0x98,
-    ROB_BONE_N_NAKA_R_EX             = 0x99,
-    ROB_BONE_NL_NAKA_R_WJ            = 0x9A,
-    ROB_BONE_NL_NAKA_B_R_WJ          = 0x9B,
-    ROB_BONE_NL_NAKA_C_R_WJ          = 0x9C,
-    ROB_BONE_N_OYA_R_EX              = 0x9D,
-    ROB_BONE_NL_OYA_R_WJ             = 0x9E,
-    ROB_BONE_NL_OYA_B_R_WJ           = 0x9F,
-    ROB_BONE_NL_OYA_C_R_WJ           = 0xA0,
-    ROB_BONE_N_STE_R_WJ_EX           = 0xA1,
-    ROB_BONE_N_SUDE_R_WJ_EX          = 0xA2,
-    ROB_BONE_N_SUDE_B_R_WJ_EX        = 0xA3,
-    ROB_BONE_N_HIJI_R_WJ_EX          = 0xA4,
-    ROB_BONE_N_UP_KATA_R_EX          = 0xA5,
-    ROB_BONE_N_SKATA_R_WJ_CD_EX      = 0xA6,
-    ROB_BONE_N_SKATA_B_R_WJ_CD_CU_EX = 0xA7,
-    ROB_BONE_N_SKATA_C_R_WJ_CD_CU_EX = 0xA8,
-    ROB_BONE_KL_KOSI_Y               = 0xA9,
-    ROB_BONE_KL_KOSI_XZ              = 0xAA,
-    ROB_BONE_KL_KOSI_ETC_WJ          = 0xAB,
-    ROB_BONE_CL_MOMO_L               = 0xAC,
-    ROB_BONE_J_MOMO_L_WJ             = 0xAD,
-    ROB_BONE_J_SUNE_L_WJ             = 0xAE,
-    ROB_BONE_KL_ASI_L_WJ_CO          = 0xAF,
-    ROB_BONE_KL_TOE_L_WJ             = 0xB0,
-    ROB_BONE_N_HIZA_L_WJ_EX          = 0xB1,
-    ROB_BONE_CL_MOMO_R               = 0xB2,
-    ROB_BONE_J_MOMO_R_WJ             = 0xB3,
-    ROB_BONE_J_SUNE_R_WJ             = 0xB4,
-    ROB_BONE_KL_ASI_R_WJ_CO          = 0xB5,
-    ROB_BONE_KL_TOE_R_WJ             = 0xB6,
-    ROB_BONE_N_HIZA_R_WJ_EX          = 0xB7,
-    ROB_BONE_N_MOMO_A_L_WJ_CD_EX     = 0xB8,
-    ROB_BONE_N_MOMO_B_L_WJ_EX        = 0xB9,
-    ROB_BONE_N_MOMO_C_L_WJ_EX        = 0xBA,
-    ROB_BONE_N_MOMO_A_R_WJ_CD_EX     = 0xBB,
-    ROB_BONE_N_MOMO_B_R_WJ_EX        = 0xBC,
-    ROB_BONE_N_MOMO_C_R_WJ_EX        = 0xBD,
-    ROB_BONE_N_HARA_CD_EX            = 0xBE,
-    ROB_BONE_N_HARA_B_WJ_EX          = 0xBF,
-    ROB_BONE_N_HARA_C_WJ_EX          = 0xC0,
-    ROB_BONE_MAX                     = 0xC1,
 };
 
 enum rob_chara_type {
@@ -889,14 +917,14 @@ struct RobTransform {
     void reset_scale();
 };
 
-struct bone_node {
+struct RobNode {
     const char* name;
     mat4* mat_ptr;
-    const bone_node* parent;
+    const RobNode* parent;
     RobTransform transform;
     mat4* no_scale_mat;
 
-    bone_node();
+    RobNode();
 
     float_t* get_transform_component(size_t index, Expr_type& type);
     const float_t* get_transform_component(size_t index, Expr_type& type) const;
@@ -943,9 +971,9 @@ struct mot_key_data {
     size_t key_set_count;
     prj::sys_vector<mot_key_set> key_set;
     mot mot;
-    prj::sys_vector<float_t> key_set_data;
+    prj::sys_vector<float_t> fc_value;
     const mot_data* mot_data;
-    bone_database_skeleton_type skeleton_type;
+    BONE_KIND skeleton_type;
     int32_t skeleton_select;
     uint32_t motion_id;
     float_t frame;
@@ -958,47 +986,44 @@ struct mot_key_data {
     void reset();
 };
 
-struct bone_data {
-    bone_database_bone_type type;
-    int32_t has_parent;
-    motion_bone_index motion_bone_index;
-    int32_t mirror;
-    int32_t parent;
-    int32_t flags;
+struct RobBlock {
+    IK_TYPE ik_type;
+    IH_TYPE inherit_type;
+    BONE_BLK block_id;
+    BONE_BLK flip_block_id;
+    BONE_BLK inherit_mat_id;
+    uint32_t expression_id;
     int32_t key_set_offset;
     int32_t key_set_count;
     float_t frame;
-    vec3 local_position[2];
-    vec3 rotation;
-    vec3 ik_target;
-    vec3 position;
-    mat4 rot_mat[3];
-    vec3 position_prev[2];
-    mat4 rot_mat_prev[3][2];
-    mat4* pole_target_mat;
-    mat4* parent_mat;
-    bone_node* node;
-    float_t ik_segment_length[2];
-    float_t ik_2nd_segment_length[2];
+    vec3 chain_pos[2];
+    vec3 chain_ang;
+    vec3 leaf_pos[2];
+    mat4 chain_rot[3];
+    vec3 smooth_pos[2];
+    mat4 smooth_rot[3][2];
+    const mat4* up_vector_mat_ptr;
+    const mat4* inherit_mat_ptr;
+    RobNode* node;
+    float_t len[2][2];
     float_t arm_length;
     float_t eyes_xrot_adjust_neg;
     float_t eyes_xrot_adjust_pos;
 
-    bone_data();
-    ~bone_data();
+    RobBlock();
+    ~RobBlock();
 
-    void copy_rot_trans(const bone_data& other);
-    bool check_flags_not_null();
-    bool get_constraint_ik(const bone_data* bones);
-    bool get_ex_rotation(RobTransform& transform, const bone_data* bones);
+    void copy_rot_trans(const RobBlock& other);
+    bool check_expression_id_not_null();
+    bool get_constraint_ik(const RobBlock* bones);
+    bool get_ex_rotation(RobTransform& transform, const RobBlock* bones);
     void get_mat(int32_t skeleton_select);
     void get_mat_ik(int32_t skeleton_select);
-    void mult_mat(const mat4& parent_mat, const bone_data* bones, bool solve_ik);
+    void mult_mat(const mat4& parent_mat, const RobBlock* bones, bool solve_ik);
     void orient_x(const vec3& target);
     void orient_x_cns(const vec3& target, float_t weight);
     void orient_y(vec3 y_axis);
-    vec3* set_key_data(vec3* keyframe_data,
-        bone_database_skeleton_type skeleton_type, bool get_data, bool reverse_x);
+    const vec3* set_global_leaf_sub(const vec3* val, BONE_KIND kind, bool get_data, bool flip_x);
     void store_curr_rot_trans(int32_t skeleton_select);
 
     static float_t limit_angle(float_t angle);
@@ -1010,16 +1035,18 @@ struct bone_data_parent {
     size_t motion_bone_count;
     size_t leaf_pos;
     size_t chain_pos;
-    prj::sys_vector<bone_data> bones;
+    prj::sys_vector<RobBlock> bones;
     prj::sys_vector<uint16_t> bone_indices;
-    vec3 global_position;
-    vec3 global_rotation;
+    vec3 gblctr_pos;
+    vec3 gblctr_rot;
     uint32_t bone_key_set_count;
     uint32_t global_key_set_count;
     float_t rot_y;
 
     bone_data_parent();
     ~bone_data_parent();
+
+    void ik_init(const BODYTYPE* bt, const CHAINPOSRADIUS* motion_chain_pos, const CHAINPOSRADIUS* disp_chain_pos);
 };
 
 struct mot_play_frame_data {
@@ -1099,8 +1126,8 @@ public:
     virtual void Reset();
     virtual void Field_10(float_t, float_t, int32_t) = 0;
     virtual void Step(struc_400*) = 0;
-    virtual void Field_20(prj::sys_vector<bone_data>* bones_curr, prj::sys_vector<bone_data>* bones_prev) = 0;
-    virtual void Blend(bone_data* curr, bone_data* prev) = 0;
+    virtual void Field_20(prj::sys_vector<RobBlock>* bones_curr, prj::sys_vector<RobBlock>* bones_prev) = 0;
+    virtual void Blend(RobBlock* curr, RobBlock* prev) = 0;
     virtual bool Field_30();
 
     void SetDuration(float_t duration, float_t step, float_t offset);
@@ -1121,8 +1148,8 @@ public:
     virtual void Reset() override;
     virtual void Field_10(float_t, float_t, int32_t) override;
     virtual void Step(struc_400*) override;
-    virtual void Field_20(prj::sys_vector<bone_data>* bones_curr, prj::sys_vector<bone_data>* bones_prev) override;
-    virtual void Blend(bone_data* curr, bone_data* prev) override;
+    virtual void Field_20(prj::sys_vector<RobBlock>* bones_curr, prj::sys_vector<RobBlock>* bones_prev) override;
+    virtual void Blend(RobBlock* curr, RobBlock* prev) override;
     virtual bool Field_30() override;
 };
 
@@ -1154,8 +1181,8 @@ public:
     virtual void Reset() override;
     virtual void Field_10(float_t, float_t, int32_t) override;
     virtual void Step(struc_400*) override;
-    virtual void Field_20(prj::sys_vector<bone_data>* bones_curr, prj::sys_vector<bone_data>* bones_prev) override;
-    virtual void Blend(bone_data* curr, bone_data* prev) override;
+    virtual void Field_20(prj::sys_vector<RobBlock>* bones_curr, prj::sys_vector<RobBlock>* bones_prev) override;
+    virtual void Blend(RobBlock* curr, RobBlock* prev) override;
 };
 
 class PartialMotionBlendFreeze : public MotionBlendFreeze {
@@ -1166,11 +1193,11 @@ public:
     virtual void Reset() override;
     virtual void Field_10(float_t, float_t, int32_t) override;
     virtual void Step(struc_400*) override;
-    virtual void Field_20(prj::sys_vector<bone_data>* bones_curr, prj::sys_vector<bone_data>* bones_prev) override;
-    virtual void Blend(bone_data* curr, bone_data* prev) override;
+    virtual void Field_20(prj::sys_vector<RobBlock>* bones_curr, prj::sys_vector<RobBlock>* bones_prev) override;
+    virtual void Blend(RobBlock* curr, RobBlock* prev) override;
 };
 
-typedef bool(* PFNMOTIONBONECHECKFUNC)(motion_bone_index bone_index);
+typedef bool(* PFNMOTIONBONECHECKFUNC)(BONE_BLK bone_index);
 
 struct motion_blend_mot_enabled_bones {
     PFNMOTIONBONECHECKFUNC func;
@@ -1203,7 +1230,7 @@ struct motion_blend_mot {
 
     void apply_global_transform();
     void copy_rot_trans();
-    void copy_rot_trans(const prj::sys_vector<::bone_data>& bones);
+    void copy_rot_trans(const prj::sys_vector<RobBlock>& bones);
     bool get_blend_enable();
     void get_n_hara_cp_position(vec3& value);
     MotionBlendType get_type();
@@ -1214,13 +1241,13 @@ struct motion_blend_mot {
         const bone_database* bone_data, const motion_database* mot_db);
     void mult_mat(const mat4* mat);
     void reset();
-    void set_arm_length(motion_bone_index motion_bone_index, float_t value);
+    void set_arm_length(BONE_BLK block_id, float_t value);
     void set_blend(MotionBlendType blend_type, float_t blend);
     void set_blend_duration(float_t duration, float_t step, float_t offset);
     void set_step(float_t step);
     void store_curr_rot_trans(int32_t skeleton_select);
 
-    static bool interpolate_get_reverse(struc_308& a1);
+    static bool interpolate_get_flip(struc_308& a1);
 };
 
 struct rob_chara_bone_data_ik_scale {
@@ -1242,16 +1269,16 @@ struct partial_motion_blend_mot {
     partial_motion_blend_mot();
     ~partial_motion_blend_mot();
 
-    void init(bone_database_skeleton_type type,
+    void init(BONE_KIND type,
         PFNMOTIONBONECHECKFUNC bone_check_func, size_t motion_bone_count, const bone_database* bone_data);
-    void interpolate(prj::sys_vector<bone_data>& bones,
-        const prj::sys_vector<uint16_t>* bone_indices, bone_database_skeleton_type skeleton_type);
+    void interpolate(prj::sys_vector<RobBlock>& bones,
+        const prj::sys_vector<uint16_t>* bone_indices, BONE_KIND skeleton_type);
     void load_motion(uint32_t motion_id, const motion_database* mot_db);
     void reset();
     void set_blend_duration(float_t duration, float_t step, float_t offset);
     void set_frame(float_t frame);
     void set_step(float_t step);
-    void store_curr_rot_trans(prj::sys_vector<bone_data>& bones);
+    void store_curr_rot_trans(prj::sys_vector<RobBlock>& bones);
 };
 
 struct rob_chara_look_anim_eye_param_limits {
@@ -1312,7 +1339,7 @@ struct struc_936 {
 };
 
 struct rob_chara_look_anim {
-    prj::sys_vector<bone_data>* bones;
+    prj::sys_vector<RobBlock>* bones;
     mat4 mat;
     rob_chara_look_anim_eye_param param;
     bool update_view_point;
@@ -1386,7 +1413,7 @@ struct rob_chara_sleeve_adjust {
     vec3 field_74;
     vec3 field_80;
     float_t radius;
-    prj::sys_vector<bone_data>* bones;
+    prj::sys_vector<RobBlock>* bones;
     float_t step;
 
     rob_chara_sleeve_adjust();
@@ -1404,9 +1431,9 @@ struct rob_chara_bone_data {
     size_t chain_pos;
     std::vector<mat4> mats;
     std::vector<mat4> mats2;
-    std::vector<bone_node> nodes;
-    bone_database_skeleton_type base_skeleton_type;
-    bone_database_skeleton_type skeleton_type;
+    std::vector<RobNode> nodes;
+    BONE_KIND base_skeleton_type;
+    BONE_KIND skeleton_type;
     std::vector<motion_blend_mot*> motions;
     std::list<size_t> motion_indices;
     std::list<size_t> motion_loaded_indices;
@@ -1488,13 +1515,60 @@ union rob_chara_pv_data_item {
     int32_t arr[4];
 };
 
+struct RobAngle {
+    int16_t value;
+
+    inline RobAngle( ) : value() {}
+    inline RobAngle(int16_t value) : value(value) {}
+
+    inline float_t get_deg() {
+        return (float_t)((double_t)value * 180.0 * (1.0 / 32768.0));
+    }
+
+    inline float_t get_rad() {
+        return (float_t)((double_t)value * M_PI * (1.0 / 32768.0));
+    }
+
+    inline void set_deg(float_t in_deg) {
+        value = (int16_t)(int32_t)(in_deg * 32768.0f * (float_t)(1.0 / 180.0));
+    }
+
+    inline void set_rad(float_t in_rad) {
+        value = (int16_t)(int32_t)((double_t)(in_rad * 32768.0f) * (1.0 / M_PI));
+    }
+};
+
+inline RobAngle operator+(const RobAngle& left, const RobAngle& right) {
+    return (int16_t)(left.value + right.value);
+}
+
+inline RobAngle operator+(const int32_t& left, const RobAngle& right) {
+    return (int16_t)(left + right.value);
+}
+
+inline RobAngle operator+(const RobAngle& left, const int32_t& right) {
+    return (int16_t)(left.value + right);
+}
+
+inline RobAngle operator-(const RobAngle& left, const RobAngle& right) {
+    return (int16_t)(left.value - right.value);
+}
+
+inline RobAngle operator-(const int32_t& left, const RobAngle& right) {
+    return (int16_t)(left - right.value);
+}
+
+inline RobAngle operator-(const RobAngle& left, const int32_t& right) {
+    return (int16_t)(left.value - right);
+}
+
 struct rob_chara_pv_data {
     rob_chara_type type;
     bool field_4;
     bool field_5;
     bool field_6;
     vec3 field_8;
-    int16_t rot_y_int16;
+    RobAngle yang;
     int16_t field_16;
     rob_sleeve_data sleeve_l;
     rob_sleeve_data sleeve_r;
@@ -1510,10 +1584,10 @@ struct rob_chara_pv_data {
     void reset();
 };
 
-struct struc_218 {
-    vec3 bone_offset;
+struct RobCollisionData {
+    vec3 trans;
     float_t scale;
-    rob_bone_index bone_index;
+    BONE_ID bone;
     int32_t field_14;
 };
 
@@ -1524,8 +1598,8 @@ struct struc_344 {
     int32_t swim_s_costume;
 };
 
-struct struc_870 {
-    const char* field_0;
+struct RobKamae {
+    const char* name;
     int32_t field_8;
     int32_t field_C;
     int32_t field_10;
@@ -1533,16 +1607,15 @@ struct struc_870 {
     int32_t field_18;
 };
 
-struct chara_init_data {
+struct RobData {
     int32_t object_set;
-    bone_database_skeleton_type skeleton_type;
-    object_info field_7E0;
-    object_info field_7E4[14];
-    uint32_t motion_set;
-    int32_t field_820;
-    const struc_218* field_828;
-    const struc_218* field_830;
-    const struc_870** field_838;
+    BONE_KIND skeleton_type;
+    object_info body_obj_uid[15];
+    uint32_t motfile;
+    uint32_t motfile_auth;
+    const RobCollisionData* colli_data;
+    const RobCollisionData* push_colli_data;
+    const RobKamae** kamae_tbl;
     int32_t field_840;
     int32_t field_844;
     struc_344 field_848;
@@ -1561,10 +1634,10 @@ struct RobSkinOfs {
 
 class ExNodeBlock {
 public:
-    bone_node* dst_node;
+    RobNode* dst_node;
     ExNodeType type;
     const char* name;
-    const bone_node* parent;
+    const RobNode* parent;
     std::string parent_name;
     ExNodeBlock* parent_node;
     const rob_chara_item_equip_object* skin_disp;
@@ -1588,7 +1661,7 @@ public:
     virtual void CtrlEnd();
 
     void init_members();
-    void set_data(bone_node* node, ExNodeType type,
+    void set_data(RobNode* node, ExNodeType type,
         const char* name, const rob_chara_item_equip_object* skin_disp);
 };
 
@@ -1730,7 +1803,7 @@ struct RobJointNode {
     vec3 vec;
     vec3 vel;
     float_t length_next;
-    bone_node* dst_node;
+    RobNode* dst_node;
     mat4* dst_node_mat;
     mat4 mat;
     RobJointNode* distance;
@@ -2030,7 +2103,7 @@ struct CLOTH_WEIGHTED_ROOT {
     vec3 pos;
     vec3 normal;
     vec4 tangent;
-    const bone_node* node[4];
+    const RobNode* node[4];
     const mat4* node_mat[4];
     const mat4* bone_mat[4];
     float_t weight[4];
@@ -2197,7 +2270,7 @@ struct RobOsage {
         const float_t step, bool disable_ex_force);
     const float_t* LoadOpdData(size_t node_index, const float_t* opd_data, size_t opd_count);
     void LoadSkinParam(void* kv, const char* name,
-        skin_param_osage_root& skp_root, object_info* obj_info, const bone_database* bone_data);
+        skin_param_osage_root& skp_root, const object_info& obj_info, const bone_database* bone_data);
     void RotateMat(mat4& mat, const vec3& hsc, bool init_rot = false);
     void SetDisableCollision(const bool& value);
     void SetMotionResetData(uint32_t motion_id, float_t frame);
@@ -2216,7 +2289,7 @@ struct RobOsage {
     void dest_boc();
     RobJointNode* get_joint_node(size_t index);
     void init(const obj_skin_ex_node_osage* osg_data, const obj_skin_osage_joint* joint,
-        bone_node* ex_node, const obj_skin* skin);
+        RobNode* ex_node, const obj_skin* skin);
     void make_osage_coli(const mat4* motmat);
     void pos_init(const mat4& root_matrix, const vec3& hsc, bool dist_flag);
     void pos_init_cont(const mat4& root_matrix, const vec3& hsc,
@@ -2277,8 +2350,8 @@ public:
         std::map<std::string, ExNodeBlock*>& ex_node_list);
     void reset_ex_force();
     void set_data(const rob_chara_item_equip_object* skin_disp, const obj_skin_ex_node_osage* root,
-        const char* name, const obj_skin_osage_joint* joint, const bone_node* mot_node,
-        bone_node* ex_node, const obj_skin* skin);
+        const char* name, const obj_skin_osage_joint* joint, const RobNode* mot_node,
+        RobNode* ex_node, const obj_skin* skin);
     void set_ex_force(const vec3& f);
     void set_move_cancel(const float_t& mv_ccl);
 };
@@ -2286,8 +2359,8 @@ public:
 class ExConstraintBlock : public ExNodeBlock {
 public:
     obj_skin_ex_node_constraint_type cns_type;
-    const bone_node* src_node;
-    const bone_node* upvector_node;
+    const RobNode* src_node;
+    const RobNode* upvector_node;
     const obj_skin_ex_node_constraint* data;
     uint32_t dst_node_id;
     uint32_t src_node_id;
@@ -2361,7 +2434,7 @@ public:
     void CalcMatrixHS();
 
     void set_data(const rob_chara_item_equip_object* skin_disp, const obj_skin_ex_node_expression* data,
-        const char* node_name, object_info a4, size_t index, const bone_database* bone_data);
+        const char* node_name, object_info objuid, size_t index, const bone_database* bone_data);
 };
 
 struct rob_chara_item_equip;
@@ -2369,7 +2442,7 @@ struct rob_chara_item_equip;
 struct rob_chara_item_equip_object {
     size_t index;
     const mat4* motion_matrix;
-    object_info obj_info;
+    object_info obj_uid;
     object_info obj_uid_sub;
     std::vector<texture_pattern_struct> texchg_vec;
     RobSkinCol skn_col;
@@ -2380,9 +2453,9 @@ struct rob_chara_item_equip_object {
     uint32_t bone_kind;
     mat4* mat;
     int32_t init_cnt;
-    const bone_node* motion_node;
+    const RobNode* motion_node;
     std::vector<ExNodeBlock*> ex_node_block;
-    std::vector<bone_node> ex_node;
+    std::vector<RobNode> ex_node;
     std::vector<mat4> matrix;
     std::vector<mat4> no_scale_matrix;
     prj::vector_pair<const char*, uint32_t> node_name_map;
@@ -2406,25 +2479,25 @@ struct rob_chara_item_equip_object {
     void check_no_opd(std::vector<opd_blend_data>& opd_blend_data);
     void clear_ex_data();
     void disp(const mat4& mat, render_context* rctx);
-    const bone_node* get_node(int32_t bone_index) const;
-    const bone_node* get_node(const char* name, const bone_database* bone_data) const;
+    const RobNode* get_node(int32_t index) const;
+    const RobNode* get_node(const char* name, const bone_database* bone_data) const;
     int32_t get_node_index(const char* name, const bone_database* bone_data) const;
     const mat4* get_ex_data_bone_node_mat(const char* name);
     RobJointNode* get_normal_ref_osage_node(const std::string& str, size_t* index);
-    void get_parent_bone_nodes(bone_node* bone_nodes, const bone_database* bone_data);
-    void init_ex_data_bone_nodes(obj_skin_ex_data* ex_data);
+    void set_motion_node(const RobNode* mot_node, const bone_database* bone_data);
     void init_members(size_t index = 0xDEADBEEF);
-    void load_ex_data(obj_skin_ex_data* ex_data,
-        const bone_database* bone_data, void* data, const object_database* obj_db);
-    void load_object_info_ex_data(object_info object_info, const bone_node* motion_node,
-        bool osage_reset, const bone_database* bone_data, void* data, const object_database* obj_db);
     void pos_reset(int32_t init_cnt);
     void reset_ex_force();
     void reset_nodes_ex_force(rob_osage_parts_bit parts_bits);
+    void set(object_info objuid, const RobNode* mot_node,
+        bool osage_reset, const bone_database* bone_data, void* data, const object_database* obj_db);
     void set_alpha_obj_flags(float_t alpha, int32_t flags);
     bool set_boc(const skin_param_osage_root& skp_root, ExOsageBlock* osg);
     void set_collision_target_osage(const skin_param_osage_root& skp_root, skin_param* skp);
     void set_disable_collision(rob_osage_parts_bit parts_bits, bool disable);
+    void set_ex_node(obj_skin_ex_data* ex_data);
+    void set_ex_node_block(obj_skin_ex_data* ex_data,
+        const bone_database* bone_data, void* data, const object_database* obj_db);
     void set_motion_reset_data(uint32_t motion_id, float_t frame);
     void set_motion_skin_param(int8_t chara_id, uint32_t motion_id, int32_t frame);
     void set_null_blocks_expression_data(const vec3& position, const vec3& rotation, const vec3& scale);
@@ -2441,52 +2514,31 @@ struct rob_chara_item_equip_object {
 };
 
 struct rob_chara_item_equip {
-    bone_node* bone_nodes;
-    mat4* matrices;
-    rob_chara_item_equip_object* item_equip_object;
-    int32_t field_18[31];
-    bool item_equip_range;
-    item_id first_item_equip_object;
-    item_id max_item_equip_object;
-    int32_t field_A0;
-    shadow_type_enum shadow_type;
+    const RobNode* motion_node;
+    const mat4* motion_matrix;
+    rob_chara_item_equip_object* skin_disp;
+    int32_t parts_attr[RPK_MAX];
+    bool one_skin;
+    int32_t disp_begin;
+    int32_t disp_max;
+    uint32_t shadow_flag;
+    SHADOW_GROUP shadow_group;
     vec3 position;
-    std::vector<texture_pattern_struct> texture_pattern;
-    object_info field_D0;
-    int32_t field_D4;
+    std::vector<texture_pattern_struct> hyoutan_texchg_list;
+    object_info hyoutan_obj;
+    int32_t hyoutan_rpk;
     bool disable_update;
     int32_t field_DC;
-    vec4 texture_color_coefficients;
+    vec4 skin_color;
     float_t wet;
     float_t wind_strength;
     bool chara_color;
     bool npr_flag;
     mat4 mat;
-    mat4 field_13C[30];
-    int32_t field_8BC;
-    int32_t field_8C0;
-    int32_t field_8C4;
-    int32_t field_8C8;
-    int32_t field_8CC;
-    int32_t field_8D0;
-    int32_t field_8D4;
-    int32_t field_8D8;
-    int32_t field_8DC;
-    int32_t field_8E0;
-    int32_t field_8E4;
-    int32_t field_8E8;
-    int32_t field_8EC;
-    int32_t field_8F0;
-    int32_t field_8F4;
-    int32_t field_8F8;
-    int32_t field_8FC;
-    int64_t field_900;
-    int64_t field_908;
-    int64_t field_910;
-    int64_t field_918;
-    int64_t field_920;
-    int64_t field_928;
-    int64_t field_930;
+    mat4 parts_matrix[RPK_MAX];
+    std::vector<void*> shadow_obj_list;
+    std::vector<void*> shadow_vb_list;
+    obj_skin* shadow_skin;
     float_t osage_step;
     bool use_opd;
     std::vector<opd_blend_data> opd_blend_data;
@@ -2499,38 +2551,38 @@ struct rob_chara_item_equip {
 
     void add_motion_reset_data(uint32_t motion_id, float_t frame, int32_t iterations);
     void disp(int32_t chara_id, render_context* rctx);
-    rob_chara_item_equip_object* get_item_equip_object(item_id id);
-    object_info get_object_info(item_id id);
-    void get_parent_bone_nodes(bone_node* bone_nodes, const bone_database* bone_data);
-    const mat4* get_ex_data_bone_node_mat(item_id id, const char* name);
-    void load_body_parts_object_info(item_id id, object_info obj_info,
+    rob_chara_item_equip_object* get_skin_disp(ROB_PARTS_KIND rpk);
+    object_info get_object_info(ROB_PARTS_KIND rpk);
+    void set_motion_node(const RobNode* mot_node, const bone_database* bone_data);
+    const mat4* get_ex_data_bone_node_mat(ROB_PARTS_KIND rpk, const char* name);
+    void load_body_parts_object_info(ROB_PARTS_KIND rpk, object_info obj_info,
         const bone_database* bone_data, void* data, const object_database* obj_db);
-    void load_object_info(object_info obj_info, item_id id,
-        bool osage_reset, const bone_database* bone_data, void* data, const object_database* obj_db);
-    void load_outfit_object_info(item_id id, object_info obj_info,
+    void load_outfit_object_info(ROB_PARTS_KIND rpk, object_info obj_info,
         bool osage_reset, const bone_database* bone_data, void* data, const object_database* obj_db);
     void pos_reset(uint8_t init_cnt);
     void reset();
     void reset_ex_force();
-    void reset_init_data(bone_node* bone_nodes);
+    void reset_init_data(RobNode* mot_node);
     void reset_nodes_ex_force(rob_osage_parts parts);
     void set_alpha_obj_flags(float_t alpha, mdl::ObjFlags flags);
     void set_disable_collision(rob_osage_parts parts, bool disable);
-    void set_disp(item_id id, bool value);
-    void set_item_equip_range(bool value);
+    void set_disp(ROB_PARTS_KIND rpk, bool value);
+    void set_item(object_info obj_uid, ROB_PARTS_KIND rpk, bool osage_reset,
+        const bone_database* bone_data, void* data, const object_database* obj_db);
     void set_motion_reset_data(uint32_t motion_id, float_t frame);
     void set_motion_skin_param(int8_t chara_id, uint32_t motion_id, int32_t frame);
-    void set_null_blocks_expression_data(item_id id,
+    void set_null_blocks_expression_data(ROB_PARTS_KIND rpk,
         const vec3& position, const vec3& rotation, const vec3& scale);
-    void set_object_texture_pattern(item_id id, texture_pattern_struct* tex_pat, size_t count);
+    void set_object_texture_pattern(ROB_PARTS_KIND rpk, texture_pattern_struct* tex_pat, size_t count);
+    void set_one_skin(bool value);
     void set_opd_blend_data(std::list<motion_blend_mot*>* a2);
-    void set_osage_play_data_init(item_id id, const float_t* opdi_data);
+    void set_osage_play_data_init(ROB_PARTS_KIND rpk, const float_t* opdi_data);
     void set_osage_reset();
     void set_osage_step(float_t value);
     void set_osage_move_cancel(uint8_t id, const float_t& mv_ccl);
-    void set_shadow_type(int32_t chara_id);
+    void set_shadow_group(int32_t chara_id);
     void set_texture_pattern(texture_pattern_struct* tex_pat, size_t count);
-    void skp_load(item_id id, const skin_param_osage_root& skp_root, std::vector<skin_param_osage_node>& vec,
+    void skp_load(ROB_PARTS_KIND rpk, const skin_param_osage_root& skp_root, std::vector<skin_param_osage_node>& vec,
         skin_param_file_data* skp_file_data, const bone_database* bone_data);
 };
 
@@ -2544,14 +2596,14 @@ struct item_cos_texture_change_tex {
 };
 
 struct rob_chara_item_cos_data {
-    ::chara_index curr_chara_index;
-    ::chara_index chara_index;
+    CHARA_NUM curr_chara_num;
+    CHARA_NUM chara_num;
     item_cos_data curr_cos;
     item_cos_data cos;
     std::map<int32_t, std::vector<item_cos_texture_change_tex>> texture_change;
     std::map<int32_t, std::vector<uint32_t>> item_change;
-    std::map<object_info, item_id> field_F0;
-    std::map<int32_t, item_id> field_100;
+    std::map<object_info, ROB_PARTS_KIND> field_F0;
+    std::map<int32_t, ROB_PARTS_KIND> field_100;
     std::vector<texture_pattern_struct> texture_pattern[31];
     std::map<int32_t, object_info> head_replace;
 
@@ -2564,21 +2616,21 @@ struct rob_chara_item_cos_data {
     float_t get_max_face_depth();
     void reload_items(int32_t chara_id,
         const bone_database* bone_data, void* data, const object_database* obj_db);
-    void set_chara_index(::chara_index chara_index);
-    void set_chara_index_item(::chara_index chara_index, int32_t item_no);
-    void set_chara_index_item_nos(::chara_index chara_index, const int32_t* items);
-    void set_chara_index_item_zero(::chara_index chara_index, int32_t item_no);
+    void set_chara_num(CHARA_NUM chara_num);
+    void set_chara_num_item(CHARA_NUM chara_num, int32_t item_no);
+    void set_chara_num_item_nos(CHARA_NUM chara_num, const int32_t* items);
+    void set_chara_num_item_zero(CHARA_NUM chara_num, int32_t item_no);
     void set_item(int32_t item_no);
     void set_item_array(const rob_chara_pv_data_item& item);
     void set_item_no(item_sub_id sub_id, int32_t item_no);
     void set_item_nos(const int32_t* item_nos);
     void set_item_zero(int32_t item_no);
-    void set_texture_pattern(rob_chara_item_equip* rob_itm_equip,
-        item_id id, bool tex_pat_for_all);
-    void set_texture_pattern(rob_chara_item_equip* rob_itm_equip,
-        uint32_t item_no, item_id id, bool tex_pat_for_all);
-    void set_texture_pattern(rob_chara_item_equip* rob_itm_equip,
-        const std::vector<uint32_t>& item_nos, item_id id, bool tex_pat_for_all);
+    void set_texture_pattern(rob_chara_item_equip* rob_disp,
+        ROB_PARTS_KIND rpk, bool tex_pat_for_all);
+    void set_texture_pattern(rob_chara_item_equip* rob_disp,
+        uint32_t item_no, ROB_PARTS_KIND rpk, bool tex_pat_for_all);
+    void set_texture_pattern(rob_chara_item_equip* rob_disp,
+        const std::vector<uint32_t>& item_nos, ROB_PARTS_KIND rpk, bool tex_pat_for_all);
     void texture_change_clear();
     void texture_pattern_clear();
 };
@@ -2689,8 +2741,8 @@ struct struc_264 {
     int32_t field_198;
     int32_t field_19C;
     int32_t field_1A0;
-    uint8_t field_1A4;
-    const struc_870* field_1A8;
+    uint8_t kamae_type;
+    const RobKamae* kamae_data;
     int32_t field_1B0;
     int32_t field_1B4;
     int32_t field_1B8;
@@ -2842,6 +2894,51 @@ public:
     virtual void Field_10(SubActParam* param) override;
     virtual void Field_18(rob_chara* rob_chr) override;
     virtual void Field_20(rob_chara* rob_chr) override;
+};
+
+union RobFlag {
+    uint32_t u32;
+    struct {
+        int8_t disp : 1;
+        int8_t fix_hara : 1;
+        int8_t ringout : 1;
+        int8_t bound_wall : 1;
+
+        int8_t compel : 1;
+        int8_t pl_syagami : 1;
+        int8_t land : 1;
+        int8_t old_fix_hara : 1;
+
+        int8_t invincible : 1;
+        int8_t yokerare : 1;
+        int8_t yokerare_mot : 1;
+        int8_t wall_hit_ok : 1;
+
+        int8_t own_down_pose : 1;
+        int8_t time_up : 1;
+        int8_t kabe_yoroke : 1;
+        int8_t jump_rise : 1;
+
+        int8_t round_loser : 1;
+        int8_t wall_fix_ok : 1;
+        int8_t wall_fix_ng : 1;
+        int8_t not_normal : 1;
+
+        int8_t old_not_normal : 1;
+        int8_t mk_change_off : 1;
+        int8_t wall_moved_mot : 1;
+        int8_t dmy_yokerare : 1;
+
+        int8_t yoketa : 1;
+        int8_t yokerare_mot2 : 1;
+        int8_t mk_yoke_off : 1;
+        int8_t set_damage : 1;
+
+        int8_t rf_28 : 1;
+        int8_t rf_29 : 1;
+        int8_t rf_30 : 1;
+        int8_t rf_31 : 1;
+    } bit;
 };
 
 struct RobSubAction {
@@ -3387,24 +3484,23 @@ struct struc_223 {
 };
 
 struct rob_chara_data_miku_rot {
-    int16_t rot_y_int16;
-    int16_t field_2;
-    int16_t field_4;
-    int16_t field_6;
-    int32_t field_8;
-    int32_t field_C;
-    float_t field_10;
-    int32_t field_14;
-    vec3 position;
-    vec3 n_hara_pos;
-    vec3 field_30;
-    vec3 field_3C;
-    vec3 n_hara_pos_prev;
-    vec3 n_hara_pos_diff;
-    int32_t field_60;
-    int32_t field_64;
-    int32_t field_68;
-    mat4 mat;
+    RobAngle yang;
+    RobAngle act_yang;
+    RobAngle hara_xang;
+    RobAngle hara_yang;
+    RobAngle hara_zang;
+    RobAngle revise_tag_yang;
+    ReviseType revise_type;
+    float_t ground_pos;
+    float_t ground_last;
+    vec3 pos;
+    vec3 gpos;
+    vec3 spd;
+    vec3 adjust_spd;
+    vec3 old_gpos;
+    vec3 velocity;
+    vec3 pos_camera_old;
+    mat4 rob_mat;
 
     rob_chara_data_miku_rot();
 
@@ -3591,16 +3687,12 @@ struct struc_209 {
 };
 
 struct rob_chara_data {
-    uint8_t field_0;
-    uint8_t field_1;
-    uint8_t field_2;
-    uint8_t field_3;
-    int32_t field_4;
-    struc_264 field_8;
+    RobFlag flag;
+    struc_264 action;
     RobSubAction rob_sub_action;
     rob_chara_motion motion;
-    struc_223 field_1588;
-    rob_chara_data_miku_rot miku_rot;
+    struc_223 motdata;
+    rob_chara_data_miku_rot position;
     rob_chara_adjust_data adjust_data;
     struc_209 field_1E68;
     float_t field_3D90;
@@ -3649,16 +3741,16 @@ struct rob_chara {
     rob_chara_type type;
     bool field_C;
     bool field_D;
-    chara_index chara_index;
+    CHARA_NUM chara_num;
     int32_t cos_id;
     float_t frame_speed;
     rob_chara* field_20;
     rob_chara_bone_data* bone_data;
-    rob_chara_item_equip* item_equip;
+    rob_chara_item_equip* rob_disp;
     rob_chara_item_cos_data item_cos_data;
     rob_chara_data data;
     rob_chara_data data_prev;
-    const chara_init_data* chara_init_data;
+    const RobData* rob_data;
     rob_chara_pv_data pv_data;
 
     rob_chara();
@@ -3670,17 +3762,17 @@ struct rob_chara {
     void autoblink_enable();
     bool check_for_ageageagain_module();
     mat4* get_bone_data_mat(size_t index);
-    object_info get_chara_init_data_face_object(int32_t index);
+    object_info get_rob_data_face_object(int32_t index);
     float_t get_frame();
     float_t get_frame_count();
     float_t get_max_face_depth();
     uint32_t get_rob_cmn_mottbl_motion_id(int32_t id);
     float_t get_pos_scale(int32_t bone, vec3& pos);
-    void load_body_parts_object_info(item_id item_id, object_info obj_info,
+    void load_body_parts_object_info(ROB_PARTS_KIND rpk, object_info obj_info,
         const bone_database* bone_data, void* data, const object_database* obj_db);
     void load_motion(uint32_t motion_id, bool a3, float_t frame,
         MotionBlendType blend_type, const bone_database* bone_data, const motion_database* mot_db);
-    void load_outfit_object_info(item_id id, object_info obj_info,
+    void load_outfit_object_info(ROB_PARTS_KIND rpk, object_info obj_info,
         bool osage_reset, const bone_database* bone_data, void* data, const object_database* obj_db);
     void pos_reset();
     void rob_info_ctrl();
@@ -3695,8 +3787,8 @@ struct rob_chara {
     void set_chara_pos_adjust_y(float_t value);
     void set_chara_size(float_t value);
     void set_data_adjust_mat(rob_chara_adjust_data* rob_chr_adj, bool pos_adjust = true);
-    void set_data_miku_rot_position(const vec3& value);
-    void set_data_miku_rot_rot_y_int16(int16_t value);
+    void set_base_position_pos(const vec3& value);
+    void set_base_position_yang(const RobAngle& value);
     void set_disable_collision(rob_osage_parts parts, bool disable);
     void set_eyelid_mottbl_motion(int32_t type, int32_t mottbl_index,
         float_t value, rob_partial_motion_playback_state playback_state, float_t blend_duration,
@@ -3747,7 +3839,7 @@ struct rob_chara {
     void set_osage_move_cancel(uint8_t id, float_t mv_ccl);
     void set_osage_reset();
     void set_osage_step(float_t value);
-    void set_parts_disp(item_id id, bool disp);
+    void set_parts_disp(ROB_PARTS_KIND rpk, bool disp);
     void set_right_hand_scale(float_t value);
     void set_shadow_cast(bool value);
     void set_stage_data_ring(const int32_t& stage_index);
@@ -3757,7 +3849,7 @@ struct rob_chara {
     void set_wind_strength(float_t value);
 
     inline bool is_visible() {
-        return !!(data.field_0 & 0x01);
+        return !!data.flag.bit.disp;
     }
 
     void sub_1405070E0(const bone_database* bone_data, const motion_database* mot_db);
@@ -3801,7 +3893,7 @@ struct OpdMakeManagerData {
     struct Worker {
         uint32_t mode;
         uint32_t progress;
-        chara_index chara;
+        CHARA_NUM chara;
         std::vector<uint32_t> items;
 
         Worker();
@@ -3853,24 +3945,24 @@ struct OpdChecker {
     void sub_140471020();
 };
 
-#define ROB_CHARA_COUNT 6
-
-extern const chara_init_data* chara_init_data_get(chara_index chara_index);
-extern int32_t chara_init_data_get_chara_size_index(chara_index chara_index);
-extern int32_t chara_init_data_get_swim_costume(chara_index chara_index);
-extern int32_t chara_init_data_get_swim_s_costume(chara_index chara_index);
+extern const RobData* get_rob_data(CHARA_NUM cn);
+extern int32_t rob_data_get_chara_size_index(CHARA_NUM cn);
+extern int32_t rob_data_get_swim_costume(CHARA_NUM cn);
+extern int32_t rob_data_get_swim_s_costume(CHARA_NUM cn);
 
 extern float_t chara_pos_adjust_y_table_get_value(uint32_t index);
 extern float_t chara_size_table_get_value(uint32_t index);
 
 extern bool check_cos_id_is_501(int32_t cos_id);
 
-extern const uint32_t* get_opd_motion_ids();
-extern const uint32_t* get_opd_motion_set_ids();
+extern uint32_t get_common_rob_mot(CHARA_NUM cn, int32_t a2, int32_t id);
 
 const char* get_dev_ram_opdi_dir();
 
 extern const float_t get_gravity();
+
+extern const uint32_t* get_opd_motion_ids();
+extern const uint32_t* get_opd_motion_set_ids();
 
 extern const char* get_ram_osage_play_data_dir();
 extern const char* get_ram_osage_play_data_tmp_dir();
@@ -3929,8 +4021,8 @@ extern rob_chara* rob_chara_array_get(int32_t chara_id);
 extern rob_chara_bone_data* rob_chara_array_get_bone_data(int32_t chara_id);
 extern float_t rob_chara_array_get_data_adjust_scale(int32_t chara_id);
 extern rob_chara_item_cos_data* rob_chara_array_get_item_cos_data(int32_t chara_id);
-extern rob_chara_item_equip* rob_chara_array_get_item_equip(int32_t chara_id);
-extern int32_t rob_chara_array_init_chara_index(chara_index chara_index,
+extern rob_chara_item_equip* rob_chara_array_get_rob_disp(int32_t chara_id);
+extern int32_t rob_chara_array_init_chara_num(CHARA_NUM chara_num,
     const rob_chara_pv_data& pv_data, int32_t cos_id, bool can_set_default);
 extern void rob_chara_array_free_chara_id(int32_t chara_id);
 extern void rob_chara_array_reset_pv_data(int32_t chara_id);
@@ -3938,14 +4030,12 @@ extern void rob_chara_array_reset_bone_data_item_equip(int32_t chara_id);
 extern void rob_chara_array_set_alpha_obj_flags(int32_t chara_id, float_t alpha, mdl::ObjFlags flags);
 extern void rob_chara_array_set_visibility(int32_t chara_id, bool value);
 
-extern bool rob_chara_check_for_ageageagain_module(chara_index chara_index, int32_t cos_id);
+extern bool rob_chara_check_for_ageageagain_module(CHARA_NUM chara_num, int32_t cos_id);
 
 extern bool rob_chara_pv_data_array_check_chara_id(int32_t chara_id);
 
-extern uint32_t rob_cmn_mottbl_get_motion_id(chara_index chara_index, int32_t a2, int32_t id);
-
 extern void rob_sleeve_handler_data_get_sleeve_data(
-    ::chara_index chara_index, int32_t cos, rob_sleeve_data& l, rob_sleeve_data& r);
+    CHARA_NUM chara_num, int32_t cos, rob_sleeve_data& l, rob_sleeve_data& r);
 extern bool rob_sleeve_handler_data_load();
 extern void rob_sleeve_handler_data_read();
 
@@ -3959,10 +4049,10 @@ extern void pv_osage_manager_array_set_pv_set_motion(
     int32_t chara_id, const std::vector<pv_data_set_motion>& set_motion);
 
 extern bool task_rob_load_add_task();
-extern bool task_rob_load_append_free_req_data(chara_index chara_index);
-extern bool task_rob_load_append_free_req_data_obj(chara_index chara_index, const item_cos_data* cos);
-extern bool task_rob_load_append_load_req_data(chara_index chara_index);
-extern bool task_rob_load_append_load_req_data_obj(chara_index chara_index, const item_cos_data* cos);
+extern bool task_rob_load_append_free_req_data(CHARA_NUM chara_num);
+extern bool task_rob_load_append_free_req_data_obj(CHARA_NUM chara_num, const item_cos_data* cos);
+extern bool task_rob_load_append_load_req_data(CHARA_NUM chara_num);
+extern bool task_rob_load_append_load_req_data_obj(CHARA_NUM chara_num, const item_cos_data* cos);
 extern bool task_rob_load_check_load_req_data();
 extern bool task_rob_load_del_task();
 
@@ -3982,5 +4072,5 @@ extern int32_t look_anim_id_to_mottbl_index(int32_t look_anim_id);
 extern int32_t mouth_anim_id_to_mottbl_index(int32_t mouth_anim_id);
 
 inline bool rob_chara::check_for_ageageagain_module() {
-    return rob_chara_check_for_ageageagain_module(chara_index, cos_id);
+    return rob_chara_check_for_ageageagain_module(chara_num, cos_id);
 }

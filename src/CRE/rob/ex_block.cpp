@@ -184,7 +184,7 @@ void ExNodeBlock::init_members() {
 }
 
 // 0x1405EEB80
-void ExNodeBlock::set_data(bone_node* node, ExNodeType type,
+void ExNodeBlock::set_data(RobNode* node, ExNodeType type,
     const char* name, const rob_chara_item_equip_object* skin_disp) {
     init_members();
 
@@ -253,7 +253,7 @@ void ExNullBlock::pos_init_cont() {
 
 void ExNullBlock::set_data(const rob_chara_item_equip_object* skin_disp,
     const obj_skin_ex_node_constraint* data, const char* name, const bone_database* bone_data) {
-    bone_node* node = (bone_node*)skin_disp->get_node(name, bone_data);
+    RobNode* node = (RobNode*)skin_disp->get_node(name, bone_data);
     type = EX_NODE_TYPE_NULL;
     dst_node = node;
     this->data = data;
@@ -999,11 +999,9 @@ void osage_ring_data::parse(const std::string& path, osage_ring_data& ring) {
             const char* bone0_name;
             const char* bone1_name;
             if (kv.read("bone.0.name", bone0_name)) {
-                node_idx0 = aft_bone_data->get_skeleton_object_bone_index(
-                    bone_database_skeleton_type_to_string(BONE_DATABASE_SKELETON_COMMON), bone0_name);
+                node_idx0 = aft_bone_data->get_bone_index(BONE_KIND_CMN, bone0_name);
                 if (node_idx0 >= 0 && kv.read("bone.1.name", bone1_name))
-                    node_idx1 = aft_bone_data->get_skeleton_object_bone_index(
-                        bone_database_skeleton_type_to_string(BONE_DATABASE_SKELETON_COMMON), bone1_name);
+                    node_idx1 = aft_bone_data->get_bone_index(BONE_KIND_CMN, bone1_name);
             }
 
             if (node_idx0 >= 0) {
@@ -1746,11 +1744,11 @@ void RobCloth::ctrl(const float_t dt, bool init_flag) {
 
 // 0x14021B930
 void RobCloth::disp(const mat4& mat, render_context* rctx) {
-    obj* obj = objset_info_storage_get_obj(skin_disp->obj_info);
+    obj* obj = objset_info_storage_get_obj(skin_disp->obj_uid);
     if (!obj)
         return;
 
-    std::vector<GLuint>* textures = objset_info_storage_get_obj_set_gentex(skin_disp->obj_info.set_id);
+    std::vector<GLuint>* textures = objset_info_storage_get_obj_set_gentex(skin_disp->obj_uid.set_id);
 
     vec3 center = (vtxarg.data()[0].pos + vtxarg.data()[width * height - 1].pos) * 0.5f;
 
@@ -1783,8 +1781,8 @@ void RobCloth::modify_obj() {
         calc_normal();
 
     if (cloth_modify_flag & 0x02) {
-        obj_mesh* omote_mesh = objset_info_storage_get_obj_mesh(skin_disp->obj_info, data->omote_name);
-        obj_mesh* ura_mesh = objset_info_storage_get_obj_mesh(skin_disp->obj_info, data->ura_name);
+        obj_mesh* omote_mesh = objset_info_storage_get_obj_mesh(skin_disp->obj_uid, data->omote_name);
+        obj_mesh* ura_mesh = objset_info_storage_get_obj_mesh(skin_disp->obj_uid, data->ura_name);
         if (data->ura_name) {
             modify_cloth_object(omote_mesh, &vb[0], vtxarg.data(),
                 1.0f, data->num_omote_index, data->omote_index_array, false);
@@ -1803,11 +1801,11 @@ void RobCloth::set_data(size_t w, size_t h, const obj_skin_ex_node_cloth_root * 
     const rob_chara_item_equip_object* skin, const bone_database* bone_data) {
     skin_disp = skin;
 
-    obj* obj = objset_info_storage_get_obj(skin_disp->obj_info);
+    obj* obj = objset_info_storage_get_obj(skin_disp->obj_uid);
     if (!obj)
         return;
 
-    obj_mesh_index_buffer* ib = objset_info_storage_get_obj_mesh_index_buffer(skin_disp->obj_info);
+    obj_mesh_index_buffer* ib = objset_info_storage_get_obj_mesh_index_buffer(skin_disp->obj_uid);
     uint32_t omotea_mesh_index = obj->get_obj_mesh_index(data->omote_name);
     uint32_t ura_mesh_index = obj->get_obj_mesh_index(data->ura_name);
 
@@ -1888,7 +1886,7 @@ void RobCloth::set_data(size_t w, size_t h, const obj_skin_ex_node_cloth_root * 
     for (size_t i = 0; i < data->num_omote_index; i++)
         index_array.data()[omote_index_array[i]] = i;
 
-    obj_mesh* mesh = objset_info_storage_get_obj_mesh(skin_disp->obj_info, data->omote_name);
+    obj_mesh* mesh = objset_info_storage_get_obj_mesh(skin_disp->obj_uid, data->omote_name);
     obj_vertex_format vertex_format = (obj_vertex_format)0;
     obj_vertex_data* vertex_array = 0;
     if (mesh) {
@@ -1945,7 +1943,7 @@ void RobCloth::set_data(const obj_skin_ex_node_cloth* cldata,
     set_data(cldata->width, cldata->height, cldata->fix_point,
         cldata->move_point, cldata->mat_array, cldata->ring_flag, skin, bone_data);
 
-    obj* obj = objset_info_storage_get_obj(skin->obj_info);
+    obj* obj = objset_info_storage_get_obj(skin->obj_uid);
     if (!obj)
         return;
 
@@ -2778,7 +2776,7 @@ const float_t* RobOsage::LoadOpdData(size_t node_index, const float_t* opd_data,
 }
 
 void RobOsage::LoadSkinParam(void* kv, const char* name,
-    skin_param_osage_root& skp_root, object_info* obj_info, const bone_database* bone_data) {
+    skin_param_osage_root& skp_root, const object_info& obj_info, const bone_database* bone_data) {
     key_val* _kv = (key_val*)kv;
     skin_param_ptr = &skin_param;
     for (RobJointNode& i : joint_node_vec)
@@ -2982,7 +2980,7 @@ RobJointNode* RobOsage::get_joint_node(size_t index) {
 
 // 0x14047F370
 void RobOsage::init(const obj_skin_ex_node_osage* osg_data, const obj_skin_osage_joint* joint,
-    bone_node* ex_node, const obj_skin* skin) {
+    RobNode* ex_node, const obj_skin* skin) {
     dest();
 
     transform.init(osg_data->transform.position, osg_data->transform.rotation);
@@ -2992,13 +2990,13 @@ void RobOsage::init(const obj_skin_ex_node_osage* osg_data, const obj_skin_osage
     RobJointNode* node = joint_node_vec.data();
     node->reset();
     node->length_next = joint->length;
-    bone_node* root_node = &ex_node[osg_data->root_idx & 0x7FFF];
+    RobNode* root_node = &ex_node[osg_data->root_idx & 0x7FFF];
     node->dst_node = root_node;
     node->dst_node_mat = root_node->mat_ptr;
     *root_node->no_scale_mat = mat4_identity;
     node->distance = 0;
 
-    bone_node* parent_node_ptr = node->dst_node;
+    RobNode* parent_node_ptr = node->dst_node;
     for (uint32_t i = 0; i < osg_data->nb_joint; i++) {
         const obj_skin_osage_joint* osg_node = &joint[i];
         RobJointNode* node = &joint_node_vec.data()[i + 1LL];
@@ -3006,7 +3004,7 @@ void RobOsage::init(const obj_skin_ex_node_osage* osg_data, const obj_skin_osage
         node->length_back = osg_node[0].length;
         if (i + 1 < osg_data->nb_joint)
             node->length_next = osg_node[1].length;
-        bone_node* node_ptr = &ex_node[osg_node->nid & 0x7FFF];
+        RobNode* node_ptr = &ex_node[osg_node->nid & 0x7FFF];
         node->dst_node = node_ptr;
         node->dst_node_mat = node_ptr->mat_ptr;
         node_ptr->parent = parent_node_ptr;
@@ -3015,7 +3013,7 @@ void RobOsage::init(const obj_skin_ex_node_osage* osg_data, const obj_skin_osage
 
     effector.reset();
     effector.length_back = joint[osg_data->nb_joint - 1].length;
-    bone_node* effector_node = &ex_node[osg_data->efc_idx & 0x7FFF];
+    RobNode* effector_node = &ex_node[osg_data->efc_idx & 0x7FFF];
     effector.dst_node = effector_node;
     effector.dst_node_mat = effector_node->mat_ptr;
     effector_node->parent = parent_node_ptr;
@@ -3429,7 +3427,7 @@ void ExOsageBlock::reset_ex_force() {
 // 0x140
 void ExOsageBlock::set_data(const rob_chara_item_equip_object* skp,
     const obj_skin_ex_node_osage* root, const char* name, const obj_skin_osage_joint* joint,
-    const bone_node* mot_node, bone_node* ex_node, const obj_skin* skin) {
+    const RobNode* mot_node, RobNode* ex_node, const obj_skin* skin) {
     ExNodeBlock::set_data(&ex_node[root->root_idx & 0x7FFF], EX_NODE_TYPE_OSAGE, name, skp);
     osage_work.init(root, joint, ex_node, skin);
     flag.pos_init = 0;
@@ -3527,7 +3525,7 @@ void ExConstraintBlock::pos_init_cont() {
 }
 
 void ExConstraintBlock::Calc() {
-    bone_node* node = dst_node;
+    RobNode* node = dst_node;
     if (!node)
         return;
 
@@ -3571,7 +3569,7 @@ inline void ExConstraintBlock::CalcConstraintDirection(mat4 mat) {
         return;
 
     mat4 rot_mat;
-    bone_data::orient_to_target(rot_mat, align_axis, v51);
+    RobBlock::orient_to_target(rot_mat, align_axis, v51);
 
     if (upvector_node) {
         vec3 affected_axis = direction->up_vector.affected_axis;
@@ -3647,7 +3645,7 @@ void ExConstraintBlock::CalcConstraintPosition(mat4 mat) {
         mat4_inverse_transform_point(&mat, &up_vector_trans, &up_vector_trans);
 
         mat4 rot_mat;
-        bone_data::orient_to_target(rot_mat, position->up_vector.affected_axis, up_vector_trans);
+        RobBlock::orient_to_target(rot_mat, position->up_vector.affected_axis, up_vector_trans);
         mat4_mul(&rot_mat, &mat, &mat);
     }
 
@@ -3685,7 +3683,7 @@ void ExConstraintBlock::CalcMatrixHS() {
 
 void ExConstraintBlock::set_data(const rob_chara_item_equip_object* skin_disp,
     const obj_skin_ex_node_constraint* data, const char* name, const bone_database* bone_data) {
-    bone_node* node = (bone_node*)skin_disp->get_node(name, bone_data);
+    RobNode* node = (RobNode*)skin_disp->get_node(name, bone_data);
     type = EX_NODE_TYPE_CONSTRAINT;
     dst_node = node;
     this->data = data;
@@ -3867,12 +3865,12 @@ void ExExpressionBlock::CalcMatrixHS() {
 }
 
 void ExExpressionBlock::set_data(const rob_chara_item_equip_object* skin_disp,
-    const obj_skin_ex_node_expression* data, const char* node_name, object_info a4,
+    const obj_skin_ex_node_expression* data, const char* node_name, object_info objuid,
     size_t index, const bone_database* bone_data) {
     Expr_node* stack_buf[28];
     Expr_node** stack_buf_val = stack_buf;
 
-    bone_node* node = (bone_node*)skin_disp->get_node(node_name, bone_data);
+    RobNode* node = (RobNode*)skin_disp->get_node(node_name, bone_data);
     type = EX_NODE_TYPE_EXPRESSION;
     dst_node = node;
     this->data = data;
@@ -3925,7 +3923,7 @@ void ExExpressionBlock::set_data(const rob_chara_item_equip_object* skin_disp,
                 expr->type = Expr_variable;
                 int32_t index = func_str[0] - '0';
                 if (index >= 0 && index < 9) {
-                    const bone_node* node = skin_disp->get_node(func_str.c_str() + 2, bone_data);
+                    const RobNode* node = skin_disp->get_node(func_str.c_str() + 2, bone_data);
                     if (node)
                         expr->data.variable = node->get_transform_component(index, expr->type);
                     else {
@@ -3971,7 +3969,7 @@ void ExExpressionBlock::set_data(const rob_chara_item_equip_object* skin_disp,
         }
     }
 
-    step = !((ssize_t)index - ITEM_TE_R <= 1);
+    step = !(index == RPK_TE_R || index == RPK_TE_L);
 }
 
 static const ExpFuncUnaryTbl* ExpFuncUnaryTblFindFunc(std::string& name, const ExpFuncUnaryTbl* array) {

@@ -44,7 +44,7 @@ public:
 
     void Hide() override;
 
-    void GetCharaCos(::chara_index chara_index, int32_t chara_id, dw::ListBox* list_box);
+    void GetCharaCos(CHARA_NUM chara_index, int32_t chara_id, dw::ListBox* list_box);
 };
 
 class Auth3dTestSubWindow : public dw::Shell {
@@ -317,7 +317,7 @@ static void auth_3d_test_window_init();
 static const char* get_dev_ram_ss_dir();
 
 Auth3dTestTask::DataEventListener::Data::Data() : state(), field_C(), field_D(),
-load_chara_index(), chara_index(), prev_chara_index(), load_cos_id(), cos_id(), chara_visible() {
+load_chara_num(), chara_num(), prev_chara_num(), load_cos_id(), cos_id(), chara_visible() {
 
 }
 
@@ -328,21 +328,21 @@ Auth3dTestTask::DataEventListener::Data::~Data() {
 
 void Auth3dTestTask::DataEventListener::Data::ctrl() {
     if ((state == 0 || state == 1 || state == 4) && field_C) {
-        if (chara_index[0] == CHARA_MAX && chara_index[1] == CHARA_MAX)
+        if (chara_num[0] == CN_MAX && chara_num[1] == CN_MAX)
             field_C = false;
         else {
             for (int32_t i = 0; i < 2; i++) {
-                if (chara_index[i] != CHARA_MAX) {
-                    ::chara_index v5 = chara_index[i];
-                    ::chara_index v6 = load_chara_index[i];
-                    chara_index[i] = CHARA_MAX;
-                    load_chara_index[i] = v5;
-                    prev_chara_index[i] = v6;
+                if (chara_num[i] != CN_MAX) {
+                    CHARA_NUM v5 = chara_num[i];
+                    CHARA_NUM v6 = load_chara_num[i];
+                    chara_num[i] = CN_MAX;
+                    load_chara_num[i] = v5;
+                    prev_chara_num[i] = v6;
                     cos_id[i] = load_cos_id[i];
                 }
 
-                if (load_chara_index[i] == CHARA_MAX)
-                    load_chara_index[i] = CHARA_MIKU;
+                if (load_chara_num[i] == CN_MAX)
+                    load_chara_num[i] = CN_MIKU;
             }
 
             if (field_D) {
@@ -360,16 +360,16 @@ void Auth3dTestTask::DataEventListener::Data::ctrl() {
     if (state == 1) {
         bool wait_load_chara_1p = false;
         bool wait_load_chara_2p = false;
-        if (load_chara_index[0] < CHARA_MAX) {
-            const chara_init_data* chara_init_data = chara_init_data_get(load_chara_index[0]);
-            wait_load_chara_1p = motion_storage_check_mot_file_not_ready(chara_init_data->field_820)
-                || mothead_storage_check_mhd_file_not_ready(chara_init_data->field_820);
+        if (load_chara_num[0] < CN_MAX) {
+            const RobData* rob_data = get_rob_data(load_chara_num[0]);
+            wait_load_chara_1p = motion_storage_check_mot_file_not_ready(rob_data->motfile_auth)
+                || mothead_storage_check_mhd_file_not_ready(rob_data->motfile_auth);
         }
 
-        if (load_chara_index[1] < CHARA_MAX) {
-            const chara_init_data* chara_init_data = chara_init_data_get(load_chara_index[1]);
-            wait_load_chara_2p = motion_storage_check_mot_file_not_ready(chara_init_data->field_820)
-                || mothead_storage_check_mhd_file_not_ready(chara_init_data->field_820);
+        if (load_chara_num[1] < CN_MAX) {
+            const RobData* rob_data = get_rob_data(load_chara_num[1]);
+            wait_load_chara_2p = motion_storage_check_mot_file_not_ready(rob_data->motfile_auth)
+                || mothead_storage_check_mhd_file_not_ready(rob_data->motfile_auth);
         }
 
         if (!task_rob_manager_get_free_chara_list_empty() && !wait_load_chara_1p && !wait_load_chara_2p)
@@ -379,8 +379,8 @@ void Auth3dTestTask::DataEventListener::Data::ctrl() {
     if (state == 2) {
         state = 4;
 
-        dtm_eq_vs[0].SetCharaIndexCosId(load_chara_index[0], load_cos_id[0]);
-        dtm_eq_vs[1].SetCharaIndexCosId(load_chara_index[1], load_cos_id[1]);
+        dtm_eq_vs[0].SetCharaNumCosId(load_chara_num[0], load_cos_id[0]);
+        dtm_eq_vs[1].SetCharaNumCosId(load_chara_num[1], load_cos_id[1]);
 
         if (state == 4)
         {
@@ -403,18 +403,18 @@ void Auth3dTestTask::DataEventListener::Data::dest() {
 inline void Auth3dTestTask::DataEventListener::Data::free_all_chara() {
     task_rob_manager_free_all_chara();
 
-    if (prev_chara_index[0] < CHARA_MAX) {
-        const chara_init_data* chara_init_data = chara_init_data_get(prev_chara_index[0]);
-        motion_set_unload_motion(chara_init_data->field_820);
-        motion_set_unload_mothead(chara_init_data->field_820);
-        prev_chara_index[0] = CHARA_MAX;
+    if (prev_chara_num[0] < CN_MAX) {
+        const RobData* rob_data = get_rob_data(prev_chara_num[0]);
+        motion_set_unload_motion(rob_data->motfile_auth);
+        motion_set_unload_mothead(rob_data->motfile_auth);
+        prev_chara_num[0] = CN_MAX;
     }
 
-    if (prev_chara_index[1] < CHARA_MAX) {
-        const chara_init_data* chara_init_data = chara_init_data_get(prev_chara_index[1]);
-        motion_set_unload_motion(chara_init_data->field_820);
-        motion_set_unload_mothead(chara_init_data->field_820);
-        prev_chara_index[1] = CHARA_MAX;
+    if (prev_chara_num[1] < CN_MAX) {
+        const RobData* rob_data = get_rob_data(prev_chara_num[1]);
+        motion_set_unload_motion(rob_data->motfile_auth);
+        motion_set_unload_mothead(rob_data->motfile_auth);
+        prev_chara_num[1] = CN_MAX;
     }
 }
 
@@ -426,13 +426,13 @@ void Auth3dTestTask::DataEventListener::Data::init() {
     field_D = false;
     state = 0;
 
-    load_chara_index[0] = CHARA_MAX;
-    load_chara_index[1] = CHARA_MAX;
-    chara_index[0] = CHARA_MAX;
-    chara_index[1] = CHARA_MAX;
+    load_chara_num[0] = CN_MAX;
+    load_chara_num[1] = CN_MAX;
+    chara_num[0] = CN_MAX;
+    chara_num[1] = CN_MAX;
 
-    prev_chara_index[0] = CHARA_MAX;
-    prev_chara_index[1] = CHARA_MAX;
+    prev_chara_num[0] = CN_MAX;
+    prev_chara_num[1] = CN_MAX;
 
     load_cos_id[0] = 0;
     load_cos_id[1] = 0;
@@ -440,10 +440,10 @@ void Auth3dTestTask::DataEventListener::Data::init() {
     cos_id[0] = 0;
     cos_id[1] = 0;
 
-    dtm_eq_vs[0].add_task(0, CHARA_MIKU);
-    dtm_eq_vs[1].add_task(1, CHARA_MIKU);
+    dtm_eq_vs[0].add_task(0, CN_MIKU);
+    dtm_eq_vs[1].add_task(1, CN_MIKU);
 
-    chara_index[0] = CHARA_MIKU;
+    chara_num[0] = CN_MIKU;
     field_C = true;
 }
 
@@ -453,19 +453,19 @@ void Auth3dTestTask::DataEventListener::Data::sub_140244E20() {
 
     rob_chara_pv_data pv_data;
     pv_data.field_4 = false;
-    rob_chara_array_init_chara_index(load_chara_index[0], pv_data, load_cos_id[0], true);
-    rob_chara_array_init_chara_index(load_chara_index[1], pv_data, load_cos_id[1], true);
+    rob_chara_array_init_chara_num(load_chara_num[0], pv_data, load_cos_id[0], true);
+    rob_chara_array_init_chara_num(load_chara_num[1], pv_data, load_cos_id[1], true);
 
-    if (load_chara_index[0] < CHARA_MAX) {
-        const chara_init_data* chara_init_data = chara_init_data_get(load_chara_index[0]);
-        motion_set_load_motion(chara_init_data->field_820, "", aft_mot_db);
-        motion_set_load_mothead(chara_init_data->field_820, "", aft_mot_db);
+    if (load_chara_num[0] < CN_MAX) {
+        const RobData* rob_data = get_rob_data(load_chara_num[0]);
+        motion_set_load_motion(rob_data->motfile_auth, "", aft_mot_db);
+        motion_set_load_mothead(rob_data->motfile_auth, "", aft_mot_db);
     }
 
-    if (load_chara_index[1] < CHARA_MAX) {
-        const chara_init_data* chara_init_data = chara_init_data_get(load_chara_index[1]);
-        motion_set_load_motion(chara_init_data->field_820, "", aft_mot_db);
-        motion_set_load_mothead(chara_init_data->field_820, "", aft_mot_db);
+    if (load_chara_num[1] < CN_MAX) {
+        const RobData* rob_data = get_rob_data(load_chara_num[1]);
+        motion_set_load_motion(rob_data->motfile_auth, "", aft_mot_db);
+        motion_set_load_mothead(rob_data->motfile_auth, "", aft_mot_db);
     }
 
     field_C = false;
@@ -498,11 +498,11 @@ void Auth3dTestTask::DataEventListener::OnLoad(::auth_3d_id& id) {
         for (size_t i = 0; i < chara_count; i++) {
             auth_3d_chara* chara = id.get_chara(i);
             if (chara) {
-                ::chara_index chara_index = chara_index_get_from_chara_name(chara->name.c_str());
-                if (chara_index != CHARA_MAX) {
-                    auth_3d_test_task->data_event_listener.data.chara_index[i ? 1 : 0] = chara_index;
+                CHARA_NUM chara_index = get_chara_num_from_char_id(chara->name.c_str());
+                if (chara_index != CN_MAX) {
+                    auth_3d_test_task->data_event_listener.data.chara_num[i ? 1 : 0] = chara_index;
                     auth_3d_test_task->data_event_listener.data.field_C = true;
-                    id.set_chara_index(i, i ? 1 : 0);
+                    id.set_chara_num(i, i ? 1 : 0);
                     auth_3d_test_window->rob_window->chara_list[i]->SetItemIndex(chara_index);
                     auth_3d_test_task->DispAuth3dChara(id);
                 }
@@ -728,12 +728,12 @@ void Auth3dTestTask::disp() {
 
 void Auth3dTestTask::DispAuth3dChara(::auth_3d_id& id) {
     id.get_uid(); // ???
-    rob_chara_item_equip* rob_itm_equip = rob_chara_array_get_item_equip(0);
-    if (!rob_itm_equip)
+    rob_chara_item_equip* rob_disp = rob_chara_array_get_rob_disp(0);
+    if (!rob_disp)
         return;
 
-    for (int32_t i = ITEM_KAMI; i < ITEM_MAX; i++)
-        rob_itm_equip->set_disp((item_id)i, true);
+    for (int32_t i = RPK_ITEM_BEGIN; i <= RPK_ITEM_END; i++)
+        rob_disp->set_disp((ROB_PARTS_KIND)i, true);
 }
 
 void Auth3dTestTask::DispChara() {
@@ -932,11 +932,11 @@ Auth3dTestRobWindow::SelectionListRob::~SelectionListRob() {
 void Auth3dTestRobWindow::SelectionListRob::Callback(dw::SelectionListener::CallbackData* data) {
     dw::ListBox* list_box = dynamic_cast<dw::ListBox*>(data->widget);
     if (list_box) {
-        ::chara_index chara_index = (::chara_index)list_box->list->selected_item;
+        CHARA_NUM chara_index = (CHARA_NUM)list_box->list->selected_item;
         int32_t chara_id = list_box->callback_data.i64 ? 1 : 0;
 
         auth_3d_test_task->data_event_listener.data
-            .chara_index[list_box->callback_data.i64 != 0] = chara_index;
+            .chara_num[list_box->callback_data.i64 != 0] = chara_index;
         auth_3d_test_task->data_event_listener.data.field_C = true;
 
         Auth3dTestRobWindow* rob_window = dynamic_cast<Auth3dTestRobWindow*>(list_box->parent_comp);
@@ -962,8 +962,8 @@ void Auth3dTestRobWindow::SelectionListDispStyle::Callback(dw::SelectionListener
 
         Auth3dTestRobWindow* rob_window = dynamic_cast<Auth3dTestRobWindow*>(list_box->parent_comp);
         if (rob_window) {
-            ::chara_index chara_index = (::chara_index)rob_window->chara_list[chara_id]->list->selected_item;
-            auth_3d_test_task->data_event_listener.data.chara_index[chara_id] = chara_index;
+            CHARA_NUM chara_index = (CHARA_NUM)rob_window->chara_list[chara_id]->list->selected_item;
+            auth_3d_test_task->data_event_listener.data.chara_num[chara_id] = chara_index;
             auth_3d_test_task->data_event_listener.data.field_C = true;
             rob_window->GetCharaCos(chara_index, chara_id, rob_window->costume_list[chara_id]);
             list_box->SetItemIndex(selected_item);
@@ -982,15 +982,15 @@ Auth3dTestRobWindow::Auth3dTestRobWindow() : chara_list(), costume_list()/*, fie
     dw::ListBox* chara_list = new dw::ListBox(this);
     chara_list->SetText("CHARAlist");
 
-    for (int32_t i = 0; i < CHARA_MAX; i++)
-        chara_list->AddItem(chara_index_get_name((chara_index)i));
+    for (int32_t i = 0; i < CN_MAX; i++)
+        chara_list->AddItem(get_chara_name_full((CHARA_NUM)i));
     chara_list->AddSelectionListener(&selection_list_rob);
     chara_list->callback_data.i64 = 0;
     this->chara_list[0] = chara_list;
 
     dw::ListBox* costume_list = new dw::ListBox(this);
     costume_list->SetText("COSTUMElist");
-    GetCharaCos(CHARA_MIKU, 0, costume_list);
+    GetCharaCos(CN_MIKU, 0, costume_list);
     costume_list->AddSelectionListener(&selection_list_disp_style);
     costume_list->callback_data.i64 = 0;
     costume_list->list->SetItemIndex(0);
@@ -1009,7 +1009,7 @@ void Auth3dTestRobWindow::Hide() {
     SetDisp();
 }
 
-void Auth3dTestRobWindow::GetCharaCos(::chara_index chara_index, int32_t chara_id, dw::ListBox* list_box) {
+void Auth3dTestRobWindow::GetCharaCos(CHARA_NUM chara_index, int32_t chara_id, dw::ListBox* list_box) {
     list_box->ClearItems();
 
     for (const auto& i : item_table_handler_array_get_table(chara_index)->cos) {
@@ -1517,7 +1517,7 @@ Auth3dTestWindow::Auth3dTestWindow() {
         for (auth_3d_database_category& i : aft_auth_3d_db->category) {
             category_list->AddItem(i.name);
 
-            if (chara_index_get_from_chara_name(i.name.c_str()) != CHARA_MAX)
+            if (get_chara_num_from_char_id(i.name.c_str()) != CN_MAX)
                 chara_categories.push_back(i.name);
             else if (!i.name.find("STG"))
                 stg_categories.push_back(i.name);

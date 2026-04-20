@@ -162,8 +162,8 @@ void DataViewAuth3D::window() {
 
         if (auth->src_chara != auth->dst_chara)
             ImGui::Text("Chara Replace: %s/%s",
-                chara_index_get_auth_3d_name((chara_index)auth->src_chara),
-                chara_index_get_auth_3d_name((chara_index)auth->dst_chara));
+                get_char_id_str((CHARA_NUM)auth->src_chara),
+                get_char_id_str((CHARA_NUM)auth->dst_chara));
 
         if (auth->ambient.size() > 0
             && ImGui::TreeNodeEx("Ambient", tree_node_flags)) {

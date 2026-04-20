@@ -12,10 +12,10 @@
 #include "static_var.hpp"
 #include <vector>
 
-enum shadow_type_enum {
-    SHADOW_CHARA = 0,
-    SHADOW_STAGE,
-    SHADOW_MAX,
+enum SHADOW_GROUP {
+    SHADOW_GROUP_CHARA = 0,
+    SHADOW_GROUP_STAGE,
+    SHADOW_GROUP_MAX,
 };
 
 struct Shadow {
