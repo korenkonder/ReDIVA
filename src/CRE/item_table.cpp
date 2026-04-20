@@ -12,7 +12,7 @@
 #include "mdata_manager.hpp"
 
 struct item_table_handler {
-    chara_index chara_index;
+    CHARA_NUM chara_num;
     std::list<p_file_handler*> file_handlers;
     bool ready;
     const char* file;
@@ -26,7 +26,7 @@ struct item_table_handler {
     bool load();
     void parse(p_file_handler* pfhndl);
     void read();
-    void set_path(::chara_index chara_index);
+    void set_path(CHARA_NUM chara_num);
 };
 
 static void item_table_load(data_struct* data, item_table& itm_tbl, itm_table& itm_tbl_file);
@@ -91,14 +91,13 @@ const item_table_item* item_table::get_item(int32_t item_no) {
 }
 
 void item_table_handler_array_init() {
-    item_table_handler_array = new item_table_handler[CHARA_MAX];
-    for (int32_t i = 0; i < CHARA_MAX; i++)
-        item_table_handler_array[i].set_path((chara_index)i);
+    item_table_handler_array = new item_table_handler[CN_MAX];
+    for (int32_t i = 0; i < CN_MAX; i++)
+        item_table_handler_array[i].set_path((CHARA_NUM)i);
 }
 
-const item_cos_data* item_table_handler_array_get_item_cos_data(
-    chara_index chara_index, int32_t cos_id) {
-    const item_table* table = item_table_handler_array_get_table(chara_index);
+const item_cos_data* item_table_handler_array_get_item_cos_data(CHARA_NUM cn, int32_t cos_id) {
+    const item_table* table = item_table_handler_array_get_table(cn);
     if (!table)
         return 0;
 
@@ -110,52 +109,48 @@ const item_cos_data* item_table_handler_array_get_item_cos_data(
     return 0;
 }
 
-const item_table_item* item_table_handler_array_get_item(
-    chara_index chara_index, int32_t item_no) {
-    if (chara_index >= 0 && chara_index < CHARA_MAX)
-        return item_table_handler_array[chara_index].get_item(item_no);
+const item_table_item* item_table_handler_array_get_item(CHARA_NUM cn, int32_t item_no) {
+    if (cn >= 0 && cn < CN_MAX)
+        return item_table_handler_array[cn].get_item(item_no);
     return 0;
 }
 
-std::string item_table_handler_array_get_item_name(
-    chara_index chara_index, int32_t item_no) {
-    const item_table_item* item = item_table_handler_array_get_item(chara_index, item_no);
+std::string item_table_handler_array_get_item_name(CHARA_NUM cn, int32_t item_no) {
+    const item_table_item* item = item_table_handler_array_get_item(cn, item_no);
     if (item)
         return item->name;
     return {};
 }
 
-item_sub_id item_table_handler_array_get_item_sub_id(
-    chara_index chara_index, int32_t item_no) {
-    const item_table_item* item = item_table_handler_array_get_item(chara_index, item_no);
+item_sub_id item_table_handler_array_get_item_sub_id(CHARA_NUM cn, int32_t item_no) {
+    const item_table_item* item = item_table_handler_array_get_item(cn, item_no);
     if (item)
         return item->sub_id;
     return ITEM_SUB_NONE;
 }
 
-const std::vector<uint32_t>* item_table_handler_array_get_item_objset(
-    chara_index chara_index, int32_t item_no) {
-    const item_table_item* item = item_table_handler_array_get_item(chara_index, item_no);
+const std::vector<uint32_t>* item_table_handler_array_get_item_objset(CHARA_NUM cn, int32_t item_no) {
+    const item_table_item* item = item_table_handler_array_get_item(cn, item_no);
     if (item)
         return &item->objset;
     return 0;
 }
 
-const item_table* item_table_handler_array_get_table(chara_index chara_index) {
-    if (chara_index < 0 || chara_index >= CHARA_MAX)
+const item_table* item_table_handler_array_get_table(CHARA_NUM cn) {
+    if (cn < 0 || cn >= CN_MAX)
         return 0;
-    return &item_table_handler_array[chara_index].table;
+    return &item_table_handler_array[cn].table;
 }
 
 bool item_table_handler_array_load() {
     bool ret = false;
-    for (int32_t i = 0; i < CHARA_MAX; i++)
+    for (int32_t i = 0; i < CN_MAX; i++)
         ret |= item_table_handler_array[i].load();
     return ret;
 }
 
 void item_table_handler_array_read() {
-    for (int32_t i = 0; i < CHARA_MAX; i++)
+    for (int32_t i = 0; i < CN_MAX; i++)
         item_table_handler_array[i].read();
 }
 
@@ -164,7 +159,7 @@ void item_table_handler_array_free() {
 }
 
 item_table_handler::item_table_handler() : file(), ready() {
-    chara_index = CHARA_NONE;
+    chara_num = CN_NONE;
 }
 
 item_table_handler::~item_table_handler() {
@@ -186,7 +181,7 @@ const item_table_item* item_table_handler::get_item(int32_t item_no) {
 }
 
 bool item_table_handler::load() {
-    if (chara_index < 0 || chara_index >= CHARA_MAX || ready || !file)
+    if (chara_num < 0 || chara_num >= CN_MAX || ready || !file)
         return false;
 
     for (p_file_handler*& i : file_handlers)
@@ -241,7 +236,7 @@ void item_table_handler::read() {
     }
 }
 
-void item_table_handler::set_path(::chara_index chara_index) {
+void item_table_handler::set_path(CHARA_NUM chara_num) {
     const char* item_table_paths[] = {
          "mikitm_tbl.txt",
          "rinitm_tbl.txt",
@@ -255,8 +250,8 @@ void item_table_handler::set_path(::chara_index chara_index) {
          "tetitm_tbl.txt",
     };
 
-    this->chara_index = chara_index;
-    this->file = item_table_paths[chara_index];
+    this->chara_num = chara_num;
+    this->file = item_table_paths[chara_num];
 }
 
 static void item_table_load(data_struct* data, item_table& itm_tbl, itm_table& itm_tbl_file) {

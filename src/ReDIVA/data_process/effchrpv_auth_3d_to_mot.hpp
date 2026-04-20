@@ -11,6 +11,7 @@
 extern void effchrpv_auth_3d_to_mot_init(int32_t pv_id, const int32_t* rob_chara_ids);
 extern void effchrpv_auth_3d_to_mot_add_chara_effect_auth_3d(uint32_t hash, int32_t id);
 extern void effchrpv_auth_3d_to_mot_add_file_name(const std::string& file, const std::string& category);
+extern void effchrpv_auth_3d_to_mot_disp();
 extern void effchrpv_auth_3d_to_mot_get_body_anim(int32_t frame, bool add_keys);
 extern void effchrpv_auth_3d_to_mot_get_hand_anim(int32_t frame);
 extern void effchrpv_auth_3d_to_mot_load(int32_t frame);

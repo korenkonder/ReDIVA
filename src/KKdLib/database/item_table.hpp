@@ -13,58 +13,86 @@
 #include "../image.hpp"
 #include "../vec.hpp"
 
-enum chara_index {
-    CHARA_NONE   = -1,
-    CHARA_MIKU   = 0x00,
-    CHARA_RIN    = 0x01,
-    CHARA_LEN    = 0x02,
-    CHARA_LUKA   = 0x03,
-    CHARA_NERU   = 0x04,
-    CHARA_HAKU   = 0x05,
-    CHARA_KAITO  = 0x06,
-    CHARA_MEIKO  = 0x07,
-    CHARA_SAKINE = 0x08,
-    CHARA_TETO   = 0x09,
-    CHARA_MAX    = 0x0A,
+enum CHARA_NUM {
+    CN_NONE   = -1,
+    CN_MIKU   = 0x00,
+    CN_RIN    = 0x01,
+    CN_LEN    = 0x02,
+    CN_LUKA   = 0x03,
+    CN_NERU   = 0x04,
+    CN_HAKU   = 0x05,
+    CN_KAITO  = 0x06,
+    CN_MEIKO  = 0x07,
+    CN_SAKINE = 0x08,
+    CN_TETO   = 0x09,
+    CN_MAX    = 0x0A,
 };
 
-enum item_id {
-    ITEM_NONE        = -1,
-    ITEM_BODY        = 0x00,
-    ITEM_ATAMA       = 0x01,
-    ITEM_KATA_R      = 0x02,
-    ITEM_MUNE        = 0x03,
-    ITEM_KATA_L      = 0x04,
-    ITEM_UDE_R       = 0x05,
-    ITEM_SENAKA      = 0x06,
-    ITEM_UDE_L       = 0x07,
-    ITEM_HARA        = 0x08,
-    ITEM_KOSI        = 0x09,
-    ITEM_TE_R        = 0x0A,
-    ITEM_TE_L        = 0x0B,
-    ITEM_MOMO        = 0x0C,
-    ITEM_SUNE        = 0x0D,
-    ITEM_ASI         = 0x0E,
-    ITEM_KAMI        = 0x0F,
-    ITEM_OUTER       = 0x10,
-    ITEM_PANTS       = 0x11,
-    ITEM_ZUJO        = 0x12,
-    ITEM_MEGANE      = 0x13,
-    ITEM_KUBI        = 0x14,
-    ITEM_JOHA_USHIRO = 0x15,
-    ITEM_KUCHI       = 0x16,
-    ITEM_ITEM09      = 0x17,
-    ITEM_ITEM10      = 0x18,
-    ITEM_ITEM11      = 0x19,
-    ITEM_ITEM12      = 0x1A,
-    ITEM_ITEM13      = 0x1B,
-    ITEM_ITEM14      = 0x1C,
-    ITEM_ITEM15      = 0x1D,
-    ITEM_ITEM16      = 0x1E,
-    ITEM_MAX         = 0x1F,
+enum ROB_PARTS_KIND {
+    RPK_NONE   = -1,
+    RPK_BODY   = 0x00,
+    RPK_ATAMA  = 0x01,
+    RPK_KATA_R = 0x02,
+    RPK_MUNE   = 0x03,
+    RPK_KATA_L = 0x04,
+    RPK_UDE_R  = 0x05,
+    RPK_SENAKA = 0x06,
+    RPK_UDE_L  = 0x07,
+    RPK_HARA   = 0x08,
+    RPK_KOSI   = 0x09,
+    RPK_TE_R   = 0x0A,
+    RPK_TE_L   = 0x0B,
+    RPK_MOMO   = 0x0C,
+    RPK_SUNE   = 0x0D,
+    RPK_ASI    = 0x0E,
+    RPK_ITEM01 = 0x0F,
+    RPK_ITEM02 = 0x10,
+    RPK_ITEM03 = 0x11,
+    RPK_ITEM04 = 0x12,
+    RPK_ITEM05 = 0x13,
+    RPK_ITEM06 = 0x14,
+    RPK_ITEM07 = 0x15,
+    RPK_ITEM08 = 0x16,
+    RPK_ITEM09 = 0x17,
+    RPK_ITEM10 = 0x18,
+    RPK_ITEM11 = 0x19,
+    RPK_ITEM12 = 0x1A,
+    RPK_ITEM13 = 0x1B,
+    RPK_ITEM14 = 0x1C,
+    RPK_ITEM15 = 0x1D,
+    RPK_ITEM16 = 0x1E,
+    RPK_MAX    = 0x1F,
 
-    ITEM_OSAGE_FIRST = ITEM_KAMI,
-    ITEM_OSAGE_COUNT = (ITEM_MAX - ITEM_KAMI),
+    RPK_TOP = RPK_BODY,
+
+    RPK_1SKIN_BEGIN    = RPK_BODY,
+    RPK_1SKIN_END      = RPK_BODY,
+    RPK_1SKIN_MAX      = RPK_1SKIN_END - RPK_1SKIN_BEGIN + 1,
+
+    RPK_BASE_BEGIN     = RPK_ATAMA,
+    RPK_BASE_END       = RPK_ASI,
+    RPK_BASE_MAX       = RPK_ASI - RPK_ATAMA + 1,
+
+    RPK_ITEM_BEGIN     = RPK_ITEM01,
+    RPK_ITEM_END       = RPK_ITEM16,
+    RPK_ITEM_MAX       = RPK_ITEM_END - RPK_ITEM_BEGIN + 1,
+
+    RPK_ITEM_ETC_BEGIN = RPK_ITEM09,
+    RPK_ITEM_ETC_END   = RPK_ITEM16,
+    RPK_ITEM_ETC_MAX   = RPK_ITEM_ETC_END - RPK_ITEM_ETC_BEGIN + 1,
+
+    RPK_DISP_BEGIN     = RPK_ATAMA,
+    RPK_DISP_END       = RPK_ITEM16,
+    RPK_DISP_MAX       = RPK_DISP_END - RPK_DISP_BEGIN + 1,
+
+    RPK_KAMI           = RPK_ITEM01,
+    RPK_OUTER          = RPK_ITEM02,
+    RPK_PANTS          = RPK_ITEM03,
+    RPK_ZUJO           = RPK_ITEM04,
+    RPK_MEGANE         = RPK_ITEM05,
+    RPK_KUBI           = RPK_ITEM06,
+    RPK_JOHA_USHIRO    = RPK_ITEM07,
+    RPK_KUCHI          = RPK_ITEM08,
 };
 
 enum item_sub_id {
@@ -99,7 +127,7 @@ enum item_sub_id {
 
 struct itm_table_item_data_obj {
     std::string uid;
-    item_id rpk;
+    ROB_PARTS_KIND rpk;
 
     itm_table_item_data_obj();
     ~itm_table_item_data_obj();
@@ -198,19 +226,14 @@ struct itm_table {
     static bool load_file(void* data, const char* dir, const char* file, uint32_t hash);
 };
 
-extern const char* chara_auth_3d_names[];
-extern const char* chara_face_mot_names[];
-extern const char* chara_full_names[];
-extern const char* chara_names[];
+extern const char* rob_parts_kind_str[];
+extern const char* rob_item_equip_sub_id_str[];
 
-extern const char* item_id_names[];
-extern const char* item_sub_id_names[];
+extern const char* get_char_id_str(CHARA_NUM cname);
+extern const char* get_chara_name(CHARA_NUM cname);
+extern const char* get_chara_name_face_mot(CHARA_NUM cname);
+extern const char* get_chara_name_full(CHARA_NUM cname);
+extern CHARA_NUM get_chara_num_from_char_id(const char* in_name);
 
-extern const char* chara_index_get_auth_3d_name(chara_index chara_index);
-extern const char* chara_index_get_chara_name(chara_index chara_index);
-extern const char* chara_index_get_face_mot_name(chara_index chara_index);
-extern chara_index chara_index_get_from_chara_name(const char* str);
-extern const char* chara_index_get_name(chara_index chara_index);
-
-extern const char* item_id_get_name(item_id id);
+extern const char* item_id_get_name(ROB_PARTS_KIND rpk);
 extern const char* item_sub_id_get_name(item_sub_id sub_id);

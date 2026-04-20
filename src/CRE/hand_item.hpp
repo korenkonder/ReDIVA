@@ -26,8 +26,8 @@ struct hand_item {
 };
 
 extern void hand_item_handler_data_init();
-extern const hand_item* hand_item_handler_data_get_hand_item(int32_t uid, chara_index chara_index);
-extern const std::map<std::pair<int32_t, chara_index>, hand_item>& hand_item_handler_data_get_hand_items();
+extern const hand_item* hand_item_handler_data_get_hand_item(int32_t uid, CHARA_NUM chara_num);
+extern const std::map<std::pair<int32_t, CHARA_NUM>, hand_item>& hand_item_handler_data_get_hand_items();
 extern int32_t hand_item_handler_data_get_hand_item_uid(const char* str);
 extern bool hand_item_handler_data_load();
 extern void hand_item_handler_data_read();

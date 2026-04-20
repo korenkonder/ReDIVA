@@ -876,7 +876,7 @@ struct auth_3d_id {
     void set_alpha_obj_flags(float_t alpha, mdl::ObjFlags obj_flags);
     void set_camera_root_update(bool value);
     void set_chara_id(int32_t value);
-    void set_chara_index(size_t auth_chara_id, int32_t index);
+    void set_chara_num(size_t auth_chara_id, int32_t index);
     void set_chara_item(bool value);
     void set_enable(bool value);
     void set_frame_rate(FrameRateControl* value);

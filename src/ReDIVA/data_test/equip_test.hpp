@@ -13,8 +13,8 @@ class DtmEqVs : public app::Task {
 public:
     int32_t state;
     int32_t chara_id;
-    ::chara_index chara_index;
-    ::chara_index curr_chara_index;
+    CHARA_NUM chara_num;
+    CHARA_NUM curr_chara_num;
     int32_t cos_id;
     int32_t curr_cos_id;
     int32_t disp_parts;
@@ -26,10 +26,10 @@ public:
     virtual bool ctrl() override;
     virtual bool dest() override;
 
-    virtual bool add_task(int32_t chara_id, ::chara_index chara_index);
+    virtual bool add_task(int32_t chara_id, CHARA_NUM chara_index);
     virtual bool del_task();
 
-    void SetCharaIndexCosId(::chara_index chara_index, int32_t cos_id);
+    void SetCharaNumCosId(CHARA_NUM chara_index, int32_t cos_id);
 
     void CtrlChara();
     void CtrlDispParts();

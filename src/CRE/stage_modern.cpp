@@ -538,9 +538,9 @@ static void stage_modern_disp_shadow(stage_modern* s) {
 static void stage_modern_disp_shadow_object(object_info object, const mat4& mat) {
     mdl::DispManager& disp_manager = *rctx_ptr->disp_manager;
 
-    for (int32_t i = SHADOW_CHARA; i < SHADOW_MAX; i++) {
-        disp_manager.set_shadow_type((shadow_type_enum)i);
-        disp_manager.set_culling_func(i == SHADOW_CHARA
+    for (int32_t i = SHADOW_GROUP_CHARA; i < SHADOW_GROUP_MAX; i++) {
+        disp_manager.set_shadow_group((SHADOW_GROUP)i);
+        disp_manager.set_culling_func(i == SHADOW_GROUP_CHARA
             ? object_bounding_sphere_check_visibility_shadow_chara
             : object_bounding_sphere_check_visibility_shadow_stage);
         disp_manager.set_obj_flags((mdl::ObjFlags)(mdl::OBJ_NO_TRANSLUCENCY | mdl::OBJ_SHADOW_OBJECT));
@@ -549,7 +549,7 @@ static void stage_modern_disp_shadow_object(object_info object, const mat4& mat)
 
     disp_manager.set_obj_flags();
     disp_manager.set_culling_func();
-    disp_manager.set_shadow_type();
+    disp_manager.set_shadow_group();
 }
 
 static void stage_modern_free(stage_modern* s) {
@@ -685,7 +685,7 @@ static void stage_modern_set(stage_modern* s, stage_modern* other) {
     //sub_140344180(0);
 
     if (pv_osage_manager_array_get_disp() && other)
-        for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
+        for (int32_t i = 0; i < ROB_ID_MAX; i++) {
             rob_chara* rob_chr = rob_chara_array_get(i);
             //if (rob_chr)
                 //rob_chara_set_stage_data_ring(rob_chr, &other->index);

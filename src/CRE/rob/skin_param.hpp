@@ -9,7 +9,7 @@
 #include "../../KKdLib/key_val.hpp"
 
 extern const osage_setting_osg_cat* osage_setting_data_get_cat_value(
-    object_info* obj_info, const char* root_node);
+    const object_info& obj_info, const char* root_node);
 extern bool osage_setting_data_obj_has_key(object_info key);
 
 extern void skin_param_data_init();

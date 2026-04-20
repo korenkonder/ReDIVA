@@ -175,7 +175,7 @@ struct x_pv_game_song_effect_glitter {
     string_hash name;
     Glitter::SceneCounter scene_counter;
     bool field_8;
-    bool field_9[ROB_CHARA_COUNT];
+    bool field_9[ROB_ID_MAX];
 
     x_pv_game_song_effect_glitter();
     ~x_pv_game_song_effect_glitter();
@@ -246,8 +246,8 @@ struct x_pv_game_effect {
 
 struct x_pv_game_chara_effect_auth_3d {
     bool field_0;
-    chara_index src_chara;
-    chara_index dst_chara;
+    CHARA_NUM src_chara;
+    CHARA_NUM dst_chara;
     string_hash file;
     string_hash category;
     string_hash object_set;
@@ -267,7 +267,7 @@ struct x_pv_game_chara_effect {
     int32_t state;
     pvpp* play_param;
     std::vector<int64_t>* change_fields;
-    std::vector<x_pv_game_chara_effect_auth_3d> auth_3d[ROB_CHARA_COUNT];
+    std::vector<x_pv_game_chara_effect_auth_3d> auth_3d[ROB_ID_MAX];
     FrameRateControl* frame_rate_control;
 
     x_pv_game_chara_effect();
@@ -275,7 +275,7 @@ struct x_pv_game_chara_effect {
 
     void ctrl(int32_t pv_id, object_database* obj_db, texture_database* tex_db);
     vec3 get_node_translation(int32_t chara_id, int32_t chara_effect, int32_t objhrc_index, const char* node_name);
-    void load(int32_t pv_id, pvpp* play_param, FrameRateControl* frame_rate_control, chara_index charas[6]);
+    void load(int32_t pv_id, pvpp* play_param, FrameRateControl* frame_rate_control, CHARA_NUM charas[6]);
     void load_data();
     void reset();
     void set_chara_effect(int32_t chara_id, int32_t index, int64_t time);
@@ -478,14 +478,14 @@ struct x_pv_game_pv_data {
     dsc dsc;
     dsc_data* dsc_data_ptr;
     dsc_data* dsc_data_ptr_end;
-    std::vector<pv_data_set_motion> set_motion[ROB_CHARA_COUNT];
+    std::vector<pv_data_set_motion> set_motion[ROB_ID_MAX];
     int32_t chara_id;
     class x_pv_game* pv_game;
     float_t measured_fps;
     float_t anim_frame_speed;
     int64_t dsc_time;
     bool pv_end;
-    x_pv_play_data playdata[ROB_CHARA_COUNT];
+    x_pv_play_data playdata[ROB_ID_MAX];
     float_t scene_rot_y;
     mat4 scene_rot_mat;
     int32_t branch_mode;
@@ -552,7 +552,7 @@ struct x_pv_game_data {
     void ctrl(float_t curr_time, float_t delta_time);
     void ctrl_stage_effect_index();
     void disp();
-    void load(int32_t pv_id, FrameRateControl* frame_rate_control, chara_index charas[6]);
+    void load(int32_t pv_id, FrameRateControl* frame_rate_control, CHARA_NUM charas[6]);
     void reset();
     void stop();
     void unload();
@@ -756,7 +756,7 @@ public:
     int32_t frame;
     double_t frame_float;
     int64_t time;
-    int32_t rob_chara_ids[ROB_CHARA_COUNT];
+    int32_t rob_chara_ids[ROB_ID_MAX];
 
     std::string light_category;
 
@@ -770,7 +770,7 @@ public:
 
     int32_t pv_id;
     int32_t stage_id;
-    chara_index charas[6];
+    CHARA_NUM charas[6];
     int32_t modules[6];
 
     x_pv_game();
@@ -783,7 +783,7 @@ public:
     virtual void basic() override;
     virtual void window() override;
 
-    void load(int32_t pv_id, int32_t stage_id, chara_index charas[6], int32_t modules[6]);
+    void load(int32_t pv_id, int32_t stage_id, CHARA_NUM charas[6], int32_t modules[6]);
     bool unload();
 
     void ctrl(float_t curr_time, float_t delta_time);
@@ -838,9 +838,9 @@ public:
     };
 
     int32_t index;
-    ::chara_index chara_index;
-    ::chara_index charas[ROB_CHARA_COUNT];
-    int32_t modules[ROB_CHARA_COUNT];
+    CHARA_NUM chara_num;
+    CHARA_NUM charas[ROB_ID_MAX];
+    int32_t modules[ROB_ID_MAX];
     uint32_t pv_tit_aet_set_ids[5];
     uint32_t pv_tit_spr_set_ids[5];
     uint32_t pv_tit_aet_ids[5];
@@ -875,10 +875,10 @@ class XPVGameSelector : public app::TaskWindow {
 public:
     int32_t pv_id;
     int32_t stage_id;
-    chara_index charas[ROB_CHARA_COUNT];
-    int32_t modules[ROB_CHARA_COUNT];
-    std::string module_names[ROB_CHARA_COUNT];
-    std::vector<const module*> modules_data[CHARA_MAX];
+    CHARA_NUM charas[ROB_ID_MAX];
+    int32_t modules[ROB_ID_MAX];
+    std::string module_names[ROB_ID_MAX];
+    std::vector<const module*> modules_data[CN_MAX];
     bool start;
     bool exit;
 

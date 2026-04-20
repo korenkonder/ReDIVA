@@ -73,8 +73,7 @@ namespace Glitter {
             return -1;
 
         bone_database* bone_data = (bone_database*)GPM_VAL->bone_data;
-        const std::vector<std::string>* motion_bone_names = 0;
-        if (!bone_data || bone_data->skeleton.size() < 1)
+        if (!bone_data)
             return -1;
 
         static const char* bone_names[] = {
@@ -98,8 +97,7 @@ namespace Glitter {
             "kl_toe_r_wj"
         };
 
-        return bone_data->get_skeleton_motion_bone_index(
-            bone_database_skeleton_type_to_string(BONE_DATABASE_SKELETON_COMMON), bone_names[node]);
+        return bone_data->get_bone_node_index(BONE_KIND_CMN, bone_names[node]);
     }
 
     EffectInstF2::ExtAnim::ExtAnim() : object_index(), mesh_index(), a3da_id(), object_is_hrc(), mesh_name() {
@@ -431,7 +429,7 @@ namespace Glitter {
 
             mat4 mat = mat4_identity;
             chara_id = auth_3d_id(ext_anim->a3da_id).get_chara_id();
-            if (chara_id >= 0 && chara_id < ROB_CHARA_COUNT) {
+            if (chara_id >= 0 && chara_id < ROB_ID_MAX) {
                 rob_chara* rob_chr = rob_chara_array_get(chara_id);
                 if (rob_chr) {
                     mat = rob_chr->data.adjust_data.mat;
@@ -1125,7 +1123,7 @@ namespace Glitter {
             mat4 mat = mat4_identity;
 
             int32_t chara_id = auth_3d_id(ext_anim->a3da_id).get_chara_id();
-            if (chara_id >= 0 && chara_id < ROB_CHARA_COUNT) {
+            if (chara_id >= 0 && chara_id < ROB_ID_MAX) {
                 rob_chara* rob_chr = rob_chara_array_get(chara_id);
                 if (rob_chr) {
                     mat = rob_chr->data.adjust_data.mat;

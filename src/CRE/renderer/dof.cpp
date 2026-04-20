@@ -76,7 +76,7 @@ namespace renderer {
                     float_t focus = dof_debug_data.focus;
                     if (dof_debug_data.flags & DOF_DEBUG_AUTO_FOCUS) {
                         rob_chara* rob_chr = 0;
-                        for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
+                        for (int32_t i = 0; i < ROB_ID_MAX; i++) {
                             rob_chara* rob_chr = rob_chara_array_get(i);
                             if (!rob_chr || !rob_chr->is_visible())
                                 continue;

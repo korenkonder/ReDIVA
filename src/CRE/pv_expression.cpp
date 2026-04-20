@@ -52,7 +52,7 @@ struct pv_expression {
     bool set_motion(uint32_t hash, uint32_t motion_id);
 };
 
-pv_expression pv_expression_array[ROB_CHARA_COUNT];
+pv_expression pv_expression_array[ROB_ID_MAX];
 
 extern render_context* rctx_ptr;
 
@@ -92,7 +92,7 @@ void pv_expression_array_reset_data() {
 }
 
 void pv_expression_array_reset_motion(size_t chara_id) {
-    if (chara_id < 0 || chara_id >= ROB_CHARA_COUNT)
+    if (chara_id < 0 || chara_id >= ROB_ID_MAX)
         return;
 
     pv_expression& exp = pv_expression_array[chara_id];
@@ -102,7 +102,7 @@ void pv_expression_array_reset_motion(size_t chara_id) {
 }
 
 bool pv_expression_array_set(size_t chara_id, void* rob_chr, float_t frame_speed) {
-    if (chara_id < 0 || chara_id >= ROB_CHARA_COUNT)
+    if (chara_id < 0 || chara_id >= ROB_ID_MAX)
         return false;
 
     pv_expression& exp = pv_expression_array[chara_id];
@@ -113,13 +113,13 @@ bool pv_expression_array_set(size_t chara_id, void* rob_chr, float_t frame_speed
 }
 
 bool pv_expression_array_set_motion(const char* path, size_t chara_id, uint32_t motion_id) {
-    if (chara_id >= 0 && chara_id < ROB_CHARA_COUNT)
+    if (chara_id >= 0 && chara_id < ROB_ID_MAX)
         return pv_expression_array[chara_id].set_motion(path, motion_id);
     return false;
 }
 
 bool pv_expression_array_set_motion(uint32_t hash, size_t chara_id, uint32_t motion_id) {
-    if (chara_id >= 0 && chara_id < ROB_CHARA_COUNT)
+    if (chara_id >= 0 && chara_id < ROB_ID_MAX)
         return pv_expression_array[chara_id].set_motion(hash, motion_id);
     return false;
 }

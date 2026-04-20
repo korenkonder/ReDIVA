@@ -234,16 +234,16 @@ struct pv_dsc_target_group {
 };
 
 struct struc_676 {
-    bool field_0[ROB_CHARA_COUNT];
-    pv_play_data_set_motion field_8[ROB_CHARA_COUNT];
-    bool field_128[ROB_CHARA_COUNT];
-    int32_t field_130[ROB_CHARA_COUNT];
-    bool field_148[ROB_CHARA_COUNT];
-    pv_play_data_set_motion field_150[ROB_CHARA_COUNT];
-    float_t field_270[ROB_CHARA_COUNT];
-    bool field_288[ROB_CHARA_COUNT];
-    int32_t field_290[ROB_CHARA_COUNT];
-    float_t field_2A8[ROB_CHARA_COUNT];
+    bool field_0[ROB_ID_MAX];
+    pv_play_data_set_motion field_8[ROB_ID_MAX];
+    bool field_128[ROB_ID_MAX];
+    int32_t field_130[ROB_ID_MAX];
+    bool field_148[ROB_ID_MAX];
+    pv_play_data_set_motion field_150[ROB_ID_MAX];
+    float_t field_270[ROB_ID_MAX];
+    bool field_288[ROB_ID_MAX];
+    int32_t field_290[ROB_ID_MAX];
+    float_t field_2A8[ROB_ID_MAX];
     bool field_2C0;
     int32_t field_2C4;
     int32_t field_2C8;
@@ -296,11 +296,11 @@ struct pv_game_pv_data {
     float_t min_dist;
     bool look_camera_enable;
     bool field_2BFD5;
-    pv_play_data playdata[ROB_CHARA_COUNT];
+    pv_play_data playdata[ROB_ID_MAX];
     pv_data_camera data_camera[3];
     std::vector<int32_t> data_camera_branch_fail;
     std::vector<int32_t> data_camera_branch_success;
-    std::vector<pv_data_set_motion> set_motion[ROB_CHARA_COUNT];
+    std::vector<pv_data_set_motion> set_motion[ROB_ID_MAX];
     prj::vector_pair<int32_t, int32_t> change_field_branch_fail;
     prj::vector_pair<int32_t, int32_t> change_field_branch_success;
     int64_t change_field_branch_time;

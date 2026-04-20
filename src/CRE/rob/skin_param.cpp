@@ -19,7 +19,7 @@ struct osage_setting {
 
     void clear();
     const osage_setting_osg_cat* get_cat_value(
-        object_info* obj_info, const char* root_node);
+        const object_info& obj_info, const char* root_node);
     void load();
     void parse(key_val* kv);
     rob_osage_parts parse_parts_string(std::string& s);
@@ -27,7 +27,7 @@ struct osage_setting {
 
 struct skin_param_file {
     p_file_handler* file_handler;
-    item_id id;
+    ROB_PARTS_KIND rpk;
     int32_t type;
     std::vector<skin_param_file_data>* data;
     rob_chara* rob_chr;
@@ -236,7 +236,7 @@ osage_setting_osg_cat::osage_setting_osg_cat() : exf() {
 }
 
 const osage_setting_osg_cat* osage_setting_data_get_cat_value(
-    object_info* obj_info, const char* root_node) {
+    const object_info& obj_info, const char* root_node) {
     return osage_setting_data->get_cat_value(obj_info, root_node);
 }
 
@@ -252,7 +252,7 @@ void skin_param_data_init() {
         sp_skp_db_data = new sp_skp_db;
 
     if (!skin_param_manager)
-        skin_param_manager = new SkinParamManager[ROB_CHARA_COUNT];
+        skin_param_manager = new SkinParamManager[ROB_ID_MAX];
 
     skin_param_storage = {};
 }
@@ -283,7 +283,7 @@ void skin_param_data_free() {
 
 bool skin_param_manager_array_check_task_ready() {
     bool ret = false;
-    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++)
+    for (int32_t i = 0; i < ROB_ID_MAX; i++)
         ret |= app::TaskWork::check_task_ready(&skin_param_manager[i]);
     return ret;
 }
@@ -483,8 +483,7 @@ void skin_param_osage_root_parse(void* kv, const char* name,
                 break;
             }
 
-            c->node_idx[0] = bone_data->get_skeleton_object_bone_index(
-                bone_database_skeleton_type_to_string(BONE_DATABASE_SKELETON_COMMON), bone0_name);
+            c->node_idx[0] = bone_data->get_bone_index(BONE_KIND_CMN, bone0_name);
 
             vec3 bone0_pos = 0.0f;
             if (!_kv->read("bone.0.posx", bone0_pos.x)
@@ -498,8 +497,7 @@ void skin_param_osage_root_parse(void* kv, const char* name,
 
             const char* bone1_name;
             if (_kv->read("bone.1.name", bone1_name)) {
-                c->node_idx[1] = bone_data->get_skeleton_object_bone_index(
-                    bone_database_skeleton_type_to_string(BONE_DATABASE_SKELETON_COMMON), bone1_name);
+                c->node_idx[1] = bone_data->get_bone_index(BONE_KIND_CMN, bone1_name);
 
                 vec3 bone1_pos = 0.0f;
                 if (!_kv->read("bone.1.posx", bone1_pos.x)
@@ -620,8 +618,8 @@ void osage_setting::clear() {
 }
 
 const osage_setting_osg_cat* osage_setting::get_cat_value(
-    object_info* obj_info, const char* root_node) {
-    auto elem_obj = osage_setting_data->obj.find(*obj_info);
+    const object_info& obj_info, const char* root_node) {
+    auto elem_obj = osage_setting_data->obj.find(obj_info);
     if (elem_obj == osage_setting_data->obj.end())
         return 0;
 
@@ -717,7 +715,7 @@ rob_osage_parts osage_setting::parse_parts_string(std::string& s) {
     return ROB_OSAGE_PARTS_NONE;
 }
 
-skin_param_file::skin_param_file() : file_handler(), id(), type(), data(), rob_chr() {
+skin_param_file::skin_param_file() : file_handler(), rpk(), type(), data(), rob_chr() {
 
 }
 
@@ -783,9 +781,9 @@ void SkinParamManager::AddFiles() {
 
     files.clear();
     for (osage_init_data& i : osage_init) {
-        rob_chara_item_equip* rob_itm_equip = i.rob_chr->item_equip;
-        for (int32_t j = ITEM_KAMI; j < ITEM_MAX; j++) {
-            object_info obj_info = rob_itm_equip->get_object_info((item_id)j);
+        rob_chara_item_equip* rob_disp = i.rob_chr->rob_disp;
+        for (int32_t j = RPK_ITEM_BEGIN; j <= RPK_ITEM_END; j++) {
+            object_info obj_info = rob_disp->get_object_info((ROB_PARTS_KIND)j);
             if (obj_info.is_null())
                 continue;
 
@@ -826,7 +824,7 @@ void SkinParamManager::AddFiles() {
             if (!skp_file)
                 continue;
 
-            skp_file->id = (item_id)j;
+            skp_file->rpk = (ROB_PARTS_KIND)j;
             skp_file->rob_chr = i.rob_chr;
             skp_file->type = -1;
 
@@ -919,26 +917,26 @@ bool SkinParamManager::CtrlFiles() {
         skin_param_file* skp_file = *i;
         if (skp_file->file_handler->check_not_ready())
             break;
-        else if (skp_file->id <= ITEM_NONE || skp_file->id >= ITEM_MAX) {
+        else if (skp_file->rpk < 0 || skp_file->rpk >= RPK_MAX) {
             i = files.erase(i);
             continue;
         }
 
-        rob_chara_item_equip* rob_itm_equip = skp_file->rob_chr->item_equip;
+        rob_chara_item_equip* rob_disp = skp_file->rob_chr->rob_disp;
 
         key_val kv;
         kv.parse(skp_file->file_handler->get_data(), skp_file->file_handler->get_size());
 
-        object_info obj_info = rob_itm_equip->get_object_info(skp_file->id);
+        object_info obj_info = rob_disp->get_object_info(skp_file->rpk);
         if (!obj_info.not_null()) {
             i = files.erase(i);
             continue;
         }
 
-        rob_chara_item_equip_object* itm_eq_obj = &rob_itm_equip->item_equip_object[skp_file->id];
+        rob_chara_item_equip_object* skin_disp = &rob_disp->skin_disp[skp_file->rpk];
 
         skin_param_file_data* skp_file_data = skp_file->data->data();
-        for (ExNodeBlock* j : itm_eq_obj->ex_node_block) {
+        for (ExNodeBlock* j : skin_disp->ex_node_block) {
             if (j->type != EX_NODE_TYPE_OSAGE && j->type != EX_NODE_TYPE_CLOTH)
                 continue;
 
@@ -950,7 +948,7 @@ bool SkinParamManager::CtrlFiles() {
             std::vector<skin_param_osage_node> vec;
             skin_param_osage_node_parse(&kv, name, &vec, root);
             skp_file_data->nodes_data.resize(vec.size());
-            rob_itm_equip->skp_load(skp_file->id, root, vec, skp_file_data, aft_bone_data);
+            rob_disp->skp_load(skp_file->rpk, root, vec, skp_file_data, aft_bone_data);
             skp_file_data++;
         }
         delete skp_file;

@@ -53,7 +53,7 @@ public:
     color_tone color_tone_temp;
     bool show;
     bool auto_resize;
-    chara_index chara_index;
+    CHARA_NUM chara_num;
     int32_t item_index;
     size_t item_texture_index;
 
@@ -142,7 +142,7 @@ ColorChangeDw::ColorChangeDw() {
 
     show = true;
     auto_resize = true;
-    chara_index = CHARA_MIKU;
+    chara_num = CN_MIKU;
     item_index = 0;
     item_texture_index = 0;
 
@@ -214,8 +214,8 @@ ColorChangeDw::ColorChangeDw() {
 
     item_chara = new dw::ListBox(item_group, (dw::Flags)(dw::FLAG_800 | dw::VERTICAL | dw::MULTISELECT));
     item_chara->SetText("listbox0");
-    for (int32_t i = 0; i < CHARA_MAX; i++)
-        item_chara->AddItem(chara_index_get_name((::chara_index)i));
+    for (int32_t i = 0; i < CN_MAX; i++)
+        item_chara->AddItem(get_chara_name_full((CHARA_NUM)i));
     item_chara->AddSelectionListener(new dw::SelectionListenerOnHook(
         (dw::SelectionListenerOnHook::CallbackFunc)ColorChangeDw::ItemCharaCallback));
     item_chara->SetMaxItems(20);
@@ -432,7 +432,7 @@ void ColorChangeDw::GetColorToneDefault(color_tone& value) {
 const item_table_item* ColorChangeDw::GetItem(int32_t item_index) {
     int32_t item_no = GetItemNo(item_index);
     if (item_no != -1)
-        return item_table_handler_array_get_item(this->chara_index, item_no);
+        return item_table_handler_array_get_item(chara_num, item_no);
     return 0;
 }
 
@@ -454,7 +454,7 @@ const item_table_item_data* ColorChangeDw::GetItemData(int32_t item_index) {
 
 int32_t ColorChangeDw::GetItemNo(int32_t item_index) {
     int32_t index = 0;
-    const item_table* item = item_table_handler_array_get_table(chara_index);
+    const item_table* item = item_table_handler_array_get_table(chara_num);
     if (item)
         for (auto& i : item->item)
             if (i.second.attr & 0x68) {
@@ -747,7 +747,7 @@ void ColorChangeDw::ItemCallback(dw::ListBox* data) {
         name = aft_obj_db->get_object_set_name(i);
 
     if (item->attr & 0x40)
-        name = aft_obj_db->get_object_set_name(chara_init_data_get(color_change_dw->chara_index)->object_set);
+        name = aft_obj_db->get_object_set_name(get_rob_data(color_change_dw->chara_num)->object_set);
 
     if (name) {
         color_change_dw->SetObjectSet(name);

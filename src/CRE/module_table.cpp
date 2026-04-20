@@ -42,31 +42,31 @@ struct module_data_handler {
     void add_all_modules();
     void add_modules();
     void add_random_modules();
-    bool get_module(chara_index chara_index, int32_t cos, module_data& data);
+    bool get_module(CHARA_NUM chara_num, int32_t cos, module_data& data);
     bool get_module(int32_t id, module_data& data);
 };
 
 struct module_data_random {
     int32_t id;
     int32_t sort_index;
-    chara_index chara_index;
+    CHARA_NUM chara_num;
     int32_t spr_sel_mdrchrcmn_spr_set_id;
     int32_t spr_sel_mdrchrcmn_md_img_spr_id;
     const char* name;
 };
 
 module_data_random module_data_random_data[] = {
-    {  -2,  0, CHARA_MIKU  , 1935, 35031, u8"オール ランダム" },
-    {  -3,  1, CHARA_MIKU  , 1947, 35043, u8"初音ミク ランダム" },
-    {  -4,  2, CHARA_RIN   , 1951, 35047, u8"鏡音リン ランダム" },
-    {  -5,  3, CHARA_LEN   , 1941, 35037, u8"鏡音レン ランダム" },
-    {  -6,  4, CHARA_LUKA  , 1943, 35039, u8"巡音ルカ ランダム" },
-    {  -7,  8, CHARA_NERU  , 1949, 35045, u8"亞北ネル ランダム" },
-    {  -8,  7, CHARA_HAKU  , 1937, 35033, u8"弱音ハク ランダム" },
-    {  -9,  6, CHARA_KAITO , 1939, 35035, u8"カイト ランダム" },
-    { -10,  5, CHARA_MEIKO , 1945, 35041, u8"メイコ ランダム" },
-    { -11,  9, CHARA_SAKINE, 1953, 35049, u8"咲音メイコ ランダム" },
-    { -12, 10, CHARA_TETO  , 2400, 35051, u8"重音テト ランダム" },
+    {  -2,  0, CN_MIKU  , 1935, 35031, u8"オール ランダム" },
+    {  -3,  1, CN_MIKU  , 1947, 35043, u8"初音ミク ランダム" },
+    {  -4,  2, CN_RIN   , 1951, 35047, u8"鏡音リン ランダム" },
+    {  -5,  3, CN_LEN   , 1941, 35037, u8"鏡音レン ランダム" },
+    {  -6,  4, CN_LUKA  , 1943, 35039, u8"巡音ルカ ランダム" },
+    {  -7,  8, CN_NERU  , 1949, 35045, u8"亞北ネル ランダム" },
+    {  -8,  7, CN_HAKU  , 1937, 35033, u8"弱音ハク ランダム" },
+    {  -9,  6, CN_KAITO , 1939, 35035, u8"カイト ランダム" },
+    { -10,  5, CN_MEIKO , 1945, 35041, u8"メイコ ランダム" },
+    { -11,  9, CN_SAKINE, 1953, 35049, u8"咲音メイコ ランダム" },
+    { -12, 10, CN_TETO  , 2400, 35051, u8"重音テト ランダム" },
 };
 
 module_table_handler* module_table_handler_data;
@@ -80,7 +80,7 @@ module::~module() {
 
 }
 
-module_data::module_data() : id(), sort_index(), chara_index(), cos(), sleeve_l(), sleeve_r(),
+module_data::module_data() : id(), sort_index(), chara_num(), cos(), sleeve_l(), sleeve_r(),
 spr_sel_md_id_spr_set_id(), spr_sel_md_id_cmn_spr_set_id(), spr_sel_md_id_md_img_id_spr_id(),
 spr_sel_md_id_cmn_md_img_spr_id(), field_78(), field_79(), field_A0() {
     reset();
@@ -93,7 +93,7 @@ module_data::~module_data() {
 void module_data::reset() {
     id = -1;
     sort_index = 0;
-    chara_index = CHARA_MIKU;
+    chara_num = CN_MIKU;
     cos = 0;
     sleeve_l = {};
     sleeve_r = {};
@@ -146,8 +146,8 @@ void module_data_handler_data_add_all_modules() {
     module_data_handler_data->add_all_modules();
 }
 
-bool module_data_handler_data_get_module(chara_index chara_index, int32_t cos, module_data& data) {
-    return module_data_handler_data->get_module(chara_index, cos, data);
+bool module_data_handler_data_get_module(CHARA_NUM chara_num, int32_t cos, module_data& data) {
+    return module_data_handler_data->get_module(chara_num, cos, data);
 }
 
 bool module_data_handler_data_get_module(int32_t id, module_data& data) {
@@ -349,11 +349,11 @@ void module_data_handler::add_modules() {
         mdl.id = i.second.id;
         mdl.sort_index = i.second.sort_index;
         mdl.name.assign(i.second.name);
-        mdl.chara_index = (chara_index)i.second.chara;
+        mdl.chara_num = (CHARA_NUM)i.second.chara;
         mdl.cos = i.second.cos;
         mdl.field_79 = false;
 
-        rob_sleeve_handler_data_get_sleeve_data(mdl.chara_index, mdl.cos, mdl.sleeve_l, mdl.sleeve_r);
+        rob_sleeve_handler_data_get_sleeve_data(mdl.chara_num, mdl.cos, mdl.sleeve_l, mdl.sleeve_r);
 
         sprintf_s(buf, sizeof(buf), "SPR_SEL_MD%03d", mdl.id);
         mdl.spr_sel_md_id_spr_set_id = aft_spr_db->get_spr_set_by_name(buf)->id;
@@ -390,7 +390,7 @@ void module_data_handler::add_random_modules() {
         mdl.id = i.id;
         mdl.sort_index = i.sort_index;
         mdl.name.assign(i.name);
-        mdl.chara_index = i.chara_index;
+        mdl.chara_num = i.chara_num;
         mdl.cos = -1;
         mdl.field_79 = false;
         mdl.spr_sel_md_id_cmn_spr_set_id = i.spr_sel_mdrchrcmn_spr_set_id;
@@ -399,9 +399,9 @@ void module_data_handler::add_random_modules() {
     }
 }
 
-bool module_data_handler::get_module(chara_index chara_index, int32_t cos, module_data& data) {
+bool module_data_handler::get_module(CHARA_NUM chara_num, int32_t cos, module_data& data) {
     for (module_data& i : modules)
-        if (i.chara_index == chara_index && i.cos == cos) {
+        if (i.chara_num == chara_num && i.cos == cos) {
             data = i;
             return true;
 

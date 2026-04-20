@@ -1105,7 +1105,7 @@ void x_pv_game_effect::ctrl(object_database* obj_db, texture_database* tex_db) {
                 for (bool& i : v132.field_9)
                     i = true;
 
-                for (int32_t k = 0; k < chara_count && k < ROB_CHARA_COUNT; k++) {
+                for (int32_t k = 0; k < chara_count && k < ROB_ID_MAX; k++) {
                     bool v121 = false;
                     if (k < play_param->chara.size()) {
                         pvpp_chara& chara = play_param->chara[k];
@@ -1243,7 +1243,7 @@ void x_pv_game_effect::set_song_effect(int32_t index, int64_t time) {
     size_t chara_count = play_param->chara.size();
 
     int32_t chara_id = play_param->effect[index].chara_id;
-    if (chara_id < 0 || chara_id >= ROB_CHARA_COUNT || chara_id >= chara_count)
+    if (chara_id < 0 || chara_id >= ROB_ID_MAX || chara_id >= chara_count)
         chara_id = -1;
     song_effect.chara_id = chara_id;
 
@@ -1411,8 +1411,8 @@ x_pv_game_chara_effect_auth_3d::~x_pv_game_chara_effect_auth_3d() {
 
 void x_pv_game_chara_effect_auth_3d::reset() {
     field_0 = false;
-    src_chara = CHARA_MAX;
-    dst_chara = CHARA_MAX;
+    src_chara = CN_MAX;
+    dst_chara = CN_MAX;
     file.clear();
     category.clear();
     object_set.clear();
@@ -1505,7 +1505,7 @@ void x_pv_game_chara_effect::ctrl(int32_t pv_id, object_database* obj_db, textur
 
 vec3 x_pv_game_chara_effect::get_node_translation(int32_t chara_id,
     int32_t chara_effect, int32_t objhrc_index, const char* node_name) {
-    if (chara_id < 0 || chara_id >= ROB_CHARA_COUNT)
+    if (chara_id < 0 || chara_id >= ROB_ID_MAX)
         return 0.0f;
 
     rob_chara* rob_chr = rob_chara_array_get(chara_id);
@@ -1548,7 +1548,7 @@ vec3 x_pv_game_chara_effect::get_node_translation(int32_t chara_id,
 }
 
 void x_pv_game_chara_effect::load(int32_t pv_id, pvpp* play_param,
-    FrameRateControl* frame_rate_control, chara_index charas[6]) {
+    FrameRateControl* frame_rate_control, CHARA_NUM charas[6]) {
     if (state)
         return;
 
@@ -1556,30 +1556,30 @@ void x_pv_game_chara_effect::load(int32_t pv_id, pvpp* play_param,
     this->frame_rate_control = frame_rate_control;
 
     size_t chara_count = play_param->chara.size();
-    for (int32_t i = 0; i < chara_count && i < ROB_CHARA_COUNT; i++) {
+    for (int32_t i = 0; i < chara_count && i < ROB_ID_MAX; i++) {
         pvpp_chara& chara = play_param->chara[i];
         if (!chara.chara_effect_init)
             continue;
 
         pvpp_chara_effect& chara_effect = chara.chara_effect;
 
-        chara_index src_chara = (chara_index)chara_effect.base_chara;
-        chara_index dst_chara = charas[i];
-        chara_index dst_chara_mei = dst_chara == CHARA_SAKINE ? CHARA_MEIKO : dst_chara;
+        CHARA_NUM src_chara = (CHARA_NUM)chara_effect.base_chara;
+        CHARA_NUM dst_chara = charas[i];
+        CHARA_NUM dst_chara_mei = dst_chara == CN_SAKINE ? CN_MEIKO : dst_chara;
 
         /*if (dst_chara == CHARA_EXTRA)
             dst_chara = src_chara;*/
 
-        const char* src_chara_str = chara_index_get_auth_3d_name(src_chara);
-        const char* dst_chara_str = chara_index_get_auth_3d_name(dst_chara);
-        const char* dst_chara_mei_str = chara_index_get_auth_3d_name(dst_chara_mei);
+        const char* src_chara_str = get_char_id_str(src_chara);
+        const char* dst_chara_str = get_char_id_str(dst_chara);
+        const char* dst_chara_mei_str = get_char_id_str(dst_chara_mei);
 
 #if BAKE_X_PACK
         if (pv_x_bake && pv_id == 814) {
         repeat:
-            dst_chara_mei = dst_chara == CHARA_SAKINE ? CHARA_MEIKO : dst_chara;
-            dst_chara_str = chara_index_get_auth_3d_name(dst_chara);
-            dst_chara_mei_str = chara_index_get_auth_3d_name(dst_chara_mei);
+            dst_chara_mei = dst_chara == CN_SAKINE ? CN_MEIKO : dst_chara;
+            dst_chara_str = get_char_id_str(dst_chara);
+            dst_chara_mei_str = get_char_id_str(dst_chara_mei);
         }
 #endif
 
@@ -1588,22 +1588,22 @@ void x_pv_game_chara_effect::load(int32_t pv_id, pvpp* play_param,
             if (pv_id == 826 && !j.auth_3d.str.find("EFFCHRPV826")) {
                 switch (&j - chara_effect.auth_3d.data()) {
                 case 0:
-                    src_chara = CHARA_RIN;
+                    src_chara = CN_RIN;
                     break;
                 case 1:
-                    src_chara = CHARA_LEN;
+                    src_chara = CN_LEN;
                     break;
                 case 2:
-                    src_chara = CHARA_LUKA;
+                    src_chara = CN_LUKA;
                     break;
                 case 3:
-                    src_chara = CHARA_KAITO;
+                    src_chara = CN_KAITO;
                     break;
                 case 4:
-                    src_chara = CHARA_MEIKO;
+                    src_chara = CN_MEIKO;
                     break;
                 }
-                src_chara_str = chara_index_get_auth_3d_name(src_chara);
+                src_chara_str = get_char_id_str(src_chara);
             }
 #endif
 
@@ -1667,8 +1667,8 @@ void x_pv_game_chara_effect::load(int32_t pv_id, pvpp* play_param,
         }
 #if BAKE_X_PACK
         if (pv_x_bake && pv_id == 814) {
-            dst_chara = (chara_index)((int32_t)(dst_chara + 1));
-            if (dst_chara != CHARA_MAX)
+            dst_chara = (CHARA_NUM)((int32_t)(dst_chara + 1));
+            if (dst_chara != CN_MAX)
                 goto repeat;
         }
 #endif
@@ -1707,7 +1707,7 @@ void x_pv_game_chara_effect::reset() {
 }
 
 void x_pv_game_chara_effect::set_chara_effect(int32_t chara_id, int32_t index, int64_t time) {
-    if (chara_id < 0 || chara_id >= ROB_CHARA_COUNT)
+    if (chara_id < 0 || chara_id >= ROB_ID_MAX)
         return;
 
     std::vector<x_pv_game_chara_effect_auth_3d>& auth_3d = this->auth_3d[chara_id];
@@ -1756,7 +1756,7 @@ void x_pv_game_chara_effect::set_chara_effect(int32_t chara_id, int32_t index, i
 }
 
 void x_pv_game_chara_effect::set_chara_effect_time(int32_t chara_id, int32_t index, int64_t time) {
-    if (!state || chara_id < 0 || chara_id >= ROB_CHARA_COUNT)
+    if (!state || chara_id < 0 || chara_id >= ROB_ID_MAX)
         return;
 
     for (x_pv_game_chara_effect_auth_3d& i : auth_3d[chara_id]) {
@@ -1793,7 +1793,7 @@ void x_pv_game_chara_effect::stop() {
 }
 
 void x_pv_game_chara_effect::stop_chara_effect(int32_t chara_id, int32_t index) {
-    if (chara_id < 0 || chara_id >= ROB_CHARA_COUNT)
+    if (chara_id < 0 || chara_id >= ROB_ID_MAX)
         return;
 
     for (x_pv_game_chara_effect_auth_3d& i : auth_3d[chara_id])
@@ -2833,7 +2833,7 @@ bool x_pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
             break;
 
         mat4_transform_point(&scene_rot_mat, &pos, &pos);
-        rob_chr->set_data_miku_rot_position(pos);
+        rob_chr->set_base_position_pos(pos);
         rob_chr->set_osage_reset();
     } break;
     case DSC_X_MIKU_ROT: {
@@ -2846,8 +2846,8 @@ bool x_pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         if (!rob_chr)
             break;
 
-        int16_t rot_y_int16 = (int32_t)((rot_y + scene_rot_y) * 32768.0f * (float_t)(1.0 / 180.0));
-        rob_chr->data.miku_rot.rot_y_int16 = rot_y_int16;
+        int16_t yang = (int32_t)((rot_y + scene_rot_y) * 32768.0f * (float_t)(1.0 / 180.0));
+        rob_chr->data.position.yang = yang;
         rob_chr->set_osage_reset();
     } break;
     case DSC_X_MIKU_DISP: {
@@ -3399,7 +3399,7 @@ bool x_pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         wet = clamp_def(wet, 0.0f, 1.0f);
 
         if (rob_chr)
-            rob_chr->item_equip->wet = wet;
+            rob_chr->rob_disp->wet = wet;
     } break;
     case DSC_X_LIGHT_ROT: {
 
@@ -3438,13 +3438,13 @@ bool x_pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         playdata = &this->playdata[chara_id];
         rob_chr = playdata->rob_chr;
 
-        item_id id = (item_id)data[1];
+        ROB_PARTS_KIND rpk = (ROB_PARTS_KIND)data[1];
         int32_t disp = data[2];
 
         if (!rob_chr)
             break;
 
-        rob_chr->set_parts_disp(id, disp == 1);
+        rob_chr->set_parts_disp(rpk, disp == 1);
     } break;
     case DSC_X_TARGET_FLYING_TIME: {
 
@@ -3461,16 +3461,16 @@ bool x_pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
 
         int32_t chara_size_index;
         if (chara_size == 0)
-            chara_size_index = chara_init_data_get_chara_size_index(rob_chr->chara_index);
+            chara_size_index = rob_data_get_chara_size_index(rob_chr->chara_num);
         else if (chara_size == 1) {
-            ::chara_index chara_index = CHARA_MIKU;
+            CHARA_NUM chara_num = CN_MIKU;
             if (chara_id < pv_game->get_data().play_param->chara.size())
-                chara_index = (::chara_index)pv_game->get_data()
+                chara_num = (CHARA_NUM)pv_game->get_data()
                     .play_param->chara[chara_id].chara_effect.base_chara;
             else if (pv_game->get_data().pv_id == 826 && false)
-                chara_index = rob_chara_array_get(chara_id)->chara_index;
+                chara_num = rob_chara_array_get(chara_id)->chara_num;
 
-            chara_size_index = chara_init_data_get_chara_size_index(chara_index);
+            chara_size_index = rob_data_get_chara_size_index(chara_num);
         }
         else if (chara_size == 2)
             chara_size_index = 1;
@@ -3681,7 +3681,7 @@ bool x_pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         float_t duration = (float_t)data[2];
         int32_t type = data[3];
 
-        if (chara_id >= 0 && chara_id < ROB_CHARA_COUNT)
+        if (chara_id >= 0 && chara_id < ROB_ID_MAX)
             pv_param_task::post_process_task_set_chara_alpha(
                 chara_id, type, alpha, duration);
     } break;
@@ -3706,7 +3706,7 @@ bool x_pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         float_t duration = (float_t)data[2];
         int32_t type = data[3];
 
-        if (chara_id >= 0 && chara_id < ROB_CHARA_COUNT) {
+        if (chara_id >= 0 && chara_id < ROB_ID_MAX) {
             pv_param_task::post_process_task_set_chara_item_alpha(
                 chara_id, type, alpha, duration,
                 x_pv_game_item_alpha_callback, this->pv_game);
@@ -4021,7 +4021,7 @@ void x_pv_game_pv_data::find_change_fields(std::vector<int64_t>& change_fields) 
 }
 
 void x_pv_game_pv_data::find_playdata_item_anim(int32_t chara_id) {
-    if (chara_id < 0 || chara_id >= ROB_CHARA_COUNT)
+    if (chara_id < 0 || chara_id >= ROB_ID_MAX)
         return;
 
     x_pv_play_data* playdata = &this->playdata[chara_id];
@@ -4053,7 +4053,7 @@ void x_pv_game_pv_data::find_playdata_item_anim(int32_t chara_id) {
 }
 
 void x_pv_game_pv_data::find_playdata_set_motion(int32_t chara_id) {
-    if (chara_id < 0 || chara_id >= ROB_CHARA_COUNT)
+    if (chara_id < 0 || chara_id >= ROB_ID_MAX)
         return;
 
     x_pv_play_data* playdata = &this->playdata[chara_id];
@@ -4155,7 +4155,7 @@ void x_pv_game_pv_data::find_set_motion() {
 
     pvpp* play_param = pv_game->get_data().play_param;
 
-    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
+    for (int32_t i = 0; i < ROB_ID_MAX; i++) {
         x_pv_play_data& playdata = this->playdata[i];
         std::vector<pv_data_set_motion>& set_motion = this->set_motion[i];
 
@@ -4198,7 +4198,7 @@ void x_pv_game_pv_data::find_set_motion() {
         }
     }
 
-    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
+    for (int32_t i = 0; i < ROB_ID_MAX; i++) {
         if (i < 0 || i >= play_param->chara.size())
             continue;
 
@@ -4255,7 +4255,7 @@ void x_pv_game_pv_data::init(class x_pv_game* pv_game, bool music_play) {
 
     pv_expression_array_reset();
 
-    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
+    for (int32_t i = 0; i < ROB_ID_MAX; i++) {
         if (pv_game->rob_chara_ids[i] == -1)
             continue;
 
@@ -4334,7 +4334,7 @@ bool x_pv_game_pv_data::set_pv_param_post_process_dof_data(bool set, int32_t id,
 }
 
 void x_pv_game_pv_data::set_motion_max_frame(int32_t chara_id, int32_t motion_index, int64_t time) {
-    if (chara_id < 0 || chara_id >= ROB_CHARA_COUNT || motion_index < 0)
+    if (chara_id < 0 || chara_id >= ROB_ID_MAX || motion_index < 0)
         return;
 
     x_pv_play_data& playdata = this->playdata[chara_id];
@@ -4504,7 +4504,7 @@ void x_pv_game_data::disp() {
 #endif
 }
 
-void x_pv_game_data::load(int32_t pv_id, FrameRateControl* frame_rate_control, chara_index charas[6]) {
+void x_pv_game_data::load(int32_t pv_id, FrameRateControl* frame_rate_control, CHARA_NUM charas[6]) {
     if (state)
         return;
 
@@ -6113,8 +6113,8 @@ void x_pv_game_stage::unload() {
 x_pv_game::x_pv_game() : state(), pv_count(),  pv_index(), state_old(), frame(), frame_float(), time(),
 rob_chara_ids(), success(), task_effect_init(), pause(), step_frame(), pv_id(), stage_id(), charas(), modules() {
     light_auth_3d_id = {};
-    for (chara_index& i : charas)
-        i = CHARA_MAX;
+    for (CHARA_NUM& i : charas)
+        i = CN_MAX;
     for (int32_t& i : modules)
         i = 0;
 }
@@ -6466,20 +6466,20 @@ bool x_pv_game::ctrl() {
                 effchrpv_auth_3d_to_mot_modify_play_param(pv_data.play_param);
 #endif
 
-            int32_t chara_index = 0;
+            int32_t chara = 0;
             for (pvpp_chara& i : pv_data.play_param->chara) {
-                if (i.motion.size() && rob_chara_ids[chara_index] == -1) {
+                if (i.motion.size() && rob_chara_ids[chara] == -1) {
                     rob_chara_pv_data pv_data;
-                    pv_data.chara_size_index = chara_init_data_get_chara_size_index(charas[chara_index]);
+                    pv_data.chara_size_index = rob_data_get_chara_size_index(charas[chara]);
                     rob_sleeve_handler_data_get_sleeve_data(
-                        charas[chara_index], modules[chara_index], pv_data.sleeve_l, pv_data.sleeve_r);
-                    int32_t chara_id = rob_chara_array_init_chara_index(
-                        charas[chara_index], pv_data, modules[chara_index], true);
-                    if (chara_id >= 0 && chara_id < ROB_CHARA_COUNT)
-                        rob_chara_ids[chara_index] = chara_id;
+                        charas[chara], modules[chara], pv_data.sleeve_l, pv_data.sleeve_r);
+                    int32_t chara_id = rob_chara_array_init_chara_num(
+                        charas[chara], pv_data, modules[chara], true);
+                    if (chara_id >= 0 && chara_id < ROB_ID_MAX)
+                        rob_chara_ids[chara] = chara_id;
                 }
 
-                if (++chara_index >= ROB_CHARA_COUNT)
+                if (++chara >= ROB_ID_MAX)
                     break;
             }
 
@@ -6498,7 +6498,7 @@ bool x_pv_game::ctrl() {
     } break;
     case 3: {
         bool wait_load = false;
-        for (int32_t i = 0; i < ROB_CHARA_COUNT; i++)
+        for (int32_t i = 0; i < ROB_ID_MAX; i++)
             if (rob_chara_ids[i] != -1)
                 wait_load |= !task_rob_manager_check_chara_loaded(rob_chara_ids[i]);
 
@@ -6936,8 +6936,8 @@ bool x_pv_game::ctrl() {
 
             int32_t time = -1;
             int32_t frame = -1;
-            bool hand_anim_set[ROB_CHARA_COUNT] = {};
-            int32_t hand_anim_set_time[ROB_CHARA_COUNT] = {};
+            bool hand_anim_set[ROB_ID_MAX] = {};
+            int32_t hand_anim_set_time[ROB_ID_MAX] = {};
             for (dsc_data& i : pv_data.dsc.data) {
                 if (i.func == DSC_X_END)
                     break;
@@ -6976,7 +6976,7 @@ bool x_pv_game::ctrl() {
                 }
             }
 
-            for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
+            for (int32_t i = 0; i < ROB_ID_MAX; i++) {
                 if (!hand_anim_set[i])
                     continue;
 
@@ -7116,7 +7116,7 @@ bool x_pv_game::ctrl() {
         if (wait_load)
             break;
 
-        for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
+        for (int32_t i = 0; i < ROB_ID_MAX; i++) {
 #if BAKE_X_PACK
             if (pv_x_bake || rob_chara_ids[i] == -1)
                 continue;
@@ -7779,7 +7779,7 @@ bool x_pv_game::ctrl() {
         img_write = false;
 #endif
 
-        for (int32_t i = 0; i < ROB_CHARA_COUNT; i++)
+        for (int32_t i = 0; i < ROB_ID_MAX; i++)
             pv_expression_array_reset_motion(i);
 
 #if BAKE_DOF
@@ -8163,7 +8163,7 @@ void x_pv_game::window() {
     ImGui::End();
 }
 
-void x_pv_game::load(int32_t pv_id, int32_t stage_id, chara_index charas[6], int32_t modules[6]) {
+void x_pv_game::load(int32_t pv_id, int32_t stage_id, CHARA_NUM charas[6], int32_t modules[6]) {
     data_struct* aft_data = &data_list[DATA_AFT];
     motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
@@ -8192,8 +8192,6 @@ void x_pv_game::load(int32_t pv_id, int32_t stage_id, chara_index charas[6], int
 
     sprintf_s(buf, sizeof(buf), "EFFSTGPV%03d", 800 + stage_id);
     light_category = buf;
-
-    int32_t chara_index = 0;
 
     success = true;
     task_effect_init = false;
@@ -8285,8 +8283,8 @@ bool x_pv_game::unload() {
 
     pv_id = 0;
     stage_id = 0;
-    for (chara_index& i : charas)
-        i = CHARA_MAX;
+    for (CHARA_NUM& i : charas)
+        i = CN_MAX;
     for (int32_t& i : modules)
         i = 0;
 
@@ -9344,11 +9342,11 @@ XPVGameBaker::XPVGameBaker() : charas(), modules(), pv_tit_aet_set_ids(),
 pv_tit_spr_set_ids(), pv_tit_aet_ids(), obj_set_encode_flags(), pv_tit_init(),
 wait(), start(), exit(), next(), write_file(), only_firstread_x() {
     index = -1;
-    chara_index = CHARA_MIKU;
+    chara_num = CN_MIKU;
     farc = true;
 
-    for (::chara_index& i : charas)
-        i = CHARA_MIKU;
+    for (CHARA_NUM& i : charas)
+        i = CN_MIKU;
 
     for (int32_t& i : modules)
         i = 0;
@@ -9506,47 +9504,47 @@ void XPVGameBaker::print_log(const char* out_dir, _In_z_ _Printf_format_string_ 
 }
 #endif
 
-static const chara_index pv_charas[][6] = {
-    { CHARA_MIKU, },
-    { CHARA_MIKU, CHARA_LUKA, },
-    { CHARA_MIKU, },
-    { CHARA_MIKU, },
-    { CHARA_RIN, },
-    { CHARA_MIKU, },
-    { CHARA_MIKU, },
-    { CHARA_MIKU, },
-    { CHARA_MIKU, },
-    { CHARA_MIKU, },
-    { CHARA_MIKU, },
-    { CHARA_MIKU, },
-    { CHARA_MIKU, CHARA_RIN, },
-    { CHARA_MIKU, CHARA_MIKU, },
-    { CHARA_LUKA, },
-    { CHARA_LEN, },
-    { CHARA_KAITO, CHARA_MIKU, CHARA_MEIKO, },
-    { CHARA_MIKU, },
-    { CHARA_MIKU, },
-    { CHARA_MIKU, },
-    { CHARA_MIKU, },
-    { CHARA_MEIKO, CHARA_RIN, CHARA_LEN, },
-    { CHARA_MIKU, },
-    { CHARA_MIKU, },
-    { CHARA_MIKU, },
-    { CHARA_MIKU, CHARA_RIN, CHARA_LEN, CHARA_LUKA, CHARA_KAITO, CHARA_MEIKO, },
-    { CHARA_MIKU, CHARA_RIN, CHARA_LUKA, },
-    { CHARA_MIKU, CHARA_LUKA, CHARA_MEIKO, },
-    { CHARA_MIKU, CHARA_RIN, CHARA_LEN, },
-    { CHARA_MIKU, },
-    { CHARA_MIKU, },
-    { CHARA_MIKU, },
+static const CHARA_NUM pv_charas[][6] = {
+    { CN_MIKU, },
+    { CN_MIKU, CN_LUKA, },
+    { CN_MIKU, },
+    { CN_MIKU, },
+    { CN_RIN, },
+    { CN_MIKU, },
+    { CN_MIKU, },
+    { CN_MIKU, },
+    { CN_MIKU, },
+    { CN_MIKU, },
+    { CN_MIKU, },
+    { CN_MIKU, },
+    { CN_MIKU, CN_RIN, },
+    { CN_MIKU, CN_MIKU, },
+    { CN_LUKA, },
+    { CN_LEN, },
+    { CN_KAITO, CN_MIKU, CN_MEIKO, },
+    { CN_MIKU, },
+    { CN_MIKU, },
+    { CN_MIKU, },
+    { CN_MIKU, },
+    { CN_MEIKO, CN_RIN, CN_LEN, },
+    { CN_MIKU, },
+    { CN_MIKU, },
+    { CN_MIKU, },
+    { CN_MIKU, CN_RIN, CN_LEN, CN_LUKA, CN_KAITO, CN_MEIKO, },
+    { CN_MIKU, CN_RIN, CN_LUKA, },
+    { CN_MIKU, CN_LUKA, CN_MEIKO, },
+    { CN_MIKU, CN_RIN, CN_LEN, },
+    { CN_MIKU, },
+    { CN_MIKU, },
+    { CN_MIKU, },
 };
 
 XPVGameSelector::XPVGameSelector() : charas(), modules(), start(), exit() {
     pv_id = 823;
     stage_id = 23;
 
-    for (chara_index& i : charas)
-        i = CHARA_MIKU;
+    for (CHARA_NUM& i : charas)
+        i = CN_MIKU;
 
     for (int32_t& i : modules)
         i = 0;
@@ -9573,7 +9571,7 @@ XPVGameSelector::XPVGameSelector() : charas(), modules(), start(), exit() {
     for (const auto& i : modules_data)
         this->modules_data[i.second.chara].push_back(&i.second);
 
-    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
+    for (int32_t i = 0; i < ROB_ID_MAX; i++) {
         charas[i] = pv_charas[pv_id - 801][i];
         modules[i] = 0;
         module_names[i].clear();
@@ -9596,7 +9594,7 @@ XPVGameSelector::XPVGameSelector() : charas(), modules(), start(), exit() {
     modules[5] = 31;
 #endif
 
-    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
+    for (int32_t i = 0; i < ROB_ID_MAX; i++) {
         for (const auto& j : this->modules_data[charas[i]])
             if (modules[i] == j->cos) {
                 module_names[i].assign(j->name);
@@ -9728,7 +9726,7 @@ void XPVGameSelector::window() {
     pv_id = max_def(pv_id, 0);
     int32_t pv_id_temp = pv_id;
     if (ImGui::ColumnComboBox("PV", pv_names, 32, &pv_id_temp, 0, false, &focus) && pv_id != pv_id_temp) {
-        for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
+        for (int32_t i = 0; i < ROB_ID_MAX; i++) {
             charas[i] = pv_charas[pv_id_temp][i];
             modules[i] = 0;
             module_names[i].clear();
@@ -9748,12 +9746,16 @@ void XPVGameSelector::window() {
     ImGui::ColumnComboBox("Stage", stage_names, 32, &stage_id, 0, false, &focus);
     stage_id++;
 
+    const char* chara_full_names[CN_MAX];
+    for (int32_t i = 0; i < CN_MAX; i++)
+        chara_full_names[i] = get_chara_name_full((CHARA_NUM)i);
+
     char buf[0x200];
-    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
-        chara_index chara_old = charas[i];
+    for (int32_t i = 0; i < ROB_ID_MAX; i++) {
+        CHARA_NUM chara_old = charas[i];
 
         sprintf_s(buf, sizeof(buf), "Chara %dP", i + 1);
-        ImGui::ColumnComboBox(buf, chara_full_names, CHARA_MAX,
+        ImGui::ColumnComboBox(buf, chara_full_names, CN_MAX,
             (int32_t*)&charas[i], 0, false, &focus);
 
         if (chara_old != charas[i]) {
@@ -9768,7 +9770,7 @@ void XPVGameSelector::window() {
         }
     }
 
-    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
+    for (int32_t i = 0; i < ROB_ID_MAX; i++) {
         sprintf_s(buf, sizeof(buf), "Module %dP", i + 1);
 
         ImGui::StartPropertyColumn(buf);
@@ -10032,7 +10034,7 @@ static vec3 x_pv_game_dof_callback(void* data, int32_t chara_id) {
         return pv_data.chara_effect.get_node_translation(0,
             (int32_t)(chara_id - pv_data.play_param->chara.size()), 0, "j_kao_wj");
 
-    if (chara_id < 0 && chara_id >= ROB_CHARA_COUNT)
+    if (chara_id < 0 && chara_id >= ROB_ID_MAX)
         return 0.0f;
 
     rob_chara* rob_chr = rob_chara_array_get(chara_id);
@@ -10040,7 +10042,7 @@ static vec3 x_pv_game_dof_callback(void* data, int32_t chara_id) {
         return 0.0f;
 
     vec3 trans;
-    mat4_get_translation(rob_chr->get_bone_data_mat(MOTION_BONE_CL_KAO), &trans);
+    mat4_get_translation(rob_chr->get_bone_data_mat(BLK_CL_KAO), &trans);
     return trans;
 }
 

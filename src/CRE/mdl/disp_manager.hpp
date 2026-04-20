@@ -198,7 +198,7 @@ namespace mdl {
         vec4 blend_color;
         vec4 emission;
         int32_t self_shadow;
-        shadow_type_enum shadow;
+        SHADOW_GROUP shadow;
         GLuint morph_vertex_buffer;
         size_t morph_vertex_buffer_offset;
         float_t morph_weight;
@@ -486,7 +486,7 @@ namespace mdl {
         };
 
         mdl::ObjFlags obj_flags;
-        shadow_type_enum shadow_type;
+        SHADOW_GROUP shadow_group;
         int32_t field_8;
         int32_t field_C;
         mdl::ObjList obj[mdl::OBJ_TYPE_MAX];
@@ -579,7 +579,7 @@ namespace mdl {
         int32_t get_obj_count(ObjTypeScreen type);
         int32_t get_obj_count(ObjTypeReflect type);
         ObjFlags get_obj_flags();
-        shadow_type_enum get_shadow_type();
+        SHADOW_GROUP get_shadow_group();
         void get_texture_color_coeff(vec4& value);
         void get_texture_color_offset(vec4& value);
         void get_texture_pattern(int32_t& count, texture_pattern_struct*& value);
@@ -602,7 +602,7 @@ namespace mdl {
         void set_obj_flags(ObjFlags flags = (ObjFlags)0);
         void set_material_list(int32_t count = 0, const material_list_struct* value = 0);
         void set_morph(object_info object = {}, float_t weight = 0.0f);
-        void set_shadow_type(shadow_type_enum type = SHADOW_CHARA);
+        void set_shadow_group(SHADOW_GROUP value = SHADOW_GROUP_CHARA);
         void set_texture_color_coefficients(const vec4& value);
         void set_texture_color_offset(const vec4& value);
         void set_texture_pattern(int32_t count = 0, const texture_pattern_struct* value = 0);

@@ -179,7 +179,7 @@ static void sub_140105010(pv_game_chara* arr, size_t max_count, pv_game_item_mas
 static bool sub_1401279D0();
 static bool sub_140128480();
 
-pv_game_chara::pv_game_chara() : chara_index(), cos(), chara_id(), pv_data(), rob_chr() {
+pv_game_chara::pv_game_chara() : chara_num(), cos(), chara_id(), pv_data(), rob_chr() {
 
 }
 
@@ -194,7 +194,7 @@ bool pv_game_chara::check_chara() {
 }
 
 void pv_game_chara::reset() {
-    chara_index = CHARA_MAX;
+    chara_num = CN_MAX;
     cos = -1;
     chara_id = -1;
     pv_data.reset();
@@ -267,8 +267,8 @@ pv_game_edit_instrument::~pv_game_edit_instrument() {
 
 }
 
-pv_game_chreff::pv_game_chreff() : src_chara_index(),
-dst_chara_index(), src_auth_3d_uid(), dst_auth_3d_uid() {
+pv_game_chreff::pv_game_chreff() : src_chara_num(),
+dst_chara_num(), src_auth_3d_uid(), dst_auth_3d_uid() {
 
 }
 
@@ -1520,7 +1520,7 @@ int32_t pv_game::check_chrcam(const char* name, int32_t& uid) {
 
     for (const pv_db_pv_chrcam& i : data.pv->chrcam)
         if (!i.org_name.compare(_name)
-            && !i.chara.compare(chara_index_get_auth_3d_name(data.chara[i.id].chara_index))) {
+            && !i.chara.compare(get_char_id_str(data.chara[i.id].chara_num))) {
             uid = aft_auth_3d_db->get_uid(i.name.c_str());
             return 1;
         }
@@ -2602,7 +2602,7 @@ bool pv_game::load() {
                 break;
             }
 
-        for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
+        for (int32_t i = 0; i < ROB_ID_MAX; i++) {
             pv_game_chara& j = data.chara[i];
             j.reset();
             j.pv_data.field_4 = false;
@@ -2615,7 +2615,7 @@ bool pv_game::load() {
             v750.field_1C = player_data->field_0;
             v750.pv = data.pv;
             if (data.pv)
-                sub_140105010(data.chara, ROB_CHARA_COUNT, items_mask, v750);
+                sub_140105010(data.chara, ROB_ID_MAX, items_mask, v750);
 
             if (data.height_adjust)
                 j.pv_data.height_adjust = true;
@@ -2627,10 +2627,10 @@ bool pv_game::load() {
                 j.pv_data.chara_size_index = 1;
                 break;
             case PV_PERFORMER_PLAY_CHARA:
-                j.pv_data.chara_size_index = chara_init_data_get_chara_size_index(j.chara_index);
+                j.pv_data.chara_size_index = rob_data_get_chara_size_index(j.chara_num);
                 break;
             case PV_PERFORMER_PV_CHARA:
-                j.pv_data.chara_size_index = chara_init_data_get_chara_size_index(data.pv->get_performer_chara(i));
+                j.pv_data.chara_size_index = rob_data_get_chara_size_index(data.pv->get_performer_chara(i));
                 break;
             case PV_PERFORMER_SHORT:
                 j.pv_data.chara_size_index = 2;
@@ -2677,7 +2677,7 @@ bool pv_game::load() {
                 if (!i.motion_ids.size())
                     continue;
 
-                i.chara_id = rob_chara_array_init_chara_index(i.chara_index, i.pv_data, i.cos, true);
+                i.chara_id = rob_chara_array_init_chara_num(i.chara_num, i.pv_data, i.cos, true);
                 if (i.chara_id != -1)
                     i.rob_chr = rob_chara_array_get(i.chara_id);
             }
@@ -2695,7 +2695,7 @@ bool pv_game::load() {
         data.motion_set_face_ids.clear();
 
         if (diff) {
-            for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
+            for (int32_t i = 0; i < ROB_ID_MAX; i++) {
                 pv_game_chara& chr = data.chara[i];
                 data.motion_set_ids.reserve(diff->motion[i].size());
                 data.motion_set_face_ids.reserve(diff->motion[i].size());
@@ -2707,7 +2707,7 @@ bool pv_game::load() {
 
                     uint32_t motion_id = j.id;
                     if (data.pv)
-                        motion_id = data.pv->get_chrmot_motion_id(i, chr.chara_index, j);
+                        motion_id = data.pv->get_chrmot_motion_id(i, chr.chara_num, j);
 
                     uint32_t motion_set_id = aft_mot_db->get_motion_set_id_by_motion_id(motion_id);
                     if (motion_set_id != -1) {
@@ -2721,7 +2721,7 @@ bool pv_game::load() {
                         continue;
 
                     std::string motion_face_name;
-                    motion_face_name.assign(chara_index_get_face_mot_name(chr.chara_index));
+                    motion_face_name.assign(get_chara_name_face_mot(chr.chara_num));
                     motion_face_name.append("_FACE_");
                     motion_face_name.append(j.name);
 
@@ -2754,7 +2754,7 @@ bool pv_game::load() {
             if (!i.motion_ids.size())
                 continue;
 
-            i.chara_id = rob_chara_array_init_chara_index(i.chara_index, i.pv_data, i.cos, true);
+            i.chara_id = rob_chara_array_init_chara_num(i.chara_num, i.pv_data, i.cos, true);
             if (i.chara_id != -1)
                 i.rob_chr = rob_chara_array_get(i.chara_id);
         }
@@ -2895,7 +2895,7 @@ bool pv_game::load() {
         if (has_chara) {
             task_rob_manager_hide_task();
 
-            for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
+            for (int32_t i = 0; i < ROB_ID_MAX; i++) {
                 pv_game_chara& chr = data.chara[i];
                 if (chr.chara_id == -1 || !chr.rob_chr)
                     continue;
@@ -2904,7 +2904,7 @@ bool pv_game::load() {
                     int32_t item_no = data.pv->get_performer_item(i, (pv_performer_item)j);
                     if (!item_no || item_no < 0 && !items_mask[i].arr[j])
                         chr.rob_chr->load_body_parts_object_info(
-                            pv_performer_item_to_item_id((pv_performer_item)j),
+                            pv_performer_item_to_rob_parts_kind((pv_performer_item)j),
                             {}, aft_bone_data, aft_data, aft_obj_db);
                 }
                 set_osage_init(chr);
@@ -2935,21 +2935,21 @@ bool pv_game::load() {
             return false;
 
         for (const pv_db_pv_chreff& i : data.pv->chreff) {
-            chara_index src_chara_index = chara_index_get_from_chara_name(i.name.c_str());
-            chara_index dst_chara_index = data.chara[i.id].chara_index;
+            CHARA_NUM src_chara_num = get_chara_num_from_char_id(i.name.c_str());
+            CHARA_NUM dst_chara_num = data.chara[i.id].chara_num;
 
             const std::string& src_name = i.name;
-            std::string dst_name(chara_index_get_auth_3d_name(data.chara[i.id].chara_index));
+            std::string dst_name(get_char_id_str(data.chara[i.id].chara_num));
 
             for (const pv_db_pv_chreff_data& j : i.data) {
                 pv_game_chreff chreff;
-                chreff.src_chara_index = src_chara_index;
-                chreff.dst_chara_index = dst_chara_index;
+                chreff.src_chara_num = src_chara_num;
+                chreff.dst_chara_num = dst_chara_num;
                 chreff.type = j.type;
                 chreff.src_auth_3d.assign(j.name);
                 chreff.dst_auth_3d.assign(j.name);
 
-                if (j.type && src_chara_index != dst_chara_index) {
+                if (j.type && src_chara_num != dst_chara_num) {
                     size_t pos = chreff.dst_auth_3d.find(src_name);
                     if (pos != -1)
                         chreff.dst_auth_3d.replace(pos, 3, dst_name);
@@ -2961,7 +2961,7 @@ bool pv_game::load() {
                 }
 
                 if (j.type != PV_CHREFF_DATA_AUTH3D && j.type != PV_CHREFF_DATA_AUTH3D_OBJ
-                    && !(j.type && src_chara_index == dst_chara_index))
+                    && !(j.type && src_chara_num == dst_chara_num))
                     continue;
 
                 chreff.src_auth_3d_uid = aft_auth_3d_db->get_uid(chreff.src_auth_3d.c_str());
@@ -2976,7 +2976,7 @@ bool pv_game::load() {
                     chreff.dst_auth_3d_category.assign(dst_category);
 
                 if (chreff.dst_auth_3d_uid == -1 || !dst_category.size()) {
-                    chreff.dst_chara_index = src_chara_index;
+                    chreff.dst_chara_num = src_chara_num;
                     chreff.dst_auth_3d.assign(chreff.src_auth_3d);
                     chreff.dst_auth_3d_uid = chreff.src_auth_3d_uid;
                     chreff.dst_auth_3d_category.assign(chreff.src_auth_3d_category);
@@ -2985,7 +2985,7 @@ bool pv_game::load() {
                         continue;
                 }
 
-                if (j.type == PV_CHREFF_DATA_AUTH3D_OBJ && src_chara_index != dst_chara_index) {
+                if (j.type == PV_CHREFF_DATA_AUTH3D_OBJ && src_chara_num != dst_chara_num) {
                     std::string dst_category(chreff.dst_auth_3d_category);
                     size_t pos = dst_category.find(src_name);
                     if (pos != -1) {
@@ -3000,8 +3000,8 @@ bool pv_game::load() {
                         if (pos != -1) {
                             dst_category.replace(pos, 3, src_name);
                             if (aft_obj_db->get_object_set_id(dst_category.c_str()) != -1) {
-                                chreff.src_chara_index = src_chara_index;
-                                chreff.dst_chara_index = dst_chara_index;
+                                chreff.src_chara_num = src_chara_num;
+                                chreff.dst_chara_num = dst_chara_num;
                                 chreff.dst_auth_3d_category.assign(dst_category);
                                 data.chreff_auth_3d_obj.push_back(chreff);
                             }
@@ -3314,7 +3314,7 @@ bool pv_game::load() {
 
                 for (pv_game_chreff& k : data.chreff_auth_3d_obj)
                     if (k.dst_auth_3d_uid == j) {
-                        id.set_src_dst_chara(k.src_chara_index, k.dst_chara_index);
+                        id.set_src_dst_chara(k.src_chara_num, k.dst_chara_num);
                         break;
                     }
 
@@ -3359,7 +3359,7 @@ bool pv_game::load() {
 
             char buf[0x200];
             int32_t chara_id = -1;
-            for (int32_t j = 0; j < ROB_CHARA_COUNT; j++) {
+            for (int32_t j = 0; j < ROB_ID_MAX; j++) {
                 sprintf_s(buf, sizeof(buf), "%s_%dP", data.itmpv_string.c_str(), j + 1);
                 if (!uid_name.find(buf)) {
                     chara_id = j;
@@ -3466,7 +3466,7 @@ bool pv_game::load() {
                 if (i.index < (data.height_adjust ? 0 : 1))
                     continue;
 
-                const hand_item* hand_item = hand_item_handler_data_get_hand_item(i.uid, (chara_index)-1);
+                const hand_item* hand_item = hand_item_handler_data_get_hand_item(i.uid, CN_NONE);
                 if (hand_item) {
                     hand_obj_infos.push_back(hand_item->obj_left);
                     hand_obj_infos.push_back(hand_item->obj_right);
@@ -4051,7 +4051,7 @@ void pv_game::reset() {
     data.chance_point = 0;
 
     for (pv_game_chara& i : data.chara) {
-        i.chara_index = CHARA_MAX;
+        i.chara_num = CN_MAX;
         i.cos = -1;
         i.chara_id = -1;
         i.pv_data = {};
@@ -4505,7 +4505,7 @@ void pv_game::set_eyes_adjust(pv_game_chara* chr) {
     if (data.pv->eyes_base_adjust_type != EYES_BASE_ADJUST_NONE)
         chr->pv_data.eyes_adjust.base_adjust = data.pv->eyes_base_adjust_type;
 
-    auto elem = data.pv->eyes_rot_rate.find(chr->chara_index);
+    auto elem = data.pv->eyes_rot_rate.find(chr->chara_num);
     if (elem != data.pv->eyes_rot_rate.end()) {
         chr->pv_data.eyes_adjust.neg = elem->second.xn_rate;
         chr->pv_data.eyes_adjust.pos = elem->second.xp_rate;
@@ -4600,14 +4600,14 @@ bool pv_game::set_pv_param_post_process_bloom_data(bool set, int32_t id, float_t
 
 void pv_game::set_pv_param_post_process_chara_alpha_data(int32_t chara_id,
     float_t alpha, int32_t type, float_t duration) {
-    if (chara_id >= 0 && chara_id < ROB_CHARA_COUNT)
+    if (chara_id >= 0 && chara_id < ROB_ID_MAX)
         pv_param_task::post_process_task_set_chara_alpha(
             chara_id, type, alpha, duration);
 }
 
 void pv_game::set_pv_param_post_process_chara_item_alpha_data(int32_t chara_id,
     float_t alpha, int32_t type, float_t duration) {
-    if (chara_id >= 0 && chara_id < ROB_CHARA_COUNT)
+    if (chara_id >= 0 && chara_id < ROB_ID_MAX)
         pv_param_task::post_process_task_set_chara_item_alpha(
             chara_id, type, alpha, duration,
             pv_game::chara_item_alpha_callback, this);
@@ -4748,7 +4748,7 @@ bool pv_game::unload() {
             rob_chara_array_free_chara_id(i.chara_id);
         }
 
-        i.chara_index = CHARA_MAX;
+        i.chara_num = CN_MAX;
         i.cos = -1;
         i.chara_id = -1;
         i.pv_data = {};
@@ -5051,7 +5051,7 @@ void pv_game::sub_1401230A0() {
 }
 
 void pv_game::chara_item_alpha_callback(void* data, int32_t chara_id, int32_t type, float_t alpha) {
-    if (!data || chara_id < 0 || chara_id >= ROB_CHARA_COUNT)
+    if (!data || chara_id < 0 || chara_id >= ROB_ID_MAX)
         return;
 
     mdl::ObjFlags flags;
@@ -5444,7 +5444,7 @@ void TaskPvGame::load(TaskPvGame::Data& data) {
     sub_14013C8C0()->difficulty = data.init_data.difficulty;
     sub_14013C8C0()->edition = data.init_data.edition;
 
-    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
+    for (int32_t i = 0; i < ROB_ID_MAX; i++) {
         pv_game_ptr->set_module(i, data.init_data.modules[i]);
         pv_game_ptr->set_item(i, data.init_data.items[i]);
         for (int32_t j = 0; j < 4; j++)
@@ -5658,11 +5658,15 @@ void PVGameSelector::window() {
     ImGui::Checkbox("Success", &success);
     ImGui::DisableElementPop(has_success);
 
-    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
-        chara_index chara_old = charas[i];
+    const char* chara_full_names[CN_MAX];
+    for (int32_t i = 0; i < CN_MAX; i++)
+        chara_full_names[i] = get_chara_name_full((CHARA_NUM)i);
+
+    for (int32_t i = 0; i < ROB_ID_MAX; i++) {
+        CHARA_NUM chara_old = charas[i];
 
         sprintf_s(buf, sizeof(buf), "Chara %dP", i + 1);
-        if (charas[i] == CHARA_MAX || pv->get_performer_fixed(i)) {
+        if (charas[i] == CN_MAX || pv->get_performer_fixed(i)) {
             const char* items = "";
             int32_t index = 0;
             ImGui::DisableElementPush(false);
@@ -5670,7 +5674,7 @@ void PVGameSelector::window() {
             ImGui::DisableElementPop(false);
         }
         else
-            ImGui::ColumnComboBox(buf, chara_full_names, CHARA_MAX,
+            ImGui::ColumnComboBox(buf, chara_full_names, CN_MAX,
                 (int32_t*)&charas[i], 0, false, &focus);
 
         if (chara_old != charas[i]) {
@@ -5686,7 +5690,7 @@ void PVGameSelector::window() {
         }
     }
 
-    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
+    for (int32_t i = 0; i < ROB_ID_MAX; i++) {
         sprintf_s(buf, sizeof(buf), "Module %dP", i + 1);
 
         ImGui::StartPropertyColumn(buf);
@@ -5694,11 +5698,11 @@ void PVGameSelector::window() {
         if (imgui_font_arial)
             ImGui::PushFont(imgui_font_arial);
 
-        bool enable = charas[i] != CHARA_MAX && !pv->get_performer_fixed(i);
+        bool enable = charas[i] != CN_MAX && !pv->get_performer_fixed(i);
         ImGui::DisableElementPush(enable);
         if (ImGui::BeginCombo("", enable ? module_names[i].c_str() : "", 0)) {
             for (const auto& j : module_data_handler_data_get_modules()) {
-                if (j.chara_index != charas[i] || j.cos == 499)
+                if (j.chara_num != charas[i] || j.cos == 499)
                     continue;
 
                 ImGui::PushID(&j);
@@ -5733,13 +5737,13 @@ void PVGameSelector::window() {
 }
 
 void PVGameSelector::reset_chara() {
-    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
+    for (int32_t i = 0; i < ROB_ID_MAX; i++) {
         charas[i] = pv->get_performer_chara(i);
         this->modules[i] = 0;
         module_names[i].clear();
 
         if (i >= pv->performer.size()) {
-            charas[i] = CHARA_MAX;
+            charas[i] = CN_MAX;
             continue;
         }
 
@@ -5861,7 +5865,7 @@ void task_pv_game_init_pv() {
     args.init_data.stage_index = stage_index;
     args.ex_stage = v2->field_2C.ex_stage;
 
-    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
+    for (int32_t i = 0; i < ROB_ID_MAX; i++) {
         args.init_data.modules[i] = v2->field_2C.field_4C[i];
         for (int32_t j = 0; j < 4; j++) {
             int32_t item_no = 0;
@@ -6288,21 +6292,21 @@ static SysFrameRate* sys_frame_rate_get(int32_t chara_id) {
 }
 
 static int32_t sub_1400FCFD0(pv_game_chara* arr, const pv_db_pv* pv) {
-    chara_index charas[ROB_CHARA_COUNT];
-    for (chara_index& i : charas)
-        i = CHARA_MAX;
+    CHARA_NUM charas[ROB_ID_MAX];
+    for (CHARA_NUM& i : charas)
+        i = CN_MAX;
 
-    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++)
+    for (int32_t i = 0; i < ROB_ID_MAX; i++)
         if (i < pv->ex_song.chara_count)
-            charas[i] = arr[i].chara_index;
+            charas[i] = arr[i].chara_num;
 
     for (const pv_db_pv_ex_song& i : pv->ex_song.data) {
         int32_t j = 0;
-        for (; j < ROB_CHARA_COUNT; j++)
-            if (charas[j] != CHARA_MAX && i.chara[j] != charas[j])
+        for (; j < ROB_ID_MAX; j++)
+            if (charas[j] != CN_MAX && i.chara[j] != charas[j])
                 break;
 
-        if (j == ROB_CHARA_COUNT)
+        if (j == ROB_ID_MAX)
             return (int32_t)(&i - pv->ex_song.data.data());
     }
     return -1;
@@ -6315,13 +6319,13 @@ static void sub_140105010(pv_game_chara* arr, size_t max_count, pv_game_item_mas
     {
         module_data mdl;
         if (module_data_handler_data_get_module(a4.module, mdl)) {
-            chr->chara_index = mdl.chara_index;
+            chr->chara_num = mdl.chara_num;
             chr->cos = mdl.cos;
             chr->pv_data.sleeve_l = mdl.sleeve_l;
             chr->pv_data.sleeve_r = mdl.sleeve_r;
         }
         else {
-            chr->chara_index = CHARA_MIKU;
+            chr->chara_num = CN_MIKU;
             chr->cos = 0;
         }
     }
@@ -6334,22 +6338,22 @@ static void sub_140105010(pv_game_chara* arr, size_t max_count, pv_game_item_mas
 
     const pv_db_pv* pv = a4.pv;
     PlayerData* player_data = player_data_array_get(0);
-    bool v14 = pv->get_performer_pseudo_fixed(chr->chara_index,
+    bool v14 = pv->get_performer_pseudo_fixed(chr->chara_num,
         performer, a4.field_1C, !player_data->field_F40);
     if (sub_14013C8C0()->sub_1400E7910() == 3 && !pv->get_performer_fixed(performer))
         v14 = false;
 
-    ::chara_index chara_index = CHARA_MAX;
+    CHARA_NUM chara_num = CN_MAX;
     int32_t costume;
     if (pv->is_performer_type_pseudo(performer)) {
         int32_t pseudo_performer = pv->get_performer_pseudo_same_id(performer);
         if (pseudo_performer >= 0) {
             pv_game_chara* pseudo_chr = &arr[pseudo_performer];
             if (!a4.field_1C && player_data->field_F40 && sub_14013C8C0()->sub_1400E7910() != 3
-                || chr->chara_index != pseudo_chr->chara_index || pv->get_performer_fixed(performer)) {
-                chara_index = pseudo_chr->chara_index;
+                || chr->chara_num != pseudo_chr->chara_num || pv->get_performer_fixed(performer)) {
+                chara_num = pseudo_chr->chara_num;
                 pv_performer_type type = pv->get_performer_type(performer);
-                costume = pv_db_pv::get_pseudo_costume(type, pseudo_chr->chara_index, pseudo_chr->cos);
+                costume = pv_db_pv::get_pseudo_costume(type, pseudo_chr->chara_num, pseudo_chr->cos);
 
                 pv_game::get_item_mask(type, &pseudo_chr->pv_data.item,
                     &a3[pseudo_performer], &chr->pv_data.item, &a3[performer]);
@@ -6357,19 +6361,19 @@ static void sub_140105010(pv_game_chara* arr, size_t max_count, pv_game_item_mas
         }
     }
     else if (v14) {
-        chara_index = pv->get_performer_chara(performer);
+        chara_num = pv->get_performer_chara(performer);
         costume = pv->get_performer_costume(performer);
         int32_t exclude = pv->get_performer_exclude(performer);
-        if (exclude >= 0 && exclude < max_count && arr[exclude].chara_index == chara_index) {
-            chara_index = pv->get_performer_chara(exclude);
+        if (exclude >= 0 && exclude < max_count && arr[exclude].chara_num == chara_num) {
+            chara_num = pv->get_performer_chara(exclude);
             costume = pv->get_performer_costume(exclude);
         }
     }
 
-    if (chara_index != CHARA_MAX) {
+    if (chara_num != CN_MAX) {
         module_data mdl;
-        module_data_handler_data_get_module(chara_index, costume != -1 ? costume : 0, mdl);
-        chr->chara_index = mdl.chara_index;
+        module_data_handler_data_get_module(chara_num, costume != -1 ? costume : 0, mdl);
+        chr->chara_num = mdl.chara_num;
         chr->cos = mdl.cos;
     }
 
@@ -6377,7 +6381,7 @@ static void sub_140105010(pv_game_chara* arr, size_t max_count, pv_game_item_mas
     for (int32_t i = 0; i < PV_PERFORMER_ITEM_MAX; i++) {
         int32_t item_no = pv->get_performer_item(performer, item);
         if (item_no == -2) {
-            const item_cos_data* cos = item_table_handler_array_get_item_cos_data(chr->chara_index, chr->cos);
+            const item_cos_data* cos = item_table_handler_array_get_item_cos_data(chr->chara_num, chr->cos);
             if (!cos)
                 continue;
 
@@ -6389,7 +6393,7 @@ static void sub_140105010(pv_game_chara* arr, size_t max_count, pv_game_item_mas
             a3[performer].arr[i] = true;
         }
         else if (item_no > 0) {
-            const item_table_item* itm = item_table_handler_array_get_item(chr->chara_index, item_no);
+            const item_table_item* itm = item_table_handler_array_get_item(chr->chara_num, item_no);
             if (itm && itm->sub_id == pv_performer_item_to_item_sub_id(item))
                 chr->pv_data.item.arr[i] = item_no;
         }

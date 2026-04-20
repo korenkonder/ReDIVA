@@ -350,10 +350,10 @@ DataTestMotA3d* data_test_mot_a3d;
 
 DtmMot* dtm_mot_array;
 
-DataTestMotDw* data_test_mot_dw_array[ROB_CHARA_COUNT];
+DataTestMotDw* data_test_mot_dw_array[ROB_ID_MAX];
 DataTestMotA3dDw* data_test_mot_a3d_dw;
 DataTestMotCtrlDw* data_test_mot_ctrl_dw;
-DataTestFaceMotDw* data_test_face_mot_dw_array[ROB_CHARA_COUNT];
+DataTestFaceMotDw* data_test_face_mot_dw_array[ROB_ID_MAX];
 
 std::vector<uint32_t> motion_test_objset;
 
@@ -400,7 +400,7 @@ DataTestMot::Data::Step::Step() {
     array[3] = 1.0f;
 }
 
-DataTestMot::Data::Data() : chara_index(), curr_chara_index(), cos_id(), curr_cos_id(),
+DataTestMot::Data::Data() : chara_num(), curr_chara_num(), cos_id(), curr_cos_id(),
 motion_set_index(), curr_motion_set_index(), motion_index(), curr_motion_index(), rot_y(),
 trans_x(), offset(), start_frame(), type(), reset_mot(), reset_cam(), reload_data(),
 sync_frame(), field_A8(), field_A9(), running(), field_AC(), field_B0(), sync_1p_frame() {
@@ -434,8 +434,8 @@ bool DataTestMot::init() {
     data_test_mot_a3d_dw_init();
     data.reset_cam = true;
     data.field_A8 = true;
-    dtm_eq_vs_array[0].add_task(0, data.chara_index[0]);
-    dtm_eq_vs_array[1].add_task(1, data.chara_index[1]);
+    dtm_eq_vs_array[0].add_task(0, data.chara_num[0]);
+    dtm_eq_vs_array[1].add_task(1, data.chara_num[1]);
     motion_test_objset_load();
     return true;
 }
@@ -455,30 +455,30 @@ bool DataTestMot::ctrl() {
         v2 = true;
     }
 
-    if (data.chara_index[0] != data.curr_chara_index[0]) {
-        data.curr_chara_index[0] = data.chara_index[0];
-        dtm_eq_vs_array[0].SetCharaIndexCosId(data.chara_index[0], data.cos_id[0]);
+    if (data.chara_num[0] != data.curr_chara_num[0]) {
+        data.curr_chara_num[0] = data.chara_num[0];
+        dtm_eq_vs_array[0].SetCharaNumCosId(data.chara_num[0], data.cos_id[0]);
         v3 = true;
         v2 = true;
     }
 
-    if (data.chara_index[1] != data.curr_chara_index[1]) {
-        data.curr_chara_index[1] = data.chara_index[1];
-        dtm_eq_vs_array[1].SetCharaIndexCosId(data.chara_index[1], data.cos_id[1]);
+    if (data.chara_num[1] != data.curr_chara_num[1]) {
+        data.curr_chara_num[1] = data.chara_num[1];
+        dtm_eq_vs_array[1].SetCharaNumCosId(data.chara_num[1], data.cos_id[1]);
         v3 = true;
         v2 = true;
     }
 
     if (data.cos_id[0] != data.curr_cos_id[0]) {
         data.curr_cos_id[0] = data.cos_id[0];
-        dtm_eq_vs_array[0].SetCharaIndexCosId(data.chara_index[0], data.cos_id[0]);
+        dtm_eq_vs_array[0].SetCharaNumCosId(data.chara_num[0], data.cos_id[0]);
         v3 = true;
         v2 = true;
     }
 
     if (data.cos_id[1] != data.curr_cos_id[1]) {
         data.curr_cos_id[1] = data.cos_id[1];
-        dtm_eq_vs_array[1].SetCharaIndexCosId(data.chara_index[1], data.cos_id[1]);
+        dtm_eq_vs_array[1].SetCharaNumCosId(data.chara_num[1], data.cos_id[1]);
         v3 = true;
         v2 = true;
     }
@@ -597,13 +597,13 @@ bool DataTestMot::ctrl() {
     if (v3)
         dtm_mot_array[0].del_task();
     else
-        dtm_mot_array[0].add_task(data.chara_index[0],
+        dtm_mot_array[0].add_task(data.chara_num[0],
             data.cos_id[0], data.motion_set_index[0], data.motion_index[0]);
 
     if (v2)
         dtm_mot_array[1].del_task();
     else
-        dtm_mot_array[1].add_task(data.chara_index[1],
+        dtm_mot_array[1].add_task(data.chara_num[1],
             data.cos_id[1], data.motion_set_index[1], data.motion_index[1]);
 
     if (data.reset_cam) {
@@ -891,7 +891,7 @@ DtmMot::DtmMot() : rob_bone_data(), type(), rot_y(), pre_offset(), post_offset()
 loop(), change_motion(), use_opd(), loaded(), reset_mot(), save_only_start_frame(), state(),
 frame(), delta_frame(), looped(), start_frame(), ab_frame(), ab_loop(), set_motion_index() {
     chara_id = -1;
-    chara_index = CHARA_MAX;
+    chara_num = CN_MAX;
     cos_id = 502;
     motion_set_id = -1;
     motion_id = -1;
@@ -917,7 +917,7 @@ bool DtmMot::init() {
     state = 1;
     looped = false;
 
-    if (chara_index < 0 || chara_index >= CHARA_MAX || cos_id >= 502) {
+    if (chara_num < 0 || chara_num >= CN_MAX || cos_id >= 502) {
         state = 0;
         return true;
     }
@@ -980,19 +980,19 @@ bool DtmMot::ctrl() {
         state = 3;
     } break;
     case 3: {
-        if (chara_id >= 0 && chara_id < ROB_CHARA_COUNT && task_rob_manager_get_wait(chara_id))
+        if (chara_id >= 0 && chara_id < ROB_ID_MAX && task_rob_manager_get_wait(chara_id))
             break;
 
         rob_chara_pv_data pv_data;
         pv_data.type = ROB_CHARA_TYPE_3;
 
         module_data data;
-        if (module_data_handler_data_get_module(chara_index, cos_id, data)) {
+        if (module_data_handler_data_get_module(chara_num, cos_id, data)) {
             pv_data.sleeve_l = data.sleeve_l;
             pv_data.sleeve_r = data.sleeve_r;
         }
 
-        chara_id = rob_chara_array_init_chara_index(chara_index, pv_data, cos_id, true);
+        chara_id = rob_chara_array_init_chara_num(chara_num, pv_data, cos_id, true);
         state = 4;
     } break;
     case 4: {
@@ -1205,7 +1205,7 @@ bool DtmMot::ctrl() {
 
         float_t frame = this->frame;
         if (frame >= pre_offset)
-            frame = min_def(rob_chr->data.field_1588.field_0.frame, frame - pre_offset);
+            frame = min_def(rob_chr->data.motdata.field_0.frame, frame - pre_offset);
 
         rob_bone_data->motion_step();
 
@@ -1328,7 +1328,7 @@ void DtmMot::basic() {
     rob_chara* rob_chr = rob_chara_array_get(chara_id);
 
     float_t begin = 0.0f;
-    float_t end = rob_chr->data.field_1588.field_0.frame;
+    float_t end = rob_chr->data.motdata.field_0.frame;
     if (ab_loop) {
         begin = ab_frame[0];
         end = ab_frame[1];
@@ -1349,7 +1349,7 @@ void DtmMot::basic() {
         else if (loop) {
             looped = true;
             frame -= end;
-            frame += rob_chr->data.field_1588.field_0.loop_begin;
+            frame += rob_chr->data.motdata.field_0.loop_begin;
         }
         else
             frame = end;
@@ -1358,12 +1358,12 @@ void DtmMot::basic() {
     this->frame = frame;
 }
 
-bool DtmMot::add_task(::chara_index chara_index,
+bool DtmMot::add_task(CHARA_NUM chara_num,
     int32_t cos_id, uint32_t motion_set_index, uint32_t motion_index) {
     if (app::TaskWork::has_task(this) || app::TaskWork::check_task_ready(this))
         return true;
 
-    this->chara_index = chara_index;
+    this->chara_num = chara_num;
     this->cos_id = cos_id;
     this->motion_index = motion_index;
     this->motion_set_index = motion_set_index;
@@ -1371,7 +1371,7 @@ bool DtmMot::add_task(::chara_index chara_index,
     return app::TaskWork::add_task(this, "DATA_TEST_MOTION_MANAGER", 0);
 }
 
-bool DtmMot::add_task(::chara_index chara_index,
+bool DtmMot::add_task(CHARA_NUM chara_num,
     int32_t cos_id, uint32_t motion_id) {
     if (app::TaskWork::has_task(this) || app::TaskWork::check_task_ready(this))
         return true;
@@ -1379,7 +1379,7 @@ bool DtmMot::add_task(::chara_index chara_index,
     data_struct* aft_data = &data_list[DATA_AFT];
     motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
-    this->chara_index = chara_index;
+    this->chara_num = chara_num;
     this->cos_id = cos_id;
     this->motion_id = motion_id;
     this->motion_set_id = aft_mot_db->get_motion_set_id_by_motion_id(motion_id);
@@ -1401,7 +1401,7 @@ bool DtmMot::CheckFirstFrame() {
     if (!rob_chr)
         return false;
 
-    float_t frame_count = rob_chr->data.field_1588.field_0.frame + pre_offset + post_offset;
+    float_t frame_count = rob_chr->data.motdata.field_0.frame + pre_offset + post_offset;
     if (frame_count > 0.0f)
         return fabsf(frame_count - frame) <= 0.000001f;
     return false;
@@ -1566,7 +1566,7 @@ void DtmMot::UpdateABFrame() {
     if (!rob_chr)
         return;
 
-    float_t v3 = rob_chr->data.field_1588.field_0.frame;
+    float_t v3 = rob_chr->data.motdata.field_0.frame;
     for (float_t& i : ab_frame)
         i = clamp_def(i, 0.0f, v3);
 
@@ -1886,15 +1886,15 @@ void DataTestMotDw::CharaListBoxProc::Callback(dw::SelectionListener::CallbackDa
     dw::ListBox* list_box = dynamic_cast<dw::ListBox*>(data->widget);
     if (list_box) {
         int32_t chara_id = list_box->callback_data.i32;
-        ::chara_index chara_index = (::chara_index)list_box->list->selected_item;
-        test_mot_data->chara_index[chara_id] = chara_index;
+        CHARA_NUM chara_num = (CHARA_NUM)list_box->list->selected_item;
+        test_mot_data->chara_num[chara_id] = chara_num;
 
         DataTestMotDw* test_mot_dw = data_test_mot_dw_array_get(chara_id);
         if (test_mot_dw->set_change_button->value) {
             data_struct* aft_data = &data_list[DATA_AFT];
             motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
-            uint32_t set_id = chara_init_data_get(chara_index)->motion_set;
+            uint32_t set_id = get_rob_data(chara_num)->motfile;
             uint32_t set_index = -1;
             for (const motion_set_info& i : aft_mot_db->motion_set)
                 if (i.id == set_id) {
@@ -2149,10 +2149,10 @@ DataTestMotDw::DataTestMotDw(int32_t chara_id, DtmMot* dtm_mot) {
 
     dw::ListBox* chara = new dw::ListBox(chara_comp);
     chara->SetMaxItems(20);
-    for (int32_t i = 0; i < CHARA_MAX; i++)
-        chara->AddItem(chara_index_get_name((chara_index)i));
+    for (int32_t i = 0; i < CN_MAX; i++)
+        chara->AddItem(get_chara_name_full((CHARA_NUM)i));
     chara->callback_data.i32 = chara_id;
-    chara->SetItemIndex(test_mot_data->chara_index[chara_id]);
+    chara->SetItemIndex(test_mot_data->chara_num[chara_id]);
     chara->AddSelectionListener(&chara_list_box_proc);
     chara->SetFont(dw::p_font_type_6x12);
 
@@ -2422,14 +2422,14 @@ void DataTestMotDw::AddModules(int32_t chara_id, dw::ListBox* list_box) {
 
     list_box->ClearItems();
 
-    chara_index chara_index = test_mot_data->chara_index[chara_id];
-    const char* chara_name = chara_index_get_chara_name(chara_index);
+    CHARA_NUM chara_num = test_mot_data->chara_num[chara_id];
+    const char* chara_name = get_chara_name(chara_num);
 
     const std::vector<module_data>& modules = module_data_handler_data_get_modules();
-    for (auto& i : item_table_handler_array_get_table(chara_index)->cos) {
+    for (auto& i : item_table_handler_array_get_table(chara_num)->cos) {
         bool found = false;
         for (const module_data& j : modules)
-            if (chara_index == j.chara_index && i.first == j.cos) {
+            if (chara_num == j.chara_num && i.first == j.cos) {
                 char buf[0x200];
                 sprintf_s(buf, sizeof(buf), "%03d:(%s%03d)%s", j.id, chara_name, i.first + 1, j.name.c_str());
                 list_box->AddItem(buf);
@@ -2439,7 +2439,7 @@ void DataTestMotDw::AddModules(int32_t chara_id, dw::ListBox* list_box) {
             }
 
         if (!found && i.second.data.outer) {
-            const item_table_item* item = item_table_handler_array_get_item(chara_index, i.second.data.outer);
+            const item_table_item* item = item_table_handler_array_get_item(chara_num, i.second.data.outer);
             if (item) {
                 char buf[0x200];
                 sprintf_s(buf, sizeof(buf), "---:(%s%03d)%s", chara_name, i.first + 1, item->name.c_str());
@@ -2990,7 +2990,7 @@ static DataTestMotCtrlDw* data_test_mot_ctrl_dw_get() {
 }
 
 static void data_test_face_mot_dw_array_init(int32_t chara_id) {
-    if (chara_id < 0 || chara_id >= ROB_CHARA_COUNT || !rob_chara_array_get(chara_id))
+    if (chara_id < 0 || chara_id >= ROB_ID_MAX || !rob_chara_array_get(chara_id))
         return;
 
     if (!data_test_face_mot_dw_array[chara_id]) {
@@ -3002,7 +3002,7 @@ static void data_test_face_mot_dw_array_init(int32_t chara_id) {
 }
 
 static DataTestFaceMotDw* data_test_face_mot_dw_array_get(int32_t chara_id) {
-    if (chara_id >= 0 && chara_id < ROB_CHARA_COUNT)
+    if (chara_id >= 0 && chara_id < ROB_ID_MAX)
         return data_test_face_mot_dw_array[chara_id];
     return 0;
 }

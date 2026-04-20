@@ -131,7 +131,7 @@ bool TaskDataInit::ctrl() {
         //sub_140388560();
         hand_item_handler_data_read();
         rob_sleeve_handler_data_read();
-        for (int32_t i = 0; i < ROB_CHARA_COUNT; i++)
+        for (int32_t i = 0; i < ROB_ID_MAX; i++)
             rob_chara_age_age_array_reset(i);
         state = 9;
         break;

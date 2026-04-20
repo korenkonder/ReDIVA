@@ -14,7 +14,7 @@
 
 struct item_table_item_data_obj {
     object_info obj_info;
-    item_id rpk;
+    ROB_PARTS_KIND rpk;
 
     item_table_item_data_obj();
 };
@@ -121,17 +121,12 @@ struct item_table {
 };
 
 extern void item_table_handler_array_init();
-extern const item_cos_data* item_table_handler_array_get_item_cos_data(
-    chara_index chara_index, int32_t cos_id);
-extern const item_table_item* item_table_handler_array_get_item(
-    chara_index chara_index, int32_t item_no);
-extern std::string item_table_handler_array_get_item_name(
-    chara_index chara_index, int32_t item_no);
-extern item_sub_id item_table_handler_array_get_item_sub_id(
-    chara_index chara_index, int32_t item_no);
-extern const std::vector<uint32_t>* item_table_handler_array_get_item_objset(
-    chara_index chara_index, int32_t item_no);
-extern const item_table* item_table_handler_array_get_table(chara_index chara_index);
+extern const item_cos_data* item_table_handler_array_get_item_cos_data(CHARA_NUM cn, int32_t cos_id);
+extern const item_table_item* item_table_handler_array_get_item(CHARA_NUM cn, int32_t item_no);
+extern std::string item_table_handler_array_get_item_name(CHARA_NUM cn, int32_t item_no);
+extern item_sub_id item_table_handler_array_get_item_sub_id(CHARA_NUM cn, int32_t item_no);
+extern const std::vector<uint32_t>* item_table_handler_array_get_item_objset(CHARA_NUM cn, int32_t item_no);
+extern const item_table* item_table_handler_array_get_table(CHARA_NUM cn);
 extern bool item_table_handler_array_load();
 extern void item_table_handler_array_read();
 extern void item_table_handler_array_free();
