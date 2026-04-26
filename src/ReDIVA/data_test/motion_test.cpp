@@ -19,6 +19,7 @@
 #include "../../CRE/stage_param.hpp"
 #include "../dw.hpp"
 #include "../input_state.hpp"
+#include "../print_work.hpp"
 #include "auth_3d_test.hpp"
 #include "equip_test.hpp"
 #include "stage_test.hpp"
@@ -26,7 +27,7 @@
 class DataTestFaceMotDw : public dw::Shell {
 public:
     struct MotionData {
-        int32_t mottbl_index;
+        MOTTABLE_TYPE mottbl_type;
         float_t frame;
     };
 
@@ -37,8 +38,8 @@ public:
         MotionData mouth;
     };
 
-    int32_t chara_id;
-    std::map<uint32_t, int32_t> motion_id_mottbl_map;
+    ROB_ID rob_id;
+    std::map<uint32_t, MOTTABLE_TYPE> motion_id_mottbl_map;
     dw::Button* enable;
     dw::ListBox* face;
     dw::Slider* face_frame;
@@ -49,7 +50,7 @@ public:
     dw::ListBox* mouth;
     dw::Slider* mouth_frame;
 
-    DataTestFaceMotDw(int32_t chara_id);
+    DataTestFaceMotDw(ROB_ID id);
     virtual ~DataTestFaceMotDw() override;
 
     virtual void Hide() override;
@@ -57,7 +58,7 @@ public:
     void AddMottblMapMotions(dw::ListBox* list_box, int32_t type);
     Data GetData();
     bool GetEnable();
-    void GetMottblIndexFrame(DataTestFaceMotDw::MotionData& data, uint32_t motion_id, float_t value);
+    void GetMottblIndexFrame(DataTestFaceMotDw::MotionData& data, uint32_t uid, float_t value);
     dw::ListBox* InitAddMottblMapMotions(dw::Composite* parent, int32_t type);
     void ResetMot();
 };
@@ -222,7 +223,7 @@ public:
     dw::Button* ab_toggle_button;
     dw::Label* ab_loop;
     dw::Label* frame;
-    dw::Label* frame_count;
+    dw::Label* frame_max;
     DispButtonProc disp_button_proc;
     dw::Button* set_change_button;
     UseOpdButtonProc use_opd_button_proc;
@@ -232,7 +233,7 @@ public:
     CreateEqDwProc create_eq_dw_proc;
     CreateDebugCamProc create_debug_cam_proc;
 
-    DataTestMotDw(int32_t chara_id, DtmMot* dtm_mot);
+    DataTestMotDw(ROB_ID id, DtmMot* dtm_mot);
     virtual ~DataTestMotDw() override;
 
     virtual void Draw() override;
@@ -240,10 +241,10 @@ public:
 
     virtual void ClearIDs();
     virtual void AddID(const char* str);
-    virtual void SetFrameSlider(float_t frame, float_t frame_count);
-    virtual void SetFrameLabel(float_t frame, float_t frame_count);
+    virtual void SetFrameSlider(float_t frame, float_t frame_max);
+    virtual void SetFrameLabel(float_t frame, float_t frame_max);
 
-    void AddModules(int32_t chara_id, dw::ListBox* list_box);
+    void AddModules(ROB_ID id, dw::ListBox* list_box);
     void ResetFrame();
     void ResetIDListBoxIndex();
     void SetIDListBoxIndex(uint32_t index);
@@ -365,8 +366,8 @@ static const char* data_test_mot_a3d_get_state_text();
 static DataTestMotA3d* data_test_mot_a3d_get();
 static void data_test_mot_a3d_set_auth_3d(std::string& value);
 
-static void data_test_mot_dw_array_init(int32_t chara_id, DtmMot* dtm_mot);
-static DataTestMotDw* data_test_mot_dw_array_get(int32_t chara_id);
+static void data_test_mot_dw_array_init(ROB_ID id, DtmMot* dtm_mot);
+static DataTestMotDw* data_test_mot_dw_array_get(ROB_ID id);
 
 static void data_test_mot_a3d_dw_init();
 static DataTestMotA3dDw* data_test_mot_a3d_dw_get();
@@ -374,20 +375,20 @@ static DataTestMotA3dDw* data_test_mot_a3d_dw_get();
 static void data_test_mot_ctrl_dw_init();
 static DataTestMotCtrlDw* data_test_mot_ctrl_dw_get();
 
-static void data_test_face_mot_dw_array_init(int32_t chara_id);
-static DataTestFaceMotDw* data_test_face_mot_dw_array_get(int32_t chara_id);
+static void data_test_face_mot_dw_array_init(ROB_ID id);
+static DataTestFaceMotDw* data_test_face_mot_dw_array_get(ROB_ID id);
 static void data_test_face_mot_dw_array_unload();
 
 static bool motion_test_objset_check_not_read();
 static void motion_test_objset_load();
 static void motion_test_objset_unload();
 
-DataTestMot::Data::Offset::Offset() {
+DataTestMot::Data::Off::Off() {
     array[0] = 0.0f;
     array[1] = 0.0f;
 }
 
-DataTestMot::Data::Divide::Divide() {
+DataTestMot::Data::Div::Div() {
     array[0] = 0.0f;
     array[1] = 0.0f;
     array[2] = 0.0f;
@@ -400,13 +401,13 @@ DataTestMot::Data::Step::Step() {
     array[3] = 1.0f;
 }
 
-DataTestMot::Data::Data() : chara_num(), curr_chara_num(), cos_id(), curr_cos_id(),
-motion_set_index(), curr_motion_set_index(), motion_index(), curr_motion_index(), rot_y(),
-trans_x(), offset(), start_frame(), type(), reset_mot(), reset_cam(), reload_data(),
-sync_frame(), field_A8(), field_A9(), running(), field_AC(), field_B0(), sync_1p_frame() {
-    for (uint32_t& i : motion_set_index)
+DataTestMot::Data::Data() : chr(), curr_chr(), ptr(), curr_ptr(), set(),
+curr_set(), uid(), curr_uid(), rot_y(), trans_x(), off(), start_frame(),
+type(), reset_mot(), reset_cam(), reload_data(), sync_frame(), field_A8(),
+field_A9(), running(), field_AC(), field_B0(), sync_1p_frame() {
+    for (uint32_t& i : set)
         i = -1;
-    for (uint32_t& i : curr_motion_set_index)
+    for (uint32_t& i : curr_set)
         i = -1;
     field_AA = true;
 }
@@ -428,14 +429,14 @@ bool DataTestMot::init() {
     cam->set_interest({ 0.0f, 1.0f, 0.0f });
     cam->set_roll(0.0f);
 
-    data_test_mot_dw_array_init(0, &dtm_mot_array[0]);
-    data_test_mot_dw_array_init(1, &dtm_mot_array[1]);
+    data_test_mot_dw_array_init(ROB_ID_1P, &dtm_mot_array[ROB_ID_1P]);
+    data_test_mot_dw_array_init(ROB_ID_2P, &dtm_mot_array[ROB_ID_2P]);
     data_test_mot_ctrl_dw_init();
     data_test_mot_a3d_dw_init();
     data.reset_cam = true;
     data.field_A8 = true;
-    dtm_eq_vs_array[0].add_task(0, data.chara_num[0]);
-    dtm_eq_vs_array[1].add_task(1, data.chara_num[1]);
+    dtm_eq_vs_array[ROB_ID_1P].add_task(ROB_ID_1P, data.chr[ROB_ID_1P]);
+    dtm_eq_vs_array[ROB_ID_2P].add_task(ROB_ID_2P, data.chr[ROB_ID_2P]);
     motion_test_objset_load();
     return true;
 }
@@ -444,7 +445,7 @@ bool DataTestMot::ctrl() {
     data_struct* aft_data = &data_list[DATA_AFT];
     motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
-   data_test_mot_dw_array_get(0)->sub_14028D8B0();
+   data_test_mot_dw_array_get(ROB_ID_1P)->sub_14028D8B0();
 
     bool v3 = false;
     bool v2 = false;
@@ -455,156 +456,158 @@ bool DataTestMot::ctrl() {
         v2 = true;
     }
 
-    if (data.chara_num[0] != data.curr_chara_num[0]) {
-        data.curr_chara_num[0] = data.chara_num[0];
-        dtm_eq_vs_array[0].SetCharaNumCosId(data.chara_num[0], data.cos_id[0]);
+    if (data.chr[ROB_ID_1P] != data.curr_chr[ROB_ID_1P]) {
+        data.curr_chr[ROB_ID_1P] = data.chr[ROB_ID_1P];
+        dtm_eq_vs_array[ROB_ID_1P].SetCharaNumCosId(data.chr[ROB_ID_1P], data.ptr[ROB_ID_1P]);
         v3 = true;
         v2 = true;
     }
 
-    if (data.chara_num[1] != data.curr_chara_num[1]) {
-        data.curr_chara_num[1] = data.chara_num[1];
-        dtm_eq_vs_array[1].SetCharaNumCosId(data.chara_num[1], data.cos_id[1]);
+    if (data.chr[ROB_ID_2P] != data.curr_chr[ROB_ID_2P]) {
+        data.curr_chr[ROB_ID_2P] = data.chr[ROB_ID_2P];
+        dtm_eq_vs_array[ROB_ID_2P].SetCharaNumCosId(data.chr[ROB_ID_2P], data.ptr[ROB_ID_2P]);
         v3 = true;
         v2 = true;
     }
 
-    if (data.cos_id[0] != data.curr_cos_id[0]) {
-        data.curr_cos_id[0] = data.cos_id[0];
-        dtm_eq_vs_array[0].SetCharaNumCosId(data.chara_num[0], data.cos_id[0]);
+    if (data.ptr[ROB_ID_1P] != data.curr_ptr[ROB_ID_1P]) {
+        data.curr_ptr[ROB_ID_1P] = data.ptr[ROB_ID_1P];
+        dtm_eq_vs_array[ROB_ID_1P].SetCharaNumCosId(data.chr[ROB_ID_1P], data.ptr[ROB_ID_1P]);
         v3 = true;
         v2 = true;
     }
 
-    if (data.cos_id[1] != data.curr_cos_id[1]) {
-        data.curr_cos_id[1] = data.cos_id[1];
-        dtm_eq_vs_array[1].SetCharaNumCosId(data.chara_num[1], data.cos_id[1]);
+    if (data.ptr[ROB_ID_2P] != data.curr_ptr[ROB_ID_2P]) {
+        data.curr_ptr[ROB_ID_2P] = data.ptr[ROB_ID_2P];
+        dtm_eq_vs_array[ROB_ID_2P].SetCharaNumCosId(data.chr[ROB_ID_2P], data.ptr[ROB_ID_2P]);
         v3 = true;
         v2 = true;
     }
 
-    if (data.motion_set_index[0] != data.curr_motion_set_index[0]) {
-        data.curr_motion_set_index[0] = data.motion_set_index[0];
+    if (data.set[ROB_ID_1P] != data.curr_set[ROB_ID_1P]) {
+        data.curr_set[ROB_ID_1P] = data.set[ROB_ID_1P];
 
-        data_test_mot_dw_array_get(0)->ClearIDs();
+        data_test_mot_dw_array_get(ROB_ID_1P)->ClearIDs();
 
-        const motion_set_info& set_info = aft_mot_db->motion_set[data.motion_set_index[0]];
+        const motion_set_info& set_info = aft_mot_db->motion_set[data.set[ROB_ID_1P]];
         for (const motion_info& i : set_info.motion)
-            data_test_mot_dw_array_get(0)->AddID(i.name.c_str());
+            data_test_mot_dw_array_get(ROB_ID_1P)->AddID(i.name.c_str());
 
-        data_test_mot_dw_array_get(0)->ResetIDListBoxIndex();
+        data_test_mot_dw_array_get(ROB_ID_1P)->ResetIDListBoxIndex();
 
-        data.curr_motion_index[0] = 0;
-        data.motion_index[0] = 0;
+        data.curr_uid[ROB_ID_1P] = 0;
+        data.uid[ROB_ID_1P] = 0;
+
         v3 = true;
         v2 = true;
     }
 
-    if (data.motion_set_index[1] != data.curr_motion_set_index[1]) {
-        data.curr_motion_set_index[1] = data.motion_set_index[1];
+    if (data.set[ROB_ID_2P] != data.curr_set[ROB_ID_2P]) {
+        data.curr_set[ROB_ID_2P] = data.set[ROB_ID_2P];
 
-        data_test_mot_dw_array_get(1)->ClearIDs();
+        data_test_mot_dw_array_get(ROB_ID_2P)->ClearIDs();
 
-        const motion_set_info& set_info = aft_mot_db->motion_set[data.motion_set_index[1]];
+        const motion_set_info& set_info = aft_mot_db->motion_set[data.set[ROB_ID_2P]];
         for (const motion_info& i : set_info.motion)
-            data_test_mot_dw_array_get(1)->AddID(i.name.c_str());
+            data_test_mot_dw_array_get(ROB_ID_2P)->AddID(i.name.c_str());
 
-        data_test_mot_dw_array_get(1)->ResetIDListBoxIndex();
+        data_test_mot_dw_array_get(ROB_ID_2P)->ResetIDListBoxIndex();
 
-        data.curr_motion_index[1] = 0;
-        data.motion_index[1] = 0;
+        data.curr_uid[ROB_ID_2P] = 0;
+        data.uid[ROB_ID_2P] = 0;
 
         v3 = true;
         v2 = true;
     }
 
     bool frame_comp = false;
-    if (data.motion_index[0] != data.curr_motion_index[0]) {
-        data.curr_motion_index[0] = data.motion_index[0];
-        dtm_mot_array[0].SetMotion(data.motion_set_index[0], data.motion_index[0]);
-        dtm_mot_array[1].SetMotion(data.motion_set_index[1], data.motion_index[1]);
-        dtm_mot_array[0].SetChangeMotion();
-        dtm_mot_array[1].SetChangeMotion();
+    if (data.uid[ROB_ID_1P] != data.curr_uid[ROB_ID_1P]) {
+        data.curr_uid[ROB_ID_1P] = data.uid[ROB_ID_1P];
+        dtm_mot_array[ROB_ID_1P].SetMotion(data.set[ROB_ID_1P], data.uid[ROB_ID_1P]);
+        dtm_mot_array[ROB_ID_2P].SetMotion(data.set[ROB_ID_2P], data.uid[ROB_ID_2P]);
+        dtm_mot_array[ROB_ID_1P].SetChangeMotion();
+        dtm_mot_array[ROB_ID_2P].SetChangeMotion();
         frame_comp = true;
     }
 
-    if (data.motion_index[1] != data.curr_motion_index[1]) {
-        data.curr_motion_index[1] = data.motion_index[1];
-        dtm_mot_array[0].SetMotion(data.motion_set_index[0], data.motion_index[0]);
-        dtm_mot_array[1].SetMotion(data.motion_set_index[1], data.motion_index[1]);
-        dtm_mot_array[0].SetChangeMotion();
-        dtm_mot_array[1].SetChangeMotion();
+    if (data.uid[ROB_ID_2P] != data.curr_uid[ROB_ID_2P]) {
+        data.curr_uid[ROB_ID_2P] = data.uid[ROB_ID_2P];
+        dtm_mot_array[ROB_ID_1P].SetMotion(data.set[ROB_ID_1P], data.uid[ROB_ID_1P]);
+        dtm_mot_array[ROB_ID_2P].SetMotion(data.set[ROB_ID_2P], data.uid[ROB_ID_2P]);
+        dtm_mot_array[ROB_ID_1P].SetChangeMotion();
+        dtm_mot_array[ROB_ID_2P].SetChangeMotion();
     }
 
-    dtm_mot_array[0].SetRotationY(data.rot_y[0]);
-    dtm_mot_array[1].SetRotationY(data.rot_y[1]);
-    dtm_mot_array[0].SetTrans({ data.trans_x[0], 0.0f, 0.0f });
-    dtm_mot_array[1].SetTrans({ data.trans_x[1], 0.0f, 0.0f });
-    dtm_mot_array[0].SetOffset(data.offset[0].array[0], data.offset[0].array[1]);
-    dtm_mot_array[1].SetOffset(data.offset[1].array[0], data.offset[1].array[1]);
-    dtm_mot_array[0].SetStartFrame(data.start_frame[0]);
-    dtm_mot_array[1].SetStartFrame(data.start_frame[1]);
+    dtm_mot_array[ROB_ID_1P].SetRotationY(data.rot_y[ROB_ID_1P]);
+    dtm_mot_array[ROB_ID_2P].SetRotationY(data.rot_y[ROB_ID_2P]);
+    dtm_mot_array[ROB_ID_1P].SetTrans({ data.trans_x[ROB_ID_1P], 0.0f, 0.0f });
+    dtm_mot_array[ROB_ID_2P].SetTrans({ data.trans_x[ROB_ID_2P], 0.0f, 0.0f });
+    dtm_mot_array[ROB_ID_1P].SetOffset(data.off[ROB_ID_1P].array[0], data.off[ROB_ID_1P].array[1]);
+    dtm_mot_array[ROB_ID_2P].SetOffset(data.off[ROB_ID_2P].array[0], data.off[ROB_ID_2P].array[1]);
+    dtm_mot_array[ROB_ID_1P].SetStartFrame(data.start_frame[ROB_ID_1P]);
+    dtm_mot_array[ROB_ID_2P].SetStartFrame(data.start_frame[ROB_ID_2P]);
 
     for (int32_t i = 0; i < 3; i++) {
-        dtm_mot_array[0].SetDivide(i, data.divide[0].array[i]);
-        dtm_mot_array[1].SetDivide(i, data.divide[1].array[i]);
+        dtm_mot_array[ROB_ID_1P].SetDivide(i, data.div[ROB_ID_1P].array[i]);
+        dtm_mot_array[ROB_ID_2P].SetDivide(i, data.div[ROB_ID_2P].array[i]);
     }
 
     for (int32_t i = 0; i < 4; i++) {
-        dtm_mot_array[0].SetStep(i, data.step[0].array[i]);
-        dtm_mot_array[1].SetStep(i, data.step[1].array[i]);
+        dtm_mot_array[ROB_ID_1P].SetStep(i, data.step[ROB_ID_1P].array[i]);
+        dtm_mot_array[ROB_ID_2P].SetStep(i, data.step[ROB_ID_2P].array[i]);
     }
 
     switch (data.type) {
     case 0: {
-        dtm_mot_array[0].SetLoop(false);
-        dtm_mot_array[1].SetLoop(false);
+        dtm_mot_array[ROB_ID_1P].SetLoop(false);
+        dtm_mot_array[ROB_ID_2P].SetLoop(false);
 
-        dtm_mot_array[0].SetPlay(true);
-        dtm_mot_array[1].SetPlay(true);
+        dtm_mot_array[ROB_ID_1P].SetPlay(true);
+        dtm_mot_array[ROB_ID_2P].SetPlay(true);
     } break;
     case 1: {
-        dtm_mot_array[0].SetLoop(true);
-        dtm_mot_array[1].SetLoop(true);
+        dtm_mot_array[ROB_ID_1P].SetLoop(true);
+        dtm_mot_array[ROB_ID_2P].SetLoop(true);
 
-        dtm_mot_array[0].SetPlay(true);
-        dtm_mot_array[1].SetPlay(true);
+        dtm_mot_array[ROB_ID_1P].SetPlay(true);
+        dtm_mot_array[ROB_ID_2P].SetPlay(true);
     } break;
     case 2: {
-        dtm_mot_array[0].SetLoop(true);
-        dtm_mot_array[1].SetLoop(true);
+        dtm_mot_array[ROB_ID_1P].SetLoop(true);
+        dtm_mot_array[ROB_ID_2P].SetLoop(true);
 
-        bool play = input_state_get(0)->CheckIntervalTapped(INPUT_BUTTON_SPACE);
-        dtm_mot_array[0].SetPlay(play);
-        dtm_mot_array[1].SetPlay(play);
+        bool move = input_state_get(0)->CheckIntervalTapped(INPUT_BUTTON_SPACE);
+        dtm_mot_array[ROB_ID_1P].SetPlay(move);
+        dtm_mot_array[ROB_ID_2P].SetPlay(move);
     } break;
     }
 
     if (data.reset_mot) {
         data.reset_mot = false;
 
-        dtm_mot_array[0].SetResetMot();
-        dtm_mot_array[1].SetResetMot();
+        dtm_mot_array[ROB_ID_1P].SetResetMot();
+        dtm_mot_array[ROB_ID_2P].SetResetMot();
     }
 
     if (data.sync_frame) {
-        int32_t chara_id = dtm_mot_array[1].GetFrameCount() > dtm_mot_array[0].GetFrameCount() ? 1 : 0;
-        float_t frame = dtm_mot_array[chara_id].GetFrame();
-        dtm_mot_array[0].SetFrame(frame);
-        dtm_mot_array[1].SetFrame(frame);
+        ROB_ID rob_id = (ROB_ID)dtm_mot_array[ROB_ID_2P].GetFrameCount() > dtm_mot_array[ROB_ID_1P].GetFrameCount()
+            ? ROB_ID_2P : ROB_ID_1P;
+        float_t frame = dtm_mot_array[rob_id].GetFrame();
+        dtm_mot_array[ROB_ID_1P].SetFrame(frame);
+        dtm_mot_array[ROB_ID_2P].SetFrame(frame);
     }
 
     if (v3)
-        dtm_mot_array[0].del_task();
+        dtm_mot_array[ROB_ID_1P].del_task();
     else
-        dtm_mot_array[0].add_task(data.chara_num[0],
-            data.cos_id[0], data.motion_set_index[0], data.motion_index[0]);
+        dtm_mot_array[ROB_ID_1P].add_task(data.chr[ROB_ID_1P],
+            data.ptr[ROB_ID_1P], data.set[ROB_ID_1P], data.uid[ROB_ID_1P]);
 
     if (v2)
-        dtm_mot_array[1].del_task();
+        dtm_mot_array[ROB_ID_2P].del_task();
     else
-        dtm_mot_array[1].add_task(data.chara_num[1],
-            data.cos_id[1], data.motion_set_index[1], data.motion_index[1]);
+        dtm_mot_array[ROB_ID_2P].add_task(data.chr[ROB_ID_2P],
+            data.ptr[ROB_ID_2P], data.set[ROB_ID_2P], data.uid[ROB_ID_2P]);
 
     if (data.reset_cam) {
         data.reset_cam = false;
@@ -629,16 +632,16 @@ bool DataTestMot::ctrl() {
         //sub_1401F9510(data.field_A9 ? 32.2673416137695f : 32.8125f);
     }
 
-    if (data.running && dtm_mot_array[0].CheckFirstFrame() && !frame_comp
-        && data.motion_index[0] < aft_mot_db->motion_set[data.motion_set_index[0]].motion.size()) {
-        data.curr_motion_index[0] = data.motion_index[0];
-        data.motion_index[0] = data.motion_index[0] + 1;
-        dtm_mot_array[0].SetMotion(data.motion_set_index[0], data.motion_index[0]);
-        dtm_mot_array[1].SetMotion(data.motion_set_index[1], data.motion_index[1]);
-        dtm_mot_array[0].SetChangeMotion();
-        dtm_mot_array[1].SetChangeMotion();
+    if (data.running && dtm_mot_array[ROB_ID_1P].CheckFirstFrame() && !frame_comp
+        && data.uid[ROB_ID_1P] < aft_mot_db->motion_set[data.set[ROB_ID_1P]].motion.size()) {
+        data.curr_uid[ROB_ID_1P] = data.uid[ROB_ID_1P];
+        data.uid[ROB_ID_1P] = data.uid[ROB_ID_1P] + 1;
+        dtm_mot_array[ROB_ID_1P].SetMotion(data.set[ROB_ID_1P], data.uid[ROB_ID_1P]);
+        dtm_mot_array[ROB_ID_2P].SetMotion(data.set[ROB_ID_2P], data.uid[ROB_ID_2P]);
+        dtm_mot_array[ROB_ID_1P].SetChangeMotion();
+        dtm_mot_array[ROB_ID_2P].SetChangeMotion();
 
-        data_test_mot_dw_array_get(0)->SetIDListBoxIndex(data.motion_index[0]);
+        data_test_mot_dw_array_get(ROB_ID_1P)->SetIDListBoxIndex(data.uid[ROB_ID_1P]);
     }
 
     motion_test_objset_check_not_read();
@@ -650,15 +653,15 @@ bool DataTestMot::dest() {
     clear_color = 0xFF000000;
     set_clear_color = true;
 
-    dtm_mot_array[0].del();
-    dtm_mot_array[1].del();
-    data_test_mot_dw_array_get(0)->Hide();
-    data_test_mot_dw_array_get(1)->Hide();
+    dtm_mot_array[ROB_ID_1P].del();
+    dtm_mot_array[ROB_ID_2P].del();
+    data_test_mot_dw_array_get(ROB_ID_1P)->Hide();
+    data_test_mot_dw_array_get(ROB_ID_2P)->Hide();
     data_test_mot_ctrl_dw_get()->Hide();
     data_test_mot_a3d_dw_get()->Hide();
     data_test_face_mot_dw_array_unload();
-    dtm_eq_vs_array[0].del_task();
-    dtm_eq_vs_array[1].del_task();
+    dtm_eq_vs_array[ROB_ID_1P].del_task();
+    dtm_eq_vs_array[ROB_ID_2P].del_task();
     motion_test_objset_unload();
     data_test_mot_a3d_get()->del();
     return true;
@@ -669,11 +672,12 @@ void DataTestMot::disp() {
 }
 
 void DataTestMot::sub_140286280() {
-    dtm_mot_array[0].sub_1402922C0(true);
-    dtm_mot_array[0].sub_1402922C0(true);
-    if (data.sync_frame && (!dtm_mot_array[0].GetLoaded() || !dtm_mot_array[1].GetLoaded())) {
-        dtm_mot_array[0].sub_1402922C0(false);
-        dtm_mot_array[0].sub_1402922C0(false);
+    dtm_mot_array[ROB_ID_1P].sub_1402922C0(true);
+    dtm_mot_array[ROB_ID_1P].sub_1402922C0(true);
+    if (data.sync_frame && (!dtm_mot_array[ROB_ID_1P].GetLoaded()
+        || !dtm_mot_array[ROB_ID_2P].GetLoaded())) {
+        dtm_mot_array[ROB_ID_1P].sub_1402922C0(false);
+        dtm_mot_array[ROB_ID_1P].sub_1402922C0(false);
     }
 }
 
@@ -879,29 +883,29 @@ void DataTestMotA3d::Sync1pFrame() {
     if (!data_test_mot_data_get()->sync_1p_frame)
         return;
 
-    float_t frame = dtm_mot_array[0].GetFrame();
+    float_t frame = dtm_mot_array[ROB_ID_1P].GetFrame();
     if (get_pause())
-        frame -= dtm_mot_array[0].GetStep();
+        frame -= dtm_mot_array[ROB_ID_1P].GetStep();
 
     for (auth_3d_id& i : auth_3d_ids)
         i.set_req_frame(frame);
 }
 
-DtmMot::DtmMot() : rob_bone_data(), type(), rot_y(), pre_offset(), post_offset(), divide(),
-loop(), change_motion(), use_opd(), loaded(), reset_mot(), save_only_start_frame(), state(),
+DtmMot::DtmMot() : rob_man(), motion(), assign(), rot(), pre_offset(), post_offset(), div(),
+loop(), reset_osage_flag(), use_opd(), loaded(), reset_mot(), save_only_start_frame(), state(),
 frame(), delta_frame(), looped(), start_frame(), ab_frame(), ab_loop(), set_motion_index() {
-    chara_id = -1;
-    chara_num = CN_MAX;
-    cos_id = 502;
-    motion_set_id = -1;
-    motion_id = -1;
+    rctrl = ROB_ID_NULL;
+    chr = CN_MAX;
+    ptr = 502;
+    set = -1;
+    uid = -1;
     step[0] = 0.0f;
     step[1] = 0.0f;
     step[2] = 0.0f;
     step[3] = 1.0f;
-    play = true;
-    field_D2 = true;
-    disp = true;
+    move = true;
+    item = true;
+    display = true;
     partial_mot = true;
     pv_id = -1;
     field_100 = true;
@@ -917,7 +921,7 @@ bool DtmMot::init() {
     state = 1;
     looped = false;
 
-    if (chara_num < 0 || chara_num >= CN_MAX || cos_id >= 502) {
+    if (chr < 0 || chr >= CN_MAX || ptr >= 502) {
         state = 0;
         return true;
     }
@@ -925,23 +929,23 @@ bool DtmMot::init() {
     data_struct* aft_data = &data_list[DATA_AFT];
     motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
-    if (!type) {
-        int32_t motion_set_index = this->motion_set_index;
-        int32_t motion_index = this->motion_index;
-        if (aft_mot_db->motion_set.size() <= motion_set_index) {
+    if (assign == IDX) {
+        uint32_t set = this->set;
+        uint32_t uid = this->uid;
+        if (aft_mot_db->motion_set.size() <= set) {
             state = 0;
             return true;
         }
 
-        motion_set_id = aft_mot_db->motion_set[motion_set_index].id;
-        if (aft_mot_db->motion_set[motion_set_index].motion.size() <= motion_index) {
+        this->set = aft_mot_db->motion_set[set].id;
+        if (aft_mot_db->motion_set[set].motion.size() <= uid) {
             state = 0;
             return true;
         }
-        motion_id = aft_mot_db->motion_set[motion_set_index].motion[motion_index].id;
+        this->uid = aft_mot_db->motion_set[set].motion[uid].id;
     }
 
-    pv_id = DtmMot::ConvertMotionSetNameToPVID(aft_mot_db->get_motion_set_name(motion_set_id));
+    pv_id = DtmMot::ConvertMotionSetNameToPVID(aft_mot_db->get_motion_set_name(set));
     loaded = false;
     return true;
 }
@@ -962,67 +966,67 @@ bool DtmMot::ctrl() {
             }
         }
 
-        motion_set_load_motion(motion_set_id, "", aft_mot_db);
-        motion_set_load_mothead(motion_set_id, "", aft_mot_db);
+        motion_set_load_motion(set, "", aft_mot_db);
+        motion_set_load_mothead(set, "", aft_mot_db);
         state = 2;
     } break;
     case 2: {
-        if (motion_storage_check_mot_file_not_ready(motion_set_id)
-            || mothead_storage_check_mhd_file_not_ready(motion_set_id)
+        if (motion_storage_check_mot_file_not_ready(set)
+            || mothead_storage_check_mhd_file_not_ready(set)
             || dsc_file_handler.check_not_ready())
             break;
 
-        const motion_set_info* set_info = aft_mot_db->get_motion_set_by_id(motion_set_id);
+        const motion_set_info* set_info = aft_mot_db->get_motion_set_by_id(set);
         const size_t motion_count = set_info->motion.size();
         for (size_t i = 0; i < motion_count; i++)
-            motion_storage_get_mot_data_frame_count(set_info->motion.data()[i].id, aft_mot_db);
+            get_mot_frame_max(set_info->motion.data()[i].id, aft_mot_db);
 
         state = 3;
     } break;
     case 3: {
-        if (chara_id >= 0 && chara_id < ROB_ID_MAX && task_rob_manager_get_wait(chara_id))
+        if (rctrl >= 0 && rctrl < ROB_ID_MAX && task_rob_manager_get_wait(rctrl))
             break;
 
-        rob_chara_pv_data pv_data;
-        pv_data.type = ROB_CHARA_TYPE_3;
+        RobInit rob_init;
+        rob_init.rob_type = ROB_TYPE_DATA_TEST;
 
         module_data data;
-        if (module_data_handler_data_get_module(chara_num, cos_id, data)) {
-            pv_data.sleeve_l = data.sleeve_l;
-            pv_data.sleeve_r = data.sleeve_r;
+        if (module_data_handler_data_get_module(chr, ptr, data)) {
+            rob_init.sleeve_l = data.sleeve_l;
+            rob_init.sleeve_r = data.sleeve_r;
         }
 
-        chara_id = rob_chara_array_init_chara_num(chara_num, pv_data, cos_id, true);
+        rctrl = rob_man->create_rob(chr, rob_init, ptr, true);
         state = 4;
     } break;
     case 4: {
-        if (!task_rob_manager_check_chara_loaded(chara_id))
+        if (!task_rob_manager_check_chara_loaded(rctrl))
             break;
 
-        rob_bone_data = rob_chara_array_get_bone_data(chara_id);
+        motion = rob_man->get_rob_motion_work(rctrl);
         state = 7;
     } break;
     case 5: {
         if (osage_play_data_manager_check_task_ready())
             break;
 
-        osage_play_data_manager_append_chara_motion_id(rob_chara_array_get(chara_id), motion_id);
+        osage_play_data_manager_append_chara_motion_id(rob_man->get_rob(rctrl), uid);
         osage_play_data_manager_add_task();
         state = 6;
     } break;
     case 6: {
-        if (osage_play_data_manager_check_task_ready() || skin_param_manager_check_task_ready(chara_id))
+        if (osage_play_data_manager_check_task_ready() || skin_param_manager_check_task_ready(rctrl))
             break;
 
-        rob_chara* rob_chr = rob_chara_array_get(chara_id);
-        rob_chr->set_motion_id(motion_id, frame, 0.0f, true, false, MOTION_BLEND_CROSS, aft_bone_data, aft_mot_db);
+        rob_chara* rob_chr = rob_man->get_rob(rctrl);
+        rob_chr->replace_rob_motion(uid, frame, 0.0f, true, false, MOTION_BLEND_CROSS, aft_bone_data, aft_mot_db);
         rob_chr->set_use_opd(true);
         state = 11;
     } break;
     case 7: {
         loaded = false;
-        if (skin_param_manager_check_task_ready(chara_id)
-            || pv_osage_manager_array_get_disp(chara_id)
+        if (skin_param_manager_check_task_ready(rctrl)
+            || pv_osage_manager_array_get_disp(rctrl)
             || osage_play_data_manager_check_task_ready())
             break;
 
@@ -1032,39 +1036,39 @@ bool DtmMot::ctrl() {
             pv_data.reset();
             pv_data.dsc.parse(dsc_file_handler.get_data(), dsc_file_handler.get_size(), DSC_FT);
 
-            int32_t chara_id = 0;
+            int32_t rctrl = 0;
             for (auto& i : diff->motion)
                 for (const pv_db_pv_motion& j : i)
-                    if (j.id == motion_id) {
-                        chara_id = (int32_t)(&i - diff->motion);
+                    if (j.id == uid) {
+                        rctrl = (int32_t)(&i - diff->motion);
                         break;
                     }
 
-            pv_data.find_playdata_set_motion(chara_id);
+            pv_data.find_playdata_set_motion(rctrl);
             pv_data.find_set_motion(diff);
 
-            const std::vector<pv_data_set_motion>* set_motion = pv_data.get_set_motion(chara_id);
+            const std::vector<pv_data_set_motion>* set_motion = pv_data.get_set_motion(rctrl);
             if (set_motion) {
                 this->set_motion.assign(set_motion->begin(), set_motion->end());
 
-                const mothead_data* data = mothead_storage_get_mot_by_motion_id(motion_id, aft_mot_db)->data;
-                if (data && data->type >= MOTHEAD_DATA_TYPE_0) {
-                    mothead_data_type type = data->type;
-                    while (type != MOTHEAD_DATA_OSAGE_RESET) {
-                        data++;
-                        type = data->type;
-                        if (type < MOTHEAD_DATA_TYPE_0)
+                const MhpList* pp_list = mothead_storage_get_mot_by_motion_id(uid, aft_mot_db)->pp_list;
+                if (pp_list && pp_list->type >= 0) {
+                    int32_t type = pp_list->type;
+                    while (type != MHP_OSAGE_RESET) {
+                        pp_list++;
+                        type = pp_list->type;
+                        if (type < 0)
                             break;
                     }
 
                     while (true) {
-                        if (type < MOTHEAD_DATA_TYPE_0)
+                        if (type < 0)
                             break;
 
                         auto j_begin = this->set_motion.begin();
                         auto j_end = this->set_motion.end();
                         for (auto j = j_begin; j != j_end; )
-                            if ((float_t)data->frame == j->frame_stage_index.first) {
+                            if ((float_t)pp_list->frame == j->frame_stage_index.first) {
                                 std::move(j + 1, j_end, j);
                                 this->set_motion.pop_back();
                                 j_end = this->set_motion.end();
@@ -1072,15 +1076,15 @@ bool DtmMot::ctrl() {
                             else
                                 j++;
 
-                        data++;
-                        type = data->type;
-                        if (type < MOTHEAD_DATA_TYPE_0)
+                        pp_list++;
+                        type = pp_list->type;
+                        if (type < 0)
                             break;
 
-                        while (type != MOTHEAD_DATA_OSAGE_RESET) {
-                            data++;
-                            type = data->type;
-                            if (type < MOTHEAD_DATA_TYPE_0)
+                        while (type != MHP_OSAGE_RESET) {
+                            pp_list++;
+                            type = pp_list->type;
+                            if (type < 0)
                                 break;
                         }
                     }
@@ -1094,33 +1098,33 @@ bool DtmMot::ctrl() {
         state = 8;
     } break;
     case 8: {
-        rob_chara* rob_chr = rob_chara_array_get(chara_id);
+        rob_chara* rob_chr = rob_man->get_rob(rctrl);
         rob_chr->set_use_opd(false);
 
-        skin_param_manager_reset(chara_id);
+        skin_param_manager_reset(rctrl);
 
         std::vector<osage_init_data> vec;
         vec.push_back({ rob_chr });
-        vec.push_back({ rob_chr, pv_id, motion_id });
+        vec.push_back({ rob_chr, pv_id, uid });
 
         const pv_db_pv* pv = task_pv_db_get_pv(pv_id);
         if (pv) {
             for (const pv_db_pv_osage_init& i : pv->osage_init) {
                 uint32_t mot_id = aft_mot_db->get_motion_id(i.motion.c_str());
-                if (mot_id != -1 && mot_id == motion_id)
+                if (mot_id != -1 && mot_id == uid)
                     vec.push_back({ rob_chr, pv_id, mot_id, "", i.frame });
             }
 
             for (pv_data_set_motion& i : set_motion)
-                vec.push_back({ rob_chr, pv->id, i.motion_id, "", (int32_t)prj::roundf(i.frame_stage_index.first) });
+                vec.push_back({ rob_chr, pv->id, i.motnum, "", (int32_t)prj::roundf(i.frame_stage_index.first) });
         }
-        skin_param_manager_add_task(chara_id, vec);
+        skin_param_manager_add_task(rctrl, vec);
 
         state = 9;
 
         const uint32_t* opd_motion_set_ids = get_opd_motion_set_ids();
         while (*opd_motion_set_ids != -1) {
-            if (*opd_motion_set_ids != motion_set_id) {
+            if (*opd_motion_set_ids != set) {
                 opd_motion_set_ids++;
                 continue;
             }
@@ -1131,27 +1135,27 @@ bool DtmMot::ctrl() {
         }
     } break;
     case 9: {
-        if (skin_param_manager_check_task_ready(chara_id))
+        if (skin_param_manager_check_task_ready(rctrl))
             break;
 
-        pv_osage_manager_array_reset(chara_id);
+        pv_osage_manager_array_reset(rctrl);
         if (save_only_start_frame) {
             pv_data_set_motion motion;
-            motion.motion_id = motion_id;
+            motion.motnum = uid;
             motion.frame_stage_index.first = start_frame;
             motion.frame_stage_index.second = task_stage_get_current_stage_index();
 
             std::vector<pv_data_set_motion> set_motion;
             set_motion.push_back(motion);
-            pv_osage_manager_array_set_pv_set_motion(chara_id, set_motion);
+            pv_osage_manager_array_set_pv_set_motion(rctrl, set_motion);
         }
         else {
             std::vector<uint32_t> motion_ids;
-            motion_ids.push_back(motion_id);
-            pv_osage_manager_array_set_motion_ids(chara_id, motion_ids);
+            motion_ids.push_back(uid);
+            pv_osage_manager_array_set_motion_ids(rctrl, motion_ids);
 
             if (pv_id >= 0)
-                pv_osage_manager_array_set_pv_set_motion(chara_id, set_motion);
+                pv_osage_manager_array_set_pv_set_motion(rctrl, set_motion);
         }
 
         if (pv_id >= 0) {
@@ -1159,7 +1163,7 @@ bool DtmMot::ctrl() {
             stage_param_data_coli_data_load(pv_id);
         }
 
-        pv_osage_manager_array_set_pv_id(chara_id, pv_id, 0);
+        pv_osage_manager_array_set_pv_id(rctrl, pv_id, 0);
         state = 10;
     } break;
     case 10: {
@@ -1168,7 +1172,7 @@ bool DtmMot::ctrl() {
 
         int32_t stage_index = task_stage_get_current_stage_index();
         if (stage_index != -1)
-            rob_chara_array_get(chara_id)->set_stage_data_ring(stage_index);
+            rob_man->get_rob(rctrl)->set_stage_data_ring(stage_index);
         state = 11;
     } break;
     case 11: {
@@ -1183,14 +1187,14 @@ bool DtmMot::ctrl() {
     case 12: {
         frame = start_frame;
 
-        rob_chara* rob_chr = rob_chara_array_get(chara_id);
+        rob_chara* rob_chr = rob_man->get_rob(rctrl);
         rob_chr->set_step_motion_step(1.0f);
-        rob_chr->set_motion_id(motion_id, frame, 0.0f, true, true, MOTION_BLEND_CROSS, aft_bone_data, aft_mot_db);
+        rob_chr->replace_rob_motion(uid, frame, 0.0f, true, true, MOTION_BLEND_CROSS, aft_bone_data, aft_mot_db);
 
         set_motion_index = 0;
 
-        if (data_test_face_mot_dw_array_get(chara_id))
-            data_test_face_mot_dw_array_get(chara_id)->Reset();
+        if (data_test_face_mot_dw_array_get(rctrl))
+            data_test_face_mot_dw_array_get(rctrl)->Reset();
         state = 13;
     }
     case 13: {
@@ -1201,13 +1205,13 @@ bool DtmMot::ctrl() {
         else if (get_pause())
             break;
 
-        rob_chara* rob_chr = rob_chara_array_get(chara_id);
+        rob_chara* rob_chr = rob_man->get_rob(rctrl);
 
         float_t frame = this->frame;
         if (frame >= pre_offset)
-            frame = min_def(rob_chr->data.motdata.field_0.frame, frame - pre_offset);
+            frame = min_def(rob_chr->rob_base.motdata.frame, frame - pre_offset);
 
-        rob_bone_data->motion_step();
+        motion->motion_step();
 
         rob_chr->set_frame(frame);
         rob_chr->set_step_motion_step(delta_frame);
@@ -1221,45 +1225,45 @@ bool DtmMot::ctrl() {
         rob_chr->arm_adjust_ctrl();
 
         if (!partial_mot) {
-            rob_bone_data->load_face_motion(-1, aft_mot_db);
-            rob_bone_data->load_hand_l_motion(-1, aft_mot_db);
-            rob_bone_data->load_hand_r_motion(-1, aft_mot_db);
-            rob_bone_data->load_mouth_motion(-1, aft_mot_db);
-            rob_bone_data->load_eyes_motion(-1, aft_mot_db);
-            rob_bone_data->load_eyelid_motion(-1, aft_mot_db);
+            motion->load_face_motion(-1, aft_mot_db);
+            motion->load_hand_l_motion(-1, aft_mot_db);
+            motion->load_hand_r_motion(-1, aft_mot_db);
+            motion->load_mouth_motion(-1, aft_mot_db);
+            motion->load_eyes_motion(-1, aft_mot_db);
+            motion->load_eyelid_motion(-1, aft_mot_db);
         }
 
         CtrlFaceMot();
 
-        rob_bone_data->interpolate();
+        motion->interpolate();
 
         mat4 mat;
-        mat4_rotate_zyx(&rotation, &mat);
-        mat4_mul_rotate_y(&mat, rot_y, &mat);
-        mat4_set_translation(&mat, &trans);
-        rob_bone_data->update(&mat);
+        mat4_rotate_zyx(rot[0], rot[1], rot[2], &mat);
+        mat4_mul_rotate_y(&mat, rot[3], &mat);
+        mat4_set_translation(&mat, &pos);
+        motion->update(&mat);
 
         rob_chr->adjust_ctrl();
-        rob_chr->set_data_adjust_mat(&rob_chr->data.adjust_data);
+        rob_chr->set_data_adjust_mat(&rob_chr->rob_base.adjust);
         rob_chr->rob_motion_modifier_ctrl();
         rob_chr->sub_140509D30();
 
-        if (data_test_mot_dw_array_get(chara_id)) {
-            data_test_mot_dw_array_get(chara_id)->SetFrameSlider(GetFrame(),
+        if (data_test_mot_dw_array_get(rctrl)) {
+            data_test_mot_dw_array_get(rctrl)->SetFrameSlider(GetFrame(),
                 GetFrameCount() + pre_offset + post_offset);
-            data_test_mot_dw_array_get(chara_id)->SetFrameLabel(GetFrame(), GetFrameCount());
+            data_test_mot_dw_array_get(rctrl)->SetFrameLabel(GetFrame(), GetFrameCount());
         }
 
-        if (change_motion)
-            change_motion = false;
+        if (reset_osage_flag)
+            reset_osage_flag = false;
 
-        if (rob_chara_array_check_visibility(chara_id) != disp)
-            rob_chara_array_set_visibility(chara_id, disp);
+        if (rob_man->get_disp_on(rctrl) != display)
+            rob_man->set_disp_on(rctrl, display);
 
         rob_chr->rob_info_ctrl();
 
         while (set_motion_index < set_motion.size()) {
-            if (set_motion.data()[set_motion_index].motion_id != motion_id) {
+            if (set_motion.data()[set_motion_index].motnum != uid) {
                 set_motion_index++;
                 continue;
             }
@@ -1269,8 +1273,8 @@ bool DtmMot::ctrl() {
             if (frame > this->frame)
                 break;
 
-            rob_chr->set_motion_reset_data(motion_id, frame);
-            rob_chr->set_motion_skin_param(motion_id, frame);
+            rob_chr->set_motion_reset_data(uid, frame);
+            rob_chr->set_motion_skin_param(uid, frame);
             set_motion_index++;
         }
     } break;
@@ -1283,27 +1287,315 @@ bool DtmMot::dest() {
         return true;
 
     pv_osage_manager_array_set_not_reset_true();
-    if (skin_param_manager_check_task_ready(chara_id)
+    if (skin_param_manager_check_task_ready(rctrl)
         || pv_osage_manager_array_get_disp()
         || osage_play_data_manager_check_task_ready())
         return false;
 
     task_rob_manager_run_task();
     task_wind_run_task();
-    if (rob_chara_array_get(chara_id))
-        rob_chara_array_free_chara_id(chara_id);
-    motion_set_unload_motion(motion_set_id);
-    motion_set_unload_mothead(motion_set_id);
-    skin_param_manager_reset(chara_id);
+    if (rob_man->get_rob(rctrl))
+        rob_man->dest_rob(rctrl);
+    motion_set_unload_motion(set);
+    motion_set_unload_mothead(set);
+    skin_param_manager_reset(rctrl);
     stage_param_data_coli_data_reset();
     osage_play_data_manager_reset();
     set_motion.clear();
     set_motion_index = 0;
     dsc_file_handler.reset();
     pv_data.reset();
-    rob_bone_data = 0;
+    motion = 0;
     state = 1;
     return true;
+}
+
+inline void print_string(PrintWork& print_work, vec2 position, vec2 offset, const char* fmt, const char* str) {
+    position += offset;
+    print_work.set_position(position.x, position.y + 8.0f);
+    print_work.printf_align_left(fmt, str);
+}
+
+inline void print_vector(PrintWork& print_work, vec2 position, vec2 offset, const char* fmt, const vec3 vec) {
+    position += offset;
+    print_work.set_position(position.x, position.y + 8.0f);
+    print_work.printf_align_left(fmt, vec.x, vec.y, vec.z);
+}
+
+void rob_block_disp(int32_t rctrl, RobBlock* block, BONE_BLK blk, int32_t motion_body_type) {
+    return;
+    static bool none = false;
+
+    font_info font;
+    font.init_font_data(0);
+    font.set_glyph_size(font.glyph.x * 0.75f, font.glyph.y * 0.75f);
+
+    PrintWork print_work;
+    print_work.set_font(&font);
+    print_work.set_prio(spr::SPR_PRIO_DW);
+    print_work.set_screen_mode(SCREEN_MODE_MAX);
+    print_work.set_color(none ? 0 : color_red);
+
+    switch (block->ik_type) {
+    case IKT_0:
+    case IKT_0N:
+    case IKT_0T: {
+        mat4 v92 = *block->node[0].mat_ptr;
+        mat4_scale_rot(&v92, 0.1f, &v92);
+        spr::put_rgb_cross(v92);
+
+        vec3 v93;
+        vec3 v91;
+        mat4_get_translation(&v92, &v93);
+        mat4_get_translation(&v92, &v91);
+
+        vec2 v80 = spr::proj_sprite_3d_line(v91, true);
+        print_string(print_work, v80, vec2(0.0f, 16.0f * 0), "%s", block->node[0].name);
+        print_vector(print_work, v80, vec2(0.0f, 16.0f * 1),
+            "gbl:%.3f %.3f %.3f", v91);
+        //print_vector(print_work, v80, vec2(0.0f, 16.0f * 2),
+        //    "lcl:%.4f %.4f %.4f", block->chain_pos[0]);
+        print_vector(print_work, v80, vec2(0.0f, 16.0f * 2),
+            "rot:%.3f %.3f %.3f", block->node[0].transform.rot * RAD_TO_DEG_FLOAT);
+
+        if (blk == BLK_TL_UP_KATA_L || blk == BLK_TL_UP_KATA_R) {
+            vec3 v87;
+            mat4_get_translation(block[BLK_C_KATA_L - BLK_TL_UP_KATA_L].node[2].mat_ptr, &v87);
+
+            vec2 v76 = spr::proj_sprite_3d_line(v87, true);
+            vec2 v75 = spr::proj_sprite_3d_line(v93, true);
+            spr::put_sprite_line(v76, v75, SCREEN_MODE_MAX, spr::SPR_PRIO_DW, color_cyan);
+        }
+    } break;
+    case IKT_1: {
+        mat4 v92 = *block->node[1].mat_ptr;
+
+        mat4 v84 = *block->node[0].mat_ptr;
+        mat4 v84a;
+        mat4_scale_rot(&v84, 0.15f, &v84a);
+        spr::put_cross(v84a, color_dark_red, color_dark_green, color_dark_blue);
+
+        vec3 v30;
+        mat4_inverse_transform_point(&v84, &block->leaf_pos[0], &v30);
+        mat4_clear_rot(&v84, &v84);
+        mat4_translate(&v30, &v84);
+        mat4_scale_rot(&v84, 0.1f, &v84);
+        spr::put_cross(v84, color_green, color_cyan, color_white);
+
+        vec2 v76a = spr::proj_sprite_3d_line(0.0f, true);
+        vec2 v75a = spr::proj_sprite_3d_line(v30, true);
+        spr::put_sprite_line(v76a, v75a, SCREEN_MODE_MAX, spr::SPR_PRIO_DW, color_yellow);
+
+        mat4 v88;
+        mat4_mul_translate_x(&v92, block->len[0][motion_body_type], &v88);
+
+        vec3 v91;
+        vec3 v90;
+        vec3 v93;
+        mat4_get_translation(&v88, &v91);
+        mat4_get_translation(&v92, &v90);
+        mat4_get_translation(&v88, &v93);
+
+        vec2 v79 = spr::proj_sprite_3d_line(v90, true);
+        vec2 v78 = spr::proj_sprite_3d_line(v91, true);
+        spr::put_sprite_rect({ v78 - 2.0f, 4.0f }, SCREEN_MODE_MAX, spr::SPR_PRIO_DW, color_red);
+        spr::put_sprite_line(v79, v78, SCREEN_MODE_MAX, spr::SPR_PRIO_DW, color_white);
+
+        mat4_scale_rot(&v92, 0.1f, &v92);
+        spr::put_rgb_cross(v92);
+
+        vec2 v77 = spr::proj_sprite_3d_line(v90, true);
+
+        print_work.set_color(color_yellow);
+        print_string(print_work, v77, vec2(0.0f, 16.0f * 0), "%s", block->node[0].name);
+        print_vector(print_work, v77, vec2(0.0f, 16.0f * 1),
+            "gbl:%.4f %.4f %.4f", v90);
+        //print_vector(print_work, v77, vec2(0.0f, 16.0f * 2),
+        //    "lcl:%.4f %.4f %.4f", block->chain_pos[0]);
+        print_vector(print_work, v77, vec2(0.0f, 16.0f * 2),
+            "rot:%.3f %.3f %.3f", block->node[0].transform.rot * RAD_TO_DEG_FLOAT);
+        print_work.set_color(none ? 0 : color_red);
+
+        v77 = spr::proj_sprite_3d_line((v91 + v90) * 0.5f, true);
+        print_string(print_work, v77, vec2(0.0f, 16.0f * 0), "%s", block->node[1].name);
+        print_vector(print_work, v77, vec2(0.0f, 16.0f * 1),
+            "rot:%.3f %.3f %.3f", block->node[1].transform.rot * RAD_TO_DEG_FLOAT);
+
+        v93 = block->leaf_pos[0];
+        v77 = spr::proj_sprite_3d_line(v93, true);
+        print_string(print_work, v77, vec2(0.0f, 16.0f * 0), "%s", block->node[2].name);
+        print_vector(print_work, v77, vec2(0.0f, 16.0f * 1), "gbl:%.3f %.3f %.3f", v93);
+        spr::put_sprite_rect({ v77 - 2.0f, 4.0f }, SCREEN_MODE_MAX, spr::SPR_PRIO_DW, color_blue);
+    } break;
+    case IKT_2:
+    case IKT_2R: {
+        mat4 v84 = *block->node[0].mat_ptr;
+        vec3 v30;
+        mat4_inverse_transform_point(&v84, &block->leaf_pos[0], &v30);
+
+        mat4 v84a;
+        mat4_scale_rot(&v84, 0.15f, &v84a);
+        spr::put_cross(v84a, color_dark_red, color_dark_green, color_dark_blue);
+
+        mat4_clear_rot(&v84, &v84);
+        mat4_translate(&v30, &v84);
+        mat4_scale_rot(&v84, 0.1f, &v84);
+        spr::put_cross(v84, color_green, color_cyan, color_white);
+
+        vec2 v76a = spr::proj_sprite_3d_line(0.0f, true);
+        vec2 v75a = spr::proj_sprite_3d_line(v30, true);
+        spr::put_sprite_line(v76a, v75a, SCREEN_MODE_MAX, spr::SPR_PRIO_DW,
+            block->ik_type == IKT_2 ? color_cyan : color_magenta);
+
+        mat4 v92 = *block->inherit_mat_ptr;
+        mat4 v88 = *block->node[1].mat_ptr;
+        mat4 v82 = *block->node[2].mat_ptr;
+        mat4 v81;
+        mat4_mul_translate_x(&v82, block->len[1][motion_body_type], &v81);
+
+        vec3 v87;
+        vec3 v90;
+        vec3 v93;
+        mat4_get_translation(&v88, &v87);
+        mat4_get_translation(&v82, &v90);
+        mat4_get_translation(&v81, &v93);
+
+        vec2 v74 = spr::proj_sprite_3d_line(v87, true);
+
+        print_work.set_color(color_green);
+        print_string(print_work, v74, vec2(0.0f, 16.0f * 0), "%s", block->node[0].name);
+        print_vector(print_work, v74, vec2(0.0f, 16.0f * 1),
+            "gbl:%.4f %.4f %.4f", v87);
+        //print_vector(print_work, v74, vec2(0.0f, 16.0f * 2),
+        //    "lcl:%.4f %.4f %.4f", block->chain_pos[0]);
+        print_vector(print_work, v74, vec2(0.0f, 16.0f * 2),
+            "lcl:%.4f %.4f %.4f", v30);
+        print_vector(print_work, v74, vec2(0.0f, 16.0f * 3),
+            "rot:%.3f %.3f %.3f", block->node[0].transform.rot * RAD_TO_DEG_FLOAT);
+        print_work.set_color(none ? 0 : color_red);
+
+        v74 = spr::proj_sprite_3d_line((v90 + v87) * 0.5f, true);
+
+        print_string(print_work, v74, vec2(0.0f, 16.0f * 0), "%s", block->node[1].name);
+        print_vector(print_work, v74, vec2(0.0f, 16.0f * 1),
+            "rot:%.3f %.3f %.3f", block->node[1].transform.rot * RAD_TO_DEG_FLOAT);
+
+        v74 = spr::proj_sprite_3d_line((v93 + v90) * 0.5f, true);
+        print_string(print_work, v74, vec2(0.0f, 16.0f * 0), "%s", block->node[2].name);
+        print_vector(print_work, v74, vec2(0.0f, 16.0f * 1),
+            "rot:%.3f %.3f %.3f", block->node[2].transform.rot * RAD_TO_DEG_FLOAT);
+
+        vec2 v76 = spr::proj_sprite_3d_line(v87, true);
+        vec2 v75 = spr::proj_sprite_3d_line(v90, true);
+        spr::put_sprite_line(v76, v75, SCREEN_MODE_MAX, spr::SPR_PRIO_DW, color_white);
+
+        mat4_get_translation(&v81, &v87);
+
+        v76 = spr::proj_sprite_3d_line(v87, true);
+        spr::put_sprite_line(v76, v75, SCREEN_MODE_MAX, spr::SPR_PRIO_DW, color_white);
+        spr::put_sprite_rect({ v76 - 2.0f, 4.0f }, SCREEN_MODE_MAX, spr::SPR_PRIO_DW, color_red);
+
+        mat4_scale_rot(&v88, 0.1f, &v88);
+        spr::put_rgb_cross(v88);
+
+        mat4_scale_rot(&v82, 0.1f, &v82);
+        spr::put_rgb_cross(v82);
+
+        v93 = block->leaf_pos[0];
+        v74 = spr::proj_sprite_3d_line(v93, true);
+        print_string(print_work, v74, vec2(0.0f, 16.0f * 0), "%s", block->node[3].name);
+        print_vector(print_work, v74, vec2(0.0f, 16.0f * 1), "gbl:%.4f %.4f %.4f", v93);
+        spr::put_sprite_rect({ v74 - 2.0f, 4.0f }, SCREEN_MODE_MAX, spr::SPR_PRIO_DW, color_blue);
+    } break;
+    }
+
+    font = font_info(16);
+    font.set_glyph_size(font.glyph.x * 0.7f, font.glyph.y * 0.7f);
+    print_work.set_font(&font);
+    print_work.set_position({ 0.0f, 720.0f - (rctrl + 1) * font.glyph.y * 4 });
+    print_work.set_color(color_white);
+    if (blk == BLK_CL_MUNE) {
+        vec3 leaf_pos;
+        mat4_inverse_transform_point(block->node[0].mat_ptr, &block->leaf_pos[0], &leaf_pos);
+        print_work.printf_align_left("%dP %.5f\n", rctrl + 1, vec3::length(leaf_pos));
+    }
+    else if (blk == BLK_CL_KAO) {
+        vec3 leaf_pos;
+        mat4_inverse_transform_point(block->node[0].mat_ptr, &block->leaf_pos[0], &leaf_pos);
+        print_work.printf_align_left("           %.5f\n", vec3::length(leaf_pos));
+    }
+    else if (blk == BLK_C_KATA_L || blk == BLK_C_KATA_R) {
+        vec3 tl_up_kata_pos;
+        mat4_get_translation(block[-1].node[0].mat_ptr, &tl_up_kata_pos);
+
+        vec3 leaf_pos;
+        mat4_inverse_transform_point(block->node[0].mat_ptr, &block->leaf_pos[0], &leaf_pos);
+
+        vec3 pos_j_kata_wj;
+        vec3 pos_j_ude_wj;
+        vec3 pos_j_te_wj;
+        mat4_get_translation(block->node[1].mat_ptr, &pos_j_kata_wj);
+        mat4_get_translation(block->node[2].mat_ptr, &pos_j_ude_wj);
+        mat4_get_translation(block->node[3].mat_ptr, &pos_j_te_wj);
+
+        float_t arm_length = block->len[0][1] + block->len[1][1];
+        vec3 pos_j_ude_wj_mid = vec3::lerp(pos_j_kata_wj, pos_j_te_wj,
+            block->len[0][1] / arm_length);
+
+        float_t len1 = vec3::distance(pos_j_ude_wj, tl_up_kata_pos);
+        float_t len2 = vec3::distance(pos_j_ude_wj_mid, tl_up_kata_pos);
+        float_t len3 = vec3::distance(pos_j_ude_wj, pos_j_ude_wj_mid);
+        float_t len4 = vec3::distance(pos_j_kata_wj, pos_j_te_wj);
+        float_t len5 = vec3::length(leaf_pos);
+
+        if (blk == BLK_C_KATA_L) {
+            print_work.printf_align_left("\nL: %.5f %.5f %.5f %.5f", len1, len2, len3, len4);
+            if (len5 >= arm_length)
+                print_work.set_color(color_red);
+            print_work.printf_align_left(" %.5f\n\n", len5);
+        }
+        else {
+            print_work.printf_align_left("\n\nR: %.5f %.5f %.5f %.5f", len1, len2, len3, len4);
+            if (len5 >= arm_length)
+                print_work.set_color(color_red);
+            print_work.printf_align_left(" %.5f\n", len5);
+        }
+        print_work.set_color(color_white);
+    }
+    else if (blk == BLK_CL_MOMO_L || blk == BLK_CL_MOMO_R) {
+        vec3 pos_j_momo_wj;
+        vec3 pos_j_sune_l_wj;
+        vec3 pos_e_sune_l_cp;
+        mat4_get_translation(block->node[1].mat_ptr, &pos_j_momo_wj);
+        mat4_get_translation(block->node[2].mat_ptr, &pos_j_sune_l_wj);
+        mat4_get_translation(block->node[3].mat_ptr, &pos_e_sune_l_cp);
+
+        float_t leg_length = block->len[0][1] + block->len[1][1];
+        vec3 pos_j_sune_l_wj_mid = vec3::lerp(pos_j_momo_wj, pos_e_sune_l_cp,
+            block->len[0][1] / leg_length);
+
+        float_t len1 = vec3::distance(pos_j_sune_l_wj, pos_j_sune_l_wj_mid);
+        float_t len2 = vec3::distance(pos_j_momo_wj, pos_e_sune_l_cp);
+        float_t len3 = vec3::distance(pos_j_momo_wj, block->leaf_pos[0]);
+
+        if (blk == BLK_CL_MOMO_L) {
+            print_work.printf_align_left("\n\n\nL: %.5f %.5f", len1, len2);
+            if (len3 >= leg_length)
+                print_work.set_color(color_red);
+            print_work.printf_align_left(" %.5f\n\n", len3);
+        }
+        else {
+            print_work.printf_align_left("\n\n\n                           R: %.5f %.5f", len1, len2);
+            if (len3 >= leg_length)
+                print_work.set_color(color_red);
+            print_work.printf_align_left(" %.5f\n", len3);
+        }
+        print_work.set_color(color_white);
+    }
+}
+
+void DtmMot::disp() {
+
 }
 
 void DtmMot::basic() {
@@ -1312,7 +1604,7 @@ void DtmMot::basic() {
 
     int32_t step_index = 3;
     for (int32_t i = 0; i < 4; i++)
-        if (frame < divide[i]) {
+        if (frame < div[i]) {
             step_index = i;
             break;
         }
@@ -1322,13 +1614,13 @@ void DtmMot::basic() {
     delta_frame = get_delta_frame() * step[step_index];
     looped = false;
 
-    if (play)
+    if (move)
         frame += delta_frame;
 
-    rob_chara* rob_chr = rob_chara_array_get(chara_id);
+    rob_chara* rob_chr = rob_man->get_rob(rctrl);
 
     float_t begin = 0.0f;
-    float_t end = rob_chr->data.motdata.field_0.frame;
+    float_t end = rob_chr->rob_base.motdata.frame;
     if (ab_loop) {
         begin = ab_frame[0];
         end = ab_frame[1];
@@ -1349,7 +1641,7 @@ void DtmMot::basic() {
         else if (loop) {
             looped = true;
             frame -= end;
-            frame += rob_chr->data.motdata.field_0.loop_begin;
+            frame += rob_chr->rob_base.motdata.loop_begin;
         }
         else
             frame = end;
@@ -1358,32 +1650,30 @@ void DtmMot::basic() {
     this->frame = frame;
 }
 
-bool DtmMot::add_task(CHARA_NUM chara_num,
-    int32_t cos_id, uint32_t motion_set_index, uint32_t motion_index) {
+bool DtmMot::add_task(CHARA_NUM chr, int32_t ptr, uint32_t set, uint32_t uid) {
     if (app::TaskWork::has_task(this) || app::TaskWork::check_task_ready(this))
         return true;
 
-    this->chara_num = chara_num;
-    this->cos_id = cos_id;
-    this->motion_index = motion_index;
-    this->motion_set_index = motion_set_index;
-    type = 0;
+    this->chr = chr;
+    this->ptr = ptr;
+    this->uid = uid;
+    this->set = set;
+    assign = IDX;
     return app::TaskWork::add_task(this, "DATA_TEST_MOTION_MANAGER", 0);
 }
 
-bool DtmMot::add_task(CHARA_NUM chara_num,
-    int32_t cos_id, uint32_t motion_id) {
+bool DtmMot::add_task(CHARA_NUM chr, int32_t ptr, uint32_t uid) {
     if (app::TaskWork::has_task(this) || app::TaskWork::check_task_ready(this))
         return true;
 
     data_struct* aft_data = &data_list[DATA_AFT];
     motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
-    this->chara_num = chara_num;
-    this->cos_id = cos_id;
-    this->motion_id = motion_id;
-    this->motion_set_id = aft_mot_db->get_motion_set_id_by_motion_id(motion_id);
-    type = 1;
+    this->chr = chr;
+    this->ptr = ptr;
+    this->uid = uid;
+    this->set = aft_mot_db->get_motion_set_id_by_motion_id(uid);
+    assign = UID;
     return app::TaskWork::add_task(this, "DATA_TEST_MOTION_MANAGER", 0);
 }
 
@@ -1394,21 +1684,21 @@ bool DtmMot::del_task() {
 }
 
 bool DtmMot::CheckFirstFrame() {
-    if (rob_bone_data)
+    if (motion)
         return false;
 
-    rob_chara* rob_chr = rob_chara_array_get(chara_id);
+    rob_chara* rob_chr = rob_man->get_rob(rctrl);
     if (!rob_chr)
         return false;
 
-    float_t frame_count = rob_chr->data.motdata.field_0.frame + pre_offset + post_offset;
-    if (frame_count > 0.0f)
-        return fabsf(frame_count - frame) <= 0.000001f;
+    float_t frame_max = rob_chr->rob_base.motdata.frame + pre_offset + post_offset;
+    if (frame_max > 0.0f)
+        return fabsf(frame_max - frame) <= 0.000001f;
     return false;
 }
 
 void DtmMot::CtrlFaceMot() {
-    DataTestFaceMotDw* face_mot_dw = data_test_face_mot_dw_array_get(chara_id);
+    DataTestFaceMotDw* face_mot_dw = data_test_face_mot_dw_array_get(rctrl);
     if (!face_mot_dw || !face_mot_dw->GetEnable())
         return;
 
@@ -1416,14 +1706,14 @@ void DtmMot::CtrlFaceMot() {
     motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
     DataTestFaceMotDw::Data data = face_mot_dw->GetData();
-    rob_chara* rob_chr = rob_chara_array_get(chara_id);
-    rob_chr->set_face_mottbl_motion(0, data.face.mottbl_index, data.face.frame * 0.01f,
+    rob_chara* rob_chr = rob_man->get_rob(rctrl);
+    rob_chr->set_face_mottbl_motion(0, data.face.mottbl_type, data.face.frame * 0.01f,
         ROB_PARTIAL_MOTION_PLAYBACK_STOP, 0.0f, 0.0f, 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE, 0.0f, false, aft_mot_db);
-    rob_chr->set_eyelid_mottbl_motion(0, data.eyelid.mottbl_index, data.eyelid.frame * 0.01f,
+    rob_chr->set_eyelid_mottbl_motion(0, data.eyelid.mottbl_type, data.eyelid.frame * 0.01f,
         ROB_PARTIAL_MOTION_PLAYBACK_STOP, 0.0f, 0.0f, 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE, 0.0f, aft_mot_db);
-    rob_chr->set_eyes_mottbl_motion(0, data.eyes.mottbl_index, data.eyes.frame * 0.01f,
+    rob_chr->set_eyes_mottbl_motion(0, data.eyes.mottbl_type, data.eyes.frame * 0.01f,
         ROB_PARTIAL_MOTION_PLAYBACK_STOP, 0.0f, 0.0f, 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE, 0.0f, aft_mot_db);
-    rob_chr->set_mouth_mottbl_motion(0, data.mouth.mottbl_index, data.mouth.frame * 0.01f,
+    rob_chr->set_mouth_mottbl_motion(0, data.mouth.mottbl_type, data.mouth.frame * 0.01f,
         ROB_PARTIAL_MOTION_PLAYBACK_STOP, 0.0f, 0.0f, 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE, 0.0f, aft_mot_db);
 }
 
@@ -1440,8 +1730,8 @@ float_t DtmMot::GetFrame() {
 }
 
 float_t DtmMot::GetFrameCount() {
-    if (state == 13 && rob_bone_data)
-        return rob_bone_data->get_frame_count();
+    if (state == 13 && motion)
+        return motion->get_frame_max();
     return 0.0f;
 }
 
@@ -1471,16 +1761,16 @@ void DtmMot::SetABFrame(bool a) {
 }
 
 void DtmMot::SetChangeMotion() {
-    change_motion = true;
+    reset_osage_flag = true;
 }
 
 void DtmMot::SetDisp(bool value) {
-    disp = value;
+    display = value;
 }
 
 void DtmMot::SetDivide(int32_t index, float_t value) {
     if (index < 3)
-        divide[index] = value;
+        div[index] = value;
 }
 
 void DtmMot::SetFrame(float_t value) {
@@ -1491,24 +1781,24 @@ void DtmMot::SetLoop(bool value) {
     loop = value;
 }
 
-void DtmMot::SetMotion(uint32_t motion_set_index, uint32_t motion_index) {
+void DtmMot::SetMotion(uint32_t set, uint32_t uid) {
     data_struct* aft_data = &data_list[DATA_AFT];
     motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
     state = 0;
 
-    if (motion_set_index >= aft_mot_db->motion_set.size())
+    if (set >= aft_mot_db->motion_set.size())
         return;
 
-    const motion_set_info* set_info = &aft_mot_db->motion_set[motion_set_index];
-    motion_set_id = set_info->id;
+    const motion_set_info* set_info = &aft_mot_db->motion_set[set];
+    this->set = set_info->id;
 
-    if (motion_index >= set_info->motion.size())
+    if (uid >= set_info->motion.size())
         return;
 
     state = 7;
     frame = 0.0f;
-    motion_id = set_info->motion[motion_index].id;
+    this->uid = set_info->motion[uid].id;
 }
 
 void DtmMot::SetOffset(float_t pre_offset, float_t post_offset) {
@@ -1517,7 +1807,7 @@ void DtmMot::SetOffset(float_t pre_offset, float_t post_offset) {
 }
 
 void DtmMot::SetPlay(bool value) {
-    play = value;
+    move = value;
 }
 
 void DtmMot::SetPartialMot(bool value) {
@@ -1529,7 +1819,7 @@ void DtmMot::SetResetMot() {
 }
 
 void DtmMot::SetRotationY(float_t value) {
-    rotation.y = value;
+    rot[1] = value;
 }
 
 void DtmMot::SetSaveOnlyStartFrame(bool value) {
@@ -1546,7 +1836,7 @@ void DtmMot::SetStep(int32_t index, float_t value) {
 }
 
 void DtmMot::SetTrans(const vec3& value) {
-    trans = value;
+    pos = value;
 }
 
 void DtmMot::SetUseOpd(bool value) {
@@ -1562,23 +1852,23 @@ void DtmMot::ToggleABLoop() {
 }
 
 void DtmMot::UpdateABFrame() {
-    rob_chara* rob_chr = rob_chara_array_get(chara_id);
+    rob_chara* rob_chr = rob_man->get_rob(rctrl);
     if (!rob_chr)
         return;
 
-    float_t v3 = rob_chr->data.motdata.field_0.frame;
+    float_t frame = rob_chr->rob_base.motdata.frame;
     for (float_t& i : ab_frame)
-        i = clamp_def(i, 0.0f, v3);
+        i = clamp_def(i, 0.0f, frame);
 
     if (ab_frame[0] < ab_frame[1])
         return;
 
     bool found = false;
     float_t a_frame = ab_frame[0];
-    int32_t b_frame = (int32_t)v3;
+    int32_t b_frame = (int32_t)frame;
 
     for (pv_data_set_motion& i : set_motion)
-        if (i.motion_id == motion_id && i.frame_stage_index.first > a_frame) {
+        if (i.motnum == uid && i.frame_stage_index.first > a_frame) {
             if ((int32_t)i.frame_stage_index.first) {
                 b_frame = (int32_t)i.frame_stage_index.first;
                 found = true;
@@ -1587,7 +1877,7 @@ void DtmMot::UpdateABFrame() {
         }
 
     if (!found)
-        b_frame = (int32_t)v3;
+        b_frame = (int32_t)frame;
 
     ab_frame[1] = (float_t)b_frame;
 }
@@ -1674,16 +1964,16 @@ void motion_test_free() {
 }
 
 bool dtm_mot_array_get_loaded() {
-    return dtm_mot_array[0].GetLoaded() && dtm_mot_array[1].GetLoaded();
+    return dtm_mot_array[ROB_ID_1P].GetLoaded() && dtm_mot_array[ROB_ID_2P].GetLoaded();
 }
 
 void dtm_mot_array_set_reset_mot() {
-    dtm_mot_array[0].SetResetMot();
-    dtm_mot_array[1].SetResetMot();
+    dtm_mot_array[ROB_ID_1P].SetResetMot();
+    dtm_mot_array[ROB_ID_2P].SetResetMot();
 }
 
-DataTestFaceMotDw::DataTestFaceMotDw(int32_t chara_id) {
-    this->chara_id = chara_id;
+DataTestFaceMotDw::DataTestFaceMotDw(ROB_ID id) {
+    rob_id = id;
 
     SetText("Face motion");
 
@@ -1740,7 +2030,7 @@ DataTestFaceMotDw::~DataTestFaceMotDw() {
 }
 
 void DataTestFaceMotDw::Hide() {
-    data_test_face_mot_dw_array[chara_id] = 0;
+    data_test_face_mot_dw_array[rob_id] = 0;
     dw::Shell::Hide();
 }
 
@@ -1754,17 +2044,17 @@ void DataTestFaceMotDw::AddMottblMapMotions(dw::ListBox* list_box, int32_t type)
 
     list_box->ClearItems();
 
-    rob_chara* rob_chr = rob_chara_array_get(chara_id);
+    rob_chara* rob_chr = get_rob_management()->get_rob(rob_id);
     if (!rob_chr)
         return;
 
     switch (type) {
     case 0:
-        for (int32_t i = 6; i <= 130; i++) {
-            uint32_t motion_id = rob_chr->get_rob_cmn_mottbl_motion_id(i);
-            if (motion_id != -1) {
-                if (motion_id_mottbl_map.insert({ motion_id, i }).second) {
-                    std::string motion_name(aft_mot_db->get_motion_name(motion_id));
+        for (uint32_t i = MTP_FACE_NULL; i <= MTP_FACE_NEW_IKARI_OLD_CL; i++) {
+            uint32_t uid = rob_chr->get_common_mot((MOTTABLE_TYPE)i);
+            if (uid != -1) {
+                if (motion_id_mottbl_map.insert({ uid, (MOTTABLE_TYPE)i }).second) {
+                    std::string motion_name(aft_mot_db->get_motion_name(uid));
                     if (motion_name.rfind("_CL") != motion_name.size() - 3)
                         list_box->AddItem(motion_name);
                 }
@@ -1772,20 +2062,20 @@ void DataTestFaceMotDw::AddMottblMapMotions(dw::ListBox* list_box, int32_t type)
         }
         break;
     case 1:
-        for (int32_t i = 165; i <= 191; i++) {
-            uint32_t motion_id = rob_chr->get_rob_cmn_mottbl_motion_id(i);
-            if (motion_id != -1) {
-                motion_id_mottbl_map.insert({ motion_id, i });
-                list_box->AddItem(aft_mot_db->get_motion_name(motion_id));
+        for (uint32_t i = MTP_EYES_NULL; i <= MTP_EYES_MOVE_UR_DL_OLD; i++) {
+            uint32_t uid = rob_chr->get_common_mot((MOTTABLE_TYPE)i);
+            if (uid != -1) {
+                motion_id_mottbl_map.insert({ uid, (MOTTABLE_TYPE)i });
+                list_box->AddItem(aft_mot_db->get_motion_name(uid));
             }
         }
         break;
     case 2:
-        for (int32_t i = 131; i <= 164; ++i) {
-            uint32_t motion_id = rob_chr->get_rob_cmn_mottbl_motion_id(i);
-            if (motion_id != -1) {
-                motion_id_mottbl_map.insert({ motion_id, i });
-                list_box->AddItem(aft_mot_db->get_motion_name(motion_id));
+        for (uint32_t i = MTP_KUCHI_NULL; i <= MTP_KUCHI_NEUTRAL; ++i) {
+            uint32_t uid = rob_chr->get_common_mot((MOTTABLE_TYPE)i);
+            if (uid != -1) {
+                motion_id_mottbl_map.insert({ uid, (MOTTABLE_TYPE)i });
+                list_box->AddItem(aft_mot_db->get_motion_name(uid));
             }
         }
         break;
@@ -1802,10 +2092,10 @@ DataTestFaceMotDw::Data DataTestFaceMotDw::GetData() {
     motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
     DataTestFaceMotDw::Data data = {
-        {   6, 0.0f },
-        {   6, 0.0f },
-        { 165, 0.0f },
-        { 131, 0.0f },
+        { MTP_FACE_NULL , 0.0f },
+        { MTP_FACE_NULL , 0.0f },
+        { MTP_EYES_NULL , 0.0f },
+        { MTP_KUCHI_NULL, 0.0f },
     };
 
     std::string face_mot = face->GetSelectedItemStr();
@@ -1837,10 +2127,10 @@ bool DataTestFaceMotDw::GetEnable() {
 }
 
 inline void DataTestFaceMotDw::GetMottblIndexFrame(
-    DataTestFaceMotDw::MotionData& data, uint32_t motion_id, float_t value) {
-    auto elem = motion_id_mottbl_map.find(motion_id);
+    DataTestFaceMotDw::MotionData& data, uint32_t uid, float_t value) {
+    auto elem = motion_id_mottbl_map.find(uid);
     if (elem != motion_id_mottbl_map.end())
-        data.mottbl_index = elem->second;
+        data.mottbl_type = elem->second;
     data.frame = value;
 }
 
@@ -1885,16 +2175,16 @@ void DataTestMotDw::CharaListBoxProc::Callback(dw::SelectionListener::CallbackDa
     DataTestMot::Data* test_mot_data = data_test_mot_data_get();
     dw::ListBox* list_box = dynamic_cast<dw::ListBox*>(data->widget);
     if (list_box) {
-        int32_t chara_id = list_box->callback_data.i32;
-        CHARA_NUM chara_num = (CHARA_NUM)list_box->list->selected_item;
-        test_mot_data->chara_num[chara_id] = chara_num;
+        ROB_ID rob_id = (ROB_ID)list_box->callback_data.i32;
+        CHARA_NUM chr = (CHARA_NUM)list_box->list->selected_item;
+        test_mot_data->chr[rob_id] = chr;
 
-        DataTestMotDw* test_mot_dw = data_test_mot_dw_array_get(chara_id);
+        DataTestMotDw* test_mot_dw = data_test_mot_dw_array_get(rob_id);
         if (test_mot_dw->set_change_button->value) {
             data_struct* aft_data = &data_list[DATA_AFT];
             motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
-            uint32_t set_id = get_rob_data(chara_num)->motfile;
+            uint32_t set_id = get_rob_data(chr)->motfile;
             uint32_t set_index = -1;
             for (const motion_set_info& i : aft_mot_db->motion_set)
                 if (i.id == set_id) {
@@ -1903,10 +2193,10 @@ void DataTestMotDw::CharaListBoxProc::Callback(dw::SelectionListener::CallbackDa
                 }
 
             test_mot_dw->c_type_list_box_proc.list_box->SetItemIndex(set_index);
-            test_mot_data->motion_set_index[chara_id] = set_index;
+            test_mot_data->set[rob_id] = set_index;
         }
 
-        test_mot_dw->AddModules(chara_id, test_mot_dw->chara_list_box_proc.list_box);
+        test_mot_dw->AddModules(rob_id, test_mot_dw->chara_list_box_proc.list_box);
     }
 }
 
@@ -1929,7 +2219,7 @@ void DataTestMotDw::CTypeListBoxProc::Callback(dw::SelectionListener::CallbackDa
 
             size_t end = str.find(')');
             if (end != -1)
-                test_mot_data->cos_id[list_box->callback_data.i32] =
+                test_mot_data->ptr[list_box->callback_data.i32] =
                 atoi(str.substr(start, end - start).c_str()) - 1;
         }
     }
@@ -1947,9 +2237,9 @@ void DataTestMotDw::SetListBoxProc::Callback(dw::SelectionListener::CallbackData
     DataTestMot::Data* test_mot_data = data_test_mot_data_get();
     dw::ListBox* list_box = dynamic_cast<dw::ListBox*>(data->widget);
     if (list_box) {
-        int32_t chara_id = list_box->callback_data.i32;
-        test_mot_data->motion_set_index[chara_id] = (int32_t)list_box->list->selected_item;
-        data_test_mot_dw_array_get(chara_id)->ResetFrame();
+        ROB_ID rob_id = (ROB_ID)list_box->callback_data.i32;
+        test_mot_data->set[rob_id] = (int32_t)list_box->list->selected_item;
+        data_test_mot_dw_array_get(rob_id)->ResetFrame();
     }
 }
 
@@ -1965,9 +2255,9 @@ void DataTestMotDw::IdListBoxProc::Callback(dw::SelectionListener::CallbackData*
     DataTestMot::Data* test_mot_data = data_test_mot_data_get();
     dw::ListBox* list_box = dynamic_cast<dw::ListBox*>(data->widget);
     if (list_box) {
-        int32_t chara_id = list_box->callback_data.i32;
-        test_mot_data->motion_index[chara_id] = (int32_t)list_box->list->selected_item;
-        data_test_mot_dw_array_get(chara_id)->ResetFrame();
+        ROB_ID rob_id = (ROB_ID)list_box->callback_data.i32;
+        test_mot_data->uid[rob_id] = (int32_t)list_box->list->selected_item;
+        data_test_mot_dw_array_get(rob_id)->ResetFrame();
     }
 }
 
@@ -2013,11 +2303,12 @@ void DataTestMotDw::FrameSliderProc::Callback(dw::SelectionListener::CallbackDat
     DataTestMot::Data* test_mot_data = data_test_mot_data_get();
     dw::Slider* slider = dynamic_cast<dw::Slider*>(data->widget);
     if (slider) {
+        ROB_ID rob_id = (ROB_ID)slider->callback_data.i32;
         float_t frame = slider->GetValue();
-        data_test_mot_dw_array_get(slider->callback_data.i32)->dtm_mot->SetFrame(frame);
+        data_test_mot_dw_array_get(rob_id)->dtm_mot->SetFrame(frame);
         if (test_mot_data->sync_frame) {
-            dtm_mot_array[0].SetFrame(frame);
-            dtm_mot_array[1].SetFrame(frame);
+            dtm_mot_array[ROB_ID_1P].SetFrame(frame);
+            dtm_mot_array[ROB_ID_2P].SetFrame(frame);
         }
     }
 }
@@ -2047,8 +2338,10 @@ DataTestMotDw::DispButtonProc::~DispButtonProc() {
 
 void DataTestMotDw::DispButtonProc::Callback(dw::SelectionListener::CallbackData* data) {
     dw::Button* button = dynamic_cast<dw::Button*>(data->widget);
-    if (button)
-        data_test_mot_dw_array_get(button->callback_data.i32)->dtm_mot->SetDisp(button->value);
+    if (button) {
+        ROB_ID rob_id = (ROB_ID)button->callback_data.i32;
+        data_test_mot_dw_array_get(rob_id)->dtm_mot->SetDisp(button->value);
+    }
 }
 
 DataTestMotDw::UseOpdButtonProc::UseOpdButtonProc() {
@@ -2061,8 +2354,10 @@ DataTestMotDw::UseOpdButtonProc::~UseOpdButtonProc() {
 
 void DataTestMotDw::UseOpdButtonProc::Callback(dw::SelectionListener::CallbackData* data) {
     dw::Button* button = dynamic_cast<dw::Button*>(data->widget);
-    if (button)
-        data_test_mot_dw_array_get(button->callback_data.i32)->dtm_mot->SetUseOpd(button->value);
+    if (button) {
+        ROB_ID rob_id = (ROB_ID)button->callback_data.i32;
+        data_test_mot_dw_array_get(rob_id)->dtm_mot->SetUseOpd(button->value);
+    }
 }
 
 DataTestMotDw::PartialMotButtonProc::PartialMotButtonProc() {
@@ -2075,8 +2370,10 @@ DataTestMotDw::PartialMotButtonProc::~PartialMotButtonProc() {
 
 void DataTestMotDw::PartialMotButtonProc::Callback(dw::SelectionListener::CallbackData* data) {
     dw::Button* button = dynamic_cast<dw::Button*>(data->widget);
-    if (button)
-        data_test_mot_dw_array_get(button->callback_data.i32)->dtm_mot->SetPartialMot(button->value);
+    if (button) {
+        ROB_ID rob_id = (ROB_ID)button->callback_data.i32;
+        data_test_mot_dw_array_get(rob_id)->dtm_mot->SetPartialMot(button->value);
+    }
 }
 
 DataTestMotDw::SaveOnlyStartFrameButtonProc::SaveOnlyStartFrameButtonProc() {
@@ -2089,8 +2386,10 @@ DataTestMotDw::SaveOnlyStartFrameButtonProc::~SaveOnlyStartFrameButtonProc() {
 
 void DataTestMotDw::SaveOnlyStartFrameButtonProc::Callback(dw::SelectionListener::CallbackData* data) {
     dw::Button* button = dynamic_cast<dw::Button*>(data->widget);
-    if (button)
-        data_test_mot_dw_array_get(button->callback_data.i32)->dtm_mot->SetSaveOnlyStartFrame(button->value);
+    if (button) {
+        ROB_ID rob_id = (ROB_ID)button->callback_data.i32;
+        data_test_mot_dw_array_get(rob_id)->dtm_mot->SetSaveOnlyStartFrame(button->value);
+    }
 }
 
 DataTestMotDw::CreateFaceMotDwProc::CreateFaceMotDwProc() {
@@ -2103,8 +2402,10 @@ DataTestMotDw::CreateFaceMotDwProc::~CreateFaceMotDwProc() {
 
 void DataTestMotDw::CreateFaceMotDwProc::Callback(dw::SelectionListener::CallbackData* data) {
     dw::Button* button = dynamic_cast<dw::Button*>(data->widget);
-    if (button)
-        data_test_face_mot_dw_array_init(button->callback_data.i32);
+    if (button) {
+        ROB_ID rob_id = (ROB_ID)button->callback_data.i32;
+        data_test_face_mot_dw_array_init(rob_id);
+    }
 }
 
 DataTestMotDw::CreateEqDwProc::CreateEqDwProc() {
@@ -2131,13 +2432,13 @@ void DataTestMotDw::CreateDebugCamProc::Callback(dw::SelectionListener::Callback
     //set_debug_camera_set_mode_lock();
 }
 
-DataTestMotDw::DataTestMotDw(int32_t chara_id, DtmMot* dtm_mot) {
+DataTestMotDw::DataTestMotDw(ROB_ID id, DtmMot* dtm_mot) {
     this->dtm_mot = dtm_mot;
 
     DataTestMot::Data* test_mot_data = data_test_mot_data_get();
 
     char buf[0x20];
-    sprintf_s(buf, sizeof(buf), "MOTION TEST %dP", chara_id + 1);
+    sprintf_s(buf, sizeof(buf), "MOTION TEST %dP", id + 1);
     SetText(buf);
 
     dw::Composite* chara_comp = new dw::Composite(this);
@@ -2151,8 +2452,8 @@ DataTestMotDw::DataTestMotDw(int32_t chara_id, DtmMot* dtm_mot) {
     chara->SetMaxItems(20);
     for (int32_t i = 0; i < CN_MAX; i++)
         chara->AddItem(get_chara_name_full((CHARA_NUM)i));
-    chara->callback_data.i32 = chara_id;
-    chara->SetItemIndex(test_mot_data->chara_num[chara_id]);
+    chara->callback_data.i32 = id;
+    chara->SetItemIndex(test_mot_data->chr[id]);
     chara->AddSelectionListener(&chara_list_box_proc);
     chara->SetFont(dw::p_font_type_6x12);
 
@@ -2162,10 +2463,10 @@ DataTestMotDw::DataTestMotDw(int32_t chara_id, DtmMot* dtm_mot) {
     chara_list_box_proc.list_box = new dw::ListBox(chara_list_box_comp);
     chara_list_box_proc.list_box->SetMaxItems(40);
     chara_list_box_proc.list_box->SetFont(dw::p_font_type_6x12);
-    AddModules(chara_id, chara_list_box_proc.list_box);
-    chara_list_box_proc.list_box->callback_data.i32 = chara_id;
+    AddModules(id, chara_list_box_proc.list_box);
+    chara_list_box_proc.list_box->callback_data.i32 = id;
 
-    chara_list_box_proc.list_box->SetItemIndex(test_mot_data->cos_id[chara_id]);
+    chara_list_box_proc.list_box->SetItemIndex(test_mot_data->ptr[id]);
     chara_list_box_proc.list_box->AddSelectionListener(&c_type_list_box_proc);
     chara_list_box_proc.list_box->SetFont(dw::p_font_type_6x12);
 
@@ -2183,9 +2484,9 @@ DataTestMotDw::DataTestMotDw(int32_t chara_id, DtmMot* dtm_mot) {
     for (motion_set_info& i : aft_mot_db->motion_set)
         c_type_list_box_proc.list_box->AddItem(i.name);
     c_type_list_box_proc.list_box->SetMaxItems(40);
-    c_type_list_box_proc.list_box->callback_data.i32 = chara_id;
+    c_type_list_box_proc.list_box->callback_data.i32 = id;
 
-    c_type_list_box_proc.list_box->SetItemIndex(test_mot_data->motion_set_index[chara_id]);
+    c_type_list_box_proc.list_box->SetItemIndex(test_mot_data->set[id]);
     c_type_list_box_proc.list_box->AddSelectionListener(&set_list_box_proc);
     c_type_list_box_proc.list_box->SetFont(dw::p_font_type_6x12);
 
@@ -2198,22 +2499,22 @@ DataTestMotDw::DataTestMotDw(int32_t chara_id, DtmMot* dtm_mot) {
 
     set_list_box_proc.list_box = new dw::ListBox(id_comp);
     set_list_box_proc.list_box->SetMaxItems(40);
-    set_list_box_proc.list_box->callback_data.i32 = chara_id;
+    set_list_box_proc.list_box->callback_data.i32 = id;
     set_list_box_proc.list_box->AddSelectionListener(&id_list_box_proc);
     set_list_box_proc.list_box->SetFont(dw::p_font_type_6x12);
 
     rotate_slider = dw::Slider::Create(this);
     rotate_slider->SetText("Y ROT");
     rotate_slider->format = "%3.0f";
-    rotate_slider->SetParams(test_mot_data->rot_y[chara_id], -180.0f, 180.0f, 36.0f, 1.0f, 10.0f);
-    rotate_slider->callback_data.i32 = chara_id;
+    rotate_slider->SetParams(test_mot_data->rot_y[id], -180.0f, 180.0f, 36.0f, 1.0f, 10.0f);
+    rotate_slider->callback_data.i32 = id;
     rotate_slider->AddSelectionListener(&rotate_slider_proc);
 
     position_slider = dw::Slider::Create(this);
     position_slider->dw::Widget::SetText("X POS");
     position_slider->format = "%3.2f";
-    position_slider->SetParams(test_mot_data->trans_x[chara_id], -2.0f, 2.0f, 0.4f, 0.01f, 0.1f);
-    position_slider->callback_data.i32 = chara_id;
+    position_slider->SetParams(test_mot_data->trans_x[id], -2.0f, 2.0f, 0.4f, 0.01f, 0.1f);
+    position_slider->callback_data.i32 = id;
     position_slider->AddSelectionListener(&position_slider_proc);
 
     dw::Group* frame_group = new dw::Group(this);
@@ -2226,8 +2527,8 @@ DataTestMotDw::DataTestMotDw(int32_t chara_id, DtmMot* dtm_mot) {
         sprintf_s(buf, sizeof(buf), "STEP %02d", i);
         step_slider->SetText(buf);
         step_slider->format = "%4.4f";
-        step_slider->SetParams(test_mot_data->step[chara_id].array[i], -3.0f, 3.0f, 0.4f, 0.01f, 0.1f);
-        step_slider->callback_data.i32 = chara_id;
+        step_slider->SetParams(test_mot_data->step[id].array[i], -3.0f, 3.0f, 0.4f, 0.01f, 0.1f);
+        step_slider->callback_data.i32 = id;
         step_slider_proc[i].index = i;
         step_slider->AddSelectionListener(&step_slider_proc[i]);
     }
@@ -2243,21 +2544,21 @@ DataTestMotDw::DataTestMotDw(int32_t chara_id, DtmMot* dtm_mot) {
     dw::Label* frame_separator = new dw::Label(frame_comp);
     frame_separator->SetText(" / ");
 
-    frame_count = new dw::Label(frame_comp, dw::FLAG_4000);
-    frame_count->SetText("00000.0000");
+    frame_max = new dw::Label(frame_comp, dw::FLAG_4000);
+    frame_max->SetText("00000.0000");
 
     current = dw::Slider::Create(frame_group);
     current->SetText("Current");
     current->format = "%4.0f";
     current->SetParams(0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f);
-    current->callback_data.i32 = chara_id;
+    current->callback_data.i32 = id;
     current->AddSelectionListener(&frame_slider_proc);
 
     start_frame_slider = dw::Slider::Create(frame_group);
     start_frame_slider->SetText("Start  ");
     start_frame_slider->format = "%4.0f";
     start_frame_slider->SetParams(0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f);
-    start_frame_slider->callback_data.i32 = chara_id;
+    start_frame_slider->callback_data.i32 = id;
     start_frame_slider->AddSelectionListener(&start_frame_slider_proc);
 
     dw::Composite* start_ctrl_comp = new dw::Composite(frame_group);
@@ -2313,7 +2614,7 @@ DataTestMotDw::DataTestMotDw(int32_t chara_id, DtmMot* dtm_mot) {
     disp_button->SetText("DISP  ");
     disp_button->SetValue(true);
     disp_button->AddSelectionListener(&disp_button_proc);
-    disp_button->callback_data.i32 = chara_id;
+    disp_button->callback_data.i32 = id;
     disp_button->SetFont(dw::p_font_type_6x12);
 
     set_change_button = new dw::Button(rob_comp, dw::CHECKBOX);
@@ -2327,7 +2628,7 @@ DataTestMotDw::DataTestMotDw(int32_t chara_id, DtmMot* dtm_mot) {
     dw::Button* reate_face_mot_dw = new dw::Button(var_comp);
     reate_face_mot_dw->SetText(" FACE MOT ");
     reate_face_mot_dw->AddSelectionListener(&create_face_mot_dw_proc);
-    reate_face_mot_dw->callback_data.i32 = chara_id;
+    reate_face_mot_dw->callback_data.i32 = id;
     reate_face_mot_dw->SetFont(dw::p_font_type_6x12);
 
     dw::Button* create_eq_dw = new dw::Button(var_comp);
@@ -2344,7 +2645,7 @@ DataTestMotDw::DataTestMotDw(int32_t chara_id, DtmMot* dtm_mot) {
     use_opd_button->SetText("USE OSAGE PLAY DATA");
     use_opd_button->SetValue(false);
     use_opd_button->AddSelectionListener(&use_opd_button_proc);
-    use_opd_button->callback_data.i32 = chara_id;
+    use_opd_button->callback_data.i32 = id;
     use_opd_button->SetFont(dw::p_font_type_6x12);
 
     dtm_mot->SetPartialMot(false);
@@ -2359,7 +2660,7 @@ DataTestMotDw::DataTestMotDw(int32_t chara_id, DtmMot* dtm_mot) {
     save_only_start_frame_button->SetText(save_only_start_frame_button_text);
     save_only_start_frame_button->SetValue(false);
     save_only_start_frame_button->AddSelectionListener(&save_only_start_frame_button_proc);
-    save_only_start_frame_button->callback_data.i32 = chara_id;
+    save_only_start_frame_button->callback_data.i32 = id;
     save_only_start_frame_button->SetFont(dw::p_font_type_6x12);
 
     UpdateLayout();
@@ -2395,8 +2696,8 @@ void DataTestMotDw::AddID(const char* str) {
     set_list_box_proc.list_box->AddItem(str);
 }
 
-void DataTestMotDw::SetFrameSlider(float_t frame, float_t frame_count) {
-    float_t last_frame = frame_count - 1.0f;
+void DataTestMotDw::SetFrameSlider(float_t frame, float_t frame_max) {
+    float_t last_frame = frame_max - 1.0f;
     current->SetParams(min_def(frame, last_frame), 0.0f, last_frame, last_frame * 0.1f, 1.0f, 10.0f);
 
     float_t _frame = clamp_def(start_frame_slider->GetValue(), 0.0f, last_frame);
@@ -2405,16 +2706,16 @@ void DataTestMotDw::SetFrameSlider(float_t frame, float_t frame_count) {
     data_test_mot_data_get()->start_frame[start_frame_slider->callback_data.i32] = _frame;
 }
 
-void DataTestMotDw::SetFrameLabel(float_t frame, float_t frame_count) {
+void DataTestMotDw::SetFrameLabel(float_t frame, float_t frame_max) {
     char buf[0x40];
     sprintf_s(buf, sizeof(buf), "%10.4f", frame);
     this->frame->SetText(buf);
 
-    sprintf_s(buf, sizeof(buf), "%7.1f", frame_count);
-    this->frame_count->SetText(buf);
+    sprintf_s(buf, sizeof(buf), "%7.1f", frame_max);
+    this->frame_max->SetText(buf);
 }
 
-void DataTestMotDw::AddModules(int32_t chara_id, dw::ListBox* list_box) {
+void DataTestMotDw::AddModules(ROB_ID id, dw::ListBox* list_box) {
     if (!list_box)
         return;
 
@@ -2422,14 +2723,14 @@ void DataTestMotDw::AddModules(int32_t chara_id, dw::ListBox* list_box) {
 
     list_box->ClearItems();
 
-    CHARA_NUM chara_num = test_mot_data->chara_num[chara_id];
-    const char* chara_name = get_chara_name(chara_num);
+    CHARA_NUM chr = test_mot_data->chr[id];
+    const char* chara_name = get_chara_name(chr);
 
     const std::vector<module_data>& modules = module_data_handler_data_get_modules();
-    for (auto& i : item_table_handler_array_get_table(chara_num)->cos) {
+    for (auto& i : get_rob_item_header(chr)->defset) {
         bool found = false;
         for (const module_data& j : modules)
-            if (chara_num == j.chara_num && i.first == j.cos) {
+            if (chr == j.chara_num && i.first == j.cos) {
                 char buf[0x200];
                 sprintf_s(buf, sizeof(buf), "%03d:(%s%03d)%s", j.id, chara_name, i.first + 1, j.name.c_str());
                 list_box->AddItem(buf);
@@ -2438,18 +2739,19 @@ void DataTestMotDw::AddModules(int32_t chara_id, dw::ListBox* list_box) {
                 break;
             }
 
-        if (!found && i.second.data.outer) {
-            const item_table_item* item = item_table_handler_array_get_item(chara_num, i.second.data.outer);
-            if (item) {
+        if (!found && i.second.item_no[ROB_ITEM_EQUIP_SUB_ID_OUTER]) {
+            const RobItemTable* tbl = get_rob_item_table(
+                chr, i.second.item_no[ROB_ITEM_EQUIP_SUB_ID_OUTER]);
+            if (tbl) {
                 char buf[0x200];
-                sprintf_s(buf, sizeof(buf), "---:(%s%03d)%s", chara_name, i.first + 1, item->name.c_str());
+                sprintf_s(buf, sizeof(buf), "---:(%s%03d)%s", chara_name, i.first + 1, tbl->name.c_str());
                 list_box->AddItem(buf);
             }
         }
     }
 
-    int32_t cos_id = test_mot_data->cos_id[chara_id];
-    list_box->SetItemIndex(cos_id < list_box->GetItemCount() ? cos_id : 0);
+    int32_t ptr = test_mot_data->ptr[id];
+    list_box->SetItemIndex(ptr < list_box->GetItemCount() ? ptr : 0);
 }
 
 void DataTestMotDw::ResetFrame() {
@@ -2501,7 +2803,7 @@ void DataTestMotDw::StartCtrlLeftRightCallback(dw::Widget* data) {
     auto i_begin = set_motion.begin();
     auto i_end = set_motion.end();
     for (auto i = i_begin; i != i_end; )
-        if (i->motion_id != test_mot_dw->dtm_mot->motion_id) {
+        if (i->motnum != test_mot_dw->dtm_mot->uid) {
             for (auto j = i, k = i - 1; k != i_end; j++, k++)
                 *j = *k;
 
@@ -2517,7 +2819,7 @@ void DataTestMotDw::StartCtrlLeftRightCallback(dw::Widget* data) {
     float_t last = 0.0f;
     float_t first = -1.0f;
     for (pv_data_set_motion& i : set_motion) {
-        if (i.motion_id == test_mot_dw->dtm_mot->motion_id)
+        if (i.motnum == test_mot_dw->dtm_mot->uid)
             if (&i != set_motion.data())
                 last = i.frame_stage_index.first;
         if (frame < i.frame_stage_index.first) {
@@ -2860,8 +3162,8 @@ void DataTestMotCtrlDw::Draw() {
         default: {
             test_mot_data->type = 0;
 
-            if (dtm_mot_array[0].motion_set_id != -1) {
-                std::string motion_set_name(aft_mot_db->get_motion_set_name(dtm_mot_array[0].motion_set_id));
+            if (dtm_mot_array[ROB_ID_1P].set != -1) {
+                std::string motion_set_name(aft_mot_db->get_motion_set_name(dtm_mot_array[ROB_ID_1P].set));
 
                 const char* v13[] = {
                     "CMN",
@@ -2935,22 +3237,22 @@ static void data_test_mot_a3d_set_auth_3d(std::string& value) {
     data_test_mot_a3d_get()->SetAuth3d(value);
 }
 
-static void data_test_mot_dw_array_init(int32_t chara_id, DtmMot* dtm_mot) {
-    if (data_test_mot_dw_array[chara_id]) {
-        data_test_mot_dw_array[chara_id]->Disp();
+static void data_test_mot_dw_array_init(ROB_ID id, DtmMot* dtm_mot) {
+    if (data_test_mot_dw_array[id]) {
+        data_test_mot_dw_array[id]->Disp();
         return;
     }
 
-    DataTestMotDw* test_mot_dw = new DataTestMotDw(chara_id, dtm_mot);
-    data_test_mot_dw_array[chara_id] = test_mot_dw;
+    DataTestMotDw* test_mot_dw = new DataTestMotDw(id, dtm_mot);
+    data_test_mot_dw_array[id] = test_mot_dw;
 
     test_mot_dw->LimitPosDisp();
 
-    switch (chara_id) {
-    case 0: {
+    switch (id) {
+    case ROB_ID_1P: {
         test_mot_dw->rect.pos.y += 14.0f;
     } break;
-    case 1: {
+    case ROB_ID_2P: {
         ScreenParam& screen_param = get_screen_param();
         test_mot_dw->rect.pos.x = (float_t)screen_param.width - test_mot_dw->rect.size.x;
         test_mot_dw->rect.pos.y = (float_t)screen_param.height - 24.0f;
@@ -2958,8 +3260,8 @@ static void data_test_mot_dw_array_init(int32_t chara_id, DtmMot* dtm_mot) {
     }
 }
 
-static DataTestMotDw* data_test_mot_dw_array_get(int32_t chara_id) {
-    return data_test_mot_dw_array[chara_id];
+static DataTestMotDw* data_test_mot_dw_array_get(ROB_ID id) {
+    return data_test_mot_dw_array[id];
 }
 
 static void data_test_mot_a3d_dw_init() {
@@ -2989,21 +3291,21 @@ static DataTestMotCtrlDw* data_test_mot_ctrl_dw_get() {
     return data_test_mot_ctrl_dw;
 }
 
-static void data_test_face_mot_dw_array_init(int32_t chara_id) {
-    if (chara_id < 0 || chara_id >= ROB_ID_MAX || !rob_chara_array_get(chara_id))
+static void data_test_face_mot_dw_array_init(ROB_ID id) {
+    if (id < 0 || id >= ROB_ID_MAX || !get_rob_management()->get_rob(id))
         return;
 
-    if (!data_test_face_mot_dw_array[chara_id]) {
-        data_test_face_mot_dw_array[chara_id] = new DataTestFaceMotDw(chara_id);
-        data_test_face_mot_dw_array[chara_id]->LimitPosDisp();
+    if (!data_test_face_mot_dw_array[id]) {
+        data_test_face_mot_dw_array[id] = new DataTestFaceMotDw(id);
+        data_test_face_mot_dw_array[id]->LimitPosDisp();
     }
     else
-        data_test_face_mot_dw_array[chara_id]->Disp();
+        data_test_face_mot_dw_array[id]->Disp();
 }
 
-static DataTestFaceMotDw* data_test_face_mot_dw_array_get(int32_t chara_id) {
-    if (chara_id >= 0 && chara_id < ROB_ID_MAX)
-        return data_test_face_mot_dw_array[chara_id];
+static DataTestFaceMotDw* data_test_face_mot_dw_array_get(ROB_ID id) {
+    if (id >= 0 && id < ROB_ID_MAX)
+        return data_test_face_mot_dw_array[id];
     return 0;
 }
 

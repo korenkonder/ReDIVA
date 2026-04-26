@@ -473,7 +473,7 @@ namespace Glitter {
     extern const ParticleBlendMask particle_blend_mask_default;
     extern const Pivot pivot_reverse[];
 
-    extern const char* effect_ext_anim_index_name[];
+    extern const char* effect_ext_anim_rob_id_name[];
     extern const char* effect_ext_anim_node_index_name[];
     extern const char* effect_type_name[];
     extern const char* emitter_name[];
@@ -657,7 +657,7 @@ namespace Glitter {
                     char mesh_name[0x80];
                 };
                 struct {
-                    int32_t chara_index;
+                    int32_t rob_id;
                     EffectExtAnimCharaNode node_index;
                 };
             };
@@ -673,7 +673,7 @@ namespace Glitter {
                     char mesh_name[0x80];
                 };
                 struct {
-                    int32_t chara_index;
+                    int32_t rob_id;
                     EffectExtAnimCharaNode node_index;
                 };
             };
@@ -943,7 +943,7 @@ namespace Glitter {
         void SetExtColor(float_t r, float_t g, float_t b, float_t a, bool set);
         void SetExtScale(float_t scale);
 
-        static int32_t GetExtAnimBoneIndex(GPM, EffectExtAnimCharaNode node);
+        static int32_t GetExtAnimNodeIndex(GPM, EffectExtAnimCharaNode node);
     };
 
     class EffectInstF2 : public EffectInst {
@@ -959,8 +959,8 @@ namespace Glitter {
                     const char* mesh_name;
                 };
                 struct {
-                    int32_t chara_index;
-                    int32_t bone_index;
+                    int32_t rob_id;
+                    int32_t node_index;
                 };
             };
             mat4 mat;
@@ -1023,8 +1023,8 @@ namespace Glitter {
                     const char* mesh_name;
                 };
                 struct {
-                    int32_t chara_index;
-                    int32_t bone_index;
+                    int32_t rob_id;
+                    int32_t node_index;
                 };
             };
             mat4 mat;

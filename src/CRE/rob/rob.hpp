@@ -8,6 +8,7 @@
 #include "../../KKdLib/default.hpp"
 #include "../../KKdLib/database/bone.hpp"
 #include "../../KKdLib/database/motion.hpp"
+#include "../../KKdLib/prj/bit_array.hpp"
 #include "../../KKdLib/prj/vector_pair.hpp"
 #include "../../KKdLib/mat.hpp"
 #include "../../KKdLib/mot.hpp"
@@ -19,8 +20,119 @@
 #include "../object.hpp"
 #include "../static_var.hpp"
 
+enum ACT_NAME {
+    ROB_ACT_NONE = 0,
+    ROB_ACT_MOTION,
+    ROB_ACT_KAMAE,
+    ROB_ACT_YARARE,
+    ROB_ACT_GUARD,
+    ROB_ACT_NAGE,
+    ROB_ACT_NAGERARE,
+    ROB_ACT_JUMP,
+    ROB_ACT_DOWN,
+    ROB_ACT_RISE,
+    ROB_ACT_UKEMI,
+    ROB_ACT_GUARD_POSE,
+    ROB_ACT_RINGOUT,
+    ROB_ACT_GACHA,
+    ROB_ACT_WALK,
+    ROB_ACT_RUN,
+    ROB_ACT_DASH,
+    ROB_ACT_SY_DASH,
+    ROB_ACT_YOKE,
+    ROB_ACT_ROPEWORK,
+    ROB_ACT_MAX,
+};
+
+enum AtkPoint {
+    AP_NO_ATTACK = 0,
+    AP_HIGH,
+    AP_MIDDLE,
+    AP_LOW,
+    AP_AIR,
+    AP_VERY_LOW,
+    AP_LITTLE_LOW,
+    AP_LITTLE_HIGH,
+    AP_NAGEMISS_HIGH,
+    AP_NAGEMISS_LOW,
+    AP_NAGEMISS_DOWN,
+    AP_NAGEMISS_HI_AIR,
+    AP_DOWN_ATTACK,
+    AP_AIR_LOW,
+    AP_AIR_DOWN_ATTACK,
+    AP_MAX,
+};
+
+enum AtkUnit {
+    AU_NO_ATTACK = 0,
+    AU_KATA_R,
+    AU_KATA_L,
+    AU_UDE_R,
+    AU_UDE_L,
+    AU_TE_R,
+    AU_TE_L,
+    AU_HIZA_R,
+    AU_HIZA_L,
+    AU_ASI_R,
+    AU_ASI_L,
+    AU_FOOT_R,
+    AU_FOOT_L,
+    AU_RYOU_TE,
+    AU_ASI_ALL_R,
+    AU_ASI_ALL_L,
+    AU_SENAKA,
+    AU_KAO,
+    AU_KOSI,
+    AU_MUNE_KAO,
+    AU_BODY,
+    AU_RYOU_ASI,
+    AU_ELBO_R,
+    AU_ELBO_L,
+    AU_TE_ALL_R,
+    AU_TE_ALL_L,
+    AU_ASI_ALL,
+    AU_RYOU_HIZA,
+    AU_TE_ASI_R,
+    AU_TE_ASI_L,
+    AU_KATA_MUNE_R,
+    AU_KATA_MUNE_L,
+    AU_SHIRI,
+    AU_KAO_KATA,
+    AU_RYOU_ASI_HIZA,
+    AU_RYOU_UDE,
+    AU_RYOU_TE_ALL,
+    AU_ZENSHIN,
+    AU_TETSUZAN,
+    AU_TETSUZAN_M,
+    AU_ELBO_HIZA_R,
+    AU_ELBO_HIZA_L,
+    AU_RYOU_TE_KOSI,
+    AU_BUKI_R,
+    AU_BUKI_L,
+    AU_KATA_HIZA_R,
+    AU_KATA_HIZA_L,
+    AU_KATA_R_HIZA_L,
+    AU_KATA_L_HIZA_R,
+    AU_RYOU_HIJI,
+    AU_RYOU_ASI_TE_R,
+    AU_RYOU_ASI_TE_L,
+    AU_ELBO_MUNE_R,
+    AU_ELBO_MUNE_L,
+    AU_TE_R_ASI_L,
+    AU_TE_L_ASI_R,
+    AU_BODY_TE_R,
+    AU_BODY_TE_L,
+    AU_BODY_ASI_R,
+    AU_BODY_ASI_L,
+    AU_BODY_TE_ASI_R,
+    AU_BODY_TE_ASI_L,
+    AU_RYOU_TE_KAO,
+    AU_MAX,
+};
+
 enum BONE_BLK {
-    BLK_DUMMY                   = -1,
+    BLK_DUMMY = -1,
+
     BLK_N_HARA_CP               = 0x00,
     BLK_KG_HARA_Y               = 0x01,
     BLK_KL_HARA_XZ              = 0x02,
@@ -210,7 +322,8 @@ enum BONE_BLK {
 };
 
 enum BONE_ID {
-    BONE_ID_DUMMY                   = -1,
+    BONE_ID_DUMMY = -1,
+
     BONE_ID_N_HARA_CP               = 0x00,
     BONE_ID_KG_HARA_Y               = 0x01,
     BONE_ID_KL_HARA_XZ              = 0x02,
@@ -612,6 +725,12 @@ enum BONE_NODE {
     BONE_NODE_MAX                     = 0xC9,
 };
 
+enum CCmdYkType {
+    CCMD_YK_TYPE_NON = 0,
+    CCMD_YK_TYPE_R,
+    CCMD_YK_TYPE_L,
+};
+
 enum Expr_type {
     Expr_constant = 0,
     Expr_variable,
@@ -621,40 +740,597 @@ enum Expr_type {
     Expr_func3,
 };
 
-enum ROB_ID {
-    ROB_ID_1P = 0,
-    ROB_ID_2P,
-    ROB_ID_3P,
-    ROB_ID_4P,
-    ROB_ID_5P,
-    ROB_ID_6P,
-    ROB_ID_MAX,
-
-    ROB_ID_NULL = -1,
-};
-
-enum ReviseType {
-    REVISE_NORMAL = 0x0,
-    REVISE_FAST,
-    REVISE_SLOW,
-    REVISE_GUARD,
-    REVISE_RISE,
-    REVISE_YARARE,
-    REVISE_STRISE,
-    REVISE_SLOW2,
-    REVISE_ATTACK_FOLLOW,
-    REVISE_SLOW_GUARD,
-    REVISE_GUARD2,
-    REVISE_RISE_SLOW,
-    REVISE_TYPE_MAX,
-};
-
 enum eyes_base_adjust_type {
-    EYES_BASE_ADJUST_NONE      = -1,
+    EYES_BASE_ADJUST_NONE = -1,
+
     EYES_BASE_ADJUST_DIRECTION = 0x00,
     EYES_BASE_ADJUST_CLEARANCE = 0x01,
     EYES_BASE_ADJUST_OFF       = 0x02,
     EYES_BASE_ADJUST_MAX       = 0x03,
+};
+
+enum FcurveKeyKind {
+    FCURVE_KEY_KIND_STATIC_0 = 0,
+    FCURVE_KEY_KIND_STATIC_DATA,
+    FCURVE_KEY_KIND_HERMITE,
+    FCURVE_KEY_KIND_HERMITE_TANGENT,
+    FCURVE_KEY_KIND_MAX,
+};
+
+enum GuardKind {
+    GUARD_KIND_NONE = 0,
+    GUARD_KIND_TACHI,
+    GUARD_KIND_SYAGAMI,
+    GUARD_KIND_ALL,
+};
+
+enum HyoutanStat {
+    HYOUTAN_STAT_NORMAL = 0,
+    HYOUTAN_STAT_RIGHT_HAND,
+    HYOUTAN_STAT_LEFT_HAND,
+    HYOUTAN_STAT_MAX,
+};
+
+enum MhAirKind {
+    AK_CENTER_MOVE = 0,
+    AK_KIND_MAX,
+};
+
+enum MhAtkKind {
+    ATK_DOWN_ATTACK_OK = 0,
+    ATK_HIT_OK,
+    ATK_GUARD,
+    ATK_REVISE,
+    ATK_YOROKENAI,
+    ATK_YOKE_HIT,
+    ATK_LR_YARARE,
+    ATK_KIND_MAX,
+};
+
+enum MhEfcFlag {
+    ETF_RIGHT = 0,
+    ETF_LEFT,
+    ETF_DOWN,
+    ETF_TA_DOWN,
+    ETF_COUNTER_DOWN,
+    ETF_YOROKE_DOWN,
+    ETF_NO_DOWN,
+    ETF_NO_GUARD,
+    ETF_GUARD_HALF,
+    ETF_GUARD_HAZUSHI_LOW,
+    ETF_GUARD_HAZUSHI_HIGH,
+    ETF_FOLLOW_HIT_YOROKE,
+    ETF_GUARD_YOROKE_HIGH,
+    ETF_GUARD_YOROKE_LOW,
+    ETF_YOROKE_HIGH,
+    ETF_YOROKE_LOW,
+    ETF_WALL_BREAK,
+    ETF_COUNTER_YOROKE,
+    ETF_YOROKE_NO_DOWN,
+    ETF_URA_DOWN,
+    ETF_COUNTER_URA_DOWN,
+    ETF_FOLLOW_HIT_URA_DOWN,
+    ETF_URA_NO_DOWN,
+    ETF_FOLLOW_HIT_DOWN,
+    ETF_S_COUNTER_DOWN,
+    ETF_S_COUNTER_YOROKE,
+    ETF_M_COUNTER_DOWN,
+    ETF_M_COUNTER_YOROKE,
+    ETF_L_COUNTER_DOWN,
+    ETF_L_COUNTER_YOROKE,
+    ETF_YARARE_REV,
+    ETF_YOKE_GUARD,
+    ETF_SIDE_DOWN,
+    ETF_COUNTER_SIDE_DOWN,
+    ETF_FOLLOW_SIDE_DOWN,
+    ETF_STRAIGHT,
+    ETF_REVERSE,
+    ETF_WALL_FIX,
+    ETF_NOT_WALL_FIX,
+    ETF_SIDE_YOROKE,
+    ETF_URA_YOROKE,
+    ETF_SIDE_YOROKE_LOW,
+    ETF_URA_YOROKE_LOW,
+    ETF_ITAI_DOWN,
+    ETF_NO_UKEMI,
+    ETF_STUN,
+    ETF_COUNTER_STUN,
+    ETF_FOLLOW_HIT_STUN,
+    ETF_URA_STUN,
+    ETF_COUNTER_URA_STUN,
+    ETF_FOLLOW_HIT_URA_STUN,
+    ETF_SIDE_STUN,
+    ETF_COUNTER_SIDE_STUN,
+    ETF_FOLLOW_HIT_SIDE_STUN,
+    ETF_STUN_DOWN,
+    ETF_FOLLOW_HIT_SY_YA,
+    ETF_NO_CMBXANG_OFFSET,
+    ETF_BD_COUNTER_DOWN,
+    ETF_BD_COUNTER_YOROKE,
+    ETF_NO_COUNTER_DAMAGE,
+    ETF_NO_HIT_AIR,
+    ETF_FLAG_MAX,
+};
+
+enum MhEfcSpeedType {
+    EST_NORMAL = 0,
+    EST_EXTRA,
+    EST_UP_PUNCH,
+    EST_UP_PUNCH2,
+    EST_DOWN_ATTACK,
+    EST_NERICHAGI,
+    EST_FUTTOBI,
+    EST_LOW_ATTACK,
+    EST_HAMMER,
+    EST_JUMP_PUNCH,
+    EST_CHAIN_PULL,
+    EST_SPIN,
+    EST_RENKAN,
+    EST_NORMAL2,
+    EST_MAX,
+};
+
+enum MhEnDrinkOffType {
+    MH_EDRK_ATK_ALWAYS = 0,
+    MH_EDRK_ATK_HIT,
+    MH_EDRK_ATK_GUARD,
+    MH_EDRK_DRINK_OFF_MAX,
+};
+
+enum MhGuardFlag {
+    GK_BUTTON = 0,
+    GK_NONE_DC,
+    GK_NONE_DC_SELECT,
+    GK_NONE_DC_ALL,
+    GK_NONE_DC_TA,
+    GK_NONE_DC_SY,
+    GK_DC,
+    GK_DC_SELECT,
+    GK_DC_ALL,
+    GK_DC_TA,
+    GK_DC_SY,
+    GK_COMA_A,
+    GK_SIDE,
+    GK_FLAG_MAX,
+};
+
+enum MhGuardType {
+    GK_TYPE_ALL = 0,
+    GK_TYPE_TA,
+    GK_TYPE_SY,
+    GK_TYPE_SEL,
+    GK_TYPE_MAX,
+};
+
+enum MhKabeDmgType {
+    MH_KBD_NORMAL = 0,
+    MH_KBD_YARARE,
+    MH_KBD_YOROKE,
+    MH_KBD_MAX,
+};
+
+enum MhKaeshiAttrib {
+    KT_ATTRIB_NONE = 0x0,
+    KT_ATTRIB_TA_PUNCH,
+    KT_ATTRIB_SY_PUNCH,
+    KT_ATTRIB_HIJI,
+    KT_ATTRIB_HIZA,
+};
+
+enum MhKaeshiFlag {
+    KT_PUNCH_KAESHI = 0,
+    KT_LOW_PUNCH_KAESHI,
+    KT_KICK_KAESHI,
+    KT_MID_KICK_KAESHI,
+    KT_LOW_KICK_KAESHI,
+    KT_HIJI_KAESHI,
+    KT_HIZA_KAESHI,
+    KT_SPIN_K_KAESHI,
+    KT_LOW_SPIN_K_KAESHI,
+    KT_SUMMER_KAESHI,
+    KT_DOWN_PUNCH_KAESHI,
+    KT_DOWN_KICK_KAESHI,
+    KT_RYOUTE_KAESHI,
+    KT_KATA_KAESHI,
+    KT_TETSUZAN_KAESHI,
+    KT_HEAD_KAESHI,
+    KT_TE_TORI,
+    KT_LOW_PUNCH_TORI,
+    KT_ASI_TORI,
+    KT_MID_ASI_TORI,
+    KT_LOW_ASI_TORI,
+    KT_HIJI_TORI,
+    KT_HIZA_TORI,
+    KT_RYOUASI_TORI,
+    KT_HIGH,
+    KT_MIDDLE,
+    KT_LOW,
+    KT_BEHIND,
+    KT_TACHI_NAGE,
+    KT_SY_GUARD,
+    KT_GUARD_SHIFT,
+    KT_LEFT,
+    KT_FULL_KAESHI,
+    KT_DOWN_DISABLE,
+    KT_RESIST_DISABLE,
+    KT_DISABLE,
+    KT_TYPE_MAX,
+};
+
+enum MhMotKind {
+    MK_CHANGE = 0,
+    MK_BEGIN,
+    MK_FOLLOW,
+    MK_NO_TRANS,
+    MK_NO_MOVE,
+    MK_RUN,
+    MK_AIR,
+    MK_JUMP,
+    MK_TURN,
+    MK_YARARE,
+    MK_DOWN,
+    MK_DOWN_POSE,
+    MK_KAMAE,
+    MK_SYAGAMI,
+    MK_ATTACK,
+    MK_GUARD,
+    MK_UKEMI,
+    MK_RISE,
+    MK_GACHA,
+    MK_NAGE,
+    MK_NAGERARE,
+    MK_DTURN,
+    MK_BACK,
+    MK_YOROKE,
+    MK_RIDE_ON,
+    MK_YOKE,
+    MK_AGURA,
+    MK_SAKADACHI,
+    MK_FALL,
+    MK_TSUKAMI,
+    MK_TSUKAMARE,
+    MK_MUTEKI,
+    MK_HAJIKI_HIGH,
+    MK_HAJIKI_LOW,
+    MK_NERI,
+    MK_OIDASANAI,
+    MK_CHARGE_WHILE,
+    MK_NO_DEAD,
+    MK_KAESERU,
+    MK_DOWN_HIT_ENABLE,
+    MK_AIR_DOWN,
+    MK_TUNNELS,
+    MK_TUNNEL0,
+    MK_NAGERARERU,
+    MK_POSE_CANCEL_OK,
+    MK_NO_FREEZE,
+    MK_GUARD_NAGERENAI_DC,
+    MK_NAGE_CHECK_NORMAL,
+    MK_NAGE_CHECK_KUZURE,
+    MK_SABAKI,
+    MK_GACHA_DISP,
+    MK_KABE_HIT_NG,
+    MK_WALL_CHECK_RINGOUT,
+    MK_FALL_RINGOUT_OK,
+    MK_NO_RINGOUT,
+    MK_RINGOUT_CHAIN,
+    MK_NAGE_WALL_BREAK,
+    MK_RECALC_OIDASHI_VEC,
+    MK_BACK_SPEED_OFF,
+    MK_CUT_WALL_SPEED_OFF,
+    MK_YOKE_R,
+    MK_YOKE_L,
+    MK_YOKERENAI,
+    MK_DOWN_ATTACK_OK,
+    MK_WALK,
+    MK_SYAGAMI_WALK,
+    MK_DASH,
+    MK_SYAGAMI_DASH,
+    MK_DOWN_NAGE,
+    MK_MOVE_FRONT,
+    MK_MOVE_BACK,
+    MK_SABAKI_MOTION,
+    MK_COMBO_NAGE,
+    MK_COMBO_NAGERARE,
+    MK_CHARGE_OFF,
+    MK_CHARGE,
+    MK_ATEMIKAMAE,
+    MK_ATEMIWAZA,
+    MK_NAGENUKE_OK,
+    MK_NAGENUKE,
+    MK_SYAGAMI_NAGE,
+    MK_NAGE_TSUKAMI,
+    MK_YOKE_ATTACK,
+    MK_JYOUDAN_KAWASHI,
+    MK_TOKUJYOU_KAWASHI,
+    MK_NAGE_FOLLOW_NAGERERU,
+    MK_RESIST,
+    MK_ATTACK_FOLLOW,
+    MK_ATTACK_BEGIN,
+    MK_FORCE_COUNTER_STRONG,
+    MK_FORCE_COUNTER_NORMAL,
+    MK_Y_MOVE,
+    MK_Y_TRANS,
+    MK_DMIRROR,
+    MK_URA_SAKA,
+    MK_SPD0,
+    MK_FUMI,
+    MK_KAO_MUKE,
+    MK_KAO_MUKENAI,
+    MK_KAO_MUKERUNA,
+    MK_WALL_THRUST_EMY,
+    MK_NEXT_TRANS,
+    MK_NEXT_Y_TRANS,
+    MK_BOUND_DOWN,
+    MK_HEAVY_BOUND_DOWN,
+    MK_NO_BOUND_DOWN,
+    MK_REVERSE_ATK,
+    MK_PL_SYAGAMI,
+    MK_NOT_PL_SYAGAMI,
+    MK_LOW_KAWASHI,
+    MK_REVERSE_HIT_OK,
+    MK_WALL_REDUCE_DAMAGE,
+    MK_WALL_DOWN2,
+    MK_REVERSE_ATK_FRONT,
+    MK_DOWN_LIKE,
+    MK_REDUCE_DAMAGE,
+    MK_IMM_YOKERARE_DISABLE,
+    MK_OFF_MOVE_L,
+    MK_OFF_MOVE_R,
+    MK_NO_CMBXANG_OFFSET,
+    MK_COLLI_WALL_DISABLE,
+    MK_NO_AIR,
+    MK_ITAI,
+    MK_ASI_LEAF_CTRL,
+    MK_CATCH_SABAKI_DISABLE,
+    MK_STUN,
+    MK_ATTACK_BEGIN2,
+    MK_KIND_MAX,
+};
+
+enum MhNextType {
+    MH_NEXT_NONE = -1,
+
+    MH_NEXT_MOTION = 0,
+    MH_NEXT_REPEAT,
+    MH_NEXT_KAMAE,
+    MH_NEXT_MAKE,
+    MH_NEXT_NAGE,
+    MH_NEXT_DOWN_POSE,
+    MH_NEXT_LOCK,
+    MH_NEXT_MAX,
+};
+
+enum MhResistDownChkType {
+    RESIST_NO_CHK_DOWN = 0,
+    RESIST_CHK_DOWN,
+};
+
+enum MhReviseFlag {
+    MH_REVISE_NO = 0,
+    MH_REVISE_FORCE,
+    MH_REVISE_RISE_START,
+    MH_REVISE_MOT_SLOW,
+    MH_REVISE_DASH,
+    MH_REVISE_EMY_NO,
+    MH_REVISE_GUARD_EMY_NO,
+    MH_REVISE_ATK_FOLLOW_EMY_NO,
+    MH_REVISE_NORM_EMY_NO,
+    MH_REVISE_WALK_EMY_NO,
+    MH_REVISE_UPDATE_EMY_ATK,
+    MH_REVISE_FORCE_SLOW2,
+    MH_REVISE_FORCE_FAST2,
+    MH_REVISE_GUARD_SLOW,
+    MH_REVISE_GUARD_EMY_ON,
+    MH_REVISE_DOWN_ATK,
+    MH_REVISE_FORCE_SLOW,
+    MH_REVISE_MAX,
+};
+
+enum MhSmoothFlag {
+    SMF_SAME_FSMOOTH_OFF = 0,
+    SMF_NORMAL_RSMOOTH,
+    SMF_FLAG_MAX,
+};
+
+enum MhYarareType {
+    E_PUNCH = 0,
+    E_KICK,
+    E_STR,
+    E_MAWASHI,
+    E_MID_PUNCH,
+    E_MID_STR,
+    E_MID_MAWASHI,
+    E_SY_PUNCH,
+    E_SY_KICK,
+    E_SY_STR,
+    E_SY_MAWASHI,
+    E_YOKO,
+    E_YOKO2,
+    E_TACKLE,
+    E_KUZURE1_COUNTER,
+    E_KUZURE1,
+    E_KUZURE2_COUNTER,
+    E_KUZURE2,
+    E_URATEN,
+    E_UP_PUNCH,
+    E_DOWN_ATTACK,
+    E_DOWN_ATTACK2,
+    E_DOWN_ATTACK3,
+    E_JUMP_PUNCH,
+    E_SYAGAMASE,
+    E_MOUKO,
+    E_MOUKO2,
+    E_TRN_PUNCH,
+    E_BETA,
+    E_NIKIKYAKU,
+    E_HAZUSHI,
+    E_MID_SLEEPER,
+    E_MDLK,
+    E_DASH_HAMMER,
+    E_BETA_TATAKI,
+    E_KASANE,
+    E_LOWATK,
+    E_HEAVY_KICK,
+    E_KICK3,
+    E_PUNCH3,
+    E_SYAGAMASE2,
+    E_WOL_BODY,
+    E_KETAGURI,
+    E_HOZAN,
+    E_METUKI,
+    E_HEAVY,
+    E_UP_PUNCH_EV,
+    E_MDLK_EV,
+    E_MDLK_EV2,
+    E_HIZADOWN,
+    E_DASH_HAMMER_EV,
+    E_UP_PUNCH_EV2,
+    E_KUZURE2_HEAVY,
+    E_SIDE_ATTACK,
+    E_HEAVY_KICK_FS,
+    E_NIKIKYAKU_FAST,
+    E_NIKIKYAKU_FAST2,
+    E_HEAVY_BOUND,
+    E_JUMP_PUNCH_BOUND,
+    E_BETA_TATAKI_BOUND,
+    E_KUZURE2_UPPER,
+    E_HEAVY_BOUND2,
+    E_UP_PUNCH_URATEN,
+    E_UP_PUNCH_EV3,
+    E_UP_PUNCH2,
+    E_MOUKO2_KUZURE,
+    E_MID_STR_KUZURE,
+    E_MID_PUNCH_KUZURE,
+    E_PUNCH3_KUZURE,
+    E_MDLK_KUZURE,
+    E_MDLK_EV_KUZURE,
+    E_KUZURE1_KUZURE,
+    E_WOL_BODY_KUZURE,
+    E_KICK3_KUZURE,
+    E_GOROGORO,
+    E_UEFUTTOBI,
+    E_ITAI,
+    E_KUZURE2_LR,
+    E_HVYGD_UP_PUNCH,
+    E_SY_STR_BECHA,
+    E_MOUKO_SHORT,
+    E_MAKE_90DEG,
+    E_MOUKO_FUTTOBI,
+    E_MOUKO_FUTTOBI_KUZURE,
+    E_MOUKO_FUTTOBI2,
+    E_UP_PUNCH_UPPER,
+    E_UP_PUNCH_YORODOWN,
+    E_SY_MAWASHI_MAKE_90DEG,
+    E_LIGHT_BOUND,
+    E_MOUKO_KUZURE,
+    E_BETA_LONG,
+    E_HEAVY_KICK_EV,
+    E_HIZADOWN_AIR,
+    E_SYAGAMASE_BECHA,
+    E_MDLK_EV_KUZURE2,
+    E_MAWASHI_ROT_S,
+    E_MAWASHI_ROT_L,
+    E_JKD,
+    E_MDLK_HARD,
+    E_BECHA_BOUND,
+    E_LEG_HARD,
+    E_FS_TEST_1,
+    E_HIJI,
+    E_PUSH,
+    E_FUMARE,
+    E_HEAVY_FUMARE,
+    E_ASHIBARAI,
+    E_FS_TEST_7,
+    E_MAX,
+};
+
+enum MOT_BSTEP {
+    BSTEP_BEGIN = 0,
+    BSTEP_MAIN,
+    BSTEP_FOLLOW1,
+    BSTEP_FOLLOW2,
+    BSTEP_MAX,
+};
+
+enum MotAdjustType {
+    MA_TYPE_NONE = 0,
+    MA_TYPE_COMMON,
+    MA_TYPE_SCALE,
+    MA_TYPE_BODY,
+    MA_TYPE_ARM,
+    MA_TYPE_HEIGHT,
+    MA_TYPE_EMY_SCALE,
+    MA_TYPE_EMY_BODY,
+    MA_TYPE_EMY_ARM,
+    MA_TYPE_EMY_HEIGHT,
+    MA_TYPE_DIRECT,
+};
+
+enum MotLeafCtrlCharaFlag {
+    LC_CHARA_NONE = -1,
+
+    LC_CHARA_OK = 0,
+    LC_CHARA_NG,
+    LC_CHARA_MAX,
+};
+
+enum MotLeafCtrlLimit {
+    LCLIMIT_XYZ = 0,
+    LCLIMIT_X,
+    LCLIMIT_Y,
+    LCLIMIT_Z,
+    LCLIMIT_XY,
+    LCLIMIT_XZ,
+    LCLIMIT_YZ,
+    LCLIMIT_MAX,
+};
+
+enum MotLeafCtrlMode {
+    LEAF_CTRL_NONE = -1,
+
+    LEAF_CTRL_ON = 0,
+    LEAF_CTRL_OFF,
+    LEAF_CTRL_MAX,
+};
+
+enum MotLeafCtrlPart {
+    LCPART_TE_R = 0,
+    LCPART_TE_L,
+    LCPART_ASI_R,
+    LCPART_ASI_L,
+    LCPART_MAX,
+};
+
+enum MotLeafCtrlTagId {
+    LCTAG_ABS = 0,
+    LCTAG_TE_R,
+    LCTAG_TE_L,
+    LCTAG_ASI_R,
+    LCTAG_ASI_L,
+    LCTAG_SUNE_R,
+    LCTAG_SUNE_L,
+    LCTAG_UDE_R,
+    LCTAG_UDE_L,
+    LCTAG_KAO,
+    LCTAG_ADJ_EMY,
+    LCTAG_ADJ_EMY_BODY,
+    LCTAG_ADJ_EMY_HEIGHT,
+    LCTAG_ADJ_REV,
+    LCTAG_ADJ_BODY_REV,
+    LCTAG_ADJ_HEIGHT_REV,
+    LCTAG_OFS,
+    LCTAG_OFS_TE_R,
+    LCTAG_OFS_TE_L,
+    LCTAG_OFS_ASI_R,
+    LCTAG_OFS_ASI_L,
+    LCTAG_OFS_SUNE_R,
+    LCTAG_OFS_SUNE_L,
+    LCTAG_OFS_UDE_R,
+    LCTAG_OFS_UDE_L,
+    LCTAG_OFS_KAO,
+    LCTAG_OFS_BODY,
+    LCTAG_MAX,
 };
 
 enum mot_play_frame_data_loop_state : uint32_t {
@@ -675,105 +1351,491 @@ enum mot_play_frame_data_playback_state : uint32_t {
     MOT_PLAY_FRAME_DATA_PLAYBACK_MAX      = 0x04,
 };
 
-enum mothead_data_type {
-    MOTHEAD_DATA_TYPE_0                      = 0x00,
-    MOTHEAD_DATA_TYPE_1                      = 0x01,
-    MOTHEAD_DATA_TYPE_2                      = 0x02,
-    MOTHEAD_DATA_TYPE_3                      = 0x03,
-    MOTHEAD_DATA_TYPE_4                      = 0x04,
-    MOTHEAD_DATA_TYPE_5                      = 0x05,
-    MOTHEAD_DATA_TYPE_6                      = 0x06,
-    MOTHEAD_DATA_TYPE_7                      = 0x07,
-    MOTHEAD_DATA_TYPE_8                      = 0x08,
-    MOTHEAD_DATA_TYPE_9                      = 0x09,
-    MOTHEAD_DATA_TYPE_10                     = 0x0A,
-    MOTHEAD_DATA_TYPE_11                     = 0x0B,
-    MOTHEAD_DATA_TYPE_12                     = 0x0C,
-    MOTHEAD_DATA_TYPE_13                     = 0x0D,
-    MOTHEAD_DATA_TYPE_14                     = 0x0E,
-    MOTHEAD_DATA_TYPE_15                     = 0x0F,
-    MOTHEAD_DATA_TYPE_16                     = 0x10,
-    MOTHEAD_DATA_TYPE_17                     = 0x11,
-    MOTHEAD_DATA_TYPE_18                     = 0x12,
-    MOTHEAD_DATA_TYPE_19                     = 0x13,
-    MOTHEAD_DATA_TYPE_20                     = 0x14,
-    MOTHEAD_DATA_TYPE_21                     = 0x15,
-    MOTHEAD_DATA_TYPE_22                     = 0x16,
-    MOTHEAD_DATA_TYPE_23                     = 0x17,
-    MOTHEAD_DATA_TYPE_24                     = 0x18,
-    MOTHEAD_DATA_TYPE_25                     = 0x19,
-    MOTHEAD_DATA_TYPE_26                     = 0x1A,
-    MOTHEAD_DATA_TYPE_27                     = 0x1B,
-    MOTHEAD_DATA_TYPE_28                     = 0x1C,
-    MOTHEAD_DATA_TYPE_29                     = 0x1D,
-    MOTHEAD_DATA_TYPE_30                     = 0x1E,
-    MOTHEAD_DATA_TYPE_31                     = 0x1F,
-    MOTHEAD_DATA_TYPE_32                     = 0x20,
-    MOTHEAD_DATA_TYPE_33                     = 0x21,
-    MOTHEAD_DATA_TYPE_34                     = 0x22,
-    MOTHEAD_DATA_TYPE_35                     = 0x23,
-    MOTHEAD_DATA_TYPE_36                     = 0x24,
-    MOTHEAD_DATA_TYPE_37                     = 0x25,
-    MOTHEAD_DATA_TYPE_38                     = 0x26,
-    MOTHEAD_DATA_TYPE_39                     = 0x27,
-    MOTHEAD_DATA_TYPE_40                     = 0x28,
-    MOTHEAD_DATA_TYPE_41                     = 0x29,
-    MOTHEAD_DATA_TYPE_42                     = 0x2A,
-    MOTHEAD_DATA_TYPE_43                     = 0x2B,
-    MOTHEAD_DATA_TYPE_44                     = 0x2C,
-    MOTHEAD_DATA_TYPE_45                     = 0x2D,
-    MOTHEAD_DATA_TYPE_46                     = 0x2E,
-    MOTHEAD_DATA_TYPE_47                     = 0x2F,
-    MOTHEAD_DATA_TYPE_48                     = 0x30,
-    MOTHEAD_DATA_TYPE_49                     = 0x31,
-    MOTHEAD_DATA_SET_FACE_MOTION_ID          = 0x32,
-    MOTHEAD_DATA_TYPE_51                     = 0x33,
-    MOTHEAD_DATA_TYPE_52                     = 0x34,
-    MOTHEAD_DATA_SET_FACE_MOTTBL_MOTION      = 0x35,
-    MOTHEAD_DATA_SET_HAND_R_MOTTBL_MOTION    = 0x36,
-    MOTHEAD_DATA_SET_HAND_L_MOTTBL_MOTION    = 0x37,
-    MOTHEAD_DATA_SET_MOUTH_MOTTBL_MOTION     = 0x38,
-    MOTHEAD_DATA_SET_EYES_MOTTBL_MOTION      = 0x39,
-    MOTHEAD_DATA_SET_EYELID_MOTTBL_MOTION    = 0x3A,
-    MOTHEAD_DATA_SET_ROB_CHARA_HEAD_OBJECT   = 0x3B,
-    MOTHEAD_DATA_SET_LOOK_CAMERA             = 0x3C,
-    MOTHEAD_DATA_SET_EYELID_MOTION_FROM_FACE = 0x3D,
-    MOTHEAD_DATA_ROB_PARTS_ADJUST            = 0x3E,
-    MOTHEAD_DATA_TYPE_63                     = 0x3F,
-    MOTHEAD_DATA_OSAGE_RESET                 = 0x40,
-    MOTHEAD_DATA_MOTION_SKIN_PARAM           = 0x41,
-    MOTHEAD_DATA_OSAGE_STEP                  = 0x42,
-    MOTHEAD_DATA_SLEEVE_ADJUST               = 0x43,
-    MOTHEAD_DATA_TYPE_68                     = 0x44,
-    MOTHEAD_DATA_MOTION_MAX_FRAME            = 0x45,
-    MOTHEAD_DATA_CAMERA_MAX_FRAME            = 0x46,
-    MOTHEAD_DATA_OSAGE_MOVE_CANCEL           = 0x47,
-    MOTHEAD_DATA_TYPE_72                     = 0x48,
-    MOTHEAD_DATA_ROB_HAND_ADJUST             = 0x49,
-    MOTHEAD_DATA_DISABLE_COLLISION           = 0x4A,
-    MOTHEAD_DATA_ROB_ADJUST_GLOBAL           = 0x4B,
-    MOTHEAD_DATA_ROB_ARM_ADJUST              = 0x4C,
-    MOTHEAD_DATA_DISABLE_EYE_MOTION          = 0x4D,
-    MOTHEAD_DATA_TYPE_78                     = 0x4E,
-    MOTHEAD_DATA_ROB_CHARA_COLI_RING         = 0x4F,
-    MOTHEAD_DATA_ADJUST_GET_GLOBAL_POS       = 0x50,
-    MOTHEAD_DATA_MAX                         = 0x51,
+enum MhdNumber {
+    MHD_NUM_0 = 0,
+    MHD_NUM_1,
+    MHD_NUM_2,
+    MHD_NUM_3,
+    MHD_NUM_4,
+    MHD_NUM_5,
+    MHD_NUM_6,
+    MHD_NUM_7,
+    MHD_NUM_8,
+    MHD_NUM_9,
+    MHD_NUM_10,
+    MHD_NUM_11,
+    MHD_NUM_12,
+    MHD_NUM_13,
+    MHD_NUM_14,
+    MHD_NUM_15,
+    MHD_NUM_16,
+    MHD_NUM_17,
+    MHD_NUM_18,
+    MHD_NUM_19,
+    MHD_NUM_20,
+    MHD_NUM_21,
+    MHD_NUM_22,
+    MHD_NUM_23,
+    MHD_NUM_24,
+    MHD_NUM_25,
+    MHD_NUM_26,
+    MHD_NUM_27,
+    MHD_NUM_28,
+    MHD_NUM_29,
+    MHD_NUM_30,
+    MHD_NUM_31,
+    MHD_NUM_32,
+    MHD_NUM_33,
+    MHD_NUM_34,
+    MHD_NUM_35,
+    MHD_NUM_36,
+    MHD_NUM_37,
+    MHD_NUM_38,
+    MHD_NUM_39,
+    MHD_NUM_40,
+    MHD_SHIFT,
+    MHD_NUM_42,
+    MHD_NUM_43,
+    MHD_NUM_44,
+    MHD_NUM_45,
+    MHD_NUM_46,
+    MHD_NUM_47,
+    MHD_NUM_48,
+    MHD_NUM_49,
+    MHD_NUM_50,
+    MHD_NUM_51,
+    MHD_NUM_52,
+    MHD_NUM_53,
+    MHD_NUM_54,
+    MHD_NUM_55,
+    MHD_NUM_56,
+    MHD_NUM_57,
+    MHD_NUM_58,
+    MHD_NUM_59,
+    MHD_NUM_60,
+    MHD_NUM_61,
+    MHD_NUM_62,
+    MHD_NUM_63,
+    MHD_NUM_64,
+    MHD_NUM_65,
+    MHD_NUM_66,
+    MHD_NUM_67,
+    MHD_NUM_68,
+    MHD_MAX,
+};
+
+enum MhpNumber {
+    MHP_NUM_0 = 0,
+    MHP_NUM_1,
+    MHP_NUM_2,
+    MHP_NUM_3,
+    MHP_NUM_4,
+    MHP_NUM_5,
+    MHP_NUM_6,
+    MHP_NUM_7,
+    MHP_NUM_8,
+    MHP_NUM_9,
+    MHP_NUM_10,
+    MHP_NUM_11,
+    MHP_NUM_12,
+    MHP_NUM_13,
+    MHP_NUM_14,
+    MHP_NUM_15,
+    MHP_NUM_16,
+    MHP_NUM_17,
+    MHP_NUM_18,
+    MHP_NUM_19,
+    MHP_NUM_20,
+    MHP_NUM_21,
+    MHP_NUM_22,
+    MHP_NUM_23,
+    MHP_NUM_24,
+    MHP_NUM_25,
+    MHP_NUM_26,
+    MHP_NUM_27,
+    MHP_NUM_28,
+    MHP_NUM_29,
+    MHP_NUM_30,
+    MHP_NUM_31,
+    MHP_NUM_32,
+    MHP_NUM_33,
+    MHP_NUM_34,
+    MHP_NUM_35,
+    MHP_NUM_36,
+    MHP_NUM_37,
+    MHP_NUM_38,
+    MHP_NUM_39,
+    MHP_NUM_40,
+    MHP_NUM_41,
+    MHP_NUM_42,
+    MHP_NUM_43,
+    MHP_NUM_44,
+    MHP_NUM_45,
+    MHP_NUM_46,
+    MHP_NUM_47,
+    MHP_NUM_48,
+    MHP_NUM_49,
+    MHP_SET_FACE_MOTION_ID,
+    MHP_NUM_51,
+    MHP_NUM_52,
+    MHP_SET_FACE_MOTTBL_MOTION,
+    MHP_SET_HAND_R_MOTTBL_MOTION,
+    MHP_SET_HAND_L_MOTTBL_MOTION,
+    MHP_SET_MOUTH_MOTTBL_MOTION,
+    MHP_SET_EYES_MOTTBL_MOTION,
+    MHP_SET_EYELID_MOTTBL_MOTION,
+    MHP_SET_ROB_CHARA_HEAD_OBJECT,
+    MHP_SET_LOOK_CAMERA,
+    MHP_SET_EYELID_MOTION_FROM_FACE,
+    MHP_ROB_PARTS_ADJUST,
+    MHP_NUM_63,
+    MHP_OSAGE_RESET,
+    MHP_MOTION_SKIN_PARAM,
+    MHP_OSAGE_STEP,
+    MHP_SLEEVE_ADJUST,
+    MHP_NUM_68,
+    MHP_MOTION_MAX_FRAME,
+    MHP_CAMERA_MAX_FRAME,
+    MHP_OSAGE_MOVE_CANCEL,
+    MHP_NUM_72,
+    MHP_ROB_HAND_ADJUST,
+    MHP_DISABLE_COLLISION,
+    MHP_ROB_ADJUST_GLOBAL,
+    MHP_ROB_ARM_ADJUST,
+    MHP_DISABLE_EYE_MOTION,
+    MHP_NUM_78,
+    MHP_ROB_CHARA_COLI_RING,
+    MHP_ADJUST_GET_GLOBAL_POS,
+    MHP_MAX,
 };
 
 enum MotionBlendType {
-    MOTION_BLEND_NONE    = -1,
+    MOTION_BLEND_NONE = -1,
+
     MOTION_BLEND         = 0x00,
     MOTION_BLEND_FREEZE  = 0x01,
     MOTION_BLEND_CROSS   = 0x02,
     MOTION_BLEND_COMBINE = 0x03,
 };
 
-enum rob_chara_type {
-    ROB_CHARA_TYPE_NONE = -1,
-    ROB_CHARA_TYPE_0    = 0x00,
-    ROB_CHARA_TYPE_1    = 0x01,
-    ROB_CHARA_TYPE_2    = 0x02,
-    ROB_CHARA_TYPE_3    = 0x03,
+// Pure assumption
+enum MOTTABLE_TYPE {
+    MTP_NONE = 0,
+    MTP_1,
+    MTP_2,
+    MTP_3,
+    MTP_4,
+    MTP_5,
+    MTP_FACE_NULL,
+    MTP_FACE_RESET,
+    MTP_FACE_RESET_CL,
+    MTP_FACE_RESET_OLD,
+    MTP_FACE_RESET_OLD_CL,
+    MTP_FACE_SAD,
+    MTP_FACE_SAD_CL,
+    MTP_FACE_SAD_OLD,
+    MTP_FACE_SAD_OLD_CL,
+    MTP_FACE_LAUGH,
+    MTP_FACE_LAUGH_CL,
+    MTP_FACE_LAUGH_OLD,
+    MTP_FACE_LAUGH_OLD_CL,
+    MTP_FACE_SURPRISE,
+    MTP_FACE_SURPRISE_CL,
+    MTP_FACE_SURPRISE_OLD,
+    MTP_FACE_SURPRISE_OLD_CL,
+    MTP_FACE_WINK_OLD,
+    MTP_FACE_WINK_OLD_CL,
+    MTP_FACE_ADMIRATION,
+    MTP_FACE_ADMIRATION_CL,
+    MTP_FACE_ADMIRATION_OLD,
+    MTP_FACE_ADMIRATION_OLD_CL,
+    MTP_FACE_SMILE,
+    MTP_FACE_SMILE_CL,
+    MTP_FACE_SMILE_OLD,
+    MTP_FACE_SMILE_OLD_CL,
+    MTP_FACE_SETTLED,
+    MTP_FACE_SETTLED_CL,
+    MTP_FACE_SETTLED_OLD,
+    MTP_FACE_SETTLED_OLD_CL,
+    MTP_FACE_DAZZLING,
+    MTP_FACE_DAZZLING_CL,
+    MTP_FACE_DAZZLING_OLD,
+    MTP_FACE_DAZZLING_OLD_CL,
+    MTP_FACE_LASCIVIOUS,
+    MTP_FACE_LASCIVIOUS_CL,
+    MTP_FACE_LASCIVIOUS_OLD,
+    MTP_FACE_LASCIVIOUS_OLD_CL,
+    MTP_FACE_STRONG,
+    MTP_FACE_STRONG_CL,
+    MTP_FACE_STRONG_OLD,
+    MTP_FACE_STRONG_OLD_CL,
+    MTP_FACE_CLARIFYING,
+    MTP_FACE_CLARIFYING_CL,
+    MTP_FACE_CLARIFYING_OLD,
+    MTP_FACE_CLARIFYING_OLD_CL,
+    MTP_FACE_GENTLE,
+    MTP_FACE_GENTLE_CL,
+    MTP_FACE_GENTLE_OLD,
+    MTP_FACE_GENTLE_OLD_CL,
+    MTP_FACE_CRY,
+    MTP_FACE_CRY_CL,
+    MTP_FACE_CRY_OLD,
+    MTP_FACE_CRY_OLD_CL,
+    MTP_FACE_CLOSE,
+    MTP_FACE_CLOSE_CL,
+    MTP_FACE_CLOSE_OLD,
+    MTP_FACE_CLOSE_OLD_CL,
+    MTP_FACE_NAGASI,
+    MTP_FACE_NAGASI_CL,
+    MTP_FACE_NAGASI_OLD,
+    MTP_FACE_NAGASI_OLD_CL,
+    MTP_FACE_KIRI,
+    MTP_FACE_KIRI_CL,
+    MTP_FACE_KIRI_OLD,
+    MTP_FACE_KIRI_OLD_CL,
+    MTP_FACE_UTURO,
+    MTP_FACE_UTURO_CL,
+    MTP_FACE_UTURO_OLD,
+    MTP_FACE_UTURO_OLD_CL,
+    MTP_FACE_OMOU,
+    MTP_FACE_OMOU_CL,
+    MTP_FACE_OMOU_OLD,
+    MTP_FACE_OMOU_OLD_CL,
+    MTP_FACE_SETUNA,
+    MTP_FACE_SETUNA_CL,
+    MTP_FACE_SETUNA_OLD,
+    MTP_FACE_SETUNA_OLD_CL,
+    MTP_FACE_GENKI,
+    MTP_FACE_GENKI_CL,
+    MTP_FACE_GENKI_OLD,
+    MTP_FACE_GENKI_OLD_CL,
+    MTP_FACE_YARU,
+    MTP_FACE_YARU_CL,
+    MTP_FACE_YARU_OLD,
+    MTP_FACE_YARU_OLD_CL,
+    MTP_FACE_COOL,
+    MTP_FACE_COOL_CL,
+    MTP_FACE_KOMARIWARAI,
+    MTP_FACE_KOMARIWARAI_CL,
+    MTP_FACE_KUMON,
+    MTP_FACE_KUMON_CL,
+    MTP_FACE_KUTSUU,
+    MTP_FACE_KUTSUU_CL,
+    MTP_FACE_NAKI,
+    MTP_FACE_NAKI_CL,
+    MTP_FACE_NAYAMI,
+    MTP_FACE_NAYAMI_CL,
+    MTP_FACE_SUPSERIOUS,
+    MTP_FACE_SUPSERIOUS_CL,
+    MTP_FACE_TSUYOKIWARAI,
+    MTP_FACE_TSUYOKIWARAI_CL,
+    MTP_FACE_WINK_L,
+    MTP_FACE_WINK_L_CL,
+    MTP_FACE_WINK_R,
+    MTP_FACE_WINK_R_CL,
+    MTP_FACE_WINKG_L,
+    MTP_FACE_WINKG_L_CL,
+    MTP_FACE_WINKG_R,
+    MTP_FACE_WINKG_R_CL,
+    MTP_FACE_RESET1,
+    MTP_FACE_RESET1_CL,
+    MTP_FACE_RESET2,
+    MTP_FACE_RESET2_CL,
+    MTP_FACE_RESET3,
+    MTP_FACE_RESET3_CL,
+    MTP_FACE_RESET4,
+    MTP_FACE_RESET4_CL,
+    MTP_FACE_RESET5,
+    MTP_FACE_RESET5_CL,
+    MTP_FACE_WINK_FT_OLD,
+    MTP_FACE_WINK_FT_OLD_CL,
+    MTP_FACE_NEW_IKARI_OLD,
+    MTP_FACE_NEW_IKARI_OLD_CL,
+    MTP_KUCHI_NULL,
+    MTP_KUCHI_RESET,
+    MTP_KUCHI_RESET_OLD,
+    MTP_KUCHI_A,
+    MTP_KUCHI_A_OLD,
+    MTP_KUCHI_I,
+    MTP_KUCHI_I_OLD,
+    MTP_KUCHI_U,
+    MTP_KUCHI_U_OLD,
+    MTP_KUCHI_E,
+    MTP_KUCHI_E_OLD,
+    MTP_KUCHI_O,
+    MTP_KUCHI_O_OLD,
+    MTP_KUCHI_HE,
+    MTP_KUCHI_HE_OLD,
+    MTP_KUCHI_SURPRISE,
+    MTP_KUCHI_SURPRISE_OLD,
+    MTP_KUCHI_SMILE,
+    MTP_KUCHI_SMILE_OLD,
+    MTP_KUCHI_NIYA,
+    MTP_KUCHI_NIYA_OLD,
+    MTP_KUCHI_CHU,
+    MTP_KUCHI_CHU_OLD,
+    MTP_KUCHI_E_DOWN,
+    MTP_KUCHI_HAMISE,
+    MTP_KUCHI_HAMISE_DOWN,
+    MTP_KUCHI_HE_S,
+    MTP_KUCHI_HERAHERA,
+    MTP_KUCHI_MOGUMOGU,
+    MTP_KUCHI_NEKO,
+    MTP_KUCHI_SAKEBI,
+    MTP_KUCHI_SAKEBI_L,
+    MTP_KUCHI_SMILE_L,
+    MTP_KUCHI_NEUTRAL,
+    MTP_EYES_NULL,
+    MTP_EYES_RESET,
+    MTP_EYES_RESET_OLD,
+    MTP_EYES_UP,
+    MTP_EYES_UP_OLD,
+    MTP_EYES_DOWN,
+    MTP_EYES_DOWN_OLD,
+    MTP_EYES_LEFT,
+    MTP_EYES_LEFT_OLD,
+    MTP_EYES_RIGHT,
+    MTP_EYES_RIGHT_OLD,
+    MTP_EYES_UP_LEFT,
+    MTP_EYES_UP_LEFT_OLD,
+    MTP_EYES_UP_RIGHT,
+    MTP_EYES_UP_RIGHT_OLD,
+    MTP_EYES_DOWN_LEFT,
+    MTP_EYES_DOWN_LEFT_OLD,
+    MTP_EYES_DOWN_RIGHT,
+    MTP_EYES_DOWN_RIGHT_OLD,
+    MTP_EYES_MOVE_U_D,
+    MTP_EYES_MOVE_U_D_OLD,
+    MTP_EYES_MOVE_L_R,
+    MTP_EYES_MOVE_L_R_OLD,
+    MTP_EYES_MOVE_UL_DR,
+    MTP_EYES_MOVE_UL_DR_OLD,
+    MTP_EYES_MOVE_UR_DL,
+    MTP_EYES_MOVE_UR_DL_OLD,
+    MTP_HAND_NULL,
+    MTP_HAND_RESET,
+    MTP_HAND_NORMAL,
+    MTP_HAND_OPEN,
+    MTP_HAND_CLOSE,
+    MTP_HAND_PEACE,
+    MTP_HAND_GOOD,
+    MTP_HAND_ONE,
+    MTP_HAND_THREE,
+    MTP_HAND_NEGI,
+    MTP_HAND_SIZEN,
+    MTP_HAND_PICK,
+    MTP_HAND_MIC,
+    MTP_HAND_FAN,
+    MTP_HAND_BOTTLE,
+    MTP_HAND_PHONE,
+    MTP_HAND_HOLD,
+    MTP_HAND_FLASHLIGHT,
+    MTP_HAND_MIC_BLK,
+    MTP_HAND_MIC_SLV,
+    MTP_HAND_CUPICE,
+    MTP_HAND_ICEBAR,
+    MTP_FACE_MOT_SLOT_1,
+    MTP_FACE_MOT_SLOT_2,
+    MTP_FACE_MOT_SLOT_3,
+    MTP_FACE_MOT_SLOT_4,
+    MTP_FACE_MOT_SLOT_5,
+    MTP_FACE_MOT_SLOT_6,
+    MTP_FACE_MOT_SLOT_7,
+    MTP_FACE_MOT_SLOT_8,
+    MTP_FACE_MOT_SLOT_9,
+    MTP_FACE_MOT_SLOT_10,
+    MTP_EYES_BASE_MOT,
+    MTP_225,
+    MTP_226,
+    MTP_227,
+    MTP_228,
+    MTP_229,
+    MTP_230,
+    MTP_231,
+    MTP_232,
+    MTP_233,
+    MTP_234,
+    MTP_235,
+    MTP_FACE_EYEBROW_UP_RIGHT,
+    MTP_FACE_EYEBROW_UP_RIGHT_CL,
+    MTP_FACE_EYEBROW_UP_LEFT,
+    MTP_FACE_EYEBROW_UP_LEFT_CL,
+    MTP_FACE_KOMARIEGAO,
+    MTP_FACE_KOMARIEGAO_CL,
+    MTP_FACE_KONWAKU,
+    MTP_FACE_KONWAKU_CL,
+    MTP_KUCHI_PSP_A,
+    MTP_KUCHI_PSP_E,
+    MTP_KUCHI_PSP_O,
+    MTP_KUCHI_PSP_SURPRISE,
+    MTP_KUCHI_PSP_NIYA,
+    MTP_KUCHI_PSP_NIYARI,
+    MTP_KUCHI_HAMISE_E,
+    MTP_KUCHI_SANKAKU,
+    MTP_KUCHI_SHIKAKU,
+    MTP_MAX,
+};
+
+enum ReviseType {
+    REVISE_NORMAL = 0x0,
+    REVISE_FAST,
+    REVISE_SLOW,
+    REVISE_GUARD,
+    REVISE_RISE,
+    REVISE_YARARE,
+    REVISE_STRISE,
+    REVISE_SLOW2,
+    REVISE_ATTACK_FOLLOW,
+    REVISE_SLOW_GUARD,
+    REVISE_GUARD2,
+    REVISE_RISE_SLOW,
+    REVISE_TYPE_MAX,
+};
+
+// Pure assumption
+enum ROB_COLLI_ID {
+    ROB_COLLI_ID_DUMMY = -1,
+
+    ROB_COLLI_ID_KOSHI = 0,
+    ROB_COLLI_ID_MUNE_L,
+    ROB_COLLI_ID_MUNE_R,
+    ROB_COLLI_ID_KUBI,
+    ROB_COLLI_ID_KAO,
+    ROB_COLLI_ID_KATA_R1,
+    ROB_COLLI_ID_KATA_R2,
+    ROB_COLLI_ID_UDE_R1,
+    ROB_COLLI_ID_UDE_R2,
+    ROB_COLLI_ID_TE_R,
+    ROB_COLLI_ID_KATA_L1,
+    ROB_COLLI_ID_KATA_L2,
+    ROB_COLLI_ID_UDE_L1,
+    ROB_COLLI_ID_UDE_L2,
+    ROB_COLLI_ID_TE_L,
+    ROB_COLLI_ID_MOMO_R1,
+    ROB_COLLI_ID_MOMO_R2,
+    ROB_COLLI_ID_SUNE_R1,
+    ROB_COLLI_ID_SUNE_R2,
+    ROB_COLLI_ID_ASI_R,
+    ROB_COLLI_ID_TOE_R,
+    ROB_COLLI_ID_MOMO_L1,
+    ROB_COLLI_ID_MOMO_L2,
+    ROB_COLLI_ID_SUNE_L1,
+    ROB_COLLI_ID_SUNE_L2,
+    ROB_COLLI_ID_ASI_L,
+    ROB_COLLI_ID_TOE_L,
+    ROB_COLLI_ID_MAX,
+};
+
+enum ROB_ID {
+    ROB_ID_1P = 0,
+    ROB_ID_2P,
+    ROB_ID_3P,
+    ROB_ID_4P,
+    ROB_ID_5P,
+    ROB_ID_6P,
+    ROB_ID_MAX,
+
+    ROB_ID_NULL = -1,
 };
 
 enum rob_chara_data_hand_adjust_type : uint16_t {
@@ -797,7 +1859,8 @@ enum rob_chara_data_hand_adjust_type : uint16_t {
 };
 
 enum rob_osage_parts {
-    ROB_OSAGE_PARTS_NONE        = -1,
+    ROB_OSAGE_PARTS_NONE = -1,
+
     ROB_OSAGE_PARTS_LEFT        = 0x00,
     ROB_OSAGE_PARTS_RIGHT       = 0x01,
     ROB_OSAGE_PARTS_CENTER      = 0x02,
@@ -849,6 +1912,23 @@ enum rob_partial_motion_playback_state : uint32_t {
     ROB_PARTIAL_MOTION_PLAYBACK_MAX          = 0x05,
 };
 
+enum RobType {
+    ROB_TYPE_NULL = -1,
+
+    ROB_TYPE_PLAYER = 0x00,
+    ROB_TYPE_CPU_ENEMY = 0x01,
+    ROB_TYPE_AUTH = 0x02,
+    ROB_TYPE_DATA_TEST = 0x03,
+    ROB_TYPE_MAX = 0x04,
+};
+
+enum TargetType {
+    ROB_TARGET_NONE = 0,
+    ROB_TARGET_WALL,
+    ROB_TARGET_ENEMY,
+    ROB_TARGET_RINGOUT,
+};
+
 enum ExNodeType {
     EX_NODE_TYPE_NULL       = 0x00,
     EX_NODE_TYPE_OSAGE      = 0x01,
@@ -897,8 +1977,8 @@ namespace SkinParam {
     };
 }
 
-struct rob_chara;
-struct rob_chara_bone_data;
+class rob_chara;
+class rob_chara_bone_data;
 
 struct RobTransform {
     vec3 pos;
@@ -910,10 +1990,10 @@ struct RobTransform {
 
     void CalcMatrixHS(const vec3& hsc, mat4& mat, mat4& dsp_mat);
 
+    void init();
+    void init(const vec3& p, const vec3& r);
     void init(float_t px, float_t py, float_t pz,
         float_t rx, float_t ry, float_t rz);
-    void init(const vec3& p, const vec3& r);
-    void reset();
     void reset_scale();
 };
 
@@ -928,7 +2008,7 @@ struct RobNode {
 
     float_t* get_transform_component(size_t index, Expr_type& type);
     const float_t* get_transform_component(size_t index, Expr_type& type) const;
-    void set_name_mat_no_scale_mat(const char* name, mat4* mat, mat4* no_scale_mat);
+    void init(const char* in_name, mat4* in_mat, mat4* in_no_scale_mat);
 };
 
 struct struc_314 {
@@ -936,29 +2016,26 @@ struct struc_314 {
     size_t field_8;
 };
 
-struct mot_key_set {
-    mot_key_set_type type;
-    int32_t keys_count;
-    int32_t current_key;
-    int32_t last_key;
-    const uint16_t* frames;
-    const float_t* values;
+struct FcurveKey {
+    FcurveKeyKind kind;
+    int32_t sum;
+    int32_t cache_idx;
+    int32_t last_idx;
+    const uint16_t* num;
+    const float_t* val;
 };
 
-struct eyes_adjust {
-    bool xrot_adjust;
-    eyes_base_adjust_type base_adjust;
-    float_t neg;
-    float_t pos;
+struct Fcurve {
+    uint16_t fc_max;
+    uint16_t frame_max;
+    uint16_t key_num_type;
+    FcurveKey* fck_ptr;
 
-    eyes_adjust();
-};
-
-struct mot {
-    uint16_t key_set_count;
-    uint16_t frame_count;
-    uint16_t field_4;
-    mot_key_set* key_sets;
+    bool fcurve_init(const void* data);
+    void fcurve_init_u16(const void* data);
+    void interpolate(float_t frame, float_t* value,
+        FcurveKey* fck, uint32_t in_fc_max, const struct struc_369* a6);
+    void set_fck_ptr(FcurveKey* ptr);
 };
 
 struct struc_369 {
@@ -969,13 +2046,13 @@ struct struc_369 {
 struct mot_key_data {
     bool key_sets_ready;
     size_t key_set_count;
-    prj::sys_vector<mot_key_set> key_set;
-    mot mot;
+    prj::sys_vector<FcurveKey> key_set;
+    Fcurve mot;
     prj::sys_vector<float_t> fc_value;
     const mot_data* mot_data;
-    BONE_KIND skeleton_type;
-    int32_t skeleton_select;
-    uint32_t motion_id;
+    BONE_KIND kind;
+    int32_t motion_body_type;
+    uint32_t motnum;
     float_t frame;
     struc_369 field_68;
 
@@ -1013,47 +2090,47 @@ struct RobBlock {
     RobBlock();
     ~RobBlock();
 
+    bool calc_constraint(const RobBlock* block_top);
     void copy_rot_trans(const RobBlock& other);
     bool check_expression_id_not_null();
-    bool get_constraint_ik(const RobBlock* bones);
-    bool get_ex_rotation(RobTransform& transform, const RobBlock* bones);
-    void get_mat(int32_t skeleton_select);
-    void get_mat_ik(int32_t skeleton_select);
-    void mult_mat(const mat4& parent_mat, const RobBlock* bones, bool solve_ik);
-    void orient_x(const vec3& target);
-    void orient_x_cns(const vec3& target, float_t weight);
-    void orient_y(vec3 y_axis);
+    void exp_set_dir(const vec3& glo);
+    void exp_set_dir_zx(vec3 vy);
+    void exp_set_rot(const vec3& glo, float_t keisuu);
+    bool get_ex_rotation(RobTransform& transform, const RobBlock* block_top);
+    void get_mat(int32_t target);
+    void solve_ik(int32_t target);
+    void recalc_fk_block(const mat4& cur_mat, const RobBlock* block_top, bool rot);
     const vec3* set_global_leaf_sub(const vec3* val, BONE_KIND kind, bool get_data, bool flip_x);
-    void store_curr_rot_trans(int32_t skeleton_select);
+    void get_smooth_target(int32_t target);
 
     static float_t limit_angle(float_t angle);
-    static void orient_to_target(mat4& mat, vec3 target, vec3 source);
 };
 
 struct bone_data_parent {
     rob_chara_bone_data* rob_bone_data;
-    size_t motion_bone_count;
-    size_t leaf_pos;
-    size_t chain_pos;
-    prj::sys_vector<RobBlock> bones;
+    size_t block_max;
+    size_t leaf_pos_max;
+    size_t chain_pos_max;
+    prj::sys_vector<RobBlock> block_vec;
     prj::sys_vector<uint16_t> bone_indices;
     vec3 gblctr_pos;
     vec3 gblctr_rot;
     uint32_t bone_key_set_count;
     uint32_t global_key_set_count;
-    float_t rot_y;
+    float_t yrot;
 
     bone_data_parent();
     ~bone_data_parent();
 
-    void ik_init(const BODYTYPE* bt, const CHAINPOSRADIUS* motion_chain_pos, const CHAINPOSRADIUS* disp_chain_pos);
+    void ik_init(const std::vector<BODYTYPE>* body_type_table,
+        const CHAINPOSRADIUS* joint_table, const CHAINPOSRADIUS* disp_joint_table);
 };
 
 struct mot_play_frame_data {
     float_t frame;
     float_t step;
     float_t step_prev;
-    float_t frame_count;
+    float_t frame_max;
     float_t last_frame;
     float_t max_frame;
     mot_play_frame_data_playback_state playback_state;
@@ -1078,25 +2155,27 @@ struct mot_play_data {
     void reset();
 };
 
-struct struc_308 {
+struct MotionSmooth {
     int32_t field_0;
     int32_t field_4;
     uint8_t field_8;
-    mat4 mat;
-    mat4 field_4C;
-    bool field_8C;
+    mat4 base_mtx;
+    mat4 base_mtx_bef;
+    bool base_mtx_set;
     vec3 field_90;
     vec3 field_9C;
     vec3 field_A8;
-    float_t rot_y;
-    float_t prev_rot_y;
-    uint8_t field_BC;
-    uint8_t field_BD;
+    float_t move_yang;
+    float_t move_yang_bef;
+    bool root_ypos;
+    bool root_xzpos;
     float_t field_C0;
     float_t field_C4;
     vec3 field_C8;
 
-    struc_308();
+    MotionSmooth();
+
+    void reset();
 };
 
 struct struc_400 {
@@ -1106,8 +2185,8 @@ struct struc_400 {
     bool field_3;
     bool field_4;
     float_t frame;
-    float_t rot_y;
-    float_t prev_rot_y;
+    float_t move_yang;
+    float_t move_yang_bef;
 };
 
 class MotionBlend {
@@ -1197,7 +2276,7 @@ public:
     virtual void Blend(RobBlock* curr, RobBlock* prev) override;
 };
 
-typedef bool(* PFNMOTIONBONECHECKFUNC)(BONE_BLK bone_index);
+typedef bool(* PFNMOTIONBONECHECKFUNC)(BONE_BLK blk);
 
 struct motion_blend_mot_enabled_bones {
     PFNMOTIONBONECHECKFUNC func;
@@ -1221,7 +2300,7 @@ struct motion_blend_mot {
     bone_data_parent bone_data;
     mot_key_data mot_key_data;
     mot_play_data mot_play_data;
-    struc_308 field_4F8;
+    MotionSmooth smooth;
     int32_t field_5CC;
     MotionBlend* blend;
 
@@ -1230,33 +2309,33 @@ struct motion_blend_mot {
 
     void apply_global_transform();
     void copy_rot_trans();
-    void copy_rot_trans(const prj::sys_vector<RobBlock>& bones);
+    void copy_rot_trans(const prj::sys_vector<RobBlock>& block_vec);
     bool get_blend_enable();
     void get_n_hara_cp_position(vec3& value);
     MotionBlendType get_type();
     void init(rob_chara_bone_data* rob_bone_data,
         PFNMOTIONBONECHECKFUNC check_func, const bone_database* bone_data);
     void interpolate();
-    void load_file(uint32_t motion_id, MotionBlendType blend_type, float_t blend,
+    void load_file(uint32_t motnum, MotionBlendType blend_type, float_t blend,
         const bone_database* bone_data, const motion_database* mot_db);
     void mult_mat(const mat4* mat);
     void reset();
-    void set_arm_length(BONE_BLK block_id, float_t value);
+    void set_arm_length(BONE_BLK blk, float_t value);
     void set_blend(MotionBlendType blend_type, float_t blend);
     void set_blend_duration(float_t duration, float_t step, float_t offset);
     void set_step(float_t step);
-    void store_curr_rot_trans(int32_t skeleton_select);
+    void get_smooth_target(int32_t motion_body_type);
 
-    static bool interpolate_get_flip(struc_308& a1);
+    static bool interpolate_get_flip(MotionSmooth& a1);
 };
 
-struct rob_chara_bone_data_ik_scale {
-    float_t ratio0;
-    float_t ratio1;
-    float_t ratio2;
-    float_t ratio3;
+struct rob_chara_bone_data_adjust_scale {
+    float_t base;
+    float_t body;
+    float_t arm;
+    float_t height;
 
-    rob_chara_bone_data_ik_scale();
+    rob_chara_bone_data_adjust_scale();
 };
 
 struct partial_motion_blend_mot {
@@ -1269,16 +2348,16 @@ struct partial_motion_blend_mot {
     partial_motion_blend_mot();
     ~partial_motion_blend_mot();
 
-    void init(BONE_KIND type,
-        PFNMOTIONBONECHECKFUNC bone_check_func, size_t motion_bone_count, const bone_database* bone_data);
-    void interpolate(prj::sys_vector<RobBlock>& bones,
-        const prj::sys_vector<uint16_t>* bone_indices, BONE_KIND skeleton_type);
-    void load_motion(uint32_t motion_id, const motion_database* mot_db);
+    void init(BONE_KIND type, PFNMOTIONBONECHECKFUNC bone_check_func,
+        size_t block_max, const bone_database* bone_data);
+    void interpolate(prj::sys_vector<RobBlock>& block_vec,
+        const prj::sys_vector<uint16_t>* bone_indices, BONE_KIND kind);
+    void load_file(uint32_t motnum, const motion_database* mot_db);
     void reset();
     void set_blend_duration(float_t duration, float_t step, float_t offset);
     void set_frame(float_t frame);
     void set_step(float_t step);
-    void store_curr_rot_trans(prj::sys_vector<RobBlock>& bones);
+    void get_smooth_target(prj::sys_vector<RobBlock>& block_vec);
 };
 
 struct rob_chara_look_anim_eye_param_limits {
@@ -1329,17 +2408,33 @@ struct struc_823 {
     float_t field_C;
 };
 
-struct struc_936 {
-    vec3 toe_l;
-    vec3 toe_r;
+struct Motion {
+    struct AshiOidashi {
+        float_t y_bef;
+        float_t y_old;
+        float_t scale;
 
-    struc_936();
+        AshiOidashi();
 
-    void reset();
+        void reset();
+    };
+
+    struct AshiOidashiColle {
+        AshiOidashi l;
+        AshiOidashi r;
+
+        AshiOidashiColle();
+
+        void calc(prj::sys_vector<RobBlock>& block_vec, const mat4& cur_mat, float_t step,
+            BONE_KIND kind, const BONE_BLK* c_momo_l_ik_blk, const BONE_BLK* c_momo_r_ik_blk);
+        void calc_sub(RobBlock& bl_momo, const RobBlock& bl_toe,
+            float_t hh, Motion::AshiOidashi& ashi, float_t step);
+        void reset();
+    };
 };
 
 struct rob_chara_look_anim {
-    prj::sys_vector<RobBlock>* bones;
+    prj::sys_vector<RobBlock>* block_vec;
     mat4 mat;
     rob_chara_look_anim_eye_param param;
     bool update_view_point;
@@ -1413,7 +2508,7 @@ struct rob_chara_sleeve_adjust {
     vec3 field_74;
     vec3 field_80;
     float_t radius;
-    prj::sys_vector<RobBlock>* bones;
+    prj::sys_vector<RobBlock>* block_vec;
     float_t step;
 
     rob_chara_sleeve_adjust();
@@ -1421,19 +2516,20 @@ struct rob_chara_sleeve_adjust {
     void reset();
 };
 
-struct rob_chara_bone_data {
+class rob_chara_bone_data {
+public:
     bool field_0;
     bool field_1;
-    size_t object_bone_count;
-    size_t node_count;
-    size_t motion_bone_count;
-    size_t leaf_pos;
-    size_t chain_pos;
-    std::vector<mat4> mats;
-    std::vector<mat4> mats2;
-    std::vector<RobNode> nodes;
-    BONE_KIND base_skeleton_type;
-    BONE_KIND skeleton_type;
+    size_t mat_max;
+    size_t node_max;
+    size_t block_max;
+    size_t leaf_pos_max;
+    size_t chain_pos_max;
+    std::vector<mat4> mat_vec;
+    std::vector<mat4> mat2_vec;
+    std::vector<RobNode> node_vec;
+    BONE_KIND kind;
+    BONE_KIND disp_kind;
     std::vector<motion_blend_mot*> motions;
     std::list<size_t> motion_indices;
     std::list<size_t> motion_loaded_indices;
@@ -1445,8 +2541,8 @@ struct rob_chara_bone_data {
     partial_motion_blend_mot eyes;
     partial_motion_blend_mot eyelid;
     bool disable_eye_motion;
-    rob_chara_bone_data_ik_scale ik_scale;
-    struc_936 field_76C;
+    rob_chara_bone_data_adjust_scale adjust_scale;
+    Motion::AshiOidashiColle ashi_oidashi;
     rob_chara_look_anim look_anim;
     rob_chara_sleeve_adjust sleeve_adjust;
 
@@ -1455,8 +2551,8 @@ struct rob_chara_bone_data {
 
     bool check_look_anim_head_rotation();
     bool check_look_anim_ext_head_rotation();
-    float_t get_frame();
-    float_t get_frame_count();
+    float_t get_frame() const;
+    float_t get_frame_max() const;
     vec3* get_look_anim_target_view_point();
     bool get_look_anim_ext_head_rotation();
     bool get_look_anim_head_rotation();
@@ -1464,12 +2560,12 @@ struct rob_chara_bone_data {
     mat4* get_mats_mat(size_t index);
     bool get_motion_has_looped();
     void interpolate();
-    void load_eyes_motion(uint32_t motion_id, const motion_database* mot_db);
-    void load_face_motion(uint32_t motion_id, const motion_database* mot_db);
-    void load_eyelid_motion(uint32_t motion_id, const motion_database* mot_db);
-    void load_hand_l_motion(uint32_t motion_id, const motion_database* mot_db);
-    void load_hand_r_motion(uint32_t motion_id, const motion_database* mot_db);
-    void load_mouth_motion(uint32_t motion_id, const motion_database* mot_db);
+    void load_eyes_motion(uint32_t motnum, const motion_database* mot_db);
+    void load_face_motion(uint32_t motnum, const motion_database* mot_db);
+    void load_eyelid_motion(uint32_t motnum, const motion_database* mot_db);
+    void load_hand_l_motion(uint32_t motnum, const motion_database* mot_db);
+    void load_hand_r_motion(uint32_t motnum, const motion_database* mot_db);
+    void load_mouth_motion(uint32_t motnum, const motion_database* mot_db);
     void motion_step();
     void reset();
     void set_disable_eye_motion(bool value);
@@ -1494,7 +2590,7 @@ struct rob_chara_bone_data {
     void set_look_anim_target_view_point(const vec3& value);
     void set_mats_identity();
     void set_motion_blend_duration(float_t duration, float_t step, float_t offset);
-    void set_motion_frame(float_t frame, float_t step, float_t frame_count);
+    void set_motion_frame(float_t frame, float_t step, float_t frame_max);
     void set_motion_loop(float_t loop_begin, int32_t loop_count, float_t loop_end);
     void set_motion_loop_state(mot_play_frame_data_loop_state value);
     void set_motion_max_frame(float_t value);
@@ -1505,17 +2601,8 @@ struct rob_chara_bone_data {
     void update(const mat4* mat);
 };
 
-union rob_chara_pv_data_item {
-    struct {
-        int32_t head;
-        int32_t face;
-        int32_t chest;
-        int32_t back;
-    };
-    int32_t arr[4];
-};
-
-struct RobAngle {
+class RobAngle {
+public:
     int16_t value;
 
     inline RobAngle( ) : value() {}
@@ -1550,6 +2637,14 @@ inline RobAngle operator+(const RobAngle& left, const int32_t& right) {
     return (int16_t)(left.value + right);
 }
 
+inline void operator+=(RobAngle& left, const RobAngle& right) {
+    left = (int16_t)(left.value + right.value);
+}
+
+inline void operator+=(RobAngle& left, const int32_t right) {
+    left = (int16_t)(left.value + right);
+}
+
 inline RobAngle operator-(const RobAngle& left, const RobAngle& right) {
     return (int16_t)(left.value - right.value);
 }
@@ -1562,26 +2657,51 @@ inline RobAngle operator-(const RobAngle& left, const int32_t& right) {
     return (int16_t)(left.value - right);
 }
 
-struct rob_chara_pv_data {
-    rob_chara_type type;
-    bool field_4;
-    bool field_5;
-    bool field_6;
-    vec3 field_8;
+inline void operator-=(RobAngle& left, const RobAngle& right) {
+    left = (int16_t)(left.value - right.value);
+}
+
+inline void operator-=(RobAngle& left, const int32_t right) {
+    left = (int16_t)(left.value - right);
+}
+
+inline RobAngle operator-(const RobAngle& left) {
+    return -left.value;
+}
+
+struct eyes_adjust {
+    bool xrot_adjust;
+    eyes_base_adjust_type base_adjust;
+    float_t neg;
+    float_t pos;
+
+    eyes_adjust();
+};
+
+struct RobItemEquipInit {
+    uint32_t item_no[4];
+};
+
+struct RobInit {
+    RobType rob_type;
+    bool disp;
+    bool mirror;
+    bool drank_reset;
+    vec3 pos;
     RobAngle yang;
-    int16_t field_16;
+    int16_t energy;
     rob_sleeve_data sleeve_l;
     rob_sleeve_data sleeve_r;
     int32_t field_70;
-    uint32_t motion_face_ids[10];
+    uint32_t face_mot_slot[10];
     int32_t chara_size_index;
     bool height_adjust;
-    rob_chara_pv_data_item item;
+    RobItemEquipInit item;
     eyes_adjust eyes_adjust;
 
-    rob_chara_pv_data();
+    RobInit();
 
-    void reset();
+    void init();
 };
 
 struct RobCollisionData {
@@ -1589,13 +2709,6 @@ struct RobCollisionData {
     float_t scale;
     BONE_ID bone;
     int32_t field_14;
-};
-
-struct struc_344 {
-    int32_t chara_size_index;
-    int32_t field_4;
-    int32_t swim_costume;
-    int32_t swim_s_costume;
 };
 
 struct RobKamae {
@@ -1607,9 +2720,16 @@ struct RobKamae {
     int32_t field_18;
 };
 
+struct struc_344 {
+    int32_t chara_size_index;
+    int32_t field_4;
+    int32_t swim_costume;
+    int32_t swim_s_costume;
+};
+
 struct RobData {
-    int32_t object_set;
-    BONE_KIND skeleton_type;
+    int32_t objset;
+    BONE_KIND bone;
     object_info body_obj_uid[15];
     uint32_t motfile;
     uint32_t motfile_auth;
@@ -1623,7 +2743,7 @@ struct RobData {
     object_info face_objects[15];
 };
 
-struct rob_chara_item_equip_object;
+class RobSkinDisp;
 
 struct RobSkinOfs {
     bool flag;
@@ -1640,7 +2760,7 @@ public:
     const RobNode* parent;
     std::string parent_name;
     ExNodeBlock* parent_node;
-    const rob_chara_item_equip_object* skin_disp;
+    const RobSkinDisp* skin_disp;
     bool is_parent;
     bool done;
     bool has_children_node;
@@ -1662,7 +2782,8 @@ public:
 
     void init_members();
     void set_data(RobNode* node, ExNodeType type,
-        const char* name, const rob_chara_item_equip_object* skin_disp);
+        const char* name, const RobSkinDisp* skin_disp);
+    void set_name(const char* name);
 };
 
 class ExNullBlock : public ExNodeBlock {
@@ -1682,7 +2803,7 @@ public:
     virtual void pos_init() override;
     virtual void pos_init_cont() override;
 
-    void set_data(const rob_chara_item_equip_object* skin_disp, const obj_skin_ex_node_constraint* data,
+    void set_data(const RobSkinDisp* skin_disp, const obj_skin_ex_node_constraint* data,
         const char* name, const bone_database* bone_data);
 };
 
@@ -1760,9 +2881,9 @@ struct RobJointNodeData {
 };
 
 struct opd_blend_data {
-    uint32_t motion_id;
+    uint32_t motnum;
     float_t frame;
-    float_t frame_count;
+    float_t frame_max;
     bool use_blend;
 #if OPD_PLAY_GEN
     bool no_loop; // Added
@@ -2115,7 +3236,7 @@ struct CLOTH_WEIGHTED_ROOT {
 struct RobCloth : public CLOTH {
     const mat4* local_mat;
     std::vector<CLOTH_WEIGHTED_ROOT> root;
-    const rob_chara_item_equip_object* skin_disp;
+    const RobSkinDisp* skin_disp;
     const obj_skin_ex_node_cloth_root* root_data;
     const obj_skin_ex_node_cloth* data;
     float_t move_cancel;
@@ -2133,12 +3254,12 @@ struct RobCloth : public CLOTH {
     virtual void disp_debug() override;
     virtual void dest() override;
 
-    void AddMotionResetData(uint32_t motion_id, float_t frame);
+    void AddMotionResetData(uint32_t motnum, float_t frame);
     void ApplyResetData();
     void CtrlOsagePlayData(const std::vector<opd_blend_data>& opd_blend_data);
     const float_t* LoadOpdData(size_t node_index, const float_t* opd_data, size_t opd_count);
     void LoadSkinParam(void* kv, const char* name, const bone_database* bone_data);
-    void SetMotionResetData(uint32_t motion_id, float_t frame);
+    void SetMotionResetData(uint32_t motnum, float_t frame);
     const float_t* SetOsagePlayDataInit(const float_t* opdi_data);
     void SetOsageReset();
     void SetRing(const osage_ring_data& ring);
@@ -2160,9 +3281,9 @@ struct RobCloth : public CLOTH {
     void reset_ex_force();
     void set_data(size_t w, size_t h, const obj_skin_ex_node_cloth_root* rt_data,
         const obj_skin_ex_node_cloth_point* move, const mat4* lcl_mat, uint32_t ring_flag,
-        const rob_chara_item_equip_object* skin, const bone_database* bone_data);
+        const RobSkinDisp* skin, const bone_database* bone_data);
     void set_data(const obj_skin_ex_node_cloth* cldata,
-        const rob_chara_item_equip_object* skin, const bone_database* bone_data);
+        const RobSkinDisp* skin, const bone_database* bone_data);
     void set_ex_force(const vec3& f);
     void set_move_cancel(const float_t& mv_ccl);
     void set_param(float_t force, float_t force_gain, float_t air_res);
@@ -2189,9 +3310,9 @@ public:
     virtual void pos_init() override;
     virtual void pos_init_cont() override;
 
-    void AddMotionResetData(uint32_t motion_id, float_t frame);
+    void AddMotionResetData(const uint32_t& motnum, const float_t& frame);
     const float_t* LoadOpdData(size_t node_index, const float_t* opd_data, size_t opd_count);
-    void SetMotionResetData(uint32_t motion_id, float_t frame);
+    void SetMotionResetData(const uint32_t& motnum, const float_t& frame);
     const float_t* SetOsagePlayDataInit(const float_t* opdi_data);
     void SetOsageReset();
     void SetRing(const osage_ring_data& ring);
@@ -2199,7 +3320,7 @@ public:
     void SetSkinParamOsageRoot(const skin_param_osage_root* skp_root);
 
     void reset_ex_force();
-    void set_data(const rob_chara_item_equip_object* skin_disp, const obj_skin_ex_node_cloth* cls_data,
+    void set_data(const RobSkinDisp* skin_disp, const obj_skin_ex_node_cloth* cls_data,
         const skin_param_osage_root* skp_root, const bone_database* bone_data);
     void set_ex_force(const vec3& f);
     void set_move_cancel(const float_t& mv_ccl);
@@ -2253,7 +3374,7 @@ struct RobOsage {
     RobOsage();
     ~RobOsage();
 
-    void AddMotionResetData(uint32_t motion_id, float_t frame);
+    void AddMotionResetData(const uint32_t& motnum, const float_t& frame);
     void ApplyBocRootColi(const float_t step);
     void ApplyPhysics(const mat4& root_matrix, const vec3& hsc,
         const float_t step, bool disable_ex_force, bool ring_coli, bool has_children_node);
@@ -2273,7 +3394,7 @@ struct RobOsage {
         skin_param_osage_root& skp_root, const object_info& obj_info, const bone_database* bone_data);
     void RotateMat(mat4& mat, const vec3& hsc, bool init_rot = false);
     void SetDisableCollision(const bool& value);
-    void SetMotionResetData(uint32_t motion_id, float_t frame);
+    void SetMotionResetData(const uint32_t& motnum, const float_t& frame);
     void SetNodesExternalForce(const vec3* ex_force, const float_t& gain);
     void SetNodesForce(const float_t& force);
     const float_t* SetOsagePlayDataInit(const float_t* opdi_data);
@@ -2334,23 +3455,22 @@ public:
     virtual void pos_init_cont() override;
     virtual void CtrlEnd() override;
 
-    void AddMotionResetData(uint32_t motion_id, float_t frame);
+    void AddMotionResetData(const uint32_t& motnum, const float_t& frame);
     const float_t* LoadOpdData(size_t node_index, const float_t* opd_data, size_t opd_count);
     void SetDisableCollision(const bool& value);
-    void SetMotionResetData(uint32_t motion_id, float_t frame);
+    void SetMotionResetData(const uint32_t& motnum, const float_t& frame);
     const float_t* SetOsagePlayDataInit(const float_t* opdi_data);
     void SetOsageReset();
     void SetRing(const osage_ring_data& ring);
     void SetSkinParam(skin_param_file_data* skp);
     void SetWindDirection();
 
-    void get_node_list(
-        const obj_skin_ex_node_osage* osg_data, const obj_skin_osage_joint* joint,
-        prj::vector_pair<uint32_t, RobJointNode*>& joint_node_list,
-        std::map<std::string, ExNodeBlock*>& ex_node_list);
+    void make_joint_map(const obj_skin_ex_node_osage* root,
+        const obj_skin_osage_joint* joint, prj::vector_pair<uint32_t, RobJointNode*>& joint_map,
+        std::map<std::string, ExNodeBlock*>& node_name_map);
     void reset_ex_force();
-    void set_data(const rob_chara_item_equip_object* skin_disp, const obj_skin_ex_node_osage* root,
-        const char* name, const obj_skin_osage_joint* joint, const RobNode* mot_node,
+    void set_data(const RobSkinDisp* skin_disp, const obj_skin_ex_node_osage* root,
+        const obj_skin_osage_joint* joint, const RobNode* mot_node,
         RobNode* ex_node, const obj_skin* skin);
     void set_ex_force(const vec3& f);
     void set_move_cancel(const float_t& mv_ccl);
@@ -2385,7 +3505,7 @@ public:
     void CalcConstraintPosition(mat4 mat);
     void CalcMatrixHS();
 
-    void set_data(const rob_chara_item_equip_object* skin_disp, const obj_skin_ex_node_constraint* data,
+    void set_data(const RobSkinDisp* skin_disp, const obj_skin_ex_node_constraint* data,
         const char* name, const bone_database* bone_data);
 };
 
@@ -2433,18 +3553,19 @@ public:
     void Calc();
     void CalcMatrixHS();
 
-    void set_data(const rob_chara_item_equip_object* skin_disp, const obj_skin_ex_node_expression* data,
+    void set_data(const RobSkinDisp* skin_disp, const obj_skin_ex_node_expression* data,
         const char* node_name, object_info objuid, size_t index, const bone_database* bone_data);
 };
 
-struct rob_chara_item_equip;
+class RobDisp;
 
-struct rob_chara_item_equip_object {
+class RobSkinDisp {
+public:
     size_t index;
     const mat4* motion_matrix;
     object_info obj_uid;
     object_info obj_uid_sub;
-    std::vector<texture_pattern_struct> texchg_vec;
+    std::vector<TexChange> texchg_vec;
     RobSkinCol skn_col;
     RobSkinOfs skn_ofs;
     float_t alpha;
@@ -2470,21 +3591,20 @@ struct rob_chara_item_equip_object {
     bool use_opd;
     const obj_skin_ex_data* skin_ex_data;
     const obj_skin* skin;
-    const rob_chara_item_equip* rob_disp;
+    const RobDisp* rob_disp;
 
-    rob_chara_item_equip_object();
-    ~rob_chara_item_equip_object();
+    RobSkinDisp();
+    ~RobSkinDisp();
 
-    void add_motion_reset_data(uint32_t motion_id, float_t frame, int32_t iterations);
+    void add_motion_reset_data(const uint32_t& motnum, const float_t& frame, int32_t init_cnt);
     void check_no_opd(std::vector<opd_blend_data>& opd_blend_data);
-    void clear_ex_data();
+    void dest_ex_node();
     void disp(const mat4& mat, render_context* rctx);
     const RobNode* get_node(int32_t index) const;
     const RobNode* get_node(const char* name, const bone_database* bone_data) const;
     int32_t get_node_index(const char* name, const bone_database* bone_data) const;
     const mat4* get_ex_data_bone_node_mat(const char* name);
     RobJointNode* get_normal_ref_osage_node(const std::string& str, size_t* index);
-    void set_motion_node(const RobNode* mot_node, const bone_database* bone_data);
     void init_members(size_t index = 0xDEADBEEF);
     void pos_reset(int32_t init_cnt);
     void reset_ex_force();
@@ -2493,18 +3613,22 @@ struct rob_chara_item_equip_object {
         bool osage_reset, const bone_database* bone_data, void* data, const object_database* obj_db);
     void set_alpha_obj_flags(float_t alpha, int32_t flags);
     bool set_boc(const skin_param_osage_root& skp_root, ExOsageBlock* osg);
+    void set_col_color(const vec3& blend, const vec3& ofs);
+    void set_col_specular(const vec3& blend, const vec3& ofs);
+    void set_col_type(int32_t type);
     void set_collision_target_osage(const skin_param_osage_root& skp_root, skin_param* skp);
     void set_disable_collision(rob_osage_parts_bit parts_bits, bool disable);
     void set_ex_node(obj_skin_ex_data* ex_data);
     void set_ex_node_block(obj_skin_ex_data* ex_data,
         const bone_database* bone_data, void* data, const object_database* obj_db);
-    void set_motion_reset_data(uint32_t motion_id, float_t frame);
-    void set_motion_skin_param(int8_t chara_id, uint32_t motion_id, int32_t frame);
-    void set_null_blocks_expression_data(const vec3& position, const vec3& rotation, const vec3& scale);
+    void set_motion_node(const RobNode* mot_node, const bone_database* bone_data);
+    void set_motion_reset_data(const uint32_t& motnum, const float_t& frame);
+    void set_motion_skin_param(int8_t rob_id, uint32_t motnum, int32_t frame);
+    void set_ofs(const vec3& pos, const vec3& rot, const vec3& scale);
     void set_osage_play_data_init(const float_t* opdi_data);
     void set_osage_reset();
     void set_osage_move_cancel(const float_t& mv_ccl);
-    void set_texture_pattern(texture_pattern_struct* tex_pat, size_t count);
+    void set_tex_change(size_t num, const TexChange* texchg);
     void skp_load(void* kv, const bone_database* bone_data);
     void skp_load(const skin_param_osage_root& skp_root, std::vector<skin_param_osage_node>& vec,
         skin_param_file_data* skp_file_data, const bone_database* bone_data);
@@ -2513,10 +3637,11 @@ struct rob_chara_item_equip_object {
     bool skp_load_normal_ref(const skin_param_osage_root& skp_root, std::vector<RobJointNodeData>* node_data);
 };
 
-struct rob_chara_item_equip {
+class RobDisp {
+public:
     const RobNode* motion_node;
     const mat4* motion_matrix;
-    rob_chara_item_equip_object* skin_disp;
+    RobSkinDisp* skin_disp;
     int32_t parts_attr[RPK_MAX];
     bool one_skin;
     int32_t disp_begin;
@@ -2524,13 +3649,13 @@ struct rob_chara_item_equip {
     uint32_t shadow_flag;
     SHADOW_GROUP shadow_group;
     vec3 position;
-    std::vector<texture_pattern_struct> hyoutan_texchg_list;
+    std::vector<TexChange> hyoutan_texchg_list;
     object_info hyoutan_obj;
     int32_t hyoutan_rpk;
     bool disable_update;
-    int32_t field_DC;
+    HyoutanStat hyoutan_status;
     vec4 skin_color;
-    float_t wet;
+    float_t wet_cloth;
     float_t wind_strength;
     bool chara_color;
     bool npr_flag;
@@ -2546,217 +3671,536 @@ struct rob_chara_item_equip {
     bool parts_append;
     bool parts_white_one_l;
 
-    rob_chara_item_equip();
-    ~rob_chara_item_equip();
+    RobDisp();
+    ~RobDisp();
 
-    void add_motion_reset_data(uint32_t motion_id, float_t frame, int32_t iterations);
-    void disp(int32_t chara_id, render_context* rctx);
-    rob_chara_item_equip_object* get_skin_disp(ROB_PARTS_KIND rpk);
-    object_info get_object_info(ROB_PARTS_KIND rpk);
-    void set_motion_node(const RobNode* mot_node, const bone_database* bone_data);
+    void add_motion_reset_data(const uint32_t& motnum, const float_t& frame, int32_t init_cnt);
+    void disp(int32_t rob_id, render_context* rctx);
+    object_info get_objid(ROB_PARTS_KIND rpk) const;
+    RobSkinDisp* get_skin_work(ROB_PARTS_KIND rpk); // Added
+    const RobSkinDisp* get_skin_work(ROB_PARTS_KIND rpk) const;
     const mat4* get_ex_data_bone_node_mat(ROB_PARTS_KIND rpk, const char* name);
-    void load_body_parts_object_info(ROB_PARTS_KIND rpk, object_info obj_info,
-        const bone_database* bone_data, void* data, const object_database* obj_db);
-    void load_outfit_object_info(ROB_PARTS_KIND rpk, object_info obj_info,
-        bool osage_reset, const bone_database* bone_data, void* data, const object_database* obj_db);
+    ROB_PARTS_KIND get_free_item(ROB_PARTS_KIND rpk) const;
     void pos_reset(uint8_t init_cnt);
     void reset();
     void reset_ex_force();
     void reset_init_data(RobNode* mot_node);
     void reset_nodes_ex_force(rob_osage_parts parts);
     void set_alpha_obj_flags(float_t alpha, mdl::ObjFlags flags);
-    void set_disable_collision(rob_osage_parts parts, bool disable);
-    void set_disp(ROB_PARTS_KIND rpk, bool value);
-    void set_item(object_info obj_uid, ROB_PARTS_KIND rpk, bool osage_reset,
+    void set_base(ROB_PARTS_KIND rpk, object_info obj_uid, bool osage_reset,
         const bone_database* bone_data, void* data, const object_database* obj_db);
-    void set_motion_reset_data(uint32_t motion_id, float_t frame);
-    void set_motion_skin_param(int8_t chara_id, uint32_t motion_id, int32_t frame);
-    void set_null_blocks_expression_data(ROB_PARTS_KIND rpk,
-        const vec3& position, const vec3& rotation, const vec3& scale);
-    void set_object_texture_pattern(ROB_PARTS_KIND rpk, texture_pattern_struct* tex_pat, size_t count);
+    void set_body(object_info obj_uid,
+        const bone_database* bone_data, void* data, const object_database* obj_db);
+    void set_col_color(ROB_PARTS_KIND rpk, const vec3& blend, const vec3& ofs);
+    void set_col_specular(ROB_PARTS_KIND rpk, const vec3& blend, const vec3& ofs);
+    void set_col_type(ROB_PARTS_KIND rpk, int32_t type);
+    void set_disable_collision(rob_osage_parts parts, bool disable);
+    void set_disp_flag(ROB_PARTS_KIND rpk, bool flag);
+    void set_hyoutan(ROB_PARTS_KIND rpk, object_info obj_uid, object_info obj_uid_sub,
+        const bone_database* bone_data, void* data, const object_database* obj_db);
+    void set_hyoutan_tex_change(const TexChange* texchg, int32_t tex_num);
+    void set_item(ROB_PARTS_KIND rpk, object_info obj_info,
+        const bone_database* bone_data, void* data, const object_database* obj_db);
+    void set_merge(ROB_PARTS_KIND rpk, bool flag);
+    void set_motion_node(const RobNode* mot_node, const bone_database* bone_data);
+    void set_motion_reset_data(const uint32_t& motnum, const float_t& frame);
+    void set_motion_skin_param(int8_t chara_id, uint32_t motnum, int32_t frame);
+    void set_ofs(ROB_PARTS_KIND rpk, const vec3& trans, const vec3& rot, const vec3& scale);
     void set_one_skin(bool value);
     void set_opd_blend_data(std::list<motion_blend_mot*>* a2);
     void set_osage_play_data_init(ROB_PARTS_KIND rpk, const float_t* opdi_data);
     void set_osage_reset();
     void set_osage_step(float_t value);
     void set_osage_move_cancel(uint8_t id, const float_t& mv_ccl);
-    void set_shadow_group(int32_t chara_id);
-    void set_texture_pattern(texture_pattern_struct* tex_pat, size_t count);
+    void set_reflect(ROB_PARTS_KIND rpk, bool flag);
+    void set_shadow(ROB_PARTS_KIND rpk, bool flag);
+    void set_shadow_group(int32_t rob_id);
+    void set_skin(object_info obj_uid, ROB_PARTS_KIND kind, bool osage_reset,
+        const bone_database* bone_data, void* data, const object_database* obj_db);
+    void set_tex_change(ROB_PARTS_KIND rpk, const TexChange* texchg, int32_t tex_num);
     void skp_load(ROB_PARTS_KIND rpk, const skin_param_osage_root& skp_root, std::vector<skin_param_osage_node>& vec,
         skin_param_file_data* skp_file_data, const bone_database* bone_data);
 };
 
-struct item_cos_texture_change_tex {
-    texture* org;
-    texture* chg;
-    bool changed;
+struct RobItemTXHD {
+    texture* src;
+    texture* dst;
+    bool dst_copy;
 
-    item_cos_texture_change_tex();
-    ~item_cos_texture_change_tex();
+    RobItemTXHD();
+    ~RobItemTXHD();
 };
 
-struct rob_chara_item_cos_data {
-    CHARA_NUM curr_chara_num;
-    CHARA_NUM chara_num;
-    item_cos_data curr_cos;
-    item_cos_data cos;
-    std::map<int32_t, std::vector<item_cos_texture_change_tex>> texture_change;
-    std::map<int32_t, std::vector<uint32_t>> item_change;
-    std::map<object_info, ROB_PARTS_KIND> field_F0;
-    std::map<int32_t, ROB_PARTS_KIND> field_100;
-    std::vector<texture_pattern_struct> texture_pattern[31];
-    std::map<int32_t, object_info> head_replace;
+struct RobItemHavePart {
+    std::vector<uint32_t> item_no;
 
-    rob_chara_item_cos_data();
-    ~rob_chara_item_cos_data();
+    RobItemHavePart() = default;
+    ~RobItemHavePart() = default;
+};
 
-    bool check_for_npr_flag();
-    const item_cos_data* get_cos();
-    object_info get_head_object_replace(int32_t head_object_id);
-    float_t get_max_face_depth();
-    void reload_items(int32_t chara_id,
+struct RobItemHave {
+    RobItemHavePart part[ROB_ITEM_EQUIP_ID_MAX];
+
+    RobItemHave() = default;
+    ~RobItemHave() = default;
+};
+
+struct RobItemHaveSub {
+    RobItemHavePart part[ROB_ITEM_EQUIP_SUB_ID_MAX];
+
+    RobItemHaveSub() = default;
+    ~RobItemHaveSub() = default;
+};
+
+typedef prj::vector_pair_combine<std::string, RobItemEquip> RobItemDbgSet;
+
+class RobItem {
+private:
+    CHARA_NUM m_cn;
+    CHARA_NUM m_cn_load;
+    RobItemEquip m_equip;
+    RobItemEquip m_equip_load;
+    std::map<uint32_t, std::vector<RobItemTXHD>> m_txhd_map;
+    std::map<ROB_PARTS_KIND, std::vector<uint32_t>> m_nude_attr_map;
+    std::map<object_info, ROB_PARTS_KIND> m_rpk_map;
+    std::map<int32_t, ROB_PARTS_KIND> m_rpk_sp_map;
+    std::vector<TexChange> m_texchg_list[RPK_MAX];
+    std::map<int32_t, object_info> m_head_map;
+
+private:
+    void equip_phase0(RobItemEquip* item_set);
+    void equip_phase1(RobDisp* rdp,
         const bone_database* bone_data, void* data, const object_database* obj_db);
-    void set_chara_num(CHARA_NUM chara_num);
-    void set_chara_num_item(CHARA_NUM chara_num, int32_t item_no);
-    void set_chara_num_item_nos(CHARA_NUM chara_num, const int32_t* items);
-    void set_chara_num_item_zero(CHARA_NUM chara_num, int32_t item_no);
-    void set_item(int32_t item_no);
-    void set_item_array(const rob_chara_pv_data_item& item);
-    void set_item_no(item_sub_id sub_id, int32_t item_no);
-    void set_item_nos(const int32_t* item_nos);
-    void set_item_zero(int32_t item_no);
-    void set_texture_pattern(rob_chara_item_equip* rob_disp,
-        ROB_PARTS_KIND rpk, bool tex_pat_for_all);
-    void set_texture_pattern(rob_chara_item_equip* rob_disp,
-        uint32_t item_no, ROB_PARTS_KIND rpk, bool tex_pat_for_all);
-    void set_texture_pattern(rob_chara_item_equip* rob_disp,
-        const std::vector<uint32_t>& item_nos, ROB_PARTS_KIND rpk, bool tex_pat_for_all);
-    void texture_change_clear();
-    void texture_pattern_clear();
+    void equip_phase2(RobDisp* rdp, RobItemEquip* item_set,
+        const bone_database* bone_data, void* data, const object_database* obj_db);
+    void equip_phase3(RobDisp* rdp, RobItemEquip* item_set,
+        const bone_database* bone_data, void* data, const object_database* obj_db);
+    void equip_phase4(RobDisp* rdp, RobItemEquip* item_set,
+        const bone_database* bone_data, void* data, const object_database* obj_db);
+    void equip_phase5(RobDisp* rdp, RobItemEquip* item_set);
+    void equip_phase6(RobDisp* rdp, RobItemEquip* item_set);
+    void equip_phase6(RobDisp* rdp, RobItemEquip* item_set, uint32_t item_no);
+    void equip_phase7();
+    ROB_PARTS_KIND get_rpk_item(ROB_ITEM_EQUIP_SUB_ID id) const;
+    void hide_rpk_sp(RobDisp* rdp, int32_t rpk_sp,
+        const bone_database* bone_data, void* data, const object_database* obj_db);
+    void make_chg_tex(uint32_t item_no, const RobItemTable* tbl);
+    void free_copy_texture_all();
+    void init_nude_attr_map();
+    void make_nude_attr_map(uint32_t item_no, const RobItemTable* tbl);
+    void set_obj_phase2(RobDisp* rdp, uint32_t item_no, const RobItemTable* tbl, ROB_ITEM_EQUIP_SUB_ID id,
+        const bone_database* bone_data, void* data, const object_database* obj_db);
+    void set_obj_phase3(RobDisp* rdp, uint32_t item_no, const RobItemTable* tbl,
+        const bone_database* bone_data, void* data, const object_database* obj_db);
+    void set_texture(RobDisp* rdp,
+        const std::vector<uint32_t>& item_nos, ROB_PARTS_KIND rpk, bool is_hyoutan = false);
+    void set_texture(RobDisp* rdp, uint32_t item_no, ROB_PARTS_KIND rpk, bool is_hyoutan = false);
+    void reset_texture(RobDisp* rdp, ROB_PARTS_KIND rpk, bool is_hyoutan = false);
+    void clear_texchg_list();
+    void disp_obj_internal(object_info obj_uid, mat4& mat, uint32_t item_no, render_context* rctx);
+    //static bool s_check_equip_exclusion(CHARA_NUM cn, RobItemEquip*);
+    //static bool s_check_equip_sub(CHARA_NUM cn, int32_t, const RobItemHeader*, RobItemEquip*, const PlayerInformation*);
+    //static bool s_check_equip_sub_phase0(uint32_t, const RobItemHeader*);
+    //static bool s_check_equip_sub_phase1(CHARA_NUM cn, uint32_t);
+    //static bool s_check_equip_sub_phase2(CHARA_NUM cn, uint32_t, int32_t);
+    //static bool s_check_equip_sub_phase3(CHARA_NUM cn, uint32_t, const pd::PlayerBitfield<2000>&);
+    //static bool s_check_equip_sub_phase4(CHARA_NUM cn, uint32_t, int32_t);
+    //static bool s_check_equip_sub_phase5(CHARA_NUM cn, int32_t, uint32_t);
+    //static bool s_check_equip_chara(CHARA_NUM, int32_t, RobItemEquip*);
+    //static bool s_check_equip_point(CHARA_NUM, const RobItemHeader*, const RobItemEquip*);
+    static bool s_repair_equip(CHARA_NUM, uint32_t, int32_t, RobItemEquip* item_set);
+
+    static int32_t s_have_dbg_ref;
+    static RobItemHave s_have_dbg[];
+    static int32_t s_have_sub_dbg_ref;
+    static RobItemHaveSub s_have_sub_dbg[];
+
+public:
+    RobItem();
+    ~RobItem();
+    void set_chara_num(CHARA_NUM cn);
+    void req_obj(uint32_t item_no, void* data, const object_database* obj_db);
+    bool wait_obj(uint32_t item_no);
+    void free_obj(uint32_t item_no);
+    void req_obj_all(void* data, const object_database* obj_db);
+    bool wait_obj_all();
+    void free_obj_all();
+    void free_obj_diff();
+
+private:
+    void regist_item(ROB_ITEM_EQUIP_SUB_ID id, uint32_t item_no);
+
+public:
+    void regist_item_one(uint32_t item_no);
+    void regist_item_all(const RobItemEquip* item_set);
+    void delete_item(uint32_t item_no);
+    void equip(int32_t rc, const bone_database* bone_data,
+        void* data, const object_database* obj_db);
+    ROB_ITEM_EQUIP_ID get_equip_id(uint32_t item_no) const;
+    ROB_ITEM_EQUIP_SUB_ID get_equip_sub_id(uint32_t item_no) const;
+    uint32_t check_exclusive_item(uint32_t item_no) const;
+    RobItemEquip* get_equip();
+    const RobItemEquip* get_equip() const;
+    bool is_equipped_item(uint32_t item_no) const;
+    //const char* get_name(uint32_t item_no) const;
+    //const char* get_name_asc(uint32_t item_no) const;
+    void init_disp_obj(uint32_t item_no);
+    void disp_obj(uint32_t item_no, render_context* rctx, const mat4& mat);
+    void get_item_texchange_list(uint32_t item_no, std::vector<TexChange>& tex_chg_list);
+    RobItemEquip* get_equip_load();
+    const RobItemEquip* get_equip_load() const;
+
+    void regist_item_all(const RobItemEquipInit* item_set);
+    void free_copy_texture(uint32_t item_no);
+    void free_copy_texture(std::map<uint32_t, std::vector<RobItemTXHD>>::iterator elem);
+
+    bool check_for_npr_flag() const;
+    object_info get_head_object_replace(int32_t head_object_id) const;
+    float_t get_face_depth() const;
+
+    static const char* s_get_equip_sub_id_str(ROB_ITEM_EQUIP_SUB_ID id);
+    //static bool s_check_equip(CHARA_NUM cn, int32_t, RobItemEquip*, const void*);
+    //static void s_get_objset(CHARA_NUM cn, uint32_t, int32_t*, size_t);
+    static const char* s_get_name(const CHARA_NUM& cn, uint32_t item_no);
+    static ROB_ITEM_EQUIP_ID s_get_equip_id(CHARA_NUM cn, uint32_t item_no);
+    static ROB_ITEM_EQUIP_SUB_ID s_get_equip_sub_id(CHARA_NUM cn, uint32_t item_no);
+    static void s_get_equip_sub_group(int32_t id, std::vector<int32_t>* sub_group);
+    static bool s_is_replace_part(CHARA_NUM cn, uint32_t item_no, ROB_ITEM_EQUIP_SUB_ID id);
+    static bool s_equip_ok(CHARA_NUM cn, uint32_t item_no, ROB_ITEM_EQUIP_SUB_ID id);
+    //static bool s_have_costume(CHARA_NUM cn, int32_t, const void*);
+    static uint32_t s_get_exclusion(CHARA_NUM cn, uint32_t item_no);
+    //static uint32_t s_get_set_item_no(CHARA_NUM cn, uint32_t item_no);
+    static uint32_t s_get_point(CHARA_NUM cn, uint32_t item_no);
+    static void s_get_offset_list(CHARA_NUM cn, uint32_t item_no, std::vector<RobItemDataOfs>& ofs_list, bool clear);
+    static ROB_ITEM_TYPE s_get_type(CHARA_NUM cn, uint32_t item_no);
+    static bool s_is_texorg(CHARA_NUM cn, uint32_t item_no);
+    static bool s_is_objorg(CHARA_NUM cn, uint32_t item_no);
+    //static void s_get_ng_item();
+    //static void s_get_ng_item_name();
+    //static void s_get_ng_item_point();
+    //static bool s_check_ng_item(CHARA_NUM cn, uint32_t item_no);
+    static std::string s_check_ng_item_name(CHARA_NUM cn, uint32_t item_no);
+    static int32_t s_check_ng_item_point(CHARA_NUM cn, uint32_t item_no);
+    static uint32_t get_dbgset_num(CHARA_NUM cn);
+    static const RobItemDbgSet* get_dbgset(CHARA_NUM cn);
+    static void init_have_dbg();
+    static void dest_have_dbg();
+    static void init_have_sub_dbg();
+    static void dest_have_sub_dbg();
+    static RobItemHave* get_have_dbg(CHARA_NUM cn);
+    static RobItemHaveSub* get_have_sub_dbg(CHARA_NUM cn);
+
+    static void s_req_obj(CHARA_NUM cn, uint32_t item_no, void* data, const object_database* obj_db);
+    static bool s_wait_obj(CHARA_NUM cn, uint32_t item_no);
+    static void s_free_obj(CHARA_NUM cn, uint32_t item_no);
+    static void s_req_obj_all(CHARA_NUM cn, const RobItemEquip* item_set, void* data, const object_database* obj_db);
+    static bool s_wait_obj_all(CHARA_NUM cn, const RobItemEquip* item_set);
+    static void s_free_obj_all(CHARA_NUM cn, const RobItemEquip* item_set);
+
+    static void s_regist_item_one(CHARA_NUM cn, uint32_t item_no, RobItem* rob_item);
+    static void s_regist_item_all(CHARA_NUM cn, const RobItemEquip* item_set, RobItem* rob_item);
+    static void s_delete_item(CHARA_NUM cn, uint32_t item_no, RobItem* rob_item);
 };
 
-struct struc_525 {
-    int32_t field_0;
-    int32_t field_4;
+union RobFlag {
+    uint32_t u32;
+    struct {
+        int8_t disp : 1;
+        int8_t fix_hara : 1;
+        int8_t ringout : 1;
+        int8_t bound_wall : 1;
+        int8_t compel : 1;
+        int8_t pl_syagami : 1;
+        int8_t land : 1;
+        int8_t old_fix_hara : 1;
+        int8_t invincible : 1;
+        int8_t yokerare : 1;
+        int8_t yokerare_mot : 1;
+        int8_t wall_hit_ok : 1;
+        int8_t own_down_pose : 1;
+        int8_t time_up : 1;
+        int8_t kabe_yoroke : 1;
+        int8_t jump_rise : 1;
+        int8_t round_loser : 1;
+        int8_t wall_fix_ok : 1;
+        int8_t wall_fix_ng : 1;
+        int8_t not_normal : 1;
+        int8_t old_not_normal : 1;
+        int8_t mk_change_off : 1;
+        int8_t wall_moved_mot : 1;
+        int8_t dmy_yokerare : 1;
+        int8_t yoketa : 1;
+        int8_t yokerare_mot2 : 1;
+        int8_t mk_yoke_off : 1;
+        int8_t set_damage : 1;
+        int8_t rf_28 : 1;
+        int8_t rf_29 : 1;
+        int8_t rf_30 : 1;
+        int8_t no_ctrl : 1;
+    } bit;
 };
 
-struct struc_524 {
-    int32_t field_0;
-    struc_525 field_4;
-    uint32_t motion_id;
-    int8_t field_10;
+struct RobJump {
+    float_t frame;
+    float_t zvec;
+    float_t next_land_frame;
+    float_t land_time;
+
+    RobJump();
+
+    void init();
 };
 
-struct struc_523 {
-    int8_t field_0;
-    int8_t field_1;
-    int32_t field_4;
-    int16_t field_8;
-    int32_t field_C;
-    vec3 field_10;
-    int32_t field_1C;
-    int32_t field_20;
-    int32_t field_24;
-    int32_t field_28;
-    int32_t field_2C;
-    int32_t field_30;
-    int32_t field_34;
-    int32_t field_38;
-    int32_t field_3C;
-    int32_t field_40;
-    int32_t field_44;
-    int32_t field_48;
-    int32_t field_4C;
-    int8_t field_50;
-    int32_t field_54;
+union RobAttackResult {
+    uint32_t u32;
+    struct {
+        int8_t hit : 1;
+        int8_t down : 1;
+        int8_t counter : 1;
+        int8_t l_counter : 1;
+        int8_t m_counter : 1;
+        int8_t mf_5 : 1;
+        int8_t air : 1;
+        int8_t air_counter : 1;
+        int8_t finish : 1;
+        int8_t finish_air : 1;
+        int8_t guard : 1;
+        int8_t guard_hazushi : 1;
+        int8_t guard_half : 1;
+        int8_t yoroke : 1;
+        int8_t down_attack : 1;
+        int8_t land_attack : 1;
+        int8_t mf_16 : 1;
+        int8_t hajiki : 1;
+        int8_t follow_hit : 1;
+        int8_t normal_hit : 1;
+        int8_t ura_hit : 1;
+        int8_t side_counter : 1;
+        int8_t side_l_counter : 1;
+        int8_t side_m_counter : 1;
+        int8_t yoroke_l_counter : 1;
+        int8_t side_hit : 1;
+        int8_t yoroke_counter : 1;
+        int8_t yoroke_follow : 1;
+        int8_t stun_begin : 1;
+        int8_t stun_hit : 1;
+        int8_t syagami_hit : 1;
+        int8_t bd_counter : 1;
+    } bit;
+};
+
+union RobAttackFlag {
+    uint32_t u32;
+    struct {
+        int8_t hit_ng : 1;
+        int8_t both_hit : 1;
+        int8_t hit_yokerare : 1;
+        int8_t old_hit_yokerare : 1;
+    } bit;
+};
+
+struct RobAttack {
+    int16_t hit_timer;
+    RobAttackFlag flag;
+    RobAttackResult ar_flag;
+    RobAttackResult ar_mask;
+    RobAttackResult old_ar_flag;
+    RobAttackResult old_ar_mask;
+    RobAttackResult ar_flag_c;
+    RobAttackResult ar_mask_c;
+    bool first_hit_result;
+    RobAttackResult cmb_first_ar_mask;
+    int32_t cmb_node_cnt;
+    bool next_attack_wait;
+    int8_t sideturn_stop_counter;
+
+    RobAttack();
+
+    void init();
+};
+
+struct ActParam {
+    uint32_t flag;
+    uint32_t type;
+
+    ActParam();
+
+    void init();
+};
+
+struct RobActType {
+    ACT_NAME name;
+    ActParam act_param;
+    uint32_t motnum;
+    bool mirror;
+
+    RobActType();
+
+    void setup();
+};
+
+struct RobGuard {
+    GuardKind guard_kind;
+    prj::BitArray<5> guard_input;
+
+    RobGuard();
+
+    void init();
+};
+
+struct RobYarare {
+    int16_t get_damage;
+    float_t get_power;
+    RobAngle yarare_yang;
+    RobAttackResult hit_ar_mask;
+    vec3 efc_spd;
+    vec3 get_spd;
+    vec3 ringout_spd;
+    int16_t combo_count;
+    int16_t combo_damage;
+    int16_t down_combo_count;
+    int16_t down_combo_damage;
+    int16_t down_combo_count2;
+    int16_t down_combo_damage2;
+    int16_t down_combo_count3;
+    int16_t down_combo_count4;
+    int16_t nage_combo_count;
+    int16_t nage_combo_damage;
+    int16_t air_combo_count;
+    int16_t air_combo_damage;
+    uint32_t combo_flag;
+    bool combo_xang_offs;
     std::list<void*> field_58;
-    int64_t field_68;
-    int64_t field_70;
-    int32_t field_78;
-    float_t field_7C;
-    float_t field_80;
+    int16_t max_nowall_combo_count;
+    int16_t max_nowall_combo_damage;
+    int16_t max_wall_combo_count;
+    int16_t max_wall_combo_damage;
+    int16_t max_current_combo_count;
+    int16_t max_current_combo_damage;
+    int16_t mot_get_damage;
+    int16_t real_get_damage;
+    int16_t orig_get_damage;
+    float_t gs_resist_timer;
+    float_t gs_resist_step;
 
-    struc_523();
-    ~struc_523();
+    RobYarare();
+    ~RobYarare();
+
+    void init();
 };
 
-struct struc_526 {
-    int32_t field_0;
-    int32_t field_4;
+struct RobNage {
+    float_t disable_timer;
+    int8_t nagerare_cnt;
+    int16_t kaeshi_damage;
+    rob_chara* enemy;
+    bool right_side;
+    RobAngle tgt_yang;
+    vec3 tgt_pos;
+    float_t tgt_timer;
+
+    RobNage();
+
+    void init();
 };
 
-struct struc_264 {
-    int8_t field_0;
-    struc_524 field_4;
-    struc_524 field_18;
-    struc_524 field_2C;
-    struc_524 field_40;
-    struc_524 field_54;
-    int32_t field_68;
-    int32_t field_6C;
-    int32_t field_70;
-    float_t field_74;
-    int16_t field_78;
-    int32_t field_7C;
-    int32_t field_80;
-    int32_t field_84;
-    int32_t field_88;
-    int32_t field_8C;
-    int32_t field_90;
-    int32_t field_94;
-    int8_t field_98;
-    int32_t field_9C;
-    int32_t field_A0;
-    int8_t field_A4;
-    int8_t field_A5;
-    int32_t field_A8;
-    int32_t field_AC;
+struct RobRise {
+    uint32_t motnum;
+    float_t hurry;
+    float_t down_timer;
+
+    RobRise();
+
+    void init();
+};
+
+union RobUkemiKind {
+    uint32_t u32;
+    struct {
+        int8_t ukemi_ok : 1;
+        int8_t ukemi_wait : 1;
+        int8_t ukemi_wait_just : 1;
+        int8_t ukemi_dir : 1;
+        int8_t ukemi_now : 1;
+        int8_t ukemi_air : 1;
+        int8_t ukemi_select : 1;
+        int8_t ukemi_land : 1;
+        int8_t ukemi_delay : 1;
+        int8_t ukemi_dir2 : 1;
+    } bit;
+};
+
+struct RobUkemi{
+    RobUkemiKind ukemi_kind;
+    float_t land_elapsed;
+
+    RobUkemi();
+
+    void init();
+};
+
+struct RobOffensiveMove {
+    float_t offmv_timer;
+    bool revise_grd_emy_no;
+    vec3 target_pos;
+    union {
+        uint32_t u32;
+        struct {
+            int8_t en_from_right : 1;
+        } bit;
+    } target_flag;
+
+    RobOffensiveMove();
+
+    void init();
+};
+
+struct RobSideTurn {
+    float_t side_stop_counter;
+    float_t side_guard_disable;
+    float_t side_turn_timer;
+    bool right_side_turn;
+
+    RobSideTurn();
+
+    void init();
+};
+
+struct RobAction {
+    int8_t step;
+    RobActType action;
+    RobActType old_action;
+    RobActType command;
+    RobActType bak_command;
+    RobActType sys_command;
+    RobJump jump;
+    RobAttack attack;
+    RobGuard guard;
     int32_t field_B0;
     bool field_B4;
-    struc_523 field_B8;
-    int32_t field_140;
-    int8_t field_144;
-    int8_t field_145;
-    int16_t field_146;
-    void* field_148;
-    int8_t field_150;
-    int16_t field_152;
-    int32_t field_154;
-    int32_t field_158;
-    int32_t field_15C;
-    int32_t field_160;
-    int32_t field_164;
-    int32_t field_168;
-    int32_t field_16C;
-    int32_t field_170;
-    int32_t field_174;
-    int32_t field_178;
-    int32_t field_17C;
-    int8_t field_180;
-    int32_t field_184;
-    int32_t field_188;
-    float_t field_18C;
-    int8_t field_190;
-    int32_t field_194;
-    int32_t field_198;
-    int32_t field_19C;
-    int32_t field_1A0;
+    RobYarare yarare;
+    RobNage nage;
+    RobRise rise;
+    RobUkemi ukemi;
+    RobOffensiveMove off_move;
+    RobSideTurn side_turn;
     uint8_t kamae_type;
     const RobKamae* kamae_data;
-    int32_t field_1B0;
-    int32_t field_1B4;
-    int32_t field_1B8;
-    int32_t field_1BC;
-    struc_526 field_1C0;
-    int8_t field_1C8;
-    int8_t field_1C9;
-    int8_t field_1CA;
-    int32_t field_1CC;
-    int32_t field_1D0;
-    int32_t field_1D4;
+    float_t down_counter;
+    float_t down_counter_ex;
+    float_t old_down_counter;
+    uint32_t mot_backup;
+    prj::BitArray<36> kaeshi_flag;
+    int16_t gacha_count;
+    bool gacha;
+    int32_t drank_count;
+    int32_t drank_add_req;
+    float_t wall_yoroke_timer;
 
-    struc_264();
-    ~struc_264();
+    RobAction();
+    ~RobAction();
+
+    void init();
 };
 
 class SubActParam {
@@ -2815,10 +4259,10 @@ public:
     SubActExec(SubActExecType type);
     virtual ~SubActExec();
 
-    virtual void Field_8() = 0;
-    virtual void Field_10(SubActParam* param) = 0;
-    virtual void Field_18(rob_chara* rob_chr) = 0;
-    virtual void Field_20(rob_chara* rob_chr) = 0;
+    virtual void init() = 0;
+    virtual void set(const SubActParam* param) = 0;
+    virtual void Field_18(rob_chara* impl) = 0;
+    virtual void Field_20(rob_chara* impl) = 0;
 };
 
 class SubActExecAngry : public SubActExec {
@@ -2826,10 +4270,10 @@ public:
     SubActExecAngry();
     virtual ~SubActExecAngry() override;
 
-    virtual void Field_8() override;
-    virtual void Field_10(SubActParam* param) override;
-    virtual void Field_18(rob_chara* rob_chr) override;
-    virtual void Field_20(rob_chara* rob_chr) override;
+    virtual void init() override;
+    virtual void set(const SubActParam* param) override;
+    virtual void Field_18(rob_chara* impl) override;
+    virtual void Field_20(rob_chara* impl) override;
 };
 
 class SubActExecCountNum : public SubActExec {
@@ -2841,10 +4285,10 @@ public:
     SubActExecCountNum();
     virtual ~SubActExecCountNum() override;
 
-    virtual void Field_8() override;
-    virtual void Field_10(SubActParam* param) override;
-    virtual void Field_18(rob_chara* rob_chr) override;
-    virtual void Field_20(rob_chara* rob_chr) override;
+    virtual void init() override;
+    virtual void set(const SubActParam* param) override;
+    virtual void Field_18(rob_chara* impl) override;
+    virtual void Field_20(rob_chara* impl) override;
 };
 
 class SubActExecCry : public SubActExec {
@@ -2852,10 +4296,10 @@ public:
     SubActExecCry();
     virtual ~SubActExecCry() override;
 
-    virtual void Field_8() override;
-    virtual void Field_10(SubActParam* param) override;
-    virtual void Field_18(rob_chara* rob_chr) override;
-    virtual void Field_20(rob_chara* rob_chr) override;
+    virtual void init() override;
+    virtual void set(const SubActParam* param) override;
+    virtual void Field_18(rob_chara* impl) override;
+    virtual void Field_20(rob_chara* impl) override;
 };
 
 class SubActExecEmbarrassed : public SubActExec {
@@ -2864,10 +4308,10 @@ public:
     SubActExecEmbarrassed();
     virtual ~SubActExecEmbarrassed() override;
 
-    virtual void Field_8() override;
-    virtual void Field_10(SubActParam* param) override;
-    virtual void Field_18(rob_chara* rob_chr) override;
-    virtual void Field_20(rob_chara* rob_chr) override;
+    virtual void init() override;
+    virtual void set(const SubActParam* param) override;
+    virtual void Field_18(rob_chara* impl) override;
+    virtual void Field_20(rob_chara* impl) override;
 };
 
 class SubActExecLaugh : public SubActExec {
@@ -2875,10 +4319,10 @@ public:
     SubActExecLaugh();
     virtual ~SubActExecLaugh() override;
 
-    virtual void Field_8() override;
-    virtual void Field_10(SubActParam* param) override;
-    virtual void Field_18(rob_chara* rob_chr) override;
-    virtual void Field_20(rob_chara* rob_chr) override;
+    virtual void init() override;
+    virtual void set(const SubActParam* param) override;
+    virtual void Field_18(rob_chara* impl) override;
+    virtual void Field_20(rob_chara* impl) override;
 };
 
 class SubActExecShakeHand : public SubActExec {
@@ -2890,113 +4334,102 @@ public:
     SubActExecShakeHand();
     virtual ~SubActExecShakeHand() override;
 
-    virtual void Field_8() override;
-    virtual void Field_10(SubActParam* param) override;
-    virtual void Field_18(rob_chara* rob_chr) override;
-    virtual void Field_20(rob_chara* rob_chr) override;
-};
-
-union RobFlag {
-    uint32_t u32;
-    struct {
-        int8_t disp : 1;
-        int8_t fix_hara : 1;
-        int8_t ringout : 1;
-        int8_t bound_wall : 1;
-
-        int8_t compel : 1;
-        int8_t pl_syagami : 1;
-        int8_t land : 1;
-        int8_t old_fix_hara : 1;
-
-        int8_t invincible : 1;
-        int8_t yokerare : 1;
-        int8_t yokerare_mot : 1;
-        int8_t wall_hit_ok : 1;
-
-        int8_t own_down_pose : 1;
-        int8_t time_up : 1;
-        int8_t kabe_yoroke : 1;
-        int8_t jump_rise : 1;
-
-        int8_t round_loser : 1;
-        int8_t wall_fix_ok : 1;
-        int8_t wall_fix_ng : 1;
-        int8_t not_normal : 1;
-
-        int8_t old_not_normal : 1;
-        int8_t mk_change_off : 1;
-        int8_t wall_moved_mot : 1;
-        int8_t dmy_yokerare : 1;
-
-        int8_t yoketa : 1;
-        int8_t yokerare_mot2 : 1;
-        int8_t mk_yoke_off : 1;
-        int8_t set_damage : 1;
-
-        int8_t rf_28 : 1;
-        int8_t rf_29 : 1;
-        int8_t rf_30 : 1;
-        int8_t rf_31 : 1;
-    } bit;
+    virtual void init() override;
+    virtual void set(const SubActParam* param) override;
+    virtual void Field_18(rob_chara* impl) override;
+    virtual void Field_20(rob_chara* impl) override;
 };
 
 struct RobSubAction {
-    struct Data {
-        SubActExec* field_0;
-        SubActExec* field_8;
-        SubActParam* param;
-        SubActExec* field_18;
-        SubActExecCry cry;
-        SubActExecShakeHand shake_hand;
-        SubActExecEmbarrassed embarrassed;
-        SubActExecAngry angry;
-        SubActExecLaugh laugh;
-        SubActExecCountNum count_num;
-
-        Data();
-        ~Data();
-    } data;
+    SubActExec* field_8;
+    SubActExec* field_10;
+    SubActParam* param;
+    SubActExec* field_20;
+    SubActExecCry cry;
+    SubActExecShakeHand shake_hand;
+    SubActExecEmbarrassed embarrassed;
+    SubActExecAngry angry;
+    SubActExecLaugh laugh;
+    SubActExecCountNum count_num;
 
     RobSubAction();
-    ~RobSubAction();
+    virtual ~RobSubAction();
 
-    void Reset();
-    void SetSubActParam(SubActParam* value);
+    void dest();
+    void init();
+    void set(SubActParam* value);
 };
 
-struct rob_chara_motion_frame_data {
-    float_t frame;
-    float_t prev_frame;
-    float_t last_set_frame;
+struct RobMotionFrame {
+    float_t f;
+    float_t old_f;
+    float_t req_f;
 };
 
-struct rob_chara_motion_step_data {
-    float_t frame;
-    float_t field_4;
-    float_t step;
+struct RobMotionStep {
+    float_t f;
+    float_t old_f;
+    float_t req_f;
+};
+
+union RobMotFlag {
+    uint32_t u32;
+    struct {
+        int8_t mot_end : 1;
+        int8_t next_null : 1;
+        int8_t next_mirror : 1;
+        int8_t mirror : 1;
+        int8_t change : 1;
+        int8_t frame_change : 1;
+        int8_t frame_ctrl : 1;
+        int8_t ext_frame_req : 1;
+        int8_t suspend : 1;
+        int8_t resume : 1;
+        int8_t frame_stop : 1;
+        int8_t mf_11 : 1;
+        int8_t mf_12 : 1;
+        int8_t mf_13 : 1;
+        int8_t mf_14 : 1;
+        int8_t mf_15 : 1;
+        int8_t mf_16 : 1;
+        int8_t mf_17 : 1;
+        int8_t mf_18 : 1;
+        int8_t mf_19 : 1;
+        int8_t mf_20 : 1;
+        int8_t mf_21 : 1;
+        int8_t mf_22 : 1;
+        int8_t mf_23 : 1;
+        int8_t mf_24 : 1;
+        int8_t mf_25 : 1;
+        int8_t mf_26 : 1;
+        int8_t mf_27 : 1;
+        int8_t mf_28 : 1;
+        int8_t mf_29 : 1;
+        int8_t mf_30 : 1;
+        int8_t mf_31 : 1;
+    } bit;
 };
 
 class RobPartialMotion {
 public:
     struct Data {
-        uint32_t motion_id;
-        int32_t mottbl_index;
+        uint32_t motnum;
+        MOTTABLE_TYPE mottbl_type;
         rob_partial_motion_playback_state playback_state;
         float_t frame;
         float_t step;
-        float_t frame_count;
+        float_t frame_max;
         float_t blend_duration;
         float_t blend_step;
         float_t blend_offset;
         float_t play_duration;
-        rob_chara_motion_frame_data* frame_data;
-        rob_chara_motion_step_data* step_data;
+        const RobMotionFrame* frame_ptr;
+        const RobMotionStep* step_ptr;
         rob_partial_motion_loop_state loop_state;
 
-        inline Data() : motion_id(-1), mottbl_index(), playback_state(ROB_PARTIAL_MOTION_PLAYBACK_NONE), frame(),
-            step(), frame_count(), blend_duration(), blend_step(), blend_offset(), play_duration(),
-            frame_data(), step_data(), loop_state(ROB_PARTIAL_MOTION_LOOP_NONE) {
+        inline Data() : motnum(-1), mottbl_type(), playback_state(ROB_PARTIAL_MOTION_PLAYBACK_NONE), frame(),
+            step(), frame_max(), blend_duration(), blend_step(), blend_offset(), play_duration(),
+            frame_ptr(), step_ptr(), loop_state(ROB_PARTIAL_MOTION_LOOP_NONE) {
             Reset();
         }
 
@@ -3005,18 +4438,18 @@ public:
         }
 
         inline void Reset() {
-            motion_id = -1;
-            mottbl_index = 6;
+            motnum = -1;
+            mottbl_type = MTP_FACE_NULL;
             playback_state = ROB_PARTIAL_MOTION_PLAYBACK_NONE;
             frame = 0.0f;
             step = 1.0f;
-            frame_count = 0.0f;
+            frame_max = 0.0f;
             blend_duration = 0.0f;
             blend_step = 1.0f;
             blend_offset = 1.0f;
             play_duration = 0.0f;
-            frame_data = 0;
-            step_data = 0;
+            frame_ptr = 0;
+            step_ptr = 0;
             loop_state = ROB_PARTIAL_MOTION_LOOP_NONE;
         }
     } data;
@@ -3123,7 +4556,7 @@ struct rob_chara_data_adjust {
     vec3 curr_ex_force;
     float_t curr_force;
     float_t curr_strength;
-    uint32_t motion_id;
+    uint32_t motnum;
     float_t set_frame;
     float_t transition_duration;
     int32_t type;
@@ -3160,7 +4593,7 @@ struct rob_chara_data_hand_adjust {
     vec3 offset;
     vec3 target;
     float_t arm_length;
-    int32_t iterations;
+    int32_t init_cnt;
 
     rob_chara_data_hand_adjust();
 
@@ -3178,28 +4611,25 @@ struct rob_chara_data_arm_adjust {
     void reset();
 };
 
-struct rob_chara_motion {
-    uint32_t motion_id;
-    uint32_t prev_motion_id;
-    rob_chara_motion_frame_data frame_data;
-    rob_chara_motion_step_data step_data;
-    float_t step;
-    int32_t field_24;
-    uint8_t field_28;
-    uint8_t field_29;
-    uint8_t field_2A;
-    int32_t loop_index;
-    uint32_t field_30;
-    int16_t field_34;
-    int16_t field_36;
+struct RobMotion {
+    uint32_t num;
+    uint32_t old_num;
+    RobMotionFrame frame;
+    RobMotionStep step;
+    float_t osage_step;
+    MOT_BSTEP basic_step;
+    RobMotFlag flag;
+    int32_t repeat_count;
+    prj::BitArray<23> shift_req;
+    int16_t same_mot_idx;
+    int16_t same_count;
     int32_t field_38[32];
     int32_t field_B8[32];
-    float_t field_138;
-    float_t field_13C;
-    vec3 field_140;
-    int32_t field_14C;
+    float_t mot_adjust_scale;
+    float_t mot_xz_adjust_scale;
+    vec3 mot_adjust_base_pos;
+    uint32_t face_motnum;
     struc_405<int32_t> field_150;
-    float_t field_314;
     RobHandMotion hand_l;
     RobHandMotion hand_r;
     object_info hand_l_object;
@@ -3213,277 +4643,271 @@ struct rob_chara_motion {
     rob_chara_data_hand_adjust hand_adjust_prev[2];
     rob_chara_data_arm_adjust arm_adjust[2];
 
-    rob_chara_motion();
-    ~rob_chara_motion();
+    RobMotion();
+    ~RobMotion();
 
     void reset();
 };
 
-struct struc_228 {
-    int32_t field_0;
-    int32_t field_4;
-    uint32_t field_8;
-    int32_t field_C;
+struct CtrlDMot {
+    CtrlDMot();
+
+    uint32_t mot_id;
+    uint32_t mot_flag;
 };
 
-struct struc_227 {
-    int32_t field_0;
-    float_t field_4;
-    float_t field_8;
+class RobMotId : public CtrlDMot {
+public:
+    RobMotId();
+
+    void clear();
+    void set(uint32_t in_mot_id, uint32_t in_mot_flag);
 };
 
-struct mothead_data {
-    mothead_data_type type;
-    int32_t frame;
-    const void* data;
+struct RobMotDAs {
+    float_t count;
+    float_t follow2;
+    float_t nagerenai;
+
+    RobMotDAs();
+
+    void clear();
 };
 
-struct mothead_mot_data {
+struct MhdKind {
+    uint32_t mhk_kind[4];
+};
+
+struct MhdList {
     int32_t type;
-    const void* data;
+    void* data;
 };
 
-struct mothead_mot {
-    struc_228 field_0;
-    int16_t field_10;
-    int16_t field_12;
-    mothead_mot_data* mot_data;
-    mothead_data* data;
-    int64_t* field_28;
-
-    mothead_mot();
+struct MhpList {
+    int32_t type;
+    int32_t frame;
+    void* data;
 };
 
-struct mothead {
-    uint32_t mot_set_id;
-    uint32_t first_mot_id;
-    uint32_t last_mot_id;
-    mothead_mot** mots;
-
-    mothead();
+struct MhcList {
+    void* data;
 };
 
-struct mothead_file {
-    uint32_t mot_set_id;
-    uint32_t first_mot_id;
-    uint32_t last_mot_id;
-    uint32_t mot_offsets_offset;
+struct MhdData {
+    MhdKind mot_kind;
+    uint16_t start_style;
+    uint16_t end_style;
+    MhdList* mh_list;
+    MhpList* pp_list;
+    MhcList* cm_list;
+
+    MhdData();
 };
 
-struct mothead_modern_file {
-    uint32_t mot_set_id;
-    int32_t mot_count;
-    int64_t hashes_offset;
-    int64_t mot_offsets_offset;
+struct MhdFileHeader {
+    uint32_t file_id;
+    uint32_t min_mot_id;
+    uint32_t max_mot_id;
+    MhdData** data_list;
+
+    MhdFileHeader();
 };
 
-struct mothead_mot_file {
-    int32_t field_0;
-    int32_t field_4;
-    int32_t field_8;
-    int32_t field_C;
-    int16_t field_10;
-    int16_t field_12;
-    uint32_t mot_data_offset;
-    uint32_t data_offset;
-    uint32_t field_1C;
+struct ES_DATA {
+    int16_t est_land_xang;
+    int16_t est_down_xang;
+    int16_t est_down_air_xang;
+    int16_t est_counter_down_xang;
+    int16_t est_yoroke_down_xang;
+    float_t est_power;
+    float_t est_guard_power;
+    float_t est_land_power;
+    float_t est_down_power;
+    float_t est_down_air_power;
+    float_t est_counter_down_power;
+    float_t est_yoroke_down_power;
+    float_t est_finish_mul_yspd;
+    float_t est_finish_mul_xzspd;
 };
 
-struct struc_377 {
-    const mothead_data* current;
-    const mothead_data* data;
-    bool is_x; // X
+struct MhdAttackSound {
+    int8_t mhats_efc_sound_type;
+    int32_t mhats_efc_sound_code;
+    int16_t mhats_efc_sound_cond;
 };
 
-struct struc_226 {
-    int8_t field_0[27];
+struct MhdNagenuke {
+    int16_t mhnu_type;
+    uint32_t mhnu_lever_dir;
 };
 
-struct struc_225 {
-    float_t field_0[27];
+struct RobTarget {
+    TargetType target_flag;
+    float_t target_end;
+    vec3 target_pos;
+
+    RobTarget();
 };
 
-struct struc_224 {
-    float_t field_0[27];
+struct MotLeafCtrl {
+    int16_t mode;
+    float_t start_frame;
+    float_t end_frame;
+    int16_t target_id;
+    int16_t limit;
+    vec3 ofs;
+    vec3 min;
+    vec3 max;
+    vec3 field_34;
+    vec3 field_40;
+
+    MotLeafCtrl();
+    MotLeafCtrl(int16_t mode, float_t start_frame, float_t end_frame);
 };
 
-struct struc_306 {
-    int16_t field_0;
+struct RobMotData {
+    uint32_t mot;
+    float_t frame_max;
     float_t frame;
-    float_t field_8;
-    int16_t field_C;
-    int16_t field_E;
-    vec3 field_10;
-    vec3 field_1C;
-    vec3 field_28;
-    int32_t field_34;
-    int32_t field_38;
-    int32_t field_3C;
-    int32_t field_40;
-    int32_t field_44;
-    int32_t field_48;
-
-    struc_306();
-    struc_306(int16_t field_0, float_t frame, float_t field_8);
-};
-
-struct struc_652 {
-    uint32_t motion_id;
-    float_t frame_count;
-    float_t frame;
-    int16_t field_C;
-    struc_228 field_10;
-    struc_228 field_20;
-    struc_228 field_30;
-    struc_228 field_40;
-    int16_t field_50;
-    int16_t field_52;
-    int16_t field_54;
-    int32_t field_58;
-    int32_t field_5C;
-    int32_t field_60;
-    int32_t field_64;
-    int32_t field_68;
-    int32_t loop_count;
+    int16_t ex_damage_all;
+    prj::BitArray<MK_KIND_MAX> motkind_fix;
+    prj::BitArray<MK_KIND_MAX> motkind;
+    prj::BitArray<MK_KIND_MAX> old_motkind_fix;
+    prj::BitArray<MK_KIND_MAX> old_motkind;
+    uint16_t start_style;
+    uint16_t end_style;
+    uint16_t end_style_flag;
+    MhNextType next_type;
+    RobMotId next;
+    RobMotId next_end;
+    int32_t next_limit;
     float_t loop_begin;
     float_t loop_end;
-    float_t field_78;
-    float_t field_7C;
-    float_t field_80;
-    int8_t field_84;
-    int32_t field_88;
-    int32_t field_8C;
-    int32_t field_90;
-    int16_t field_94;
-    int16_t field_96;
-    int16_t field_98;
-    int32_t field_9C;
-    int16_t field_A0;
-    int32_t field_A4;
-    int64_t field_A8;
-    struc_227 field_B0[26];
-    int32_t field_1E8;
-    float_t field_1EC;
-    float_t field_1F0;
-    float_t field_1F4;
-    float_t field_1F8;
-    float_t field_1FC;
-    float_t field_200;
-    int32_t field_204;
-    int32_t field_208;
-    int32_t field_20C;
-    int64_t field_210;
-    float_t field_218;
-    float_t field_21C;
-    int16_t field_220;
-    std::list<void*> field_228;
-    int16_t field_238;
-    float_t field_23C;
-    int32_t field_240;
-    int16_t field_244;
-    const mothead_mot_data* field_248;
-    int64_t field_250;
-    float_t field_258;
-    int32_t field_25C;
-    int64_t field_260;
-    int64_t field_268;
-    int32_t field_270;
-    int16_t field_274;
-    int16_t field_276;
-    int32_t field_278;
-    int32_t field_27C;
-    int32_t field_280;
-    int16_t field_284;
-    int64_t field_288;
-    int32_t field_290;
-    int32_t field_294;
-    int32_t field_298;
-    float_t field_29C;
-    int8_t field_2A0;
-    float_t field_2A4;
-    float_t field_2A8;
-    float_t field_2AC;
-    int64_t field_2B0;
-    int16_t field_2B8;
-    int32_t field_2BC;
-    float_t field_2C0;
-    float_t field_2C4;
-    int32_t field_2C8;
-    int32_t field_2CC;
-    int64_t field_2D0;
-    int64_t field_2D8;
-    int64_t field_2E0;
-    int16_t field_2E8;
-    int32_t field_2EC;
-    int32_t field_2F0;
-    int32_t field_2F4;
-    int32_t field_2F8;
-    int32_t field_2FC;
-    int8_t field_300;
-    int32_t field_304;
-    int32_t field_308;
-    float_t field_30C;
-    int32_t field_310;
-    int16_t field_314;
-    vec3 field_318;
-    float_t field_324;
-    float_t field_328;
-    int32_t iterations;
-
-    struc_652();
-    ~struc_652();
-
-    void reset();
-
-    void sub_140536DD0();
-};
-
-struct struc_651 {
-    struc_377 field_0;
-    int32_t field_10;
-    int32_t field_14;
-    int32_t field_18;
-    float_t field_1C;
-    vec3 field_20;
-    struc_226 field_2C[3];
-    struc_225 field_80[3];
-    struc_224 field_1C4[3];
-    int64_t field_308;
+    float_t main_mot_frame;
+    float_t follow1_frame;
+    float_t follow2_frame;
+    bool attack_flag;
+    prj::BitArray<7> attack_kind;
+    AtkUnit attack_unit;
+    AtkPoint attack_point;
+    int16_t original_damage;
+    int16_t attack_damage;
+    int16_t dist_min_damage;
+    prj::BitArray<6> dc_type;
+    RobAngle efc_yang;
+    MhYarareType yarare_type;
+    prj::BitArray<ETF_FLAG_MAX> efc_flag;
+    MhEfcSpeedType efc_spd;
+    float_t attack_ball_multi;
+    float_t down_attack_multi;
+    RobMotDAs field_B8[25];
+    prj::BitArray<AK_KIND_MAX> air_kind;
+    float_t jump_frame;
+    float_t stop_frame;
+    float_t land_frame;
+    float_t ev_land_frame;
+    float_t land_ypos;
+    float_t gravity;
+    RobMotId nagerare_mot;
+    RobMotId nagerare_mot_mirror;
+    float_t nage_ringout_frame;
+    float_t nage_cancel_frame;
+    float_t nage_kabe_follow2;
+    int16_t nage_damage;
+    std::list<MhdNagenuke*> nage_nuke_list;
+    int16_t tag_jumph;
+    float_t tag_xofs;
+    float_t tag_zofs;
+    int16_t shift_num;
+    MhdList* shift_adr;
+    float_t ukemi_start_ofs_frame;
+    float_t ukemi_end_frame;
+    float_t ukemi_exec_frame;
+    uint32_t ukemi_flag;
+    prj::BitArray<KT_TYPE_MAX> kaesare_type;
+    prj::BitArray<KT_TYPE_MAX> kaeseru_type;
+    MhKaeshiAttrib kaesare_attrib;
+    RobAngle mov_yang;
+    RobAngle old_mov_yang;
+    prj::BitArray<3> gacha_flag;
+    RobMotId gacha_mot;
+    int16_t gacha_times;
+    float_t gacha_frame;
+    MhGuardType guard_type;
+    prj::BitArray<GK_FLAG_MAX> guard_flag;
+    float_t guard_frame;
+    uint32_t frame_ctrl_type;
+    float_t frame_ctrl_frame;
+    int8_t frame_ctrl_tag_type;
+    float_t frame_ctrl_tag_add;
+    float_t frame_ctrl_min;
+    float_t frame_ctrl_max;
+    ES_DATA* est_adr;
+    RobAngle dturn_yang;
+    prj::BitArray<2> smooth_flag;
+    float_t smooth_f_length;
+    float_t smooth_r_length;
+    float_t ride_on_ypos;
+    std::vector<MhdAttackSound*> atk_snd_list;
+    int16_t kabe_damage;
+    MhKabeDmgType kabe_damage_type;
+    prj::BitArray<21> nagereru_char;
+    prj::BitArray<KT_TYPE_MAX> resist_type;
+    int16_t resist_low_limit;
+    int16_t resist_max_limit;
+    int16_t resist_percent;
+    MhResistDownChkType resist_down_chk;
+    float_t resist_slow_frame;
+    float_t resist_slow_step;
+    MhEnDrinkOffType en_drink_off_type;
+    int16_t en_drink_off_dec;
+    float_t trans_xofs;
+    float_t trans_yofs;
+    float_t trans_zofs;
+    float_t jump_zspd;
+    float_t wall_haritsuki_frame;
+    int32_t init_cnt;
+    MhpList* play_prog;
+    MhpList* play_prog_org;
+    bool play_prog_x; // X
+    prj::BitArray<17> revise_flag;
+    uint32_t rob_cam_flag;
+    RobTarget target;
+    bool colliball_flag[3][ROB_COLLI_ID_MAX];
+    float_t colliball_ratio[3][ROB_COLLI_ID_MAX];
+    float_t colliball_timer[3][ROB_COLLI_ID_MAX];
+    prj::BitArray<41> touch_nage_mask;
     float_t arm_adjust_next_value;  // X
     float_t arm_adjust_prev_value;  // X
     int32_t arm_adjust_start_frame; // X
     float_t arm_adjust_duration;    // X
-    float_t field_310;
-    float_t field_314;
-    int8_t field_318;
-    int32_t field_31C;
-    float_t field_320;
-    float_t field_324;
-    float_t field_328;
-    float_t field_32C;
-    float_t field_330;
-    float_t field_334;
-    int8_t field_338;
-    struc_306 field_33C[4];
+    float_t mot_adjust_start;
+    float_t mot_adjust_end;
+    uint8_t mot_adjust_flag;
+    MotAdjustType mot_adjust_type;
+    float_t mot_adjust_scale;
+    float_t pre_adjust_scale;
+    float_t mot_adjust_base_ypos;
+    float_t pre_adjust_base_ypos;
+    float_t atk2_start_frame;
+    float_t atk2_end_frame;
+    bool atk2_set_flag;
+    MotLeafCtrl leaf_ctrl[LCPART_MAX];
+    MhcList* mh_command;
+    int32_t mh_did;
 
-    struc_651();
+    RobMotData();
+    ~RobMotData();
 
-    void reset();
+    void clear();
+    void mhd_pp_clear();
+    void mhd_pp_exec(rob_chara* impl, float_t frame, const motion_database* mot_db);
+    void mhd_smd_atk_clear();
+    void mhd_smd_clear();
+    void mhd_smd_exec(rob_chara* impl, MhdList* list);
 };
 
-struct struc_223 {
-    struc_652 field_0;
-    struc_651 field_330;
-    const int64_t* field_7A0;
-    uint32_t motion_set_id;
-
-    struc_223();
-    ~struc_223();
-
-    void reset();
-};
-
-struct rob_chara_data_miku_rot {
+struct RobPosition {
     RobAngle yang;
     RobAngle act_yang;
     RobAngle hara_xang;
@@ -3502,12 +4926,12 @@ struct rob_chara_data_miku_rot {
     vec3 pos_camera_old;
     mat4 rob_mat;
 
-    rob_chara_data_miku_rot();
+    RobPosition();
 
     void reset();
 };
 
-struct rob_chara_adjust_data {
+struct RobAdjust {
     float_t scale;
     bool height_adjust;
     float_t pos_adjust_y;
@@ -3527,21 +4951,29 @@ struct rob_chara_adjust_data {
     vec3 item_pos;      // X
     float_t item_scale; // X
 
-    rob_chara_adjust_data();
+    RobAdjust();
 
     void reset();
 };
 
-struct struc_195 {
-    vec3 prev_pos;
-    vec3 pos;
-    float_t scale;
-    float_t field_1C;
-    float_t field_20;
-    float_t field_24;
+namespace prj {
+    struct Sphere3f {
+        vec3 c;
+        float_t r;
 
-    struc_195();
-};
+        Sphere3f();
+    };
+
+    struct BallCollision {
+        vec3 old_c;
+        Sphere3f ball;
+        float_t sink;
+        int32_t colli_ball_mask;
+        float_t org_rad;
+
+        BallCollision();
+    };
+}
 
 struct pos_scale {
     vec2 pos;
@@ -3553,205 +4985,218 @@ struct pos_scale {
         const vec3& pos, float_t scale = 0.0f, bool apply_offset = false);
 };
 
-struct struc_267 {
-    float_t field_0;
-    int16_t field_4;
-    int16_t field_6;
-    float_t field_8;
-    int16_t field_C;
+struct RobColliWall {
+    float_t wdist;
+    RobAngle wang;
+    float_t wheight;
+    RobAngle wyang;
+
+    RobColliWall();
+
+    void setup();
 };
 
-struct struc_209 {
-    int16_t field_0;
-    int32_t field_4;
-    int32_t field_8;
-    int32_t field_C;
-    int32_t field_10;
-    int32_t field_14;
-    int32_t field_18;
-    int32_t field_1C;
-    int32_t field_20;
-    int32_t field_24;
-    int32_t field_28;
-    int32_t field_2C;
-    int32_t field_30;
-    int32_t field_34;
-    int32_t field_38;
-    int32_t field_3C;
-    int32_t field_40;
-    int32_t field_44;
-    int32_t field_48;
-    int32_t field_4C;
-    int32_t field_50;
-    int32_t field_54;
-    int32_t field_58;
-    int32_t field_5C;
-    int32_t field_60;
-    float_t field_64;
-    int32_t field_68;
-    int32_t field_6C;
-    int32_t field_70;
-    int32_t field_74;
-    mat4 field_78[27];
-    mat4 field_738[27];
-    struc_195 field_DF8[27];
-    struc_195 field_1230[27];
-    struc_195 field_1668[27];
-    pos_scale field_1AA0[27];
-    float_t field_1BE4[27];
+struct RobCollision {
+    int8_t touch_count;
+    int8_t wall_touch_cnt;
+    uint32_t touch_mask;
+    uint32_t attack_mask;
+    uint32_t hit_mask;
+    uint32_t damage_mask;
+    uint32_t check_wall;
+    uint32_t wall_hit_num;
+    uint32_t wall_hit_mask;
+    uint32_t handrail_hit_num;
+    uint32_t handrail_hit_mask;
+    uint32_t dummy_wall_hit_num;
+    uint32_t dummy_wall_hit_mask;
+    uint32_t dummy_ringout_num;
+    uint32_t dummy_ringout_mask;
+    uint32_t above_floor_num;
+    uint32_t above_floor_mask;
+    uint32_t floor_hit_num;
+    uint32_t floor_hit_mask;
+    uint32_t ringout_num;
+    uint32_t ringout_mask;
+    uint32_t ringout_air_num;
+    uint32_t ringout_air_mask;
+    float_t sink_floor;
+    int32_t floor_idx;
+    uint32_t fld_on;
+    float_t sink_wall;
+    int32_t wall_idx;
+    vec3 wall_hit_pos;
+    mat4 mat[ROB_COLLI_ID_MAX];
+    mat4 push_mat[ROB_COLLI_ID_MAX];
+    prj::BallCollision cb_hit[ROB_COLLI_ID_MAX];
+    prj::BallCollision cb_rob[ROB_COLLI_ID_MAX];
+    prj::BallCollision cb_stg[ROB_COLLI_ID_MAX];
+    pos_scale field_1AA0[ROB_COLLI_ID_MAX];
+    float_t field_1BE4[ROB_COLLI_ID_MAX];
     prj::vector_pair<int64_t, float_t> field_1C50;
     int64_t field_1C68;
     int64_t field_1C70;
     int64_t field_1C78;
     int64_t field_1C80;
-    int32_t field_1C88[27];
-    int32_t field_1CF4[27];
-    int32_t field_1D60[27];
+    int32_t field_1C88[ROB_COLLI_ID_MAX];
+    int32_t field_1CF4[ROB_COLLI_ID_MAX];
+    int32_t field_1D60[ROB_COLLI_ID_MAX];
     int32_t field_1DCC;
     int32_t field_1DD0;
     int32_t field_1DD4;
     int32_t field_1DD8;
-    int32_t field_1DDC;
-    float_t field_1DE0;
-    float_t field_1DE4;
-    int32_t field_1DE8;
-    int32_t field_1DEC;
-    float_t field_1DF0;
-    float_t field_1DF4;
-    int32_t field_1DF8;
-    int32_t field_1DFC;
-    int32_t field_1E00;
-    int32_t field_1E04;
-    int32_t field_1E08;
-    int32_t field_1E0C;
-    int32_t field_1E10;
-    int32_t field_1E14;
-    int32_t field_1E18;
-    int32_t field_1E1C;
-    int32_t field_1E20;
-    int32_t field_1E24;
-    int32_t field_1E28;
-    int32_t field_1E2C;
-    int32_t field_1E30;
-    int32_t field_1E34;
-    int32_t field_1E38;
-    int32_t field_1E3C;
-    int32_t field_1E40;
-    int32_t field_1E44;
-    int32_t field_1E48;
-    int32_t field_1E4C;
-    int32_t field_1E50;
-    int32_t field_1E54;
-    int32_t field_1E58;
-    int32_t field_1E5C;
-    int32_t field_1E60;
-    int32_t field_1E64;
-    int32_t field_1E68;
-    int32_t field_1E6C;
-    int32_t field_1E70;
-    int32_t field_1E74;
-    int32_t field_1E78;
-    int32_t field_1E7C;
-    int32_t field_1E80;
-    int32_t field_1E84;
-    int32_t field_1E88;
-    int32_t field_1E8C;
-    int32_t field_1E90;
-    int32_t field_1E94;
-    int32_t field_1E98;
-    int32_t field_1E9C;
-    int32_t field_1EA0;
-    int32_t field_1EA4;
-    int32_t field_1EA8;
-    int32_t field_1EAC;
-    int32_t field_1EB0;
-    struc_267 field_1EB4[4];
-    int32_t field_1EF4[4];
-    int8_t field_1F04;
-    int32_t field_1F08;
-    int32_t field_1F0C;
-    int32_t field_1F10;
-    int32_t field_1F14;
-    int32_t field_1F18;
-    int32_t field_1F1C;
-    int8_t field_1F20;
-    int8_t field_1F21;
-    int8_t field_1F22;
-    int8_t field_1F23;
-    int8_t field_1F24;
-    int8_t field_1F25;
-    int8_t field_1F26;
+    float_t sink;
+    float_t max_ypos;
+    float_t min_ypos;
+    int32_t max_idx;
+    int32_t min_idx;
+    float_t top_ypos;
+    float_t bot_ypos;
+    int32_t top_idx;
+    int32_t bot_idx;
+    vec3 moveF;
+    vec3 moveR;
+    vec3 moveRT;
+    vec3 moveM;
+    vec3 moveD;
+    vec3 moveW[2];
+    vec3 moveWd[2];
+    vec3 moveWr[2];
+    vec3 moveWT[2];
+    vec3 moveT[2];
+    RobColliWall wall_info[4];
+    float_t ringout_dist[4];
+    bool init_thrust_vec_req;
+    vec3 thrust_vec;
+    vec3 rep_hit_pos;
+    bool req_wall_break;
+    bool enable_dummy_collision;
+    bool fall_ringout;
+    bool req_kabe_yoroke;
+    bool calc_rob_colli;
+    bool colli_attack_hit;
+    bool floor_ringout_disable;
 
-    struc_209();
-    ~struc_209();
+    RobCollision();
+    ~RobCollision();
+
+    void init();
 };
 
-struct rob_chara_data {
+union RobEnInfoFlag {
+    uint32_t u32;
+    struct {
+        int8_t en_from_behind : 1;
+        int8_t en_from_right : 1;
+        int8_t en_not_look_me : 1;
+        int8_t en_down_attack : 1;
+        int8_t en_down_attack2 : 1;
+        int8_t en_down_nage : 1;
+        int8_t en_front : 1;
+        int8_t en_back : 1;
+        int8_t en_right : 1;
+        int8_t en_left : 1;
+        int8_t en_at_front : 1;
+        int8_t en_at_back : 1;
+        int8_t en_at_right : 1;
+        int8_t en_at_left : 1;
+    } bit;
+};
+
+union RobInfoFlag {
+    uint32_t u32;
+    struct {
+        int8_t disp_left : 1;
+        int8_t calculated_disp_left : 1;
+        int8_t death : 1;
+        int8_t disp_left_cmd : 1;
+        int8_t disp_left_cmd_base : 1;
+    } bit;
+};
+
+struct RobInfo {
+    float_t en_dist;
+    float_t en_dist_3d;
+    RobAngle en_dir_yang;
+    RobAngle en_dir_yang2;
+    RobAngle revise_en_dir_yang;
+    RobEnInfoFlag en_flag;
+    RobEnInfoFlag old_en_flag;
+    RobInfoFlag flag;
+    prj::BitArray<41> en_nage_flag;
+    prj::BitArray<41> en_touch_nage_flag;
+    float_t profit;
+    float_t my_profit;
+
+    RobInfo();
+
+    void init();
+};
+
+struct RobRingOut {
+    bool stop;
+    bool down;
+    bool stand;
+    bool fall;
+    bool air;
+    bool air2down;
+    bool set_fix_hara;
+    bool replay_ringout;
+    vec3 ringout_pos;
+    vec3 ringout_spd;
+
+    RobRingOut();
+
+    void init();
+};
+
+struct RobSound {
+    bool blow_flag;
+
+    RobSound();
+
+    void init();
+};
+
+class RobBase {
+public:
     RobFlag flag;
-    struc_264 action;
-    RobSubAction rob_sub_action;
-    rob_chara_motion motion;
-    struc_223 motdata;
-    rob_chara_data_miku_rot position;
-    rob_chara_adjust_data adjust_data;
-    struc_209 field_1E68;
-    float_t field_3D90;
-    int32_t field_3D94;
-    int16_t field_3D98;
-    int16_t field_3D9A;
-    int32_t field_3D9C;
-    int32_t field_3DA0;
-    uint8_t field_3DA4;
-    int64_t field_3DA8;
-    int64_t field_3DB0;
-    int32_t field_3DB8;
-    int32_t field_3DBC;
-    int32_t field_3DC0;
-    int32_t field_3DC4;
-    int32_t field_3DC8;
-    int32_t field_3DCC;
-    int32_t field_3DD0;
-    float_t field_3DD4;
-    int32_t field_3DD8;
-    float_t field_3DDC;
-    uint8_t field_3DE0;
+    RobAction action;
+    RobSubAction sub_action;
+    RobMotion robmot;
+    RobMotData motdata;
+    RobPosition position;
+    RobAdjust adjust;
+    RobCollision collision;
+    RobInfo robinfo;
+    RobRingOut ringout;
+    RobSound sound;
     float_t arm_adjust_scale; // X
 
-    rob_chara_data();
-    ~rob_chara_data();
+    RobBase();
+    ~RobBase();
 
-    void reset();
+    void init();
 };
 
-struct struc_307 {
-    int64_t field_0;
-    int32_t field_8;
-    int32_t field_C;
-    int64_t field_10;
-    int16_t field_18;
-    int16_t field_1A;
-    int16_t field_1C;
-    int16_t field_1E;
-    int64_t field_20;
-    rob_chara_bone_data* field_28;
-};
-
-struct rob_chara {
-    int8_t chara_id;
-    rob_chara_type type;
-    bool field_C;
-    bool field_D;
+class rob_chara {
+public:
+    int8_t idnm;
+    RobType type;
+    int16_t energy;
+    bool disp_pos_reset;
+    bool disp_pos_reset_forbidden;
     CHARA_NUM chara_num;
     int32_t cos_id;
     float_t frame_speed;
-    rob_chara* field_20;
+    rob_chara* enemy;
     rob_chara_bone_data* bone_data;
-    rob_chara_item_equip* rob_disp;
-    rob_chara_item_cos_data item_cos_data;
-    rob_chara_data data;
-    rob_chara_data data_prev;
+    RobDisp* disp;
+    RobItem item;
+    RobBase rob_base;
+    RobBase rob_base_old;
     const RobData* rob_data;
-    rob_chara_pv_data pv_data;
+    RobInit rob_init;
 
     rob_chara();
     ~rob_chara();
@@ -3760,47 +5205,55 @@ struct rob_chara {
     void arm_adjust_ctrl();
     void autoblink_disable();
     void autoblink_enable();
+    void calc_mot_adjust_scale();
+    RobAngle calc_mot_yang(bool compel_flag) const;
+    bool check_disp_left() const;
     bool check_for_ageageagain_module();
     mat4* get_bone_data_mat(size_t index);
+    uint32_t get_common_mot(MOTTABLE_TYPE mottbl_type) const;
+    float_t get_frame() const;
+    float_t get_frame_max() const;
+    const vec3* get_gpos() const;
     object_info get_rob_data_face_object(int32_t index);
-    float_t get_frame();
-    float_t get_frame_count();
-    float_t get_max_face_depth();
-    uint32_t get_rob_cmn_mottbl_motion_id(int32_t id);
-    float_t get_pos_scale(int32_t bone, vec3& pos);
-    void load_body_parts_object_info(ROB_PARTS_KIND rpk, object_info obj_info,
+    float_t get_face_depth() const;
+    float_t get_pos_scale(ROB_COLLI_ID colli_id, vec3& center);
+    const RobInit* get_rob_init() const;
+    void set_item(ROB_PARTS_KIND kind, object_info obj_uid,
         const bone_database* bone_data, void* data, const object_database* obj_db);
-    void load_motion(uint32_t motion_id, bool a3, float_t frame,
-        MotionBlendType blend_type, const bone_database* bone_data, const motion_database* mot_db);
-    void load_outfit_object_info(ROB_PARTS_KIND rpk, object_info obj_info,
-        bool osage_reset, const bone_database* bone_data, void* data, const object_database* obj_db);
     void pos_reset();
     void rob_info_ctrl();
     void rob_motion_modifier_ctrl();
-    void reset_data(const rob_chara_pv_data* pv_data,
+    bool replace_rob_motion(uint32_t motnum, float_t frame, float_t blend_duration,
+        bool blend, bool set_motion_reset_data, MotionBlendType blend_type,
+        const bone_database* bone_data, const motion_database* mot_db);
+    void req_frame_change(float_t frame);
+    void reset_rob(const RobInit& robinit,
         const bone_database* bone_data, const motion_database* mot_db);
     void reset_osage();
+    void reset_osage_pos();
+    void set_base(ROB_PARTS_KIND kind, object_info obj_uid, bool osage_reset,
+        const bone_database* bone_data, void* data, const object_database* obj_db);
     void set_bone_data_frame(float_t frame);
+    void set_chara(ROB_ID id, CHARA_NUM cn, int32_t cos_id, const RobInit& ri);
     void set_chara_color(bool value);
     void set_chara_height_adjust(bool value);
     void set_chara_pos_adjust(const vec3& value);
     void set_chara_pos_adjust_y(float_t value);
     void set_chara_size(float_t value);
-    void set_data_adjust_mat(rob_chara_adjust_data* rob_chr_adj, bool pos_adjust = true);
-    void set_base_position_pos(const vec3& value);
-    void set_base_position_yang(const RobAngle& value);
+    void set_data_adjust_mat(RobAdjust* rob_chr_adj, bool pos_adjust = true);
     void set_disable_collision(rob_osage_parts parts, bool disable);
-    void set_eyelid_mottbl_motion(int32_t type, int32_t mottbl_index,
+    void set_disp_flag(bool flag);
+    void set_eyelid_mottbl_motion(int32_t type, MOTTABLE_TYPE mottbl_type,
         float_t value, rob_partial_motion_playback_state playback_state, float_t blend_duration,
         float_t play_duration, float_t step, rob_partial_motion_loop_state loop_state,
         float_t blend_offset, const motion_database* mot_db);
     void set_eyelid_mottbl_motion_from_face(int32_t a2,
         float_t blend_duration, float_t value, float_t blend_offset, const motion_database* mot_db);
-    void set_eyes_mottbl_motion(int32_t type, int32_t mottbl_index,
+    void set_eyes_mottbl_motion(int32_t type, MOTTABLE_TYPE mottbl_type,
         float_t value, rob_partial_motion_playback_state playback_state, float_t blend_duration,
         float_t play_duration, float_t step, rob_partial_motion_loop_state loop_state,
         float_t blend_offset, const motion_database* mot_db);
-    void set_face_mottbl_motion(int32_t type, int32_t mottbl_index,
+    void set_face_mottbl_motion(int32_t type, MOTTABLE_TYPE mottbl_type,
         float_t value, rob_partial_motion_playback_state playback_state, float_t blend_duration, float_t play_duration,
         float_t step, rob_partial_motion_loop_state loop_state,
         float_t blend_offset, bool a11, const motion_database* mot_db);
@@ -3810,11 +5263,11 @@ struct rob_chara {
     void set_hand_item(int32_t uid, float_t blend_duration);
     void set_hand_item_l(int32_t uid);
     void set_hand_item_r(int32_t uid);
-    void set_hand_l_mottbl_motion(int32_t type, int32_t mottbl_index,
+    void set_hand_l_mottbl_motion(int32_t type, MOTTABLE_TYPE mottbl_type,
         float_t value, rob_partial_motion_playback_state playback_state, float_t blend_duration,
         float_t play_duration, float_t step, rob_partial_motion_loop_state loop_state,
         float_t blend_offset, const motion_database* mot_db);
-    void set_hand_r_mottbl_motion(int32_t type, int32_t mottbl_index,
+    void set_hand_r_mottbl_motion(int32_t type, MOTTABLE_TYPE mottbl_type,
         float_t value, rob_partial_motion_playback_state playback_state, float_t blend_duration,
         float_t play_duration, float_t step, rob_partial_motion_loop_state loop_state,
         float_t blend_offset, const motion_database* mot_db);
@@ -3825,31 +5278,33 @@ struct rob_chara {
         float_t eyes_rot_strength, float_t blend_duration, float_t eyes_rot_step, float_t a8);
     void set_look_camera_old(bool rotation_enable, float_t head_rot_strength,
         float_t eyes_rot_strength, float_t blend_duration, float_t eyes_rot_step, float_t a8);
-    bool set_motion_id(uint32_t motion_id, float_t frame,
-        float_t blend_duration, bool blend, bool set_motion_reset_data,
-        MotionBlendType blend_type, const bone_database* bone_data, const motion_database* mot_db);
     void set_motion_loop(float_t loop_begin, float_t loop_end, int32_t loop_count);
-    void set_motion_reset_data(uint32_t motion_id, float_t frame);
-    void set_motion_skin_param(uint32_t motion_id, float_t frame);
+    void set_motion_reset_data(const uint32_t& motnum, const float_t& frame);
+    void set_motion_skin_param(const uint32_t& motnum, const float_t& frame);
     void set_motion_step(float_t value);
-    void set_mouth_mottbl_motion(int32_t type, int32_t mottbl_index,
+    void set_mouth_mottbl_motion(int32_t type, MOTTABLE_TYPE mottbl_type,
         float_t value, rob_partial_motion_playback_state playback_state, float_t blend_duration,
         float_t play_duration, float_t step, rob_partial_motion_loop_state loop_state,
         float_t blend_offset, const motion_database* mot_db);
     void set_osage_move_cancel(uint8_t id, float_t mv_ccl);
     void set_osage_reset();
     void set_osage_step(float_t value);
-    void set_parts_disp(ROB_PARTS_KIND rpk, bool disp);
+    void set_parts_disp(ROB_PARTS_KIND kind, bool flag);
     void set_right_hand_scale(float_t value);
+    void set_rob_motion(uint32_t motnum, bool mirror, float_t frame,
+        MotionBlendType blend_type, const bone_database* bone_data, const motion_database* mot_db);
+    void set_rob_motion_external(uint32_t motnum);
+    void set_rob_pos(const vec3& pos);
+    void set_rob_sys_command(ACT_NAME name, int32_t motion_id, const ActParam* param, bool mirror);
+    void set_rob_yang(const RobAngle& ang);
     void set_shadow_cast(bool value);
     void set_stage_data_ring(const int32_t& stage_index);
     void set_step_motion_step(float_t value);
     void set_use_opd(bool value);
-    void set_visibility(bool value);
     void set_wind_strength(float_t value);
 
-    inline bool is_visible() {
-        return !!data.flag.bit.disp;
+    inline bool get_disp_flag() {
+        return !!rob_base.flag.bit.disp;
     }
 
     void sub_1405070E0(const bone_database* bone_data, const motion_database* mot_db);
@@ -3858,26 +5313,74 @@ struct rob_chara {
     void sub_140551000();
 };
 
+class RobManagement {
+public:
+    static bool colli_check_on;
+    static CHARA_NUM chara_num[];
+    static int32_t instance_count;
+    static rob_chara rob_impl[];
+    static RobInit rob_init[];
+
+    RobManagement();
+    ~RobManagement();
+
+    bool check_alive_rob(ROB_ID id);
+    bool check_disp_left(ROB_ID id);
+    bool check_ringout_only_rob(ROB_ID id);
+    bool check_ringout_transit_rob(ROB_ID id);
+    ROB_ID create_rob(CHARA_NUM cn, const RobInit& ri, int32_t cos_id, bool can_set_default);
+    void dest_all();
+    void dest_rob(ROB_ID id);
+    float_t get_adjust_scale(ROB_ID id) const;
+    CHARA_NUM get_chara(ROB_ID id) const;
+    bool get_colli_check_on() const;
+    bool get_disp_on(ROB_ID id) const;
+    const vec3* get_gpos(ROB_ID id) const;
+    rob_chara* get_rob(ROB_ID id);
+    const RobData* get_rob_data(ROB_ID id) const;
+    // RobDetail* get_rob_detail_if(ROB_ID id);
+    rob_chara_bone_data* get_rob_motion_work(ROB_ID id);
+    size_t get_rob_num() const;
+    RobDisp* get_rob_robdisp_work(ROB_ID id);
+    RobItem* get_rob_robitem_work(ROB_ID id);
+    const RobInit* get_rob_init(ROB_ID id) const;
+    bool is_init(ROB_ID id) const;
+    void reset_osage_pos(ROB_ID id);
+    void reset_rob(const RobInit& rob0, const RobInit& rob1,
+        const bone_database* bone_data, const motion_database* mot_db);
+    void reset_rob(ROB_ID id, const RobInit& ri,
+        const bone_database* bone_data, const motion_database* mot_db);
+    void set_colli_check_on(bool value);
+    void set_disp_on(ROB_ID id, bool value);
+    void set_mot_frame(ROB_ID id, float_t frame);
+    void set_motion(ROB_ID id, int32_t motnum);
+    void set_no_ctrl(ROB_ID id);
+    void set_rob_pos(ROB_ID id, const vec3& pos);
+    void set_rob_yang(ROB_ID id, const RobAngle& ang);
+
+    static void init();
+};
+
 struct pv_data_set_motion {
-    uint32_t motion_id;
+    uint32_t motnum;
     std::pair<float_t, int32_t> frame_stage_index;
 
     pv_data_set_motion();
-    pv_data_set_motion(uint32_t motion_id);
-    pv_data_set_motion(uint32_t motion_id, std::pair<float_t, int32_t> frame_stage_index);
+    pv_data_set_motion(uint32_t motnum);
+    pv_data_set_motion(uint32_t motnum, std::pair<float_t, int32_t> frame_stage_index);
 };
 
 struct osage_init_data {
     rob_chara* rob_chr;
     int32_t pv_id;
-    uint32_t motion_id;
+    uint32_t motnum;
     std::string dir;
     int32_t frame;
 
     osage_init_data();
-    osage_init_data(rob_chara* rob_chr, uint32_t motion_id = -1);
+    osage_init_data(rob_chara* rob_chr, uint32_t motnum = -1);
     osage_init_data(rob_chara* rob_chr, int32_t pv_id,
-        uint32_t motion_id, const std::string& dir = "", int32_t frame = -1);
+        uint32_t motnum, const std::string& dir = "", int32_t frame = -1);
     ~osage_init_data();
 };
 
@@ -3945,6 +5448,8 @@ struct OpdChecker {
     void sub_140471020();
 };
 
+extern RobManagement* get_rob_management();
+
 extern const RobData* get_rob_data(CHARA_NUM cn);
 extern int32_t rob_data_get_chara_size_index(CHARA_NUM cn);
 extern int32_t rob_data_get_swim_costume(CHARA_NUM cn);
@@ -3954,8 +5459,6 @@ extern float_t chara_pos_adjust_y_table_get_value(uint32_t index);
 extern float_t chara_size_table_get_value(uint32_t index);
 
 extern bool check_cos_id_is_501(int32_t cos_id);
-
-extern uint32_t get_common_rob_mot(CHARA_NUM cn, int32_t a2, int32_t id);
 
 const char* get_dev_ram_opdi_dir();
 
@@ -3985,91 +5488,78 @@ extern void opd_make_start_get_motion_ids(std::vector<int32_t>& motion_ids);
 extern void opd_make_stop();
 
 extern bool osage_play_data_manager_add_task();
-extern void osage_play_data_manager_append_chara_motion_id(rob_chara* rob_chr, uint32_t motion_id);
+extern void osage_play_data_manager_append_chara_motion_id(rob_chara* rob_chr, uint32_t motnum);
 extern void osage_play_data_manager_append_chara_motion_ids(
     rob_chara* rob_chr, const std::vector<uint32_t>& motion_ids);
 extern bool osage_play_data_manager_check_task_ready();
 extern void osage_play_data_manager_get_opd_file_data(object_info obj_info,
-    uint32_t motion_id, const float_t*& data, uint32_t& count);
+    uint32_t motnum, const float_t*& data, uint32_t& count);
 extern void osage_play_data_manager_reset();
 
 extern void osage_play_database_load();
 
-extern void pv_osage_manager_array_reset(int32_t chara_id);
+extern void pv_osage_manager_array_reset(ROB_ID rob_id);
 
 extern void rob_init();
 extern void rob_free();
 
-extern void rob_chara_age_age_array_ctrl(int32_t chara_id, int32_t part_id, mat4& mat);
+extern void rob_chara_age_age_array_ctrl(int32_t rob_id, int32_t part, mat4& mat);
 extern void rob_chara_age_age_array_disp(render_context* rctx,
-    int32_t chara_id, bool reflect, bool chara_color);
-extern void rob_chara_age_age_array_load(int32_t chara_id, int32_t part_id);
-extern void rob_chara_age_age_array_reset(int32_t chara_id);
-extern void rob_chara_age_age_array_set_alpha(int32_t chara_id, int32_t part_id, float_t alpha);
-extern void rob_chara_age_age_array_set_disp(int32_t chara_id, int32_t part_id, bool value);
-extern void rob_chara_age_age_array_set_move_cancel(int32_t chara_id, int32_t part_id, float_t value);
-extern void rob_chara_age_age_array_set_npr(int32_t chara_id, int32_t part_id, bool value);
-extern void rob_chara_age_age_array_set_params(int32_t chara_id, int32_t part_id,
+    int32_t rob_id, bool reflect, bool chara_color);
+extern void rob_chara_age_age_array_load(int32_t rob_id, int32_t part);
+extern void rob_chara_age_age_array_reset(int32_t rob_id);
+extern void rob_chara_age_age_array_set_alpha(int32_t rob_id, int32_t part, float_t alpha);
+extern void rob_chara_age_age_array_set_disp(int32_t rob_id, int32_t part, bool value);
+extern void rob_chara_age_age_array_set_move_cancel(int32_t rob_id, int32_t part, float_t value);
+extern void rob_chara_age_age_array_set_npr(int32_t rob_id, int32_t part, bool value);
+extern void rob_chara_age_age_array_set_params(int32_t rob_id, int32_t part,
     int32_t npr, int32_t speed, int32_t skip, int32_t disp);
-extern void rob_chara_age_age_array_set_speed(int32_t chara_id, int32_t part_id, float_t value);
-extern void rob_chara_age_age_array_set_skip(int32_t chara_id, int32_t part_id);
-extern void rob_chara_age_age_array_set_step(int32_t chara_id, int32_t part_id, float_t step);
-extern void rob_chara_age_age_array_set_step_full(int32_t chara_id, int32_t part_id);
+extern void rob_chara_age_age_array_set_speed(int32_t rob_id, int32_t part, float_t value);
+extern void rob_chara_age_age_array_set_skip(int32_t rob_id, int32_t part);
+extern void rob_chara_age_age_array_set_step(int32_t rob_id, int32_t part, float_t step);
+extern void rob_chara_age_age_array_set_step_full(int32_t rob_id, int32_t part);
 
-extern bool rob_chara_array_check_visibility(int32_t chara_id);
-extern rob_chara* rob_chara_array_get(int32_t chara_id);
-extern rob_chara_bone_data* rob_chara_array_get_bone_data(int32_t chara_id);
-extern float_t rob_chara_array_get_data_adjust_scale(int32_t chara_id);
-extern rob_chara_item_cos_data* rob_chara_array_get_item_cos_data(int32_t chara_id);
-extern rob_chara_item_equip* rob_chara_array_get_rob_disp(int32_t chara_id);
-extern int32_t rob_chara_array_init_chara_num(CHARA_NUM chara_num,
-    const rob_chara_pv_data& pv_data, int32_t cos_id, bool can_set_default);
-extern void rob_chara_array_free_chara_id(int32_t chara_id);
-extern void rob_chara_array_reset_pv_data(int32_t chara_id);
-extern void rob_chara_array_reset_bone_data_item_equip(int32_t chara_id);
-extern void rob_chara_array_set_alpha_obj_flags(int32_t chara_id, float_t alpha, mdl::ObjFlags flags);
-extern void rob_chara_array_set_visibility(int32_t chara_id, bool value);
+extern void rob_chara_array_reset_pv_data(ROB_ID id);
+extern void rob_chara_array_reset_bone_data_item_equip(ROB_ID id);
+extern void rob_chara_array_set_alpha_obj_flags(ROB_ID id, float_t alpha, mdl::ObjFlags flags);
 
-extern bool rob_chara_check_for_ageageagain_module(CHARA_NUM chara_num, int32_t cos_id);
-
-extern bool rob_chara_pv_data_array_check_chara_id(int32_t chara_id);
+extern bool rob_chara_check_for_ageageagain_module(CHARA_NUM cn, int32_t cos_id);
 
 extern void rob_sleeve_handler_data_get_sleeve_data(
-    CHARA_NUM chara_num, int32_t cos, rob_sleeve_data& l, rob_sleeve_data& r);
+    CHARA_NUM cn, int32_t cos, rob_sleeve_data& l, rob_sleeve_data& r);
 extern bool rob_sleeve_handler_data_load();
 extern void rob_sleeve_handler_data_read();
 
 extern bool pv_osage_manager_array_get_disp();
-extern bool pv_osage_manager_array_get_disp(int32_t chara_id);
+extern bool pv_osage_manager_array_get_disp(ROB_ID rob_id);
 extern void pv_osage_manager_array_set_motion_ids(
-    int32_t chara_id, const std::vector<uint32_t>& motion_ids);
+    ROB_ID rob_id, const std::vector<uint32_t>& motion_ids);
 extern void pv_osage_manager_array_set_not_reset_true();
-extern void pv_osage_manager_array_set_pv_id(int32_t chara_id, int32_t pv_id, bool reset);
+extern void pv_osage_manager_array_set_pv_id(ROB_ID rob_id, int32_t pv_id, bool reset);
 extern void pv_osage_manager_array_set_pv_set_motion(
-    int32_t chara_id, const std::vector<pv_data_set_motion>& set_motion);
+    ROB_ID rob_id, const std::vector<pv_data_set_motion>& set_motion);
 
 extern bool task_rob_load_add_task();
-extern bool task_rob_load_append_free_req_data(CHARA_NUM chara_num);
-extern bool task_rob_load_append_free_req_data_obj(CHARA_NUM chara_num, const item_cos_data* cos);
-extern bool task_rob_load_append_load_req_data(CHARA_NUM chara_num);
-extern bool task_rob_load_append_load_req_data_obj(CHARA_NUM chara_num, const item_cos_data* cos);
+extern bool task_rob_load_append_free_req_data(CHARA_NUM cn);
+extern bool task_rob_load_append_free_req_data_obj(CHARA_NUM cn, const RobItemEquip* equip);
+extern bool task_rob_load_append_load_req_data(CHARA_NUM cn);
+extern bool task_rob_load_append_load_req_data_obj(CHARA_NUM cn, const RobItemEquip* equip);
 extern bool task_rob_load_check_load_req_data();
 extern bool task_rob_load_del_task();
 
 extern bool task_rob_manager_add_task();
-extern bool task_rob_manager_check_chara_loaded(int32_t chara_id);
+extern bool task_rob_manager_check_chara_loaded(ROB_ID rob_id);
 extern bool task_rob_manager_check_task_ready();
-extern void task_rob_manager_free_all_chara();
 extern bool task_rob_manager_get_free_chara_list_empty();
-extern bool task_rob_manager_get_wait(int32_t chara_id);
+extern bool task_rob_manager_get_wait(ROB_ID rob_id);
 extern bool task_rob_manager_hide_task();
 extern bool task_rob_manager_run_task();
 extern bool task_rob_manager_del_task();
 
-extern int32_t expression_id_to_mottbl_index(int32_t expression_id);
-extern int32_t hand_anim_id_to_mottbl_index(int32_t hand_anim_id);
-extern int32_t look_anim_id_to_mottbl_index(int32_t look_anim_id);
-extern int32_t mouth_anim_id_to_mottbl_index(int32_t mouth_anim_id);
+extern MOTTABLE_TYPE expression_id_to_mottbl_type(int32_t id);
+extern MOTTABLE_TYPE hand_anim_id_to_mottbl_type(int32_t id);
+extern MOTTABLE_TYPE look_anim_id_to_mottbl_type(int32_t id);
+extern MOTTABLE_TYPE mouth_anim_id_to_mottbl_type(int32_t id);
 
 inline bool rob_chara::check_for_ageageagain_module() {
     return rob_chara_check_for_ageageagain_module(chara_num, cos_id);

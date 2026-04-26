@@ -118,7 +118,7 @@ struct pv_game_se_data {
 struct struc_674 {
     size_t performer;
     int32_t module;
-    rob_chara_pv_data_item item;
+    RobItemEquipInit item;
     bool field_1C;
     const pv_db_pv* pv;
 
@@ -172,14 +172,14 @@ static void pv_game_time_pause();
 static void pv_game_time_start();
 
 static FrameRateControl* get_diva_pv_frame_rate();
-static SysFrameRate* sys_frame_rate_get(int32_t chara_id);
+static SysFrameRate* sys_frame_rate_get(int32_t id);
 
 static int32_t sub_1400FCFD0(pv_game_chara* arr, const pv_db_pv* pv);
 static void sub_140105010(pv_game_chara* arr, size_t max_count, pv_game_item_mask* a3, struc_674& a4);
 static bool sub_1401279D0();
 static bool sub_140128480();
 
-pv_game_chara::pv_game_chara() : chara_num(), cos(), chara_id(), pv_data(), rob_chr() {
+pv_game_chara::pv_game_chara() : chara_num(), cos(), rob_id(), rob_chr() {
 
 }
 
@@ -188,16 +188,16 @@ pv_game_chara::~pv_game_chara() {
 }
 
 bool pv_game_chara::check_chara() {
-    if (chara_id != -1)
+    if (rob_id != ROB_ID_NULL)
         return !!rob_chr;
     return false;
 }
 
-void pv_game_chara::reset() {
+void pv_game_chara::init() {
     chara_num = CN_MAX;
     cos = -1;
-    chara_id = -1;
-    pv_data.reset();
+    rob_id = ROB_ID_NULL;
+    rob_init.init();
     rob_chr = 0;
     motion_ids.clear();
     motion_face_ids.clear();
@@ -385,12 +385,12 @@ void pv_game_data::reset() {
     for (pv_play_data& i : pv_data.playdata) {
         rob_chara* rob_chr = i.rob_chr;
         if (rob_chr) {
-            rob_chr->reset_data(&rob_chr->pv_data, aft_bone_data, aft_mot_db);
-            rob_chr->set_hand_l_mottbl_motion(0, 194, 1.0f, ROB_PARTIAL_MOTION_PLAYBACK_STOP,
+            rob_chr->reset_rob(rob_chr->rob_init, aft_bone_data, aft_mot_db);
+            rob_chr->set_hand_l_mottbl_motion(0, MTP_HAND_NORMAL, 1.0f, ROB_PARTIAL_MOTION_PLAYBACK_STOP,
                 0.0f, 0.0f, 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE, 0.0f, aft_mot_db);
-            rob_chr->set_hand_r_mottbl_motion(0, 194, 1.0f, ROB_PARTIAL_MOTION_PLAYBACK_STOP,
+            rob_chr->set_hand_r_mottbl_motion(0, MTP_HAND_NORMAL, 1.0f, ROB_PARTIAL_MOTION_PLAYBACK_STOP,
                 0.0f, 0.0f, 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE, 0.0f, aft_mot_db);
-            rob_chr->set_visibility(true);
+            rob_chr->set_disp_flag(true);
         }
 
         i.motion_data.start_pos = 0.0f;
@@ -1946,11 +1946,10 @@ void pv_game::edit_instrument_reset() {
             j.set_enable(false);
 }
 
-void pv_game::edit_instrument_set_disp(int32_t chara_id, bool value) {
-    pv_game_edit_instrument& v4 = data.edit_instrument[chara_id];
-    int32_t v5 = v4.index;
-    if (v5 >= 0 && v4.auth_3d_ids.size()) {
-        auth_3d_id& id = v4.auth_3d_ids[v5];
+void pv_game::edit_instrument_set_disp(int32_t rob_id, bool value) {
+    pv_game_edit_instrument& v4 = data.edit_instrument[rob_id];
+    if (v4.index >= 0 && v4.auth_3d_ids.size()) {
+        auth_3d_id& id = v4.auth_3d_ids[v4.index];
         if (id.check_not_empty())
             id.set_visibility(value);
     }
@@ -2172,9 +2171,9 @@ uint32_t pv_game::get_chreff_auth_3d_object_set(int32_t& uid) {
     return obj_set;
 }
 
-int64_t pv_game::get_data_itmpv_time(int32_t chara_id, int32_t index) {
-    auto elem = data.itmpv[chara_id].find(index);
-    if (elem != data.itmpv[chara_id].end())
+int64_t pv_game::get_data_itmpv_time(int32_t rob_id, int32_t index) {
+    auto elem = data.itmpv[rob_id].find(index);
+    if (elem != data.itmpv[rob_id].end())
         return elem->second.second;
     return -1;
 }
@@ -2604,9 +2603,9 @@ bool pv_game::load() {
 
         for (int32_t i = 0; i < ROB_ID_MAX; i++) {
             pv_game_chara& j = data.chara[i];
-            j.reset();
-            j.pv_data.field_4 = false;
-            j.pv_data.field_70 = player_data->field_66C;
+            j.init();
+            j.rob_init.disp = false;
+            j.rob_init.field_70 = player_data->field_66C;
 
             struc_674 v750;
             v750.performer = i;
@@ -2618,25 +2617,25 @@ bool pv_game::load() {
                 sub_140105010(data.chara, ROB_ID_MAX, items_mask, v750);
 
             if (data.height_adjust)
-                j.pv_data.height_adjust = true;
+                j.rob_init.height_adjust = true;
 
             pv_performer_size size = data.pv ? data.pv->get_performer_size(i) : PV_PERFORMER_NORMAL;
             switch (size) {
             case PV_PERFORMER_NORMAL:
             default:
-                j.pv_data.chara_size_index = 1;
+                j.rob_init.chara_size_index = 1;
                 break;
             case PV_PERFORMER_PLAY_CHARA:
-                j.pv_data.chara_size_index = rob_data_get_chara_size_index(j.chara_num);
+                j.rob_init.chara_size_index = rob_data_get_chara_size_index(j.chara_num);
                 break;
             case PV_PERFORMER_PV_CHARA:
-                j.pv_data.chara_size_index = rob_data_get_chara_size_index(data.pv->get_performer_chara(i));
+                j.rob_init.chara_size_index = rob_data_get_chara_size_index(data.pv->get_performer_chara(i));
                 break;
             case PV_PERFORMER_SHORT:
-                j.pv_data.chara_size_index = 2;
+                j.rob_init.chara_size_index = 2;
                 break;
             case PV_PERFORMER_TALL:
-                j.pv_data.chara_size_index = 0;
+                j.rob_init.chara_size_index = 0;
                 break;
             }
 
@@ -2673,90 +2672,80 @@ bool pv_game::load() {
 
         if (sub_14013C8C0()->sub_1400E7910() >= 4) {
             state = 12;
-            for (pv_game_chara& i : data.chara) {
-                if (!i.motion_ids.size())
-                    continue;
-
-                i.chara_id = rob_chara_array_init_chara_num(i.chara_num, i.pv_data, i.cos, true);
-                if (i.chara_id != -1)
-                    i.rob_chr = rob_chara_array_get(i.chara_id);
-            }
-
-            if (data.pv->get_performer_count() < 2)
-                rctx_ptr->render.update_res(false, 1);
-            else
-                rctx_ptr->render.update_res(false, 2);
-            rctx_ptr->render_manager->set_effect_texture(0);
-            state = 12;
-            return false;
         }
+        else {
+            data.motion_set_ids.clear();
+            data.motion_set_face_ids.clear();
 
-        data.motion_set_ids.clear();
-        data.motion_set_face_ids.clear();
+            if (diff) {
+                for (int32_t i = 0; i < ROB_ID_MAX; i++) {
+                    pv_game_chara& chr = data.chara[i];
+                    data.motion_set_ids.reserve(diff->motion[i].size());
+                    data.motion_set_face_ids.reserve(diff->motion[i].size());
 
-        if (diff) {
-            for (int32_t i = 0; i < ROB_ID_MAX; i++) {
-                pv_game_chara& chr = data.chara[i];
-                data.motion_set_ids.reserve(diff->motion[i].size());
-                data.motion_set_face_ids.reserve(diff->motion[i].size());
+                    int32_t face_mot_index = 0;
+                    for (const pv_db_pv_motion& j : diff->motion[i]) {
+                        if (j.index < 0)
+                            continue;
 
-                int32_t motion_face_id_index = 0;
-                for (const pv_db_pv_motion& j : diff->motion[i]) {
-                    if (j.index < 0)
-                        continue;
+                        uint32_t motnum = j.id;
+                        if (data.pv)
+                            motnum = data.pv->get_chrmot_motion_id(i, chr.chara_num, j);
 
-                    uint32_t motion_id = j.id;
-                    if (data.pv)
-                        motion_id = data.pv->get_chrmot_motion_id(i, chr.chara_num, j);
+                        uint32_t motion_set_id = aft_mot_db->get_motion_set_id_by_motion_id(motnum);
+                        if (motion_set_id != -1) {
+                            if (!prj::find(chr.motion_ids, motnum))
+                                chr.motion_ids.push_back(motnum);
+                            if (!prj::find(data.motion_set_ids, motion_set_id))
+                                data.motion_set_ids.push_back(motion_set_id);
+                        }
 
-                    uint32_t motion_set_id = aft_mot_db->get_motion_set_id_by_motion_id(motion_id);
-                    if (motion_set_id != -1) {
-                        if (!prj::find(chr.motion_ids, motion_id))
-                            chr.motion_ids.push_back(motion_id);
-                        if (!prj::find(data.motion_set_ids, motion_set_id))
-                            data.motion_set_ids.push_back(motion_set_id);
-                    }
+                        if (j.index <= 0)
+                            continue;
 
-                    if (j.index <= 0)
-                        continue;
+                        std::string motion_face_name;
+                        motion_face_name.assign(get_chara_name_face_mot(chr.chara_num));
+                        motion_face_name.append("_FACE_");
+                        motion_face_name.append(j.name);
 
-                    std::string motion_face_name;
-                    motion_face_name.assign(get_chara_name_face_mot(chr.chara_num));
-                    motion_face_name.append("_FACE_");
-                    motion_face_name.append(j.name);
+                        uint32_t motion_face_id = aft_mot_db->get_motion_id(motion_face_name.c_str());
+                        if (face_mot_index < 10)
+                            chr.rob_init.face_mot_slot[face_mot_index++] = motion_face_id;
 
-                    uint32_t motion_face_id = aft_mot_db->get_motion_id(motion_face_name.c_str());
-                    if (motion_face_id_index < 10)
-                        chr.pv_data.motion_face_ids[motion_face_id_index++] = motion_face_id;
-
-                    uint32_t motion_face_set_id = aft_mot_db->get_motion_set_id_by_motion_id(motion_face_id);
-                    if (motion_face_set_id != -1 && motion_face_set_id != 2) {
-                        if (!prj::find(chr.motion_face_ids, motion_face_id))
-                            chr.motion_face_ids.push_back(motion_face_id);
-                        if (!prj::find(data.motion_set_face_ids, motion_face_set_id))
-                            data.motion_set_face_ids.push_back(motion_face_set_id);
+                        uint32_t motion_face_set_id = aft_mot_db->get_motion_set_id_by_motion_id(motion_face_id);
+                        if (motion_face_set_id != -1 && motion_face_set_id != 2) {
+                            if (!prj::find(chr.motion_face_ids, motion_face_id))
+                                chr.motion_face_ids.push_back(motion_face_id);
+                            if (!prj::find(data.motion_set_face_ids, motion_face_set_id))
+                                data.motion_set_face_ids.push_back(motion_face_set_id);
+                        }
                     }
                 }
             }
+
+            for (uint32_t& i : data.motion_set_ids) {
+                motion_set_load_motion(i, std::string(data.pv->mdata.dir), aft_mot_db);
+                motion_set_load_mothead(i, std::string(data.pv->mdata.dir), aft_mot_db);
+            }
+
+            for (uint32_t& i : data.motion_set_face_ids)
+                motion_set_load_motion(i, std::string(data.pv->mdata.dir), aft_mot_db);
+
+            if (data.pv->pv_expression_file_name.size())
+                pv_expression_file_load(aft_data, data.pv->pv_expression_file_name.c_str());
+            state = 3;
         }
-
-        for (uint32_t& i : data.motion_set_ids) {
-            motion_set_load_motion(i, std::string(data.pv->mdata.dir), aft_mot_db);
-            motion_set_load_mothead(i, std::string(data.pv->mdata.dir), aft_mot_db);
-        }
-
-        for (uint32_t& i : data.motion_set_face_ids)
-            motion_set_load_motion(i, std::string(data.pv->mdata.dir), aft_mot_db);
-
-        pv_expression_file_load(aft_data, data.pv->pv_expression_file_name.c_str());
 
         for (pv_game_chara& i : data.chara) {
             if (!i.motion_ids.size())
                 continue;
 
-            i.chara_id = rob_chara_array_init_chara_num(i.chara_num, i.pv_data, i.cos, true);
-            if (i.chara_id != -1)
-                i.rob_chr = rob_chara_array_get(i.chara_id);
+            RobManagement* rob_man = get_rob_management();
+            if (rob_man) {
+                i.rob_id = rob_man->create_rob(i.chara_num, i.rob_init, i.cos, true);
+                if (i.rob_id != ROB_ID_NULL)
+                    i.rob_chr = rob_man->get_rob(i.rob_id);
+            }
         }
 
         if (data.pv->get_performer_count() < 2)
@@ -2764,7 +2753,6 @@ bool pv_game::load() {
         else
             rctx_ptr->render.update_res(false, 2);
         rctx_ptr->render_manager->set_effect_texture(0);
-        state = 3;
     } return false;
     case 3: {
         const pv_db_pv_difficulty* diff = get_pv_db_pv()->get_difficulty(
@@ -2886,9 +2874,9 @@ bool pv_game::load() {
 
         bool has_chara = false;
         for (pv_game_chara& i : data.chara)
-            if (i.chara_id != -1 && i.rob_chr) {
+            if (i.rob_id != ROB_ID_NULL && i.rob_chr) {
                 has_chara = true;
-                if (!task_rob_manager_check_chara_loaded(i.rob_chr->chara_id))
+                if (!task_rob_manager_check_chara_loaded(i.rob_id))
                     return false;
             }
 
@@ -2897,13 +2885,13 @@ bool pv_game::load() {
 
             for (int32_t i = 0; i < ROB_ID_MAX; i++) {
                 pv_game_chara& chr = data.chara[i];
-                if (chr.chara_id == -1 || !chr.rob_chr)
+                if (chr.rob_id == ROB_ID_NULL || !chr.rob_chr)
                     continue;
 
                 for (int32_t j = 0; j < PV_PERFORMER_ITEM_MAX; j++) {
-                    int32_t item_no = data.pv->get_performer_item(i, (pv_performer_item)j);
+                    uint32_t item_no = data.pv->get_performer_item(i, (pv_performer_item)j);
                     if (!item_no || item_no < 0 && !items_mask[i].arr[j])
-                        chr.rob_chr->load_body_parts_object_info(
+                        chr.rob_chr->set_item(
                             pv_performer_item_to_rob_parts_kind((pv_performer_item)j),
                             {}, aft_bone_data, aft_data, aft_obj_db);
                 }
@@ -2918,14 +2906,14 @@ bool pv_game::load() {
 
         if (!data.use_osage_play_data)
             for (pv_game_chara& i : data.chara) {
-                if (i.chara_id == -1 || !i.rob_chr)
+                if (i.rob_id == ROB_ID_NULL || !i.rob_chr)
                     continue;
 
-                pv_osage_manager_array_reset(i.chara_id);
-                const std::vector<pv_data_set_motion>* set_motion = data.pv_data.get_set_motion(i.chara_id);
+                pv_osage_manager_array_reset(i.rob_id);
+                const std::vector<pv_data_set_motion>* set_motion = data.pv_data.get_set_motion(i.rob_id);
                 if (set_motion)
-                    pv_osage_manager_array_set_pv_set_motion(i.chara_id, *set_motion);
-                pv_osage_manager_array_set_pv_id(i.chara_id, data.pv->id, true);
+                    pv_osage_manager_array_set_pv_set_motion(i.rob_id, *set_motion);
+                pv_osage_manager_array_set_pv_id(i.rob_id, data.pv->id, true);
             }
         state = 8;
     } return false;
@@ -3603,7 +3591,7 @@ bool pv_game::load() {
             data.play_data.ogg = true;
 
         for (pv_game_chara& i : data.chara)
-            if (i.check_chara() && !task_rob_manager_check_chara_loaded(i.chara_id))
+            if (i.check_chara() && !task_rob_manager_check_chara_loaded(i.rob_id))
                 return false;
 
         pv_game_music_get()->ogg_reset();
@@ -3680,9 +3668,9 @@ bool pv_game::load() {
 
         for (pv_game_chara& i : data.chara)
             if (i.check_chara()) {
-                i.rob_chr->set_hand_l_mottbl_motion(0, 194, 1.0f, ROB_PARTIAL_MOTION_PLAYBACK_STOP,
+                i.rob_chr->set_hand_l_mottbl_motion(0, MTP_HAND_NORMAL, 1.0f, ROB_PARTIAL_MOTION_PLAYBACK_STOP,
                     0.0f, 0.0f, 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE, 0.0f, aft_mot_db);
-                i.rob_chr->set_hand_r_mottbl_motion(0, 194, 1.0f, ROB_PARTIAL_MOTION_PLAYBACK_STOP,
+                i.rob_chr->set_hand_r_mottbl_motion(0, MTP_HAND_NORMAL, 1.0f, ROB_PARTIAL_MOTION_PLAYBACK_STOP,
                     0.0f, 0.0f, 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE, 0.0f, aft_mot_db);
             }
 
@@ -3774,7 +3762,7 @@ bool pv_game::load() {
 
         for (pv_game_chara& i : data.chara)
             if (i.check_chara())
-                i.rob_chr->set_visibility(true);
+                i.rob_chr->set_disp_flag(true);
 
         field_4 = false;
         if (sub_14013C8C0()->sub_1400E7910() == 3)
@@ -3884,14 +3872,14 @@ bool pv_game::load() {
                 continue;
 
             rob_chara* rob_chr = i.rob_chr;
-            rob_chr->set_visibility(true);
+            rob_chr->set_disp_flag(true);
             if (rob_chr->check_for_ageageagain_module()) {
-                rob_chara_age_age_array_set_skip(rob_chr->chara_id, 1);
-                rob_chara_age_age_array_set_skip(rob_chr->chara_id, 2);
+                rob_chara_age_age_array_set_skip(rob_chr->idnm, 1);
+                rob_chara_age_age_array_set_skip(rob_chr->idnm, 2);
             }
-            rob_chr->set_hand_l_mottbl_motion(0, 194, 1.0f, ROB_PARTIAL_MOTION_PLAYBACK_STOP,
+            rob_chr->set_hand_l_mottbl_motion(0, MTP_HAND_NORMAL, 1.0f, ROB_PARTIAL_MOTION_PLAYBACK_STOP,
                 0.0f, 0.0f, 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE, 0.0f, aft_mot_db);
-            rob_chr->set_hand_r_mottbl_motion(0, 194, 1.0f, ROB_PARTIAL_MOTION_PLAYBACK_STOP,
+            rob_chr->set_hand_r_mottbl_motion(0, MTP_HAND_NORMAL, 1.0f, ROB_PARTIAL_MOTION_PLAYBACK_STOP,
                 0.0f, 0.0f, 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE, 0.0f, aft_mot_db);
         }
 
@@ -4050,15 +4038,8 @@ void pv_game::reset() {
     data.field_2CFB0 = 0;
     data.chance_point = 0;
 
-    for (pv_game_chara& i : data.chara) {
-        i.chara_num = CN_MAX;
-        i.cos = -1;
-        i.chara_id = -1;
-        i.pv_data = {};
-        i.rob_chr = 0;
-        i.motion_ids.clear();
-        i.motion_face_ids.clear();
-    }
+    for (pv_game_chara& i : data.chara)
+        i.init();
 
     data.motion_set_ids.clear();
     data.motion_set_face_ids.clear();
@@ -4388,7 +4369,7 @@ void pv_game::set_chara_use_opd(bool value) {
         return;
 
     for (pv_game_chara& i : data.chara)
-        if (i.chara_id != -1 && i.rob_chr)
+        if (i.rob_id != ROB_ID_NULL && i.rob_chr)
             i.rob_chr->set_use_opd(value);
 }
 
@@ -4414,9 +4395,9 @@ void pv_game::set_data_campv(int32_t type, int32_t index, float_t frame) {
     }
 }
 
-void pv_game::set_data_itmpv(int32_t chara_id, int32_t index, bool enable, int64_t time) {
-    auto elem = data.itmpv[chara_id].find(index);
-    if (elem == data.itmpv[chara_id].end())
+void pv_game::set_data_itmpv(int32_t rob_id, int32_t index, bool enable, int64_t time) {
+    auto elem = data.itmpv[rob_id].find(index);
+    if (elem == data.itmpv[rob_id].end())
         return;
 
     auth_3d_id& id = elem->second.first;
@@ -4432,45 +4413,45 @@ void pv_game::set_data_itmpv(int32_t chara_id, int32_t index, bool enable, int64
     }
 }
 
-void pv_game::set_data_itmpv_chara_id(int32_t chara_id, int32_t index, bool attach) {
-    auto elem = data.itmpv[chara_id].find(index);
-    if (elem != data.itmpv[chara_id].end())
-        elem->second.first.set_chara_id(attach ? chara_id : -1);
+void pv_game::set_data_itmpv_chara_id(int32_t rob_id, int32_t index, bool attach) {
+    auto elem = data.itmpv[rob_id].find(index);
+    if (elem != data.itmpv[rob_id].end())
+        elem->second.first.set_chara_id(attach ? rob_id : ROB_ID_NULL);
 }
 
-void pv_game::set_data_itmpv_req_frame(int32_t chara_id, int32_t index, float_t value) {
-    auto elem = data.itmpv[chara_id].find(index);
-    if (elem != data.itmpv[chara_id].end())
+void pv_game::set_data_itmpv_req_frame(int32_t rob_id, int32_t index, float_t value) {
+    auto elem = data.itmpv[rob_id].find(index);
+    if (elem != data.itmpv[rob_id].end())
         elem->second.first.set_req_frame(value);
 }
 
-void pv_game::set_data_itmpv_max_frame(int32_t chara_id, float_t value) {
-    for (auto& i : data.itmpv[chara_id])
+void pv_game::set_data_itmpv_max_frame(int32_t rob_id, float_t value) {
+    for (auto& i : data.itmpv[rob_id])
         i.second.first.set_max_frame(value);
 }
 
-void pv_game::set_data_itmpv_max_frame(int32_t chara_id, int32_t index, float_t value) {
-    auto elem = data.itmpv[chara_id].find(index);
-    if (elem != data.itmpv[chara_id].end())
+void pv_game::set_data_itmpv_max_frame(int32_t rob_id, int32_t index, float_t value) {
+    auto elem = data.itmpv[rob_id].find(index);
+    if (elem != data.itmpv[rob_id].end())
         elem->second.first.set_max_frame(value);
 }
 
-void pv_game::set_data_itmpv_visibility(int32_t chara_id, bool value) {
-    for (auto& i : data.itmpv[chara_id])
+void pv_game::set_data_itmpv_visibility(int32_t rob_id, bool value) {
+    for (auto& i : data.itmpv[rob_id])
         i.second.first.set_visibility(value);
 }
 
-void pv_game::set_data_itmpv_visibility(int32_t chara_id, int32_t index, bool value) {
-    auto elem = data.itmpv[chara_id].find(index);
-    if (elem != data.itmpv[chara_id].end())
+void pv_game::set_data_itmpv_visibility(int32_t rob_id, int32_t index, bool value) {
+    auto elem = data.itmpv[rob_id].find(index);
+    if (elem != data.itmpv[rob_id].end())
         elem->second.first.set_visibility(value);
 }
 
-void pv_game::set_edit_instrument(int32_t chara_id, bool disp, int32_t index, float_t frame, float_t frame_speed) {
-    if (chara_id < 0 || chara_id >= 3)
+void pv_game::set_edit_instrument(int32_t rob_id, bool disp, int32_t index, float_t frame, float_t frame_speed) {
+    if (rob_id < ROB_ID_1P || rob_id > ROB_ID_3P)
         return;
 
-    pv_game_edit_instrument& edit_instrument = data.edit_instrument[chara_id];
+    pv_game_edit_instrument& edit_instrument = data.edit_instrument[rob_id];
     if (edit_instrument.index >= 0) {
         if (edit_instrument.index >= edit_instrument.auth_3d_ids.size())
             return;
@@ -4489,10 +4470,10 @@ void pv_game::set_edit_instrument(int32_t chara_id, bool disp, int32_t index, fl
             id.set_visibility(disp);
             id.set_paused(false);
             id.set_req_frame(frame);
-            id.set_chara_id(chara_id);
+            id.set_chara_id(rob_id);
             id.set_last_frame(id.get_play_control_size() - 1.0f);
 
-            FrameRateControl* sys_frame_rate = sys_frame_rate_get(chara_id);
+            FrameRateControl* sys_frame_rate = sys_frame_rate_get(rob_id);
             sys_frame_rate->set_frame_speed(frame_speed);
             id.set_frame_rate(sys_frame_rate);
         }
@@ -4501,18 +4482,18 @@ void pv_game::set_edit_instrument(int32_t chara_id, bool disp, int32_t index, fl
 }
 
 void pv_game::set_eyes_adjust(pv_game_chara* chr) {
-    chr->pv_data.eyes_adjust.xrot_adjust = data.pv->eyes_xrot_adjust;
+    chr->rob_init.eyes_adjust.xrot_adjust = data.pv->eyes_xrot_adjust;
     if (data.pv->eyes_base_adjust_type != EYES_BASE_ADJUST_NONE)
-        chr->pv_data.eyes_adjust.base_adjust = data.pv->eyes_base_adjust_type;
+        chr->rob_init.eyes_adjust.base_adjust = data.pv->eyes_base_adjust_type;
 
     auto elem = data.pv->eyes_rot_rate.find(chr->chara_num);
     if (elem != data.pv->eyes_rot_rate.end()) {
-        chr->pv_data.eyes_adjust.neg = elem->second.xn_rate;
-        chr->pv_data.eyes_adjust.pos = elem->second.xp_rate;
+        chr->rob_init.eyes_adjust.neg = elem->second.xn_rate;
+        chr->rob_init.eyes_adjust.pos = elem->second.xp_rate;
     }
 }
 
-void pv_game::set_item(size_t performer, rob_chara_pv_data_item& value) {
+void pv_game::set_item(size_t performer, RobItemEquipInit& value) {
     items[performer] = value;
 }
 
@@ -4558,37 +4539,37 @@ void pv_game::set_osage_init(const pv_game_chara& chr) {
         osage_init_data osage_init;
         osage_init.rob_chr = chr.rob_chr;
         osage_init.pv_id = pv->id;
-        osage_init.motion_id = i;
+        osage_init.motnum = i;
         osage_init.frame = -1;
         vec.push_back(osage_init);
     }
 
-    const std::vector<pv_data_set_motion>* set_motion = data.pv_data.get_set_motion(chr.chara_id);
+    const std::vector<pv_data_set_motion>* set_motion = data.pv_data.get_set_motion(chr.rob_id);
     if (set_motion)
         for (const pv_data_set_motion& i : *set_motion) {
             osage_init_data osage_init;
             osage_init.rob_chr = chr.rob_chr;
             osage_init.pv_id = pv->id;
-            osage_init.motion_id = i.motion_id;
+            osage_init.motnum = i.motnum;
             osage_init.frame = (int32_t)prj::roundf(i.frame_stage_index.first);
             vec.push_back(osage_init);
         }
 
     for (const pv_db_pv_osage_init& i : pv->osage_init) {
-        uint32_t motion_id = aft_mot_db->get_motion_id(i.motion.c_str());
-        if (motion_id == -1)
+        uint32_t motnum = aft_mot_db->get_motion_id(i.motion.c_str());
+        if (motnum == -1)
             continue;
 
         osage_init_data osage_init;
         osage_init.rob_chr = chr.rob_chr;
         osage_init.pv_id = pv->id;
-        osage_init.motion_id = motion_id;
+        osage_init.motnum = motnum;
         osage_init.dir.assign(pv->mdata.dir);
         osage_init.frame = i.frame;
         vec.push_back(osage_init);
     }
 
-    skin_param_manager_add_task(chr.chara_id, vec);
+    skin_param_manager_add_task(chr.rob_id, vec);
 }
 
 bool pv_game::set_pv_param_post_process_bloom_data(bool set, int32_t id, float_t duration) {
@@ -4598,19 +4579,18 @@ bool pv_game::set_pv_param_post_process_bloom_data(bool set, int32_t id, float_t
     return true;
 }
 
-void pv_game::set_pv_param_post_process_chara_alpha_data(int32_t chara_id,
+void pv_game::set_pv_param_post_process_chara_alpha_data(ROB_ID rob_id,
     float_t alpha, int32_t type, float_t duration) {
-    if (chara_id >= 0 && chara_id < ROB_ID_MAX)
+    if (rob_id >= 0 && rob_id < ROB_ID_MAX)
         pv_param_task::post_process_task_set_chara_alpha(
-            chara_id, type, alpha, duration);
+            rob_id, type, alpha, duration);
 }
 
-void pv_game::set_pv_param_post_process_chara_item_alpha_data(int32_t chara_id,
+void pv_game::set_pv_param_post_process_chara_item_alpha_data(ROB_ID rob_id,
     float_t alpha, int32_t type, float_t duration) {
-    if (chara_id >= 0 && chara_id < ROB_ID_MAX)
+    if (rob_id >= 0 && rob_id < ROB_ID_MAX)
         pv_param_task::post_process_task_set_chara_item_alpha(
-            chara_id, type, alpha, duration,
-            pv_game::chara_item_alpha_callback, this);
+            rob_id, type, alpha, duration, pv_game::chara_item_alpha_callback, this);
 }
 
 bool pv_game::set_pv_param_post_process_color_correction_data(bool set, int32_t id, float_t duration) {
@@ -4743,18 +4723,14 @@ bool pv_game::unload() {
     }
 
     for (pv_game_chara& i : data.chara) {
-        if (i.chara_id != -1 && i.rob_chr) {
-            skin_param_manager_reset(i.chara_id);
-            rob_chara_array_free_chara_id(i.chara_id);
+        if (i.rob_id != ROB_ID_NULL && i.rob_chr) {
+            skin_param_manager_reset(i.rob_id);
+            RobManagement* rob_mon = get_rob_management();
+            if (rob_mon)
+                rob_mon->dest_rob(i.rob_id);
         }
 
-        i.chara_num = CN_MAX;
-        i.cos = -1;
-        i.chara_id = -1;
-        i.pv_data = {};
-        i.rob_chr = 0;
-        i.motion_ids.clear();
-        i.motion_face_ids.clear();
+        i.init();
     }
 
     osage_play_data_manager_reset();
@@ -5050,8 +5026,8 @@ void pv_game::sub_1401230A0() {
     sub_14013C8C0()->field_26 = true;
 }
 
-void pv_game::chara_item_alpha_callback(void* data, int32_t chara_id, int32_t type, float_t alpha) {
-    if (!data || chara_id < 0 || chara_id >= ROB_ID_MAX)
+void pv_game::chara_item_alpha_callback(void* data, ROB_ID rob_id, int32_t type, float_t alpha) {
+    if (!data || rob_id < 0 || rob_id >= ROB_ID_MAX)
         return;
 
     mdl::ObjFlags flags;
@@ -5068,13 +5044,13 @@ void pv_game::chara_item_alpha_callback(void* data, int32_t chara_id, int32_t ty
         break;
     }
 
-    for (auto& i : ((pv_game*)data)->data.itmpv[chara_id])
+    for (auto& i : ((pv_game*)data)->data.itmpv[rob_id])
         i.second.first.set_alpha_obj_flags(alpha, flags);
 }
 
 void pv_game::get_item_mask(pv_performer_type type,
-    rob_chara_pv_data_item* src_item, pv_game_item_mask* src_mask,
-    rob_chara_pv_data_item* dst_item, pv_game_item_mask* dst_mask) {
+    RobItemEquipInit* src_item, pv_game_item_mask* src_mask,
+    RobItemEquipInit* dst_item, pv_game_item_mask* dst_mask) {
     if (!src_item || !src_mask || !dst_item || !dst_mask)
         return;
 
@@ -5105,7 +5081,7 @@ void pv_game_init_data::reset() {
     for (int32_t& i : modules)
         i = 0;
 
-    for (rob_chara_pv_data_item& i : items)
+    for (RobItemEquipInit& i : items)
         i = {};
 
     for (pv_game_item_mask& i : items_mask)
@@ -5868,11 +5844,11 @@ void task_pv_game_init_pv() {
     for (int32_t i = 0; i < ROB_ID_MAX; i++) {
         args.init_data.modules[i] = v2->field_2C.field_4C[i];
         for (int32_t j = 0; j < 4; j++) {
-            int32_t item_no = 0;
+            uint32_t item_no = 0;
             if (v2->field_2C.field_7C[i].arr[j] >= 0)
                 item_no = customize_item_data_handler_data_get_customize_item_obj_id(
                     v2->field_2C.field_7C[i].arr[j]);
-            args.init_data.items[i].arr[j] = item_no;
+            args.init_data.items[i].item_no[j] = item_no;
             args.init_data.items_mask[i].arr[j] = v2->field_2C.field_DC[i].arr[j];
         }
     }
@@ -5954,7 +5930,7 @@ bool task_pv_game_init_demo_pv(int32_t pv_id, pv_difficulty difficulty, bool mus
         else
             task_pv_game->data.init_data.modules[i] = 0;
 
-        for (int32_t& j : task_pv_game->data.init_data.items[i].arr)
+        for (uint32_t& j : task_pv_game->data.init_data.items[i].item_no)
             j = 0;
 
         for (bool& j : task_pv_game->data.init_data.items_mask[i].arr)
@@ -6285,10 +6261,10 @@ static FrameRateControl* get_diva_pv_frame_rate() {
     return &diva_pv_frame_rate;
 }
 
-static SysFrameRate* sys_frame_rate_get(int32_t chara_id) {
-    if (chara_id < 0 || chara_id >= 3)
-        chara_id = 0;
-    return &sys_frame_rate_array[chara_id];
+static SysFrameRate* sys_frame_rate_get(int32_t id) {
+    if (id < ROB_ID_1P || id > ROB_ID_3P)
+        id = ROB_ID_1P;
+    return &sys_frame_rate_array[id];
 }
 
 static int32_t sub_1400FCFD0(pv_game_chara* arr, const pv_db_pv* pv) {
@@ -6321,8 +6297,8 @@ static void sub_140105010(pv_game_chara* arr, size_t max_count, pv_game_item_mas
         if (module_data_handler_data_get_module(a4.module, mdl)) {
             chr->chara_num = mdl.chara_num;
             chr->cos = mdl.cos;
-            chr->pv_data.sleeve_l = mdl.sleeve_l;
-            chr->pv_data.sleeve_r = mdl.sleeve_r;
+            chr->rob_init.sleeve_l = mdl.sleeve_l;
+            chr->rob_init.sleeve_r = mdl.sleeve_r;
         }
         else {
             chr->chara_num = CN_MIKU;
@@ -6330,11 +6306,11 @@ static void sub_140105010(pv_game_chara* arr, size_t max_count, pv_game_item_mas
         }
     }
 
-    chr->pv_data.item = a4.item;
+    chr->rob_init.item = a4.item;
 
     /*for (int32_t i = 0; i < PV_PERFORMER_ITEM_MAX; i++)
         if (sub_140234860()->sub_140234460(chr->pv_data.item.arr[i]) < 0)
-            chr->pv_data.item.arr[i] = 0;*/
+            chr->rob_init.item.arr[i] = 0;*/
 
     const pv_db_pv* pv = a4.pv;
     PlayerData* player_data = player_data_array_get(0);
@@ -6355,8 +6331,8 @@ static void sub_140105010(pv_game_chara* arr, size_t max_count, pv_game_item_mas
                 pv_performer_type type = pv->get_performer_type(performer);
                 costume = pv_db_pv::get_pseudo_costume(type, pseudo_chr->chara_num, pseudo_chr->cos);
 
-                pv_game::get_item_mask(type, &pseudo_chr->pv_data.item,
-                    &a3[pseudo_performer], &chr->pv_data.item, &a3[performer]);
+                pv_game::get_item_mask(type, &pseudo_chr->rob_init.item,
+                    &a3[pseudo_performer], &chr->rob_init.item, &a3[performer]);
             }
         }
     }
@@ -6379,23 +6355,23 @@ static void sub_140105010(pv_game_chara* arr, size_t max_count, pv_game_item_mas
 
     pv_performer_item item = PV_PERFORMER_ITEM_ZUJO;
     for (int32_t i = 0; i < PV_PERFORMER_ITEM_MAX; i++) {
-        int32_t item_no = pv->get_performer_item(performer, item);
+        uint32_t item_no = pv->get_performer_item(performer, item);
         if (item_no == -2) {
-            const item_cos_data* cos = item_table_handler_array_get_item_cos_data(chr->chara_num, chr->cos);
-            if (!cos)
+            const RobItemEquip* item_set = get_default_costume_data(chr->chara_num, chr->cos);
+            if (!item_set)
                 continue;
 
-            item_sub_id sub_id = pv_performer_item_to_item_sub_id(item);
-            if (sub_id < 0 || sub_id >= ITEM_SUB_MAX)
+            ROB_ITEM_EQUIP_SUB_ID sub_id = pv_performer_item_to_item_sub_id(item);
+            if (sub_id < 0 || sub_id >= ROB_ITEM_EQUIP_SUB_ID_MAX)
                 continue;
 
-            chr->pv_data.item.arr[i] = cos->arr[sub_id];
+            chr->rob_init.item.item_no[i] = item_set->item_no[sub_id];
             a3[performer].arr[i] = true;
         }
         else if (item_no > 0) {
-            const item_table_item* itm = item_table_handler_array_get_item(chr->chara_num, item_no);
-            if (itm && itm->sub_id == pv_performer_item_to_item_sub_id(item))
-                chr->pv_data.item.arr[i] = item_no;
+            const RobItemTable* tbl = get_rob_item_table(chr->chara_num, item_no);
+            if (tbl && tbl->equip_sub_id == pv_performer_item_to_item_sub_id(item))
+                chr->rob_init.item.item_no[i] = item_no;
         }
     }
 }

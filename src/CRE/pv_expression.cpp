@@ -275,7 +275,7 @@ pv_expression::~pv_expression() {
 }
 
 bool pv_expression::ctrl() {
-    if (!rob_chr || rob_chr->data.motion.motion_id != motion_id)
+    if (!rob_chr || rob_chr->rob_base.robmot.num != motion_id)
         return false;
 
     float_t frame = rob_chr->get_frame();
@@ -435,9 +435,10 @@ void pv_expression::face_set_data(float_t frame) {
         data_struct* aft_data = &data_list[DATA_AFT];
         motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
-        int32_t mottbl_index = expression_id_to_mottbl_index(expression_id);
-        rob_chr->set_face_mottbl_motion(0, mottbl_index, value,
-            mottbl_index >= 214 && mottbl_index <= 223 ? ROB_PARTIAL_MOTION_PLAYBACK_CHARA_MOTION : ROB_PARTIAL_MOTION_PLAYBACK_STOP,
+        MOTTABLE_TYPE mottbl_type = expression_id_to_mottbl_type(expression_id);
+        rob_chr->set_face_mottbl_motion(0, mottbl_type, value,
+            mottbl_type >= MTP_FACE_MOT_SLOT_1 && mottbl_type <= MTP_FACE_MOT_SLOT_10
+            ? ROB_PARTIAL_MOTION_PLAYBACK_CHARA_MOTION : ROB_PARTIAL_MOTION_PLAYBACK_STOP,
             duration, 0.0f, 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE, offset, false, aft_mot_db);
     }
 

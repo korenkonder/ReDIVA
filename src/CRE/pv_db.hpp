@@ -556,7 +556,7 @@ namespace pv_db {
 }
 
 extern ROB_PARTS_KIND pv_performer_item_to_rob_parts_kind(pv_performer_item item);
-extern item_sub_id pv_performer_item_to_item_sub_id(pv_performer_item item);
+extern ROB_ITEM_EQUIP_SUB_ID pv_performer_item_to_item_sub_id(pv_performer_item item);
 
 extern void task_pv_db_init();
 extern void task_pv_db_add_paths();

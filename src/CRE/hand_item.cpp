@@ -8,6 +8,7 @@
 #include "../KKdLib/database/object.hpp"
 #include "../KKdLib/io/path.hpp"
 #include "../KKdLib/str_utils.hpp"
+#include "rob/rob.hpp"
 #include "data.hpp"
 #include "file_handler.hpp"
 #include "mdata_manager.hpp"
@@ -32,11 +33,11 @@ struct hand_item_handler {
 static void hand_item_load(const object_database* obj_db,
     std::map<std::pair<int32_t, CHARA_NUM>, hand_item>& hand_items, hnd_itm& hnd_itm_file);
 
-static int32_t mtp_hand_array_get_mottbl_index(const char* str);
+static uint32_t mtp_hand_array_get_mottbl_type(const char* str);
 
 hand_item_handler* hand_item_handler_data;
 
-hand_item::hand_item() : file_size(), hand_mottbl_index(), hand_scale(), uid() {
+hand_item::hand_item() : file_size(), mottbl_type(), scale(), uid() {
 
 }
 
@@ -174,43 +175,43 @@ static void hand_item_load(const object_database* obj_db,
         itm.item_str.assign(i.item_str);
         itm.item_name.assign(i.item_name);
         itm.file_size = i.file_size;
-        itm.hand_scale = i.hand_scale;
+        itm.scale = i.hand_scale;
         itm.uid = i.uid;
 
-        uint32_t hand_motion_id = mtp_hand_array_get_mottbl_index(i.hand_motion.c_str());
-        if (hand_motion_id == -1)
+        uint32_t mottbl_type = mtp_hand_array_get_mottbl_type(i.hand_motion.c_str());
+        if (mottbl_type == MTP_NONE)
             continue;
 
-        itm.hand_mottbl_index = hand_motion_id;
+        itm.mottbl_type = mottbl_type;
         hand_items.insert({ { itm.uid, CN_NONE }, itm });
     }
 }
 
-static int32_t mtp_hand_array_get_mottbl_index(const char* str) {
-    static const std::pair<const char*, int32_t> mtp_hand_array[] = {
-        { "MTP_HAND_NULL"      , 0xC0 },
-        { "MTP_HAND_RESET"     , 0xC1 },
-        { "MTP_HAND_NORMAL"    , 0xC2 },
-        { "MTP_HAND_OPEN"      , 0xC3 },
-        { "MTP_HAND_CLOSE"     , 0xC4 },
-        { "MTP_HAND_PEACE"     , 0xC5 },
-        { "MTP_HAND_GOOD"      , 0xC6 },
-        { "MTP_HAND_ONE"       , 0xC7 },
-        { "MTP_HAND_THREE"     , 0xC8 },
-        { "MTP_HAND_NEGI"      , 0xC9 },
-        { "MTP_HAND_SIZEN"     , 0xCA },
-        { "MTP_HAND_PICK"      , 0xCB },
-        { "MTP_HAND_MIC"       , 0xCC },
-        { "MTP_HAND_FAN"       , 0xCD },
-        { "MTP_HAND_BOTTLE"    , 0xCE },
-        { "MTP_HAND_PHONE"     , 0xCF },
-        { "MTP_HAND_HOLD"      , 0xD0 },
-        { "MTP_HAND_FLASHLIGHT", 0xD1 },
-        { "MTP_HAND_MIC_BLK"   , 0xD2 },
-        { "MTP_HAND_MIC_SLV"   , 0xD3 },
-        { "MTP_HAND_CUPICE"    , 0xD4 },
-        { "MTP_HAND_ICEBAR"    , 0xD5 },
-        { 0                    , 0    },
+static uint32_t mtp_hand_array_get_mottbl_type(const char* str) {
+    static const std::pair<const char*, MOTTABLE_TYPE> mtp_hand_array[] = {
+        { "MTP_HAND_NULL"      , MTP_HAND_NULL       },
+        { "MTP_HAND_RESET"     , MTP_HAND_RESET      },
+        { "MTP_HAND_NORMAL"    , MTP_HAND_NORMAL     },
+        { "MTP_HAND_OPEN"      , MTP_HAND_OPEN       },
+        { "MTP_HAND_CLOSE"     , MTP_HAND_CLOSE      },
+        { "MTP_HAND_PEACE"     , MTP_HAND_PEACE      },
+        { "MTP_HAND_GOOD"      , MTP_HAND_GOOD       },
+        { "MTP_HAND_ONE"       , MTP_HAND_ONE        },
+        { "MTP_HAND_THREE"     , MTP_HAND_THREE      },
+        { "MTP_HAND_NEGI"      , MTP_HAND_NEGI       },
+        { "MTP_HAND_SIZEN"     , MTP_HAND_SIZEN      },
+        { "MTP_HAND_PICK"      , MTP_HAND_PICK       },
+        { "MTP_HAND_MIC"       , MTP_HAND_MIC        },
+        { "MTP_HAND_FAN"       , MTP_HAND_FAN        },
+        { "MTP_HAND_BOTTLE"    , MTP_HAND_BOTTLE     },
+        { "MTP_HAND_PHONE"     , MTP_HAND_PHONE      },
+        { "MTP_HAND_HOLD"      , MTP_HAND_HOLD       },
+        { "MTP_HAND_FLASHLIGHT", MTP_HAND_FLASHLIGHT },
+        { "MTP_HAND_MIC_BLK"   , MTP_HAND_MIC_BLK    },
+        { "MTP_HAND_MIC_SLV"   , MTP_HAND_MIC_SLV    },
+        { "MTP_HAND_CUPICE"    , MTP_HAND_CUPICE     },
+        { "MTP_HAND_ICEBAR"    , MTP_HAND_ICEBAR     },
+        { 0                    , MTP_NONE            },
     };
 
     auto mtp_hand = mtp_hand_array;

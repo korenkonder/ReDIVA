@@ -324,11 +324,11 @@ namespace rndr {
         this->exposure_query_index = query_index;
         int32_t next_query_index = (query_index + 2) % 3;
         for (int32_t i = 0; i < ROB_ID_MAX; i++, chara_data++) {
-            rob_chara* rob_chr = rob_chara_array_get(i);
-            if (!rob_chr || !rob_chr->is_visible())
+            rob_chara* rob_chr = get_rob_management()->get_rob((ROB_ID)i);
+            if (!rob_chr || !rob_chr->get_disp_flag())
                 continue;
 
-            float_t max_face_depth = rob_chr->get_max_face_depth();
+            float_t max_face_depth = rob_chr->get_face_depth();
 
             mat4 mat = mat4_identity;
             rob_chr->sub_1405163C0(4, mat);
@@ -1889,8 +1889,8 @@ namespace rndr {
         if (!reset_exposure) {
             ExposureCharaData* chara_data = exposure_chara_data;
             for (int32_t i = 0; i < ROB_ID_MAX; i++, chara_data++) {
-                rob_chara* rob_chr = rob_chara_array_get(i);
-                if (!rob_chr || !rob_chr->is_visible())
+                rob_chara* rob_chr = get_rob_management()->get_rob((ROB_ID)i);
+                if (!rob_chr || !rob_chr->get_disp_flag())
                     continue;
 
                 vec4 v34 = { 0.05f, 0.0f, -0.04f, 1.0f };

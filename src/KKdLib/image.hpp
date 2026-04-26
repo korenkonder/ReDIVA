@@ -8,17 +8,17 @@
 #include "default.hpp"
 #include "vec.hpp"
 
-struct color_tone {
-    vec3 blend;
-    vec3 offset;
+struct ImgfColorToneParam {
+    vec3 blend_color;
+    vec3 offset_color;
     float_t hue;
     float_t saturation;
     float_t value;
     float_t contrast;
     bool inverse;
-    int32_t reserved[8];
+    uint32_t reserved[8];
 
-    color_tone();
+    ImgfColorToneParam();
 };
 
 struct rgb565 {
@@ -43,8 +43,8 @@ struct dxt5_block {
 };
 
 extern void dxt1_image_apply_color_tone(int32_t width, int32_t height,
-    int32_t size, dxt1_block* data, const color_tone* col_tone);
+    int32_t size, dxt1_block* data, const ImgfColorToneParam* color);
 extern void dxt5_image_apply_color_tone(int32_t width, int32_t height,
-    int32_t size, dxt5_block* data, const color_tone* col_tone);
+    int32_t size, dxt5_block* data, const ImgfColorToneParam* color);
 extern void rgb565_image_apply_color_tone(int32_t width, int32_t height,
-    int32_t size, rgb565* data, const color_tone* col_tone);
+    int32_t size, rgb565* data, const ImgfColorToneParam* color);

@@ -7,6 +7,7 @@
 #include "../KKdLib/io/memory_stream.hpp"
 #include "../KKdLib/io/path.hpp"
 #include "../KKdLib/str_utils.hpp"
+#include "rob/rob.hpp"
 #include "data.hpp"
 #include "file_handler.hpp"
 #include "mdata_manager.hpp"
@@ -16,54 +17,58 @@ struct item_table_handler {
     std::list<p_file_handler*> file_handlers;
     bool ready;
     const char* file;
-    item_table table;
+    RobItemHeader table;
 
     item_table_handler();
     ~item_table_handler();
 
     void clear();
-    const item_table_item* get_item(int32_t item_no);
+    const RobItemTable* get_item(uint32_t item_no);
     bool load();
     void parse(p_file_handler* pfhndl);
     void read();
     void set_path(CHARA_NUM chara_num);
 };
 
-static void item_table_load(data_struct* data, item_table& itm_tbl, itm_table& itm_tbl_file);
+static void item_table_load(data_struct* data, RobItemHeader& itm_tbl, itm_table& itm_tbl_file);
 
 item_table_handler* item_table_handler_array;
 
-item_table_item_data_obj::item_table_item_data_obj() : rpk() {
+RobItemDataObj::RobItemDataObj() : replace_id() {
 
 }
 
-item_table_item_data_ofs::item_table_item_data_ofs() : sub_id(), no() {
+RobItemDataOfs::RobItemDataOfs() : equip_sub_id(), item_no() {
 
 }
 
-item_table_item_data_tex::item_table_item_data_tex() {
-    org = -1;
-    chg = -1;
+RobItemDataTex::RobItemDataTex() {
+    org_uid = -1;
+    chg_uid = -1;
 }
 
-item_table_item_data_col::item_table_item_data_col() : flag() {
-    tex_id = -1;
+RobItemDataCol::RobItemDataCol() : flag() {
+    tex_uid = -1;
 }
 
-item_table_item_data::item_table_item_data() {
-
-}
-
-item_table_item_data::~item_table_item_data() {
+RobItemData::RobItemData() {
 
 }
 
-item_table_item::item_table_item() : flag(), type(), attr(), des_id(),
-sub_id(), exclusion(), point(), org_itm(), npr_flag(), face_depth() {
+RobItemData::~RobItemData() {
 
 }
 
-item_table_item::~item_table_item() {
+RobItemTable::RobItemTable() : flag(), type(), attr(), equip_des_id(),
+equip_sub_id(), exclusion(), point(), org_itm(), npr_flag(), face_depth() {
+
+}
+
+RobItemTable::~RobItemTable() {
+
+}
+
+RobItemEquip::RobItemEquip() : item_no() {
 
 }
 
@@ -75,17 +80,17 @@ item_table_dbgset::~item_table_dbgset() {
 
 }
 
-item_table::item_table() {
+RobItemHeader::RobItemHeader() {
 
 }
 
-item_table::~item_table() {
+RobItemHeader::~RobItemHeader() {
 
 }
 
-const item_table_item* item_table::get_item(int32_t item_no) {
-    auto elem = item.find(item_no);
-    if (elem != item.end() && elem->second.type != -1)
+const RobItemTable* RobItemHeader::get_item(uint32_t item_no) {
+    auto elem = table.find(item_no);
+    if (elem != table.end() && elem->second.type != ROB_ITEM_TYPE_NONE)
         return &elem->second;
     return 0;
 }
@@ -96,47 +101,44 @@ void item_table_handler_array_init() {
         item_table_handler_array[i].set_path((CHARA_NUM)i);
 }
 
-const item_cos_data* item_table_handler_array_get_item_cos_data(CHARA_NUM cn, int32_t cos_id) {
-    const item_table* table = item_table_handler_array_get_table(cn);
-    if (!table)
+const RobItemEquip* get_default_costume_data(CHARA_NUM cn, int32_t cos_id) {
+    const RobItemHeader* tbl = get_rob_item_header(cn);
+    if (!tbl)
         return 0;
 
-    auto elem = table->cos.find(cos_id);
-    if (elem != table->cos.end())
+    auto elem = tbl->defset.find(cos_id);
+    if (elem != tbl->defset.end())
         return &elem->second;
-    else if (table->cos.size())
-        return &table->cos.begin()->second;
+    else if (tbl->defset.size())
+        return &tbl->defset.begin()->second;
     return 0;
 }
 
-const item_table_item* item_table_handler_array_get_item(CHARA_NUM cn, int32_t item_no) {
+const RobItemTable* get_rob_item_table(CHARA_NUM cn, uint32_t item_no) {
     if (cn >= 0 && cn < CN_MAX)
         return item_table_handler_array[cn].get_item(item_no);
     return 0;
 }
 
-std::string item_table_handler_array_get_item_name(CHARA_NUM cn, int32_t item_no) {
-    const item_table_item* item = item_table_handler_array_get_item(cn, item_no);
-    if (item)
-        return item->name;
+std::string get_rob_item_table_name(CHARA_NUM cn, uint32_t item_no) {
+    const RobItemTable* tbl = get_rob_item_table(cn, item_no);
+    if (tbl) {
+        std::string name = RobItem::s_check_ng_item_name(cn, item_no);
+        if (name.size())
+            return name;
+        return tbl->name;
+    }
     return {};
 }
 
-item_sub_id item_table_handler_array_get_item_sub_id(CHARA_NUM cn, int32_t item_no) {
-    const item_table_item* item = item_table_handler_array_get_item(cn, item_no);
-    if (item)
-        return item->sub_id;
-    return ITEM_SUB_NONE;
-}
-
-const std::vector<uint32_t>* item_table_handler_array_get_item_objset(CHARA_NUM cn, int32_t item_no) {
-    const item_table_item* item = item_table_handler_array_get_item(cn, item_no);
-    if (item)
-        return &item->objset;
+const std::vector<uint32_t>* get_rob_item_table_objset(CHARA_NUM cn, uint32_t item_no) {
+    const RobItemTable* tbl = get_rob_item_table(cn, item_no);
+    if (tbl)
+        return &tbl->objset;
     return 0;
 }
 
-const item_table* item_table_handler_array_get_table(CHARA_NUM cn) {
+const RobItemHeader* get_rob_item_header(CHARA_NUM cn) {
     if (cn < 0 || cn >= CN_MAX)
         return 0;
     return &item_table_handler_array[cn].table;
@@ -176,7 +178,7 @@ void item_table_handler::clear() {
     ready = false;
 }
 
-const item_table_item* item_table_handler::get_item(int32_t item_no) {
+const RobItemTable* item_table_handler::get_item(uint32_t item_no) {
     return table.get_item(item_no);
 }
 
@@ -254,13 +256,13 @@ void item_table_handler::set_path(CHARA_NUM chara_num) {
     this->file = item_table_paths[chara_num];
 }
 
-static void item_table_load(data_struct* data, item_table& itm_tbl, itm_table& itm_tbl_file) {
+static void item_table_load(data_struct* data, RobItemHeader& itm_tbl, itm_table& itm_tbl_file) {
     object_database* aft_obj_db = &data->data_ft.obj_db;
     texture_database* aft_tex_db = &data->data_ft.tex_db;
 
     for (itm_table_item& i : itm_tbl_file.item) {
-        item_table_item itm;
-        itm.flag = i.flag;
+        RobItemTable itm;
+        itm.flag.w = i.flag.w;
         itm.name.assign(i.name);
 
         itm.objset.reserve(i.objset.size());
@@ -272,54 +274,54 @@ static void item_table_load(data_struct* data, item_table& itm_tbl, itm_table& i
 
         itm.type = i.type;
         itm.attr = i.attr;
-        itm.des_id = i.des_id;
-        itm.sub_id = (item_sub_id)i.sub_id;
+        itm.equip_des_id = i.equip_des_id;
+        itm.equip_sub_id = i.equip_sub_id;
 
         for (itm_table_item_data_obj& j : i.data.obj) {
-            object_info obj_info;
+            object_info uid;
             if (j.uid.compare("NULL")) {
-                obj_info = aft_obj_db->get_object_info(j.uid.c_str());
-                if (obj_info.is_null())
+                uid = aft_obj_db->get_object_info(j.uid.c_str());
+                if (uid.is_null())
                     continue;
             }
 
-            item_table_item_data_obj obj;
-            obj.obj_info = obj_info;
-            obj.rpk = j.rpk;
+            RobItemDataObj obj;
+            obj.uid = uid;
+            obj.replace_id = j.rpk;
             itm.data.obj.push_back(obj);
         }
 
         for (itm_table_item_data_ofs& j : i.data.ofs) {
-            item_table_item_data_ofs ofs;
-            ofs.sub_id = j.sub_id;
-            ofs.no = j.no;
-            ofs.position = j.position;
-            ofs.rotation = j.rotation;
+            RobItemDataOfs ofs;
+            ofs.equip_sub_id = j.sub_id;
+            ofs.item_no = j.item_no;
+            ofs.trans = j.trans;
+            ofs.rot = j.rot;
             ofs.scale = j.scale;
             itm.data.ofs.push_back(ofs);
         }
 
         for (itm_table_item_data_tex& j : i.data.tex) {
-            uint32_t org = aft_tex_db->get_texture_id(j.org.c_str());
-            uint32_t chg = aft_tex_db->get_texture_id(j.chg.c_str());
-            if (org == -1 || chg == -1)
+            uint32_t org_uid = aft_tex_db->get_texture_id(j.org.c_str());
+            uint32_t chg_uid = aft_tex_db->get_texture_id(j.chg.c_str());
+            if (org_uid == -1 || chg_uid == -1)
                 continue;
 
-            item_table_item_data_tex tex;
-            tex.org = org;
-            tex.chg = chg;
+            RobItemDataTex tex;
+            tex.org_uid = org_uid;
+            tex.chg_uid = chg_uid;
             itm.data.tex.push_back(tex);
         }
 
         for (itm_table_item_data_col& j : i.data.col) {
-            uint32_t tex_id = aft_tex_db->get_texture_id(j.tex.c_str());
-            if (tex_id == -1)
+            uint32_t tex_uid = aft_tex_db->get_texture_id(j.tex.c_str());
+            if (tex_uid == -1)
                 continue;
 
-            item_table_item_data_col col;
-            col.tex_id = tex_id;
-            col.flag = j.flag;
-            col.col_tone = j.col_tone;
+            RobItemDataCol col;
+            col.tex_uid = tex_uid;
+            col.flag.w = j.flag.w;
+            col.color = j.color;
             itm.data.col.push_back(col);
         }
 
@@ -328,23 +330,23 @@ static void item_table_load(data_struct* data, item_table& itm_tbl, itm_table& i
         itm.org_itm = i.org_itm;
         itm.npr_flag = i.npr_flag;
         itm.face_depth = i.face_depth;
-        itm_tbl.item.push_back(i.no, itm);
+        itm_tbl.table.push_back(i.no, itm);
     }
 
-    itm_tbl.item.combine();
+    itm_tbl.table.combine();
 
     for (itm_table_dbgset& i : itm_tbl_file.dbgset) {
         if (aft_obj_db->get_object_set_id(i.name.c_str()) == -1)
             continue;
 
-        item_cos_data cos = {};
+        RobItemEquip equip = {};
         for (int32_t j : i.item) {
-            const item_table_item* item = itm_tbl.get_item(j);
-            if (item)
-                cos.arr[item->sub_id] = j;
+            const RobItemTable* tbl = itm_tbl.get_item(j);
+            if (tbl)
+                equip.item_no[tbl->equip_sub_id] = j;
         }
 
-        itm_tbl.dbgset.push_back(i.name, cos);
+        itm_tbl.dbgset.push_back(i.name, equip);
     }
 
     itm_tbl.dbgset.combine();
@@ -353,15 +355,15 @@ static void item_table_load(data_struct* data, item_table& itm_tbl, itm_table& i
         if (!i.item.size())
             continue;
 
-        item_cos_data cos = {};
+        RobItemEquip equip = {};
         for (int32_t j : i.item) {
-            const item_table_item* item = itm_tbl.get_item(j);
-            if (item)
-                cos.arr[item->sub_id] = j;
+            const RobItemTable* tbl = itm_tbl.get_item(j);
+            if (tbl)
+                equip.item_no[tbl->equip_sub_id] = j;
         }
-        itm_tbl.cos.push_back(i.id, cos);
+        itm_tbl.defset.push_back(i.id, equip);
     }
 
-    itm_tbl.cos.push_back(499, {});
-    itm_tbl.cos.combine();
+    itm_tbl.defset.push_back(499, {});
+    itm_tbl.defset.combine();
 }

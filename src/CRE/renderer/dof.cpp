@@ -75,10 +75,11 @@ namespace renderer {
                 if (dof_debug_data.flags & DOF_DEBUG_ENABLE_PHYS_DOF) {
                     float_t focus = dof_debug_data.focus;
                     if (dof_debug_data.flags & DOF_DEBUG_AUTO_FOCUS) {
-                        rob_chara* rob_chr = 0;
-                        for (int32_t i = 0; i < ROB_ID_MAX; i++) {
-                            rob_chara* rob_chr = rob_chara_array_get(i);
-                            if (!rob_chr || !rob_chr->is_visible())
+                        RobManagement* rob_man = get_rob_management();
+                        size_t rob_num = rob_man->get_rob_num();
+                        for (int32_t i = 0; i < rob_num; i++) {
+                            rob_chara* rob_chr = rob_man->get_rob((ROB_ID)i);
+                            if (!rob_chr || !rob_chr->get_disp_flag())
                                 continue;
 
                             mat4 mat = mat4_identity;

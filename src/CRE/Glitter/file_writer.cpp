@@ -789,12 +789,12 @@ namespace Glitter {
                 enum_and(ext_anim_flag, ~EFFECT_EXT_ANIM_CHARA);
 
                 if (big_endian) {
-                    store_reverse_endianness_int32_t((void*)d, ext_anim_x->chara_index);
+                    store_reverse_endianness_int32_t((void*)d, ext_anim_x->rob_id);
                     store_reverse_endianness_int32_t((void*)(d + 4), ext_anim_flag);
                     store_reverse_endianness_int32_t((void*)(d + 8), ext_anim_x->node_index);
                 }
                 else {
-                    *(int32_t*)d = ext_anim_x->chara_index;
+                    *(int32_t*)d = ext_anim_x->rob_id;
                     *(int32_t*)(d + 4) = ext_anim_flag;
                     *(int32_t*)(d + 8) = ext_anim_x->node_index;
                 }
@@ -913,12 +913,12 @@ namespace Glitter {
                 enum_and(ext_anim_flag, ~EFFECT_EXT_ANIM_CHARA);
 
                 if (big_endian) {
-                    store_reverse_endianness_int32_t((void*)d, ext_anim->chara_index);
+                    store_reverse_endianness_int32_t((void*)d, ext_anim->rob_id);
                     store_reverse_endianness_int32_t((void*)(d + 4), ext_anim_flag);
                     store_reverse_endianness_int32_t((void*)(d + 8), ext_anim->node_index);
                 }
                 else {
-                    *(int32_t*)d = ext_anim->chara_index;
+                    *(int32_t*)d = ext_anim->rob_id;
                     *(int32_t*)(d + 4) = ext_anim_flag;
                     *(int32_t*)(d + 8) = ext_anim->node_index;
                 }

@@ -49,8 +49,8 @@ public:
     bool set;
     int32_t color_change_index;
     std::vector<texture*> textures;
-    std::vector<color_tone> color_tones;
-    color_tone color_tone_temp;
+    std::vector<ImgfColorToneParam> color_tones;
+    ImgfColorToneParam color_tone_temp;
     bool show;
     bool auto_resize;
     CHARA_NUM chara_num;
@@ -65,11 +65,11 @@ public:
     virtual void Hide() override;
 
     texture* GetChgTex();
-    color_tone* GetColorTone();
-    void GetColorToneDefault(color_tone& value);
-    const item_table_item* GetItem(int32_t item_index);
+    ImgfColorToneParam* GetColorTone();
+    void GetColorToneDefault(ImgfColorToneParam& value);
+    const RobItemTable* GetItem(int32_t item_index);
     void GetItemColTone();
-    const item_table_item_data* GetItemData(int32_t item_index);
+    const RobItemData* GetItemData(int32_t item_index);
     int32_t GetItemNo(int32_t item_index);
     const char* GetItemTexChangeName();
     texture* GetOrgTex();
@@ -136,7 +136,7 @@ ColorChangeDw::ColorChangeDw() {
     obj_set_id = aft_obj_db->get_object_set_id(0u);
     color_change_index = 0;
 
-    color_tone col_tone;
+    ImgfColorToneParam col_tone;
     GetColorToneDefault(col_tone);
     color_tone_temp = col_tone;
 
@@ -259,7 +259,7 @@ ColorChangeDw::ColorChangeDw() {
 
     blend_r = dw::Slider::Create(color_group, (dw::Flags)(dw::FLAG_800 | dw::HORIZONTAL),
         0.0f, 0.0f, 100.0f, glyph_height, "BLEND R");
-    blend_r->SetParams(col_tone.blend.x, 0.0f, 5.0f, 0.4f, 0.01f, 0.1f);
+    blend_r->SetParams(col_tone.blend_color.x, 0.0f, 5.0f, 0.4f, 0.01f, 0.1f);
     blend_r->format = "%4.2f";
     blend_r->AddSelectionListener(new dw::SelectionListenerOnHook(
         (dw::SelectionListenerOnHook::CallbackFunc)ColorChangeDw::BlendRCallback));
@@ -267,7 +267,7 @@ ColorChangeDw::ColorChangeDw() {
 
     blend_g = dw::Slider::Create(color_group, (dw::Flags)(dw::FLAG_800 | dw::HORIZONTAL),
         0.0f, 0.0f, 100.0f, glyph_height, "BLEND G");
-    blend_g->SetParams(col_tone.blend.y, 0.0f, 5.0f, 0.4f, 0.01f, 0.1f);
+    blend_g->SetParams(col_tone.blend_color.y, 0.0f, 5.0f, 0.4f, 0.01f, 0.1f);
     blend_g->format = "%4.2f";
     blend_g->AddSelectionListener(new dw::SelectionListenerOnHook(
         (dw::SelectionListenerOnHook::CallbackFunc)ColorChangeDw::BlendGCallback));
@@ -275,7 +275,7 @@ ColorChangeDw::ColorChangeDw() {
 
     blend_b = dw::Slider::Create(color_group, (dw::Flags)(dw::FLAG_800 | dw::HORIZONTAL),
         0.0f, 0.0f, 100.0f, glyph_height, "BLEND B");
-    blend_b->SetParams(col_tone.blend.z, 0.0f, 5.0f, 0.4f, 0.01f, 0.1f);
+    blend_b->SetParams(col_tone.blend_color.z, 0.0f, 5.0f, 0.4f, 0.01f, 0.1f);
     blend_b->format = "%4.2f";
     blend_b->AddSelectionListener(new dw::SelectionListenerOnHook(
         (dw::SelectionListenerOnHook::CallbackFunc)ColorChangeDw::BlendBCallback));
@@ -283,7 +283,7 @@ ColorChangeDw::ColorChangeDw() {
 
     offset_r = dw::Slider::Create(color_group, (dw::Flags)(dw::FLAG_800 | dw::HORIZONTAL),
         0.0f, 0.0f, 100.0f, glyph_height, "OFFSET R");
-    offset_r->SetParams(col_tone.offset.x, -1.0f, 1.0f, 0.4f, 0.01f, 0.1f);
+    offset_r->SetParams(col_tone.offset_color.x, -1.0f, 1.0f, 0.4f, 0.01f, 0.1f);
     offset_r->format = "%4.2f";
     offset_r->AddSelectionListener(new dw::SelectionListenerOnHook(
         (dw::SelectionListenerOnHook::CallbackFunc)ColorChangeDw::OffsetRCallback));
@@ -291,7 +291,7 @@ ColorChangeDw::ColorChangeDw() {
 
     offset_g = dw::Slider::Create(color_group, (dw::Flags)(dw::FLAG_800 | dw::HORIZONTAL),
         0.0f, 0.0f, 100.0f, glyph_height, "OFFSET G");
-    offset_g->SetParams(col_tone.offset.y, -1.0f, 1.0f, 0.4f, 0.01f, 0.1f);
+    offset_g->SetParams(col_tone.offset_color.y, -1.0f, 1.0f, 0.4f, 0.01f, 0.1f);
     offset_g->format = "%4.2f";
     offset_g->AddSelectionListener(new dw::SelectionListenerOnHook(
         (dw::SelectionListenerOnHook::CallbackFunc)ColorChangeDw::OffsetGCallback));
@@ -299,7 +299,7 @@ ColorChangeDw::ColorChangeDw() {
 
     offset_b = dw::Slider::Create(color_group, (dw::Flags)(dw::FLAG_800 | dw::HORIZONTAL),
         0.0f, 0.0f, 100.0f, glyph_height, "OFFSET B");
-    offset_b->SetParams(col_tone.offset.z, -1.0f, 1.0f, 0.4f, 0.01f, 0.1f);
+    offset_b->SetParams(col_tone.offset_color.z, -1.0f, 1.0f, 0.4f, 0.01f, 0.1f);
     offset_b->format = "%4.2f";
     offset_b->AddSelectionListener(new dw::SelectionListenerOnHook(
         (dw::SelectionListenerOnHook::CallbackFunc)ColorChangeDw::OffsetBCallback));
@@ -371,7 +371,7 @@ void ColorChangeDw::Draw() {
 
     const texture* org_tex = GetOrgTex();
     const texture* chg_tex = GetChgTex();
-    const color_tone* col_tone = GetColorTone();
+    const ImgfColorToneParam* col_tone = GetColorTone();
     if (org_tex && chg_tex && col_tone)
         texture_apply_color_tone(org_tex, chg_tex, col_tone);
 
@@ -419,34 +419,34 @@ texture* ColorChangeDw::GetChgTex() {
     return 0;
 }
 
-color_tone* ColorChangeDw::GetColorTone() {
+ImgfColorToneParam* ColorChangeDw::GetColorTone() {
     if (color_change_index < color_tones.size())
         return &color_tones.data()[color_change_index];
     return 0;
 }
 
-void ColorChangeDw::GetColorToneDefault(color_tone& value) {
-    value = color_tone();
+void ColorChangeDw::GetColorToneDefault(ImgfColorToneParam& value) {
+    value = ImgfColorToneParam();
 }
 
-const item_table_item* ColorChangeDw::GetItem(int32_t item_index) {
-    int32_t item_no = GetItemNo(item_index);
+const RobItemTable* ColorChangeDw::GetItem(int32_t item_index) {
+    uint32_t item_no = GetItemNo(item_index);
     if (item_no != -1)
-        return item_table_handler_array_get_item(chara_num, item_no);
+        return get_rob_item_table(chara_num, item_no);
     return 0;
 }
 
 void ColorChangeDw::GetItemColTone() {
-    color_tone* col_tone = GetColorTone();
+    ImgfColorToneParam* col_tone = GetColorTone();
     if (col_tone) {
-        const item_table_item* item = GetItem(item_index);
+        const RobItemTable* item = GetItem(item_index);
         if (item && item_texture_index < item->data.col.size())
-            *col_tone = item->data.col.data()[item_texture_index].col_tone;
+            *col_tone = item->data.col.data()[item_texture_index].color;
     }
 }
 
-const item_table_item_data* ColorChangeDw::GetItemData(int32_t item_index) {
-    const item_table_item* item = GetItem(item_index);
+const RobItemData* ColorChangeDw::GetItemData(int32_t item_index) {
+    const RobItemTable* item = GetItem(item_index);
     if (item)
         return &item->data;
     return 0;
@@ -454,10 +454,10 @@ const item_table_item_data* ColorChangeDw::GetItemData(int32_t item_index) {
 
 int32_t ColorChangeDw::GetItemNo(int32_t item_index) {
     int32_t index = 0;
-    const item_table* item = item_table_handler_array_get_table(chara_num);
-    if (item)
-        for (auto& i : item->item)
-            if (i.second.attr & 0x68) {
+    const RobItemHeader* tbl = get_rob_item_header(chara_num);
+    if (tbl)
+        for (auto& i : tbl->table)
+            if (i.second.attr & (ROB_ITEM_ATTR_HADA | ROB_ITEM_ATTR_NUDE | ROB_ITEM_ATTR_COL)) {
                 if (item_index == index)
                     return 0;
                 index++;
@@ -470,11 +470,11 @@ const char* ColorChangeDw::GetItemTexChangeName() {
     texture_database* aft_tex_db = &aft_data->data_ft.tex_db;
 
     std::string item = item_texture_names->GetItemStr(item_texture_index);
-    const item_table_item_data* itm_data = GetItemData(item_index);
+    const RobItemData* itm_data = GetItemData(item_index);
     if (itm_data)
-        for (const item_table_item_data_tex& i : itm_data->tex)
-            if (!item.compare(aft_tex_db->get_texture_name(i.org)))
-                return aft_tex_db->get_texture_name(i.chg);
+        for (const RobItemDataTex& i : itm_data->tex)
+            if (!item.compare(aft_tex_db->get_texture_name(i.org_uid)))
+                return aft_tex_db->get_texture_name(i.chg_uid);
     return 0;
 }
 
@@ -486,15 +486,15 @@ texture* ColorChangeDw::GetOrgTex() {
 }
 
 void ColorChangeDw::GetSetColorTone() {
-    color_tone* col_tone = GetColorTone();
+    ImgfColorToneParam* col_tone = GetColorTone();
     if (col_tone) {
         inverse->SetValue(col_tone->inverse);
-        blend_r->SetValue(col_tone->blend.x);
-        blend_g->SetValue(col_tone->blend.y);
-        blend_b->SetValue(col_tone->blend.z);
-        offset_r->SetValue(col_tone->offset.x);
-        offset_g->SetValue(col_tone->offset.y);
-        offset_b->SetValue(col_tone->offset.z);
+        blend_r->SetValue(col_tone->blend_color.x);
+        blend_g->SetValue(col_tone->blend_color.y);
+        blend_b->SetValue(col_tone->blend_color.z);
+        offset_r->SetValue(col_tone->offset_color.x);
+        offset_g->SetValue(col_tone->offset_color.y);
+        offset_b->SetValue(col_tone->offset_color.z);
         hue->SetValue(col_tone->hue);
         saturation->SetValue(col_tone->saturation);
         value->SetValue(col_tone->value);
@@ -528,7 +528,7 @@ bool ColorChangeDw::LoadColorTone() {
     if (!textures.size())
         return false;
 
-    color_tone col_tone;
+    ImgfColorToneParam col_tone;
     ColorChangeDw::GetColorToneDefault(col_tone);
     for (texture*& i : textures)
         color_tones.push_back(col_tone);
@@ -634,12 +634,12 @@ void ColorChangeDw::UpdateItemTextureNames() {
         return;
 
     item_texture_names->ClearItems();
-    const item_table_item_data* itm_data = GetItemData(item_index);
+    const RobItemData* itm_data = GetItemData(item_index);
     if (!itm_data)
         return;
 
-    for (const item_table_item_data_col& i : itm_data->col) {
-        const char* name = aft_tex_db->get_texture_name(i.tex_id);
+    for (const RobItemDataCol& i : itm_data->col) {
+        const char* name = aft_tex_db->get_texture_name(i.tex_uid);
         if (name)
             item_texture_names->AddItem(name);
     }
@@ -681,49 +681,49 @@ void ColorChangeDw::AutoResizeCallback(dw::Button* data) {
 
 void ColorChangeDw::BlendBCallback(dw::Slider* data) {
     ColorChangeDw* color_change_dw = (ColorChangeDw*)data->callback_data.v64;
-    color_tone* col_tone = color_change_dw->GetColorTone();
+    ImgfColorToneParam* col_tone = color_change_dw->GetColorTone();
     if (col_tone)
-        col_tone->blend.z = data->GetValue();
+        col_tone->blend_color.z = data->GetValue();
 }
 
 void ColorChangeDw::BlendGCallback(dw::Slider* data) {
     ColorChangeDw* color_change_dw = (ColorChangeDw*)data->callback_data.v64;
-    color_tone* col_tone = color_change_dw->GetColorTone();
+    ImgfColorToneParam* col_tone = color_change_dw->GetColorTone();
     if (col_tone)
-        col_tone->blend.y = data->GetValue();
+        col_tone->blend_color.y = data->GetValue();
 }
 
 void ColorChangeDw::BlendRCallback(dw::Slider* data) {
     ColorChangeDw* color_change_dw = (ColorChangeDw*)data->callback_data.v64;
-    color_tone* col_tone = color_change_dw->GetColorTone();
+    ImgfColorToneParam* col_tone = color_change_dw->GetColorTone();
     if (col_tone)
-        col_tone->blend.x = data->GetValue();
+        col_tone->blend_color.x = data->GetValue();
 }
 
 void ColorChangeDw::ContrastCallback(dw::Slider* data) {
     ColorChangeDw* color_change_dw = (ColorChangeDw*)data->callback_data.v64;
-    color_tone* col_tone = color_change_dw->GetColorTone();
+    ImgfColorToneParam* col_tone = color_change_dw->GetColorTone();
     if (col_tone)
         col_tone->contrast = data->GetValue();
 }
 
 void ColorChangeDw::CopyCallback(dw::Button* data) {
     ColorChangeDw* color_change_dw = (ColorChangeDw*)data->callback_data.v64;
-    color_tone* col_tone = color_change_dw->GetColorTone();
+    ImgfColorToneParam* col_tone = color_change_dw->GetColorTone();
     if (col_tone)
         color_change_dw->color_tone_temp = *col_tone;
 }
 
 void ColorChangeDw::HueCallback(dw::Slider* data) {
     ColorChangeDw* color_change_dw = (ColorChangeDw*)data->callback_data.v64;
-    color_tone* col_tone = color_change_dw->GetColorTone();
+    ImgfColorToneParam* col_tone = color_change_dw->GetColorTone();
     if (col_tone)
         col_tone->hue = data->GetValue();
 }
 
 void ColorChangeDw::InverseCallback(dw::Button* data) {
     ColorChangeDw* color_change_dw = (ColorChangeDw*)data->callback_data.v64;
-    color_tone* col_tone = color_change_dw->GetColorTone();
+    ImgfColorToneParam* col_tone = color_change_dw->GetColorTone();
     if (col_tone)
         col_tone->inverse = data->value;
 }
@@ -736,7 +736,7 @@ void ColorChangeDw::ItemCallback(dw::ListBox* data) {
     ColorChangeDw* color_change_dw = (ColorChangeDw*)data->callback_data.v64;
     color_change_dw->item_index = index;
 
-    const item_table_item* item = color_change_dw->GetItem(index);
+    const RobItemTable* item = color_change_dw->GetItem(index);
     if (!item) {
         color_change_dw->UpdateItemTextureNames();
         return;
@@ -746,8 +746,8 @@ void ColorChangeDw::ItemCallback(dw::ListBox* data) {
     for (const uint32_t& i : item->objset)
         name = aft_obj_db->get_object_set_name(i);
 
-    if (item->attr & 0x40)
-        name = aft_obj_db->get_object_set_name(get_rob_data(color_change_dw->chara_num)->object_set);
+    if (item->attr & ROB_ITEM_ATTR_HADA)
+        name = aft_obj_db->get_object_set_name(get_rob_data(color_change_dw->chara_num)->objset);
 
     if (name) {
         color_change_dw->SetObjectSet(name);
@@ -765,7 +765,7 @@ void ColorChangeDw::ItemTextureCallback(dw::ListBox* data) {
     ColorChangeDw* color_change_dw = (ColorChangeDw*)data->callback_data.v64;
     color_change_dw->item_texture_index = data->list->selected_item;
 
-    const item_table_item* item = color_change_dw->GetItem(color_change_dw->item_index);
+    const RobItemTable* item = color_change_dw->GetItem(color_change_dw->item_index);
     if (!item)
         return;
 
@@ -773,7 +773,7 @@ void ColorChangeDw::ItemTextureCallback(dw::ListBox* data) {
     if (!size || color_change_dw->item_texture_index >= size)
         return;
 
-    if (item->attr & 0x04) {
+    if (item->attr & ROB_ITEM_ATTR_TEX) {
         const char* name = color_change_dw->GetItemTexChangeName();
         if (name)
             color_change_dw->SetTextureName(name);
@@ -803,23 +803,23 @@ void ColorChangeDw::ObjectSetCallback(dw::ListBox* data) {
 
 void ColorChangeDw::OffsetBCallback(dw::Slider* data) {
     ColorChangeDw* color_change_dw = (ColorChangeDw*)data->callback_data.v64;
-    color_tone* col_tone = color_change_dw->GetColorTone();
+    ImgfColorToneParam* col_tone = color_change_dw->GetColorTone();
     if (col_tone)
-        col_tone->offset.z = data->GetValue();
+        col_tone->offset_color.z = data->GetValue();
 }
 
 void ColorChangeDw::OffsetGCallback(dw::Slider* data) {
     ColorChangeDw* color_change_dw = (ColorChangeDw*)data->callback_data.v64;
-    color_tone* col_tone = color_change_dw->GetColorTone();
+    ImgfColorToneParam* col_tone = color_change_dw->GetColorTone();
     if (col_tone)
-        col_tone->offset.y = data->GetValue();
+        col_tone->offset_color.y = data->GetValue();
 }
 
 void ColorChangeDw::OffsetRCallback(dw::Slider* data) {
     ColorChangeDw* color_change_dw = (ColorChangeDw*)data->callback_data.v64;
-    color_tone* col_tone = color_change_dw->GetColorTone();
+    ImgfColorToneParam* col_tone = color_change_dw->GetColorTone();
     if (col_tone)
-        col_tone->offset.x = data->GetValue();
+        col_tone->offset_color.x = data->GetValue();
 }
 
 void ColorChangeDw::OverwriteCallback(dw::Button* data) {
@@ -828,21 +828,21 @@ void ColorChangeDw::OverwriteCallback(dw::Button* data) {
 
 void ColorChangeDw::PasteCallback(dw::Button* data) {
     ColorChangeDw* color_change_dw = (ColorChangeDw*)data->callback_data.v64;
-    color_tone* col_tone = color_change_dw->GetColorTone();
+    ImgfColorToneParam* col_tone = color_change_dw->GetColorTone();
     if (col_tone)
         *col_tone = color_change_dw->color_tone_temp;
 }
 
 void ColorChangeDw::ResetCallback(dw::Button* data) {
     ColorChangeDw* color_change_dw = (ColorChangeDw*)data->callback_data.v64;
-    color_tone* col_tone = color_change_dw->GetColorTone();
+    ImgfColorToneParam* col_tone = color_change_dw->GetColorTone();
     if (col_tone)
         color_change_dw->GetColorToneDefault(*col_tone);
 }
 
 void ColorChangeDw::SaturationCallback(dw::Slider* data) {
     ColorChangeDw* color_change_dw = (ColorChangeDw*)data->callback_data.v64;
-    color_tone* col_tone = color_change_dw->GetColorTone();
+    ImgfColorToneParam* col_tone = color_change_dw->GetColorTone();
     if (col_tone)
         col_tone->saturation = data->GetValue();
 }
@@ -866,7 +866,7 @@ void ColorChangeDw::TextureCallback(dw::ListBox* data) {
 
 void ColorChangeDw::ValueCallback(dw::Slider* data) {
     ColorChangeDw* color_change_dw = (ColorChangeDw*)data->callback_data.v64;
-    color_tone* col_tone = color_change_dw->GetColorTone();
+    ImgfColorToneParam* col_tone = color_change_dw->GetColorTone();
     if (col_tone)
         col_tone->value = data->GetValue();
 }

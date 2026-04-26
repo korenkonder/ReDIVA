@@ -189,9 +189,9 @@ void TaskDataTestOpd::disp() {
             print_work.printf_align_left("item:\n");
 
             for (uint32_t& j : i.items) {
-                const item_table_item* item = item_table_handler_array_get_item(i.chara, j);
-                if (item)
-                    print_work.printf_align_left("%03u %s\n", j, item->name.c_str());
+                const RobItemTable* tbl = get_rob_item_table(i.chara, j);
+                if (tbl)
+                    print_work.printf_align_left("%03u %s\n", j, tbl->name.c_str());
             }
             worker++;
         }
@@ -261,11 +261,11 @@ void TaskDataTestOpd::GetCustomizeItemObjectNames(
     data_struct* aft_data = &data_list[DATA_AFT];
     object_database* aft_obj_db = &aft_data->data_ft.obj_db;
 
-    const item_table_item* item = item_table_handler_array_get_item(
+    const RobItemTable* tbl = get_rob_item_table(
         cstm.chara != 10 ? (CHARA_NUM)cstm.chara : CN_MIKU, cstm.obj_id);
-    if (item)
-        for (const item_table_item_data_obj& i : item->data.obj)
-            objects.push_back(aft_obj_db->get_object_name(i.obj_info));
+    if (tbl)
+        for (const RobItemDataObj& i : tbl->data.obj)
+            objects.push_back(aft_obj_db->get_object_name(i.uid));
 }
 
 bool TaskDataTestOpd::add_task() {

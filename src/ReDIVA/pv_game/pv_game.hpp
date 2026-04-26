@@ -42,8 +42,8 @@ enum hit_state {
 struct pv_game_chara {
     CHARA_NUM chara_num;
     int32_t cos;
-    int32_t chara_id;
-    rob_chara_pv_data pv_data;
+    ROB_ID rob_id;
+    RobInit rob_init;
     rob_chara* rob_chr;
     std::vector<uint32_t> motion_ids;
     std::vector<uint32_t> motion_face_ids;
@@ -52,7 +52,7 @@ struct pv_game_chara {
     ~pv_game_chara();
 
     bool check_chara();
-    void reset();
+    void init();
 };
 
 struct pv_game_edit_effect_data {
@@ -346,7 +346,7 @@ struct pv_game {
     int32_t pv_id;
     bool field_14;
     int32_t modules[ROB_ID_MAX];
-    rob_chara_pv_data_item items[ROB_ID_MAX];
+    RobItemEquipInit items[ROB_ID_MAX];
     pv_game_item_mask items_mask[ROB_ID_MAX];
     pv_game_data data;
 
@@ -377,7 +377,7 @@ struct pv_game {
     void edit_effect_ctrl(float_t delta_time);
     void edit_effect_set(int32_t index, float_t frame_speed, float_t delta_time);
     void edit_instrument_reset();
-    void edit_instrument_set_disp(int32_t chara_id, bool value);
+    void edit_instrument_set_disp(int32_t rob_id, bool value);
     void end(bool complete, bool set_fade);
     float_t get_aet_frame_max_frame(int32_t aet_frame, int32_t aet_index, std::pair<std::string,
         std::string>& aet_name_id, int64_t dsc_time, int64_t curr_time, float_t* max_frame);
@@ -392,7 +392,7 @@ struct pv_game {
     auth_3d_id get_auth_3d_id(int32_t uid);
     int64_t get_auth_3d_time(int32_t uid, uint8_t type);
     uint32_t get_chreff_auth_3d_object_set(int32_t& uid);
-    int64_t get_data_itmpv_time(int32_t chara_id, int32_t index);
+    int64_t get_data_itmpv_time(int32_t rob_id, int32_t index);
     float_t get_data_rival_percentage();
     std::string get_effect_se_file_name();
     int32_t get_field_aet_frame_by_name_id(pv_game_field& field,
@@ -433,24 +433,24 @@ struct pv_game {
     void restart();
     void set_chara_use_opd(bool value);
     void set_data_campv(int32_t type, int32_t index, float_t frame);
-    void set_data_itmpv(int32_t chara_id, int32_t index, bool enable, int64_t time);
-    void set_data_itmpv_chara_id(int32_t chara_id, int32_t index, bool attach);
-    void set_data_itmpv_req_frame(int32_t chara_id, int32_t index, float_t value);
-    void set_data_itmpv_max_frame(int32_t chara_id, float_t value);
-    void set_data_itmpv_max_frame(int32_t chara_id, int32_t index, float_t value);
-    void set_data_itmpv_visibility(int32_t chara_id, bool value);
-    void set_data_itmpv_visibility(int32_t chara_id, int32_t index, bool value);
-    void set_edit_instrument(int32_t chara_id, bool disp, int32_t index, float_t frame, float_t frame_speed);
+    void set_data_itmpv(int32_t rob_id, int32_t index, bool enable, int64_t time);
+    void set_data_itmpv_chara_id(int32_t rob_id, int32_t index, bool attach);
+    void set_data_itmpv_req_frame(int32_t rob_id, int32_t index, float_t value);
+    void set_data_itmpv_max_frame(int32_t rob_id, float_t value);
+    void set_data_itmpv_max_frame(int32_t rob_id, int32_t index, float_t value);
+    void set_data_itmpv_visibility(int32_t rob_id, bool value);
+    void set_data_itmpv_visibility(int32_t rob_id, int32_t index, bool value);
+    void set_edit_instrument(int32_t rob_id, bool disp, int32_t index, float_t frame, float_t frame_speed);
     void set_eyes_adjust(pv_game_chara* chr);
-    void set_item(size_t performer, rob_chara_pv_data_item& value);
+    void set_item(size_t performer, RobItemEquipInit& value);
     void set_item_mask(size_t performer, size_t item, bool value);
     void set_lyric(int32_t lyric_index, color4u8 lyric_color);
     void set_module(size_t performer, int32_t module);
     void set_osage_init(const pv_game_chara& chr);
     bool set_pv_param_post_process_bloom_data(bool set, int32_t id, float_t duration);
-    void set_pv_param_post_process_chara_alpha_data(int32_t chara_id,
+    void set_pv_param_post_process_chara_alpha_data(ROB_ID rob_id,
         float_t alpha, int32_t type, float_t duration);
-    void set_pv_param_post_process_chara_item_alpha_data(int32_t chara_id,
+    void set_pv_param_post_process_chara_item_alpha_data(ROB_ID rob_id,
         float_t alpha, int32_t type, float_t duration);
     bool set_pv_param_post_process_color_correction_data(bool set, int32_t id, float_t duration);
     bool set_pv_param_post_process_dof_data(bool set, int32_t id, float_t duration);
@@ -468,10 +468,10 @@ struct pv_game {
     int32_t sub_140112C00(int32_t index);
     void sub_1401230A0();
 
-    static void chara_item_alpha_callback(void* data, int32_t chara_id, int32_t type, float_t alpha);
+    static void chara_item_alpha_callback(void* data, ROB_ID rob_id, int32_t type, float_t alpha);
     static void get_item_mask(pv_performer_type type,
-        rob_chara_pv_data_item* src_item, pv_game_item_mask* src_mask,
-        rob_chara_pv_data_item* dst_item, pv_game_item_mask* dst_mask);
+        RobItemEquipInit* src_item, pv_game_item_mask* src_mask,
+        RobItemEquipInit* dst_item, pv_game_item_mask* dst_mask);
 };
 
 struct pv_game_init_data {
@@ -483,7 +483,7 @@ struct pv_game_init_data {
     int32_t life_gauge_border;
     int32_t stage_index;
     int32_t modules[ROB_ID_MAX];
-    rob_chara_pv_data_item items[ROB_ID_MAX];
+    RobItemEquipInit items[ROB_ID_MAX];
     pv_game_item_mask items_mask[ROB_ID_MAX];
 
     pv_game_init_data();

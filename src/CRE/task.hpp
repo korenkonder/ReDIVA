@@ -80,6 +80,9 @@ namespace app {
 
         void set_name(const char* name);
         void set_priority(int32_t priority);
+
+    private:
+        static void set_name_sub(char dst[0x20], const char* src, size_t size);
     };
 
     struct TaskWork {

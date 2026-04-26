@@ -25,7 +25,7 @@ struct pv_game_camera {
     vec3 up_vec;
     float_t fov;
     float_t min_dist;
-    int32_t chara_id;
+    ROB_ID rob_id;
     int32_t chara_follow_point;
     float_t acceleration_1;
     float_t acceleration_2;
@@ -47,7 +47,7 @@ static bool pv_game_camera_get_edit_camera(cam_struct* cam, float_t delta_time);
 static bool pv_game_camera_get_move_camera(cam_struct* cam, float_t delta_time);
 
 pv_game_camera::pv_game_camera() : enable(), follow_chara(), edit_camera(), duration(), curr_time(),
-start_distance(), end_distance(), fov(), min_dist(), chara_id(), chara_follow_point(),
+start_distance(), end_distance(), fov(), min_dist(), rob_id(), chara_follow_point(),
 acceleration_1(), acceleration_2(), field_F4(), acceleration(), acceleration_curr_time() {
 
 }
@@ -68,7 +68,7 @@ void pv_game_camera::reset() {
     up_vec = { 0.0f, 1.0f, 0.0f };
     fov = 32.2673416137695f;
     min_dist = 0.05f;
-    chara_id = 0;
+    rob_id = ROB_ID_1P;
     chara_follow_point = 0;
     acceleration_1 = 0.0f;
     acceleration_2 = 1.0f;
@@ -106,7 +106,7 @@ void pv_game_camera_reset() {
 
 void pv_game_camera_set_dsc_data(float_t duration, pv_game_camera_dsc_data& start,
     pv_game_camera_dsc_data& end, float_t acceleration_1, float_t acceleration_2,
-    int32_t follow_chara, int32_t chara_id, int32_t chara_follow_point, bool edit_camera) {
+    int32_t follow_chara, int32_t rob_id, int32_t chara_follow_point, bool edit_camera) {
     pv_game_camera_data.reset();
 
     pv_game_camera_data.edit_camera = edit_camera;
@@ -141,7 +141,7 @@ void pv_game_camera_set_dsc_data(float_t duration, pv_game_camera_dsc_data& star
 
     if (follow_chara) {
         pv_game_camera_data.follow_chara = true;
-        pv_game_camera_data.chara_id = chara_id;
+        pv_game_camera_data.rob_id = (ROB_ID)rob_id;
 
         switch (chara_follow_point) {
         case 0:
@@ -235,7 +235,7 @@ static bool pv_game_camera_get_edit_camera(cam_struct* cam, float_t delta_time) 
     }
 
     if (pv_game_camera_data.follow_chara) {
-        rob_chara* rob_chr = rob_chara_array_get(pv_game_camera_data.chara_id);
+        rob_chara* rob_chr = get_rob_management()->get_rob(pv_game_camera_data.rob_id);
         if (rob_chr) {
             mat4 mat = mat4_identity;
             rob_chr->sub_1405163C0(pv_game_camera_data.chara_follow_point, mat);
@@ -282,7 +282,7 @@ static bool pv_game_camera_get_move_camera(cam_struct* cam, float_t delta_time) 
     }
 
     if (pv_game_camera_data.follow_chara) {
-        rob_chara* rob_chr = rob_chara_array_get(pv_game_camera_data.chara_id);
+        rob_chara* rob_chr = get_rob_management()->get_rob(pv_game_camera_data.rob_id);
         if (rob_chr) {
             mat4 mat = mat4_identity;
             rob_chr->sub_1405163C0(pv_game_camera_data.chara_follow_point, mat);
