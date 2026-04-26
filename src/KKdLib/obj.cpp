@@ -40,7 +40,7 @@ struct obj_skin_ex_data_header {
     int64_t osage_joint_offset;
     int64_t root_name_offset;
     int64_t ex_node_array_offset;
-    int32_t nb_node_name;
+    uint32_t nb_node_name;
     int64_t ex_node_name_offset;
     int64_t osage_constraint_tbl_offset;
     int32_t nb_cloth;
@@ -959,11 +959,11 @@ static obj_skin_ex_data* obj_move_data_skin_ex_data(const obj_skin_ex_data* ex_s
     ex_dst->ex_node_table = ex_node_array_dst;
     ex_dst->num_ex_node = num_ex_node;
 
-    int32_t nb_node_name = ex_src->nb_node_name;
+    uint32_t nb_node_name = ex_src->nb_node_name;
     const char** ex_node_name_src = ex_src->ex_node_name;
     const char** ex_node_name_dst = alloc->allocate<const char*>(nb_node_name);
 
-    for (int32_t i = 0; i < nb_node_name; i++)
+    for (uint32_t i = 0; i < nb_node_name; i++)
         ex_node_name_dst[i] = obj_move_data_string(ex_node_name_src[i], alloc);
 
     ex_dst->nb_node_name = nb_node_name;
@@ -1268,12 +1268,9 @@ static void obj_set_classic_read_inner(obj_set* set, prj::shared_ptr<prj::stack_
             if (osh.obj_skin_data && obj_skin_data[i])
                 obj->skin = obj_classic_read_skin(alloc, s, obj_skin_data[i]);
 
-            if (osh.obj_name_data && obj_name_data[i]) {
+            if (osh.obj_name_data)
                 obj->name = obj_read_utf8_string_null_terminated_offset(alloc, s, obj_name_data[i]);
-                obj->hash = hash_utf8_murmurhash(obj->name);
-            }
-            else
-                obj->hash = hash_murmurhash_empty;
+            obj->hash = obj->name ? hash_utf8_murmurhash(obj->name) : hash_murmurhash_empty;
         }
 
         s.set_position(osh.obj_id_data, SEEK_SET);
@@ -2109,7 +2106,7 @@ static void obj_classic_write_skin(obj_skin* sk, stream& s, int64_t base_offset)
             }
         }
 
-        exh.nb_node_name = (int32_t)bone_names.size();
+        exh.nb_node_name = (uint32_t)bone_names.size();
         exh.ex_node_name_offset = s.get_position();
         for (string_hash& i : bone_names)
             s.write_int32_t(0);
@@ -2526,7 +2523,7 @@ static void obj_classic_write_skin(obj_skin* sk, stream& s, int64_t base_offset)
         s.write_uint32_t((uint32_t)exh.osage_joint_offset);
         s.write_uint32_t((uint32_t)exh.root_name_offset);
         s.write_uint32_t((uint32_t)exh.ex_node_array_offset);
-        s.write_int32_t(exh.nb_node_name);
+        s.write_uint32_t(exh.nb_node_name);
         s.write_uint32_t((uint32_t)exh.ex_node_name_offset);
         s.write_uint32_t((uint32_t)exh.osage_constraint_tbl_offset);
         s.write_int32_t(exh.nb_cloth);
@@ -2563,7 +2560,7 @@ static obj_skin_ex_data* obj_classic_read_skin_ex_data(prj::shared_ptr<prj::stac
     exh.osage_joint_offset = s.read_uint32_t();
     exh.root_name_offset = s.read_uint32_t();
     exh.ex_node_array_offset = s.read_uint32_t();
-    exh.nb_node_name = s.read_int32_t();
+    exh.nb_node_name = s.read_uint32_t();
     exh.ex_node_name_offset = s.read_uint32_t();
     exh.osage_constraint_tbl_offset = s.read_uint32_t();
     exh.nb_cloth = s.read_int32_t();
@@ -2580,7 +2577,7 @@ static obj_skin_ex_data* obj_classic_read_skin_ex_data(prj::shared_ptr<prj::stac
     if (!exh.ex_node_name_offset)
         return ex;
 
-    int32_t nb_node_name = exh.nb_node_name;
+    uint32_t nb_node_name = exh.nb_node_name;
     const char** ex_node_name = alloc->allocate<const char*>(nb_node_name);
     if (!ex_node_name)
         return ex;
@@ -2589,18 +2586,12 @@ static obj_skin_ex_data* obj_classic_read_skin_ex_data(prj::shared_ptr<prj::stac
     ex->nb_node_name = nb_node_name;
 
     s.set_position(exh.ex_node_name_offset, SEEK_SET);
-    for (int32_t i = 0; i < nb_node_name; i++) {
-        int32_t string_offset = s.read_uint32_t();
-        if (string_offset)
-            ex_node_name[i] = obj_read_utf8_string_null_terminated_offset(alloc, s, string_offset);
-        else
-            ex_node_name[i] = 0;
+    for (uint32_t i = 0; i < nb_node_name; i++) {
+        uint32_t string_offset = s.read_uint32_t();
+        ex_node_name[i] = obj_read_utf8_string_null_terminated_offset(alloc, s, string_offset);
     }
 
-    if (exh.osage_root_offset)
-        ex->osage_root = obj_read_utf8_string_null_terminated_offset(alloc, s, exh.osage_root_offset);
-    else
-        ex->osage_root = 0;
+    ex->osage_root = obj_read_utf8_string_null_terminated_offset(alloc, s, exh.osage_root_offset);
 
     if (exh.osage_joint_offset) {
         ex->osage_joint = alloc->allocate<obj_skin_osage_joint>(ex->nb_jointX);
@@ -3218,8 +3209,7 @@ static obj_skin_ex_node_expression* obj_classic_read_skin_ex_node_expression(
     exp->nb_src = nb_src;
     for (int32_t i = 0; i < nb_src; i++) {
         uint32_t script_offset = s.read_uint32_t();
-        if (script_offset)
-            exp->script[i] = obj_read_utf8_string_null_terminated_offset(alloc, s, script_offset);
+        exp->script[i] = obj_read_utf8_string_null_terminated_offset(alloc, s, script_offset);
     }
 
     for (int32_t i = nb_src; i < 9; i++)
@@ -4005,12 +3995,9 @@ static void obj_set_modern_read_inner(obj_set* set, prj::shared_ptr<prj::stack_a
     if (osh.obj_data)
         for (int32_t i = 0; i < obj_num; i++) {
             obj* obj = set->obj_data[i];
-            if (osh.obj_name_data && obj_name_data[i]) {
+            if (osh.obj_name_data)
                 obj->name = obj_read_utf8_string_null_terminated_offset(alloc, s_mosd, obj_name_data[i]);
-                obj->hash = hash_utf8_murmurhash(obj->name);
-            }
-            else
-                obj->hash = hash_murmurhash_empty;
+            obj->hash = obj->name ? hash_utf8_murmurhash(obj->name) : hash_murmurhash_empty;
         }
 
     if (osh.obj_id_data) {
@@ -5365,7 +5352,7 @@ static void obj_modern_write_skin(obj_skin* sk, stream& s,
                 exh.nb_root++;
         }
 
-        exh.nb_node_name = (int32_t)bone_names.size();
+        exh.nb_node_name = (uint32_t)bone_names.size();
     }
 
     if (sk->ex_data) {
@@ -5421,13 +5408,13 @@ static void obj_modern_write_skin(obj_skin* sk, stream& s,
         }
 
         if (!is_x) {
-            ee = { off, 1, 4, (uint32_t)exh.nb_node_name };
+            ee = { off, 1, 4, exh.nb_node_name };
             ee.append(0, 1, ENRS_DWORD);
             e.vec.push_back(ee);
             off = (uint32_t)(exh.nb_node_name * 4ULL);
         }
         else {
-            ee = { off, 1, 8, (uint32_t)exh.nb_node_name };
+            ee = { off, 1, 8, exh.nb_node_name };
             ee.append(0, 1, ENRS_QWORD);
             e.vec.push_back(ee);
             off = (uint32_t)(exh.nb_node_name * 8ULL);
@@ -6506,7 +6493,7 @@ static void obj_modern_write_skin(obj_skin* sk, stream& s,
             s.write_offset_f2(exh.osage_joint_offset, 0x20);
             s.write_offset_f2(exh.root_name_offset, 0x20);
             s.write_offset_f2(exh.ex_node_array_offset, 0x20);
-            s.write_int32_t_reverse_endianness(exh.nb_node_name);
+            s.write_uint32_t_reverse_endianness(exh.nb_node_name);
             s.write_offset_f2(exh.ex_node_name_offset, 0x20);
             s.write_offset_f2(exh.osage_constraint_tbl_offset, 0x20);
             s.write_int32_t_reverse_endianness(exh.nb_cloth);
@@ -6525,7 +6512,7 @@ static void obj_modern_write_skin(obj_skin* sk, stream& s,
             s.write_offset_x(exh.osage_joint_offset);
             s.write_offset_x(exh.root_name_offset);
             s.write_offset_x(exh.ex_node_array_offset);
-            s.write_int32_t_reverse_endianness(exh.nb_node_name);
+            s.write_uint32_t_reverse_endianness(exh.nb_node_name);
             s.write_offset_x(exh.ex_node_name_offset);
             s.write_offset_x(exh.osage_constraint_tbl_offset);
             s.write_int32_t_reverse_endianness(exh.nb_cloth);
@@ -6578,7 +6565,7 @@ static obj_skin_ex_data* obj_modern_read_skin_ex_data(prj::shared_ptr<prj::stack
         exh.osage_joint_offset = s.read_offset_f2(header_length);
         exh.root_name_offset = s.read_offset_f2(header_length);
         exh.ex_node_array_offset = s.read_offset_f2(header_length);
-        exh.nb_node_name = s.read_int32_t_reverse_endianness();
+        exh.nb_node_name = s.read_uint32_t_reverse_endianness();
         exh.ex_node_name_offset = s.read_offset_f2(header_length);
         exh.osage_constraint_tbl_offset = s.read_offset_f2(header_length);
         exh.nb_cloth = s.read_int32_t_reverse_endianness();
@@ -6597,7 +6584,7 @@ static obj_skin_ex_data* obj_modern_read_skin_ex_data(prj::shared_ptr<prj::stack
         exh.osage_joint_offset = s.read_offset_x();
         exh.root_name_offset = s.read_offset_x();
         exh.ex_node_array_offset = s.read_offset_x();
-        exh.nb_node_name = s.read_int32_t_reverse_endianness();
+        exh.nb_node_name = s.read_uint32_t_reverse_endianness();
         exh.ex_node_name_offset = s.read_offset_x();
         exh.osage_constraint_tbl_offset = s.read_offset_x();
         exh.nb_cloth = s.read_int32_t_reverse_endianness();
@@ -6616,7 +6603,7 @@ static obj_skin_ex_data* obj_modern_read_skin_ex_data(prj::shared_ptr<prj::stack
         return ex;
     }
 
-    int32_t nb_node_name = exh.nb_node_name;
+    uint32_t nb_node_name = exh.nb_node_name;
 
     const char** ex_node_name = alloc->allocate<const char*>(nb_node_name);
     ex->ex_node_name = ex_node_name;
@@ -6624,26 +6611,17 @@ static obj_skin_ex_data* obj_modern_read_skin_ex_data(prj::shared_ptr<prj::stack
 
     s.set_position(exh.ex_node_name_offset, SEEK_SET);
     if (!is_x)
-        for (int32_t i = 0; i < nb_node_name; i++) {
+        for (uint32_t i = 0; i < nb_node_name; i++) {
             int64_t string_offset = s.read_offset_f2(header_length);
-            if (string_offset)
-                ex_node_name[i] = obj_read_utf8_string_null_terminated_offset(alloc, s, string_offset);
-            else
-                ex_node_name[i] = 0;
+            ex_node_name[i] = obj_read_utf8_string_null_terminated_offset(alloc, s, string_offset);
         }
     else
-        for (int32_t i = 0; i < nb_node_name; i++) {
+        for (uint32_t i = 0; i < nb_node_name; i++) {
             int64_t string_offset = s.read_offset_x();
-            if (string_offset)
-                ex_node_name[i] = obj_read_utf8_string_null_terminated_offset(alloc, s, string_offset);
-            else
-                ex_node_name[i] = 0;
+            ex_node_name[i] = obj_read_utf8_string_null_terminated_offset(alloc, s, string_offset);
         }
 
-    if (exh.osage_root_offset)
-        ex->osage_root = obj_read_utf8_string_null_terminated_offset(alloc, s, exh.osage_root_offset);
-    else
-        ex->osage_root = 0;
+    ex->osage_root = obj_read_utf8_string_null_terminated_offset(alloc, s, exh.osage_root_offset);
 
     if (exh.osage_joint_offset) {
         ex->osage_joint = alloc->allocate<obj_skin_osage_joint>(ex->nb_jointX);
@@ -7296,14 +7274,12 @@ static obj_skin_ex_node_expression* obj_modern_read_skin_ex_node_expression(
     if (!is_x)
         for (int32_t i = 0; i < nb_src; i++) {
             int64_t script_offset = s.read_offset_f2(header_length);
-            if (script_offset)
-                exp->script[i] = obj_read_utf8_string_null_terminated_offset(alloc, s, script_offset);
+            exp->script[i] = obj_read_utf8_string_null_terminated_offset(alloc, s, script_offset);
         }
     else
         for (int32_t i = 0; i < nb_src; i++) {
             int64_t script_offset = s.read_offset_x();
-            if (script_offset)
-                exp->script[i] = obj_read_utf8_string_null_terminated_offset(alloc, s, script_offset);
+            exp->script[i] = obj_read_utf8_string_null_terminated_offset(alloc, s, script_offset);
         }
 
     for (int32_t i = nb_src; i < 9; i++)
@@ -7855,6 +7831,9 @@ inline static const char* obj_move_data_string(const char* str,
 
 inline static const char* obj_read_utf8_string_null_terminated_offset(
     prj::shared_ptr<prj::stack_allocator>& alloc, stream& s, int64_t offset) {
+    if (!offset)
+        return 0;
+
     size_t len = s.read_utf8_string_null_terminated_offset_length(offset);
     char* str = alloc->allocate<char>(len + 1);
     s.position_push(offset, SEEK_SET);

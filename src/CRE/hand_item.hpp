@@ -17,8 +17,8 @@ struct hand_item {
     std::string item_str;
     std::string item_name;
     uint32_t file_size;
-    uint32_t hand_mottbl_index;
-    float_t hand_scale;
+    uint32_t mottbl_type;
+    float_t scale;
     int32_t uid;
 
     hand_item();

@@ -14,16 +14,16 @@
 class DataTestMot : public app::Task {
 public:
     struct Data {
-        struct Offset {
+        struct Off {
             float_t array[2];
 
-            Offset();
+            Off();
         };
 
-        struct Divide {
+        struct Div {
             float_t array[3];
 
-            Divide();
+            Div();
         };
 
         struct Step {
@@ -32,18 +32,18 @@ public:
             Step();
         };
 
-        CHARA_NUM chara_num[2];
-        CHARA_NUM curr_chara_num[2];
-        uint32_t cos_id[2];
-        uint32_t curr_cos_id[2];
-        uint32_t motion_set_index[2];
-        uint32_t curr_motion_set_index[2];
-        uint32_t motion_index[2];
-        uint32_t curr_motion_index[2];
+        CHARA_NUM chr[2];
+        CHARA_NUM curr_chr[2];
+        uint32_t ptr[2];
+        uint32_t curr_ptr[2];
+        uint32_t set[2];
+        uint32_t curr_set[2];
+        uint32_t uid[2];
+        uint32_t curr_uid[2];
         float_t rot_y[2];
         float_t trans_x[2];
-        Offset offset[2];
-        Divide divide[2];
+        Off off[2];
+        Div div[2];
         Step step[2];
         float_t start_frame[2];
         int32_t type;
@@ -102,31 +102,30 @@ public:
 
 class DtmMot : public app::Task {
 public:
-    rob_chara_bone_data* rob_bone_data;
-    int32_t chara_id;
-    int32_t type;
-    CHARA_NUM chara_num;
-    int32_t cos_id;
-    union {
-        uint32_t motion_set_id;
-        int32_t motion_set_index;
+    enum ASSIGN {
+        IDX = 0,
+        UID,
     };
-    union {
-        uint32_t motion_id;
-        int32_t motion_index;
-    };
-    vec3 trans;
-    vec3 rotation;
-    float_t rot_y;
+
+    RobManagement* rob_man;
+    rob_chara_bone_data* motion;
+    ROB_ID rctrl;
+    ASSIGN assign;
+    CHARA_NUM chr;
+    int32_t ptr;
+    uint32_t set;
+    uint32_t uid;
+    vec3 pos;
+    float_t rot[4];
     float_t pre_offset;
     float_t post_offset;
     float_t step[4];
-    float_t divide[3];
+    float_t div[3];
     bool loop;
-    bool play;
-    bool field_D2;
-    bool change_motion;
-    bool disp;
+    bool move;
+    bool item;
+    bool reset_osage_flag;
+    bool display;
     bool use_opd;
     bool loaded;
     bool reset_mot;
@@ -152,12 +151,11 @@ public:
     virtual bool init() override;
     virtual bool ctrl() override;
     virtual bool dest() override;
+    virtual void disp() override;
     virtual void basic() override;
 
-    virtual bool add_task(CHARA_NUM chara_num,
-        int32_t cos_id, uint32_t motion_set_index, uint32_t motion_index);
-    virtual bool add_task(CHARA_NUM chara_num,
-        int32_t cos_id, uint32_t motion_id);
+    virtual bool add_task(CHARA_NUM chr, int32_t ptr, uint32_t set, uint32_t uid);
+    virtual bool add_task(CHARA_NUM chr, int32_t ptr, uint32_t uid);
     virtual bool del_task();
 
     bool CheckFirstFrame();

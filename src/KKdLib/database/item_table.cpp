@@ -108,7 +108,7 @@ itm_table_item_data_obj::~itm_table_item_data_obj() {
 
 }
 
-itm_table_item_data_ofs::itm_table_item_data_ofs() : sub_id(), no() {
+itm_table_item_data_ofs::itm_table_item_data_ofs() : sub_id(), item_no() {
 
 }
 
@@ -120,7 +120,7 @@ itm_table_item_data_tex::~itm_table_item_data_tex() {
 
 }
 
-itm_table_item_data_col::itm_table_item_data_col() : flag(), col_tone() {
+itm_table_item_data_col::itm_table_item_data_col() : flag(), color() {
 
 }
 
@@ -136,8 +136,8 @@ itm_table_item_data::~itm_table_item_data() {
 
 }
 
-itm_table_item::itm_table_item() : no(), flag(), type(), attr(), des_id(),
-sub_id(), exclusion(), point(), org_itm(), npr_flag(), face_depth() {
+itm_table_item::itm_table_item() : no(), flag(), type(), attr(), equip_des_id(),
+equip_sub_id(), exclusion(), point(), org_itm(), npr_flag(), face_depth() {
 
 }
 
@@ -324,8 +324,8 @@ const char* item_id_get_name(ROB_PARTS_KIND rpk) {
     return 0;
 }
 
-const char* item_sub_id_get_name(item_sub_id sub_id) {
-    if (sub_id >= 0 && sub_id < ITEM_SUB_MAX)
+const char* item_sub_id_get_name(ROB_ITEM_EQUIP_SUB_ID sub_id) {
+    if (sub_id >= 0 && sub_id < ROB_ITEM_EQUIP_SUB_ID_MAX)
         return rob_item_equip_sub_id_str[sub_id];
     return 0;
 }
@@ -434,7 +434,7 @@ static void itm_table_read_text(itm_table* itm_tbl, void* data, size_t size) {
                 continue;
             }
 
-            if (!kv.read("flag", itm.flag)
+            if (!kv.read("flag", itm.flag.w)
                 || !kv.read("name", itm.name)) {
                 kv.close_scope();
                 continue;
@@ -455,15 +455,19 @@ static void itm_table_read_text(itm_table* itm_tbl, void* data, size_t size) {
                 kv.close_scope();
             }
 
+            int32_t type = 0;
+            int32_t des_id = 0;
             int32_t sub_id = 0;
-            if (!kv.read("type", itm.type)
+            if (!kv.read("type", type)
                 || !kv.read("attr", itm.attr)
-                || !kv.read("des_id", itm.des_id)
+                || !kv.read("des_id", des_id)
                 || !kv.read("sub_id", sub_id)) {
                 kv.close_scope();
                 continue;
             }
-            itm.sub_id = (item_sub_id)sub_id;
+            itm.type = (ROB_ITEM_TYPE)type;
+            itm.equip_des_id = (ROB_ITEM_EQUIP_DES_ID)des_id;
+            itm.equip_sub_id = (ROB_ITEM_EQUIP_SUB_ID)sub_id;
 
             if (kv.open_scope("data")) {
                 int32_t count;
@@ -497,18 +501,18 @@ static void itm_table_read_text(itm_table* itm_tbl, void* data, size_t size) {
 
                         itm_table_item_data_ofs ofs;
                         int32_t sub_id = 0;
-                        if (kv.read("no", ofs.no)
+                        if (kv.read("no", ofs.item_no)
                             && kv.read("sub_id", sub_id)
-                            && kv.read("tx", ofs.position.x)
-                            && kv.read("ty", ofs.position.y)
-                            && kv.read("tz", ofs.position.z)
-                            && kv.read("rx", ofs.rotation.x)
-                            && kv.read("ry", ofs.rotation.y)
-                            && kv.read("rz", ofs.rotation.z)
+                            && kv.read("tx", ofs.trans.x)
+                            && kv.read("ty", ofs.trans.y)
+                            && kv.read("tz", ofs.trans.z)
+                            && kv.read("rx", ofs.rot.x)
+                            && kv.read("ry", ofs.rot.y)
+                            && kv.read("rz", ofs.rot.z)
                             && kv.read("sx", ofs.scale.x)
                             && kv.read("sy", ofs.scale.y)
                             && kv.read("sz", ofs.scale.z)) {
-                            ofs.sub_id = (item_sub_id)sub_id;
+                            ofs.sub_id = (ROB_ITEM_EQUIP_SUB_ID)sub_id;
                             vido.push_back(ofs);
                         }
 
@@ -545,25 +549,25 @@ static void itm_table_read_text(itm_table* itm_tbl, void* data, size_t size) {
 
                         itm_table_item_data_col col;
                         kv.read("tex", col.tex);
-                        kv.read("flag", col.flag);
+                        kv.read("flag", col.flag.w);
 
-                        if (!(col.flag & 0x01)) {
+                        if (!col.flag.m.is_available) {
                             vidc.push_back(col);
                             kv.close_scope();
                             continue;
                         }
 
-                        kv.read("blend.0", col.col_tone.blend.x);
-                        kv.read("blend.1", col.col_tone.blend.y);
-                        kv.read("blend.2", col.col_tone.blend.z);
-                        kv.read("offset.0", col.col_tone.offset.x);
-                        kv.read("offset.1", col.col_tone.offset.y);
-                        kv.read("offset.2", col.col_tone.offset.z);
-                        kv.read("hue", col.col_tone.hue);
-                        kv.read("saturation", col.col_tone.saturation);
-                        kv.read("value", col.col_tone.value);
-                        kv.read("contrast", col.col_tone.contrast);
-                        kv.read("inverse", col.col_tone.inverse);
+                        kv.read("blend.0", col.color.blend_color.x);
+                        kv.read("blend.1", col.color.blend_color.y);
+                        kv.read("blend.2", col.color.blend_color.z);
+                        kv.read("offset.0", col.color.offset_color.x);
+                        kv.read("offset.1", col.color.offset_color.y);
+                        kv.read("offset.2", col.color.offset_color.z);
+                        kv.read("hue", col.color.hue);
+                        kv.read("saturation", col.color.saturation);
+                        kv.read("value", col.color.value);
+                        kv.read("contrast", col.color.contrast);
+                        kv.read("inverse", col.color.inverse);
                         vidc.push_back(col);
 
                         kv.close_scope();
@@ -705,28 +709,28 @@ static void itm_table_write_text(itm_table* itm_tbl, void** data, size_t* size) 
                         kv.open_scope_fmt(sort_index_data[j]);
 
                         itm_table_item_data_col* col = &vidc[sort_index_data[j]];
-                        if (col->flag & 0x01) {
-                            kv.write(s, "blend.0", col->col_tone.blend.x);
-                            kv.write(s, "blend.1", col->col_tone.blend.y);
-                            kv.write(s, "blend.2", col->col_tone.blend.z);
-                            kv.write(s, "contrast", col->col_tone.contrast);
+                        if (col->flag.m.is_available) {
+                            kv.write(s, "blend.0", col->color.blend_color.x);
+                            kv.write(s, "blend.1", col->color.blend_color.y);
+                            kv.write(s, "blend.2", col->color.blend_color.z);
+                            kv.write(s, "contrast", col->color.contrast);
                         }
 
-                        kv.write(s, "flag", col->flag);
+                        kv.write(s, "flag", col->flag.w);
 
-                        if (col->flag & 0x01) {
-                            kv.write(s, "hue", col->col_tone.hue);
-                            kv.write(s, "inverse", col->col_tone.inverse ? 1 : 0);
-                            kv.write(s, "offset.0", col->col_tone.offset.x);
-                            kv.write(s, "offset.1", col->col_tone.offset.y);
-                            kv.write(s, "offset.2", col->col_tone.offset.z);
-                            kv.write(s, "saturation", col->col_tone.saturation);
+                        if (col->flag.m.is_available) {
+                            kv.write(s, "hue", col->color.hue);
+                            kv.write(s, "inverse", col->color.inverse ? 1 : 0);
+                            kv.write(s, "offset.0", col->color.offset_color.x);
+                            kv.write(s, "offset.1", col->color.offset_color.y);
+                            kv.write(s, "offset.2", col->color.offset_color.z);
+                            kv.write(s, "saturation", col->color.saturation);
                         }
 
                         kv.write(s, "tex", col->tex);
 
-                        if (col->flag & 0x01)
-                            kv.write(s, "value", col->col_tone.value);
+                        if (col->flag.m.is_available)
+                            kv.write(s, "value", col->color.value);
 
                         kv.close_scope();
                     }
@@ -771,17 +775,17 @@ static void itm_table_write_text(itm_table* itm_tbl, void** data, size_t* size) 
                         kv.open_scope_fmt(sort_index_data[j]);
 
                         itm_table_item_data_ofs* ofs = &vido[sort_index_data[j]];
-                        kv.write(s, "no", ofs->no);
-                        kv.write(s, "rx", ofs->rotation.x);
-                        kv.write(s, "ry", ofs->rotation.y);
-                        kv.write(s, "rz", ofs->rotation.z);
+                        kv.write(s, "no", ofs->item_no);
+                        kv.write(s, "rx", ofs->rot.x);
+                        kv.write(s, "ry", ofs->rot.y);
+                        kv.write(s, "rz", ofs->rot.z);
                         kv.write(s, "sub_id", ofs->sub_id);
                         kv.write(s, "sx", ofs->scale.x);
                         kv.write(s, "sy", ofs->scale.y);
                         kv.write(s, "sz", ofs->scale.z);
-                        kv.write(s, "tx", ofs->position.x);
-                        kv.write(s, "ty", ofs->position.y);
-                        kv.write(s, "tz", ofs->position.z);
+                        kv.write(s, "tx", ofs->trans.x);
+                        kv.write(s, "ty", ofs->trans.y);
+                        kv.write(s, "tz", ofs->trans.z);
 
                         kv.close_scope();
                     }
@@ -816,10 +820,10 @@ static void itm_table_write_text(itm_table* itm_tbl, void** data, size_t* size) 
                 kv.close_scope();
             }
 
-            kv.write(s, "des_id", itm->des_id);
+            kv.write(s, "des_id", itm->equip_des_id);
             kv.write(s, "exclusion", itm->exclusion);
             kv.write(s, "face_depth", itm->face_depth);
-            kv.write(s, "flag", itm->flag);
+            kv.write(s, "flag", itm->flag.w);
             kv.write(s, "name", itm->name);
             kv.write(s, "no", itm->no);
             kv.write(s, "npr_flag", itm->npr_flag);
@@ -845,7 +849,7 @@ static void itm_table_write_text(itm_table* itm_tbl, void** data, size_t* size) 
 
             kv.write(s, "org_itm", itm->org_itm);
             kv.write(s, "point", itm->point);
-            kv.write(s, "sub_id", itm->sub_id);
+            kv.write(s, "sub_id", itm->equip_sub_id);
             kv.write(s, "type", itm->type);
 
             kv.close_scope();

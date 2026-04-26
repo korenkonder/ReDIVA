@@ -78,6 +78,7 @@ static void closest_pt_segment_segment(vec3& vec, const vec3& p0, const vec3& q0
 static void length_limit(vec3& p, const vec3& r, const float_t rr);
 static bool make_axis_matrix(mat4& mat, const vec3& axis,
     const skin_param_hinge* hinge, vec3* rot, const ROTTYPE& rottype);
+static void make_direction_matrix(mat4& mat, const vec3& v0, const vec3& v1);
 static void modify_cloth_object(obj_mesh* mesh, obj_mesh_vertex_buffer* vb,
     CLOTH_VERTEX* vtxarg, float_t sgn, int32_t num_idx, uint16_t* idxtbl, bool do_ura);
 
@@ -185,7 +186,7 @@ void ExNodeBlock::init_members() {
 
 // 0x1405EEB80
 void ExNodeBlock::set_data(RobNode* node, ExNodeType type,
-    const char* name, const rob_chara_item_equip_object* skin_disp) {
+    const char* name, const RobSkinDisp* skin_disp) {
     init_members();
 
     dst_node = node;
@@ -193,6 +194,11 @@ void ExNodeBlock::set_data(RobNode* node, ExNodeType type,
     this->name = name ? name : "(null)";
     parent = 0;
     this->skin_disp = skin_disp;
+}
+
+// 0x1405F92B0
+void ExNodeBlock::set_name(const char* name) {
+    this->name = name;
 }
 
 ExNullBlock::ExNullBlock() {
@@ -251,7 +257,7 @@ void ExNullBlock::pos_init_cont() {
 
 }
 
-void ExNullBlock::set_data(const rob_chara_item_equip_object* skin_disp,
+void ExNullBlock::set_data(const RobSkinDisp* skin_disp,
     const obj_skin_ex_node_constraint* data, const char* name, const bone_database* bone_data) {
     RobNode* node = (RobNode*)skin_disp->get_node(name, bone_data);
     type = EX_NODE_TYPE_NULL;
@@ -1231,10 +1237,10 @@ void RobCloth::dest() {
     reset_data_list = 0;
 }
 
-void RobCloth::AddMotionResetData(uint32_t motion_id, float_t frame) {
+void RobCloth::AddMotionResetData(uint32_t motnum, float_t frame) {
     int32_t frame_int = (int32_t)prj::roundf(frame * 1000.0f);
 
-    auto elem = motion_reset_data.find({ motion_id, frame_int });
+    auto elem = motion_reset_data.find({ motnum, frame_int });
     if (elem != motion_reset_data.end())
         motion_reset_data.erase(elem);
 
@@ -1244,7 +1250,7 @@ void RobCloth::AddMotionResetData(uint32_t motion_id, float_t frame) {
     for (CLOTH_VERTEX* i = i_begin; i != i_end; i++)
         reset_data_list.push_back(i->reset_data);
 
-    motion_reset_data.insert({ { motion_id, frame_int }, reset_data_list });
+    motion_reset_data.insert({ { motnum, frame_int }, reset_data_list });
 }
 
 // 0x1402196D0
@@ -1282,20 +1288,20 @@ void RobCloth::CtrlOsagePlayData(const std::vector<opd_blend_data>& opd_blend_da
 
         float_t frame = i->frame;
 #if OPD_PLAY_GEN
-        if (frame >= i->frame_count)
-            frame = i->no_loop ? i->frame_count - 1.0f : 0.0f;
+        if (frame >= i->frame_max)
+            frame = i->no_loop ? i->frame_max - 1.0f : 0.0f;
 #else
-        if (frame >= i->frame_count)
+        if (frame >= i->frame_max)
             frame = 0.0f;
 #endif
 
         int32_t curr_key = (int32_t)(int64_t)prj::floorf(frame);
         int32_t next_key = curr_key + 1;
 #if OPD_PLAY_GEN
-        if ((float_t)next_key >= i->frame_count)
-            next_key = i->no_loop ? (int32_t)i->frame_count - 1 : 0;
+        if ((float_t)next_key >= i->frame_max)
+            next_key = i->no_loop ? (int32_t)i->frame_max - 1 : 0;
 #else
-        if ((float_t)next_key >= i->frame_count)
+        if ((float_t)next_key >= i->frame_max)
             next_key = 0;
 #endif
 
@@ -1402,9 +1408,9 @@ void RobCloth::LoadSkinParam(void* kv, const char* name, const bone_database* bo
     SetSkinParamOsageRoot(root);
 }
 
-void RobCloth::SetMotionResetData(uint32_t motion_id, float_t frame) {
+void RobCloth::SetMotionResetData(uint32_t motnum, float_t frame) {
     osage_reset = true;
-    auto elem = motion_reset_data.find({ motion_id, (int32_t)prj::roundf(frame * 1000.0f) });
+    auto elem = motion_reset_data.find({ motnum, (int32_t)prj::roundf(frame * 1000.0f) });
     if (elem != motion_reset_data.end() && elem->second.size() + width == vtxarg.size()) {
         this->reset_data_list = &elem->second;
 
@@ -1798,7 +1804,7 @@ void RobCloth::modify_obj() {
 // 0x14021E460
 void RobCloth::set_data(size_t w, size_t h, const obj_skin_ex_node_cloth_root * rt_data,
     const obj_skin_ex_node_cloth_point* move, const mat4* lcl_mat, uint32_t ring_flag,
-    const rob_chara_item_equip_object* skin, const bone_database* bone_data) {
+    const RobSkinDisp* skin, const bone_database* bone_data) {
     skin_disp = skin;
 
     obj* obj = objset_info_storage_get_obj(skin_disp->obj_uid);
@@ -1937,7 +1943,7 @@ void RobCloth::set_data(size_t w, size_t h, const obj_skin_ex_node_cloth_root * 
 
 // 0x14021EEB0
 void RobCloth::set_data(const obj_skin_ex_node_cloth* cldata,
-    const rob_chara_item_equip_object* skin, const bone_database* bone_data) {
+    const RobSkinDisp* skin, const bone_database* bone_data) {
     dest();
     data = cldata;
     set_data(cldata->width, cldata->height, cldata->fix_point,
@@ -2072,7 +2078,7 @@ void ExClothBlock::CtrlStep(int32_t stage, bool disable_ex_force) {
 void ExClothBlock::ctrl() {
     set_param();
 
-    const rob_chara_item_equip* rob_disp = skin_disp->rob_disp;
+    const RobDisp* rob_disp = skin_disp->rob_disp;
     float_t delta_frame = get_delta_frame();
 #if OPD_PLAY_GEN
     if (opd_play_gen_run)
@@ -2112,16 +2118,16 @@ void ExClothBlock::pos_init_cont() {
     cloth_work.pos_init_cont();
 }
 
-void ExClothBlock::AddMotionResetData(uint32_t motion_id, float_t frame) {
-    cloth_work.AddMotionResetData(motion_id, frame);
+void ExClothBlock::AddMotionResetData(const uint32_t& motnum, const float_t& frame) {
+    cloth_work.AddMotionResetData(motnum, frame);
 }
 
 const float_t* ExClothBlock::LoadOpdData(size_t node_index, const float_t* opd_data, size_t opd_count) {
     return cloth_work.LoadOpdData(node_index, opd_data, opd_count);
 }
 
-void ExClothBlock::SetMotionResetData(uint32_t motion_id, float_t frame) {
-    cloth_work.SetMotionResetData(motion_id, frame);
+void ExClothBlock::SetMotionResetData(const uint32_t& motnum, const float_t& frame) {
+    cloth_work.SetMotionResetData(motnum, frame);
 }
 
 const float_t* ExClothBlock::SetOsagePlayDataInit(const float_t* opdi_data) {
@@ -2155,7 +2161,7 @@ void ExClothBlock::reset_ex_force() {
     cloth_work.reset_ex_force();
 }
 
-void ExClothBlock::set_data(const rob_chara_item_equip_object* skin_disp,
+void ExClothBlock::set_data(const RobSkinDisp* skin_disp,
     const obj_skin_ex_node_cloth* data, const skin_param_osage_root* skp_root, const bone_database* bone_data) {
     type = EX_NODE_TYPE_CLOTH;
     dst_node = 0;
@@ -2194,10 +2200,10 @@ RobOsage::~RobOsage() {
 
 }
 
-void RobOsage::AddMotionResetData(uint32_t motion_id, float_t frame) {
+void RobOsage::AddMotionResetData(const uint32_t& motnum, const float_t& frame) {
     int32_t frame_int = (int32_t)prj::roundf(frame * 1000.0f);
 
-    auto elem = motion_reset_data.find({ motion_id, frame_int });
+    auto elem = motion_reset_data.find({ motnum, frame_int });
     if (elem != motion_reset_data.end())
         motion_reset_data.erase(elem);
 
@@ -2207,7 +2213,7 @@ void RobOsage::AddMotionResetData(uint32_t motion_id, float_t frame) {
     for (RobJointNode* i = i_begin; i != i_end; i++)
         reset_data_list.push_back(i->reset_data);
 
-    motion_reset_data.insert({ { motion_id, frame_int }, reset_data_list });
+    motion_reset_data.insert({ { motnum, frame_int }, reset_data_list });
 }
 
 // 0x14047D620
@@ -2638,20 +2644,20 @@ void RobOsage::CtrlOsagePlayData(const mat4& root_matrix,
 
         float_t frame = i->frame;
 #if OPD_PLAY_GEN
-        if (frame >= i->frame_count)
-            frame = i->no_loop ? i->frame_count - 1.0f : 0.0f;
+        if (frame >= i->frame_max)
+            frame = i->no_loop ? i->frame_max - 1.0f : 0.0f;
 #else
-        if (frame >= i->frame_count)
+        if (frame >= i->frame_max)
             frame = 0.0f;
 #endif
 
         int32_t curr_key = (int32_t)(int64_t)prj::floorf(frame);
         int32_t next_key = curr_key + 1;
 #if OPD_PLAY_GEN
-        if ((float_t)next_key >= i->frame_count)
-            next_key = i->no_loop ? (int32_t)i->frame_count - 1 : 0;
+        if ((float_t)next_key >= i->frame_max)
+            next_key = i->no_loop ? (int32_t)i->frame_max - 1 : 0;
 #else
-        if ((float_t)next_key >= i->frame_count)
+        if ((float_t)next_key >= i->frame_max)
             next_key = 0;
 #endif
 
@@ -2810,9 +2816,9 @@ void RobOsage::SetDisableCollision(const bool& value) {
     disable_collision = value;
 }
 
-void RobOsage::SetMotionResetData(uint32_t motion_id, float_t frame) {
+void RobOsage::SetMotionResetData(const uint32_t& motnum, const float_t& frame) {
     osage_reset = true;
-    auto elem = motion_reset_data.find({ motion_id, (int32_t)prj::roundf(frame * 1000.0f) });
+    auto elem = motion_reset_data.find({ motnum, (int32_t)prj::roundf(frame * 1000.0f) });
     if (elem != motion_reset_data.end() && elem->second.size() + 1 == joint_node_vec.size())
         reset_data_list = &elem->second;
 }
@@ -3236,7 +3242,7 @@ void ExOsageBlock::CtrlBegin() {
 }
 
 void ExOsageBlock::CtrlStep(int32_t stage, bool disable_ex_force) {
-    const rob_chara_item_equip* rob_disp = skin_disp->rob_disp;
+    const RobDisp* rob_disp = skin_disp->rob_disp;
     float_t delta_frame = get_delta_frame();
 #if OPD_PLAY_GEN
     if (opd_play_gen_run)
@@ -3282,7 +3288,7 @@ void ExOsageBlock::ctrl() {
         return;
     }
 
-    const rob_chara_item_equip* rob_disp = skin_disp->rob_disp;
+    const RobDisp* rob_disp = skin_disp->rob_disp;
     float_t delta_frame = get_delta_frame();
 #if OPD_PLAY_GEN
     if (opd_play_gen_run)
@@ -3358,8 +3364,8 @@ void ExOsageBlock::CtrlEnd() {
     done = false;
 }
 
-void ExOsageBlock::AddMotionResetData(uint32_t motion_id, float_t frame) {
-    osage_work.AddMotionResetData(motion_id, frame);
+void ExOsageBlock::AddMotionResetData(const uint32_t& motnum, const float_t& frame) {
+    osage_work.AddMotionResetData(motnum, frame);
 }
 
 const float_t* ExOsageBlock::LoadOpdData(size_t node_index, const float_t* opd_data, size_t opd_count) {
@@ -3371,8 +3377,8 @@ void ExOsageBlock::SetDisableCollision(const bool& value) {
     osage_work.SetDisableCollision(value);
 }
 
-void ExOsageBlock::SetMotionResetData(uint32_t motion_id, float_t frame) {
-    osage_work.SetMotionResetData(motion_id, frame);
+void ExOsageBlock::SetMotionResetData(const uint32_t& motnum, const float_t& frame) {
+    osage_work.SetMotionResetData(motnum, frame);
 }
 
 const float_t* ExOsageBlock::SetOsagePlayDataInit(const float_t* opdi_data) {
@@ -3398,37 +3404,36 @@ void ExOsageBlock::SetWindDirection() {
 }
 
 // 0x1405F3E10
-void ExOsageBlock::get_node_list(
-    const obj_skin_ex_node_osage* osg_data, const obj_skin_osage_joint* joint,
-    prj::vector_pair<uint32_t, RobJointNode*>& joint_node_list,
-    std::map<std::string, ExNodeBlock*>& ex_node_list) {
+void ExOsageBlock::make_joint_map(const obj_skin_ex_node_osage* root,
+    const obj_skin_osage_joint* joint, prj::vector_pair<uint32_t, RobJointNode*>& joint_map,
+    std::map<std::string, ExNodeBlock*>& node_name_map) {
     RobJointNode* root_node = osage_work.get_joint_node(0);
-    joint_node_list.push_back(osg_data->root_idx, root_node);
+    joint_map.push_back(root->root_idx, root_node);
 
-    for (uint32_t i = 0; i < osg_data->nb_joint; i++) {
+    for (uint32_t i = 0; i < root->nb_joint; i++) {
         RobJointNode* node = osage_work.get_joint_node(i + 1ULL);
-        joint_node_list.push_back(joint[i].nid, node);
+        joint_map.push_back(joint[i].nid, node);
 
         if (node->dst_node && node->dst_node->name)
-            ex_node_list.insert({ node->dst_node->name, this });
+            node_name_map.insert({ node->dst_node->name, this });
     }
 
-    RobJointNode* effector_node = osage_work.get_joint_node(osg_data->nb_joint + 1ULL);
-    joint_node_list.push_back(osg_data->efc_idx, effector_node);
+    RobJointNode* effector_node = osage_work.get_joint_node(root->nb_joint + 1ULL);
+    joint_map.push_back(root->efc_idx, effector_node);
 
     if (effector_node->dst_node && effector_node->dst_node->name)
-        ex_node_list.insert({ effector_node->dst_node->name, this });
+        node_name_map.insert({ effector_node->dst_node->name, this });
 }
 
 void ExOsageBlock::reset_ex_force() {
     osage_work.reset_ex_force();
 }
 
-// 0x140
-void ExOsageBlock::set_data(const rob_chara_item_equip_object* skp,
-    const obj_skin_ex_node_osage* root, const char* name, const obj_skin_osage_joint* joint,
+// 0x1405F7E10
+void ExOsageBlock::set_data(const RobSkinDisp* skp,
+    const obj_skin_ex_node_osage* root, const obj_skin_osage_joint* joint,
     const RobNode* mot_node, RobNode* ex_node, const obj_skin* skin) {
-    ExNodeBlock::set_data(&ex_node[root->root_idx & 0x7FFF], EX_NODE_TYPE_OSAGE, name, skp);
+    ExNodeBlock::set_data(&ex_node[root->root_idx & 0x7FFF], EX_NODE_TYPE_OSAGE, 0, skp);
     osage_work.init(root, joint, ex_node, skin);
     flag.pos_init = 0;
     motion_matrix = mot_node->mat_ptr;
@@ -3569,7 +3574,7 @@ inline void ExConstraintBlock::CalcConstraintDirection(mat4 mat) {
         return;
 
     mat4 rot_mat;
-    RobBlock::orient_to_target(rot_mat, align_axis, v51);
+    make_direction_matrix(rot_mat, align_axis, v51);
 
     if (upvector_node) {
         vec3 affected_axis = direction->up_vector.affected_axis;
@@ -3645,7 +3650,7 @@ void ExConstraintBlock::CalcConstraintPosition(mat4 mat) {
         mat4_inverse_transform_point(&mat, &up_vector_trans, &up_vector_trans);
 
         mat4 rot_mat;
-        RobBlock::orient_to_target(rot_mat, position->up_vector.affected_axis, up_vector_trans);
+        make_direction_matrix(rot_mat, position->up_vector.affected_axis, up_vector_trans);
         mat4_mul(&rot_mat, &mat, &mat);
     }
 
@@ -3681,7 +3686,7 @@ void ExConstraintBlock::CalcMatrixHS() {
 }
 
 
-void ExConstraintBlock::set_data(const rob_chara_item_equip_object* skin_disp,
+void ExConstraintBlock::set_data(const RobSkinDisp* skin_disp,
     const obj_skin_ex_node_constraint* data, const char* name, const bone_database* bone_data) {
     RobNode* node = (RobNode*)skin_disp->get_node(name, bone_data);
     type = EX_NODE_TYPE_CONSTRAINT;
@@ -3864,7 +3869,7 @@ void ExExpressionBlock::CalcMatrixHS() {
     *dst_node->no_scale_mat = mat;
 }
 
-void ExExpressionBlock::set_data(const rob_chara_item_equip_object* skin_disp,
+void ExExpressionBlock::set_data(const RobSkinDisp* skin_disp,
     const obj_skin_ex_node_expression* data, const char* node_name, object_info objuid,
     size_t index, const bone_database* bone_data) {
     Expr_node* stack_buf[28];
@@ -4310,6 +4315,18 @@ static bool make_axis_matrix(mat4& mat, const vec3& axis,
         rot->z = z_rot;
     }
     return rot_clamped;
+}
+
+// 0x1401EB410
+static void make_direction_matrix(mat4& mat, const vec3& v0, const vec3& v1) {
+    vec3 v0_norm = vec3::normalize(v0);
+    vec3 v1_norm = vec3::normalize(v1);
+
+    vec3 axis = vec3::cross(v1_norm, v0_norm);
+
+    float_t c = clamp_def(vec3::dot(v1_norm, v0_norm), -1.0f, 1.0f);
+    float_t s = sqrtf(clamp_def(1.0f - c * c, 0.0f, 1.0f));
+    mat4_set(&axis, -s, c, &mat);
 }
 
 static void modify_cloth_object(obj_mesh* mesh, obj_mesh_vertex_buffer* vb,

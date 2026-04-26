@@ -101,10 +101,10 @@ struct texture_manager {
 
 extern texture* texture_alloc(texture_id id);
 extern void texture_apply_color_tone(const texture* chg_tex,
-    const texture* org_tex, const color_tone* col_tone);
+    const texture* org_tex, const ImgfColorToneParam* color);
 extern texture* texture_create_copy_texture(texture_id id, texture* org_tex);
 extern texture* texture_create_copy_texture_apply_color_tone(
-    texture_id id, texture* org_tex, const color_tone* col_tone);
+    texture_id id, texture* org_tex, const ImgfColorToneParam* color);
 extern texture* texture_load_tex_2d(texture_id id, GLenum internal_format, int32_t width, int32_t height,
     int32_t max_mipmap_level, const void** data_ptr, bool use_high_anisotropy);
 extern texture* texture_load_tex_cube_map(texture_id id, GLenum internal_format, int32_t width, int32_t height,

@@ -274,7 +274,7 @@ struct pv_game_pv_data {
     bool field_2BF60;
     int32_t field_2BF64;
     int64_t field_2BF68;
-    int32_t chara_id;
+    ROB_ID rob_id;
     struct pv_game* pv_game;
     //struc_162* field_2BF80;
     struct pv_game_music* music;
@@ -333,10 +333,10 @@ struct pv_game_pv_data {
         int32_t* pv_branch_mode, dsc_data* start, dsc_data* end);
     void find_change_fields();
     void find_data_camera();
-    void find_playdata_item_anim(int32_t chara_id);
-    void find_playdata_set_motion(int32_t chara_id);
+    void find_playdata_item_anim(int32_t rob_id);
+    void find_playdata_set_motion(int32_t rob_id);
     void find_set_motion(const struct pv_db_pv_difficulty* diff);
-    const std::vector<pv_data_set_motion>* get_set_motion(size_t chara_id);
+    const std::vector<pv_data_set_motion>* get_set_motion(size_t rob_id);
     pv_dsc_target_group* get_target();
     int32_t get_target_target_count(size_t index, float_t time_offset, bool a4);
     void init(::pv_game* pv_game, bool music_play);
@@ -345,6 +345,6 @@ struct pv_game_pv_data {
     void reset_camera_post_process();
     void scene_fade_ctrl(float_t delta_time);
     void set_camera_max_frame(int64_t time);
-    void set_item_anim_max_frame(int32_t chara_id, int32_t index, int64_t time);
-    void set_motion_max_frame(int32_t chara_id, int32_t motion_index, int64_t time);
+    void set_item_anim_max_frame(int32_t rob_id, int32_t index, int64_t time);
+    void set_motion_max_frame(int32_t rob_id, int32_t motion_index, int64_t time);
 };

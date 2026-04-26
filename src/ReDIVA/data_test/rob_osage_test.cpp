@@ -425,8 +425,8 @@ extern render_context* rctx_ptr;
 
 RobOsageTest::RobOsageTest() : load(), save(), coli(), line(),
 osage_index(), collision_index(), collision_update() {
-    chara_id = -1;
-    load_chara_id = 0;
+    rob_id = ROB_ID_NULL;
+    rob_id_load = ROB_ID_1P;
     chara_num = CN_NONE;
     cos_id = -1;
     rpk = RPK_NONE;
@@ -449,8 +449,8 @@ bool RobOsageTest::init() {
 }
 
 bool RobOsageTest::ctrl() {
-    if (chara_id != -1) {
-        rob_chara* rob_chr = rob_chara_array_get(chara_id);
+    if (rob_id != ROB_ID_NULL) {
+        rob_chara* rob_chr = get_rob_management()->get_rob(rob_id);
         if (!rob_chr)
             return false;
 
@@ -461,7 +461,7 @@ bool RobOsageTest::ctrl() {
     if (load) {
         load = false;
 
-        chara_id = load_chara_id;
+        rob_id = rob_id_load;
         chara_num = CN_NONE;
         cos_id = -1;
 
@@ -473,14 +473,14 @@ bool RobOsageTest::ctrl() {
         rob_osage_test_dw->rob.object_list_box->ClearItems();
         rob_osage_test_dw->rob.object_list_box->SetItemIndex(-1);
 
-        rob_chara* rob_chr = rob_chara_array_get(chara_id);
+        rob_chara* rob_chr = get_rob_management()->get_rob(rob_id);
         if (!rob_chr)
             return false;
 
         chara_num = rob_chr->chara_num;
         cos_id = rob_chr->cos_id;
 
-        rob_chara_item_equip* rob_disp = rob_chr->rob_disp;
+        RobDisp* rob_disp = rob_chr->disp;
         if (!rob_disp)
             return false;
 
@@ -489,7 +489,7 @@ bool RobOsageTest::ctrl() {
         object_database* aft_obj_db = &aft_data->data_ft.obj_db;
 
         for (int32_t i = 0; i < RPK_MAX; i++) {
-            rob_chara_item_equip_object* skin_disp = rob_disp->get_skin_disp((ROB_PARTS_KIND)i);
+            RobSkinDisp* skin_disp = rob_disp->get_skin_work((ROB_PARTS_KIND)i);
             ::obj* obj = objset_info_storage_get_obj(skin_disp->obj_uid);
             if (!obj || !skin_disp->osage_blk.size() && !skin_disp->cloth.size())
                 continue;
@@ -513,12 +513,12 @@ bool RobOsageTest::ctrl() {
             std::vector<std::pair<std::string, ExNodeBlock*>> ex_nodes;
             ex_nodes.reserve(skin_disp->osage_blk.size() + skin_disp->cloth.size());
 
-            for (ExOsageBlock*& j : skin_disp->osage_blk) {
+            for (ExOsageBlock* j : skin_disp->osage_blk) {
                 ExOsageBlock* osg = j;
                 ex_nodes.push_back({ osg->name, osg });
             }
 
-            for (ExClothBlock*& j : skin_disp->cloth) {
+            for (ExClothBlock* j : skin_disp->cloth) {
                 ExClothBlock* cls = j;
                 ex_nodes.push_back({ cls->name, cls });
             }
@@ -632,7 +632,7 @@ bool RobOsageTest::ctrl() {
 
         const char* flt_fmt = "%0.6f";
 
-        rob_chara_item_equip* rob_disp = rob_chara_array_get_rob_disp(chara_id);
+        RobDisp* rob_disp = get_rob_management()->get_rob_robdisp_work((ROB_ID)rob_id);
         if (!rob_disp)
             return false;
 
@@ -640,10 +640,10 @@ bool RobOsageTest::ctrl() {
         bone_database* aft_bone_data = &aft_data->data_ft.bone_data;
         object_database* aft_obj_db = &aft_data->data_ft.obj_db;
 
-        const std::vector<std::string>* object_bones = aft_bone_data->get_bone_name(BONE_KIND_CMN);
+        const std::vector<std::string>* bone_name_table = aft_bone_data->get_bone_name_table(BONE_KIND_CMN);
 
         for (int32_t i = 0; i < RPK_MAX; i++) {
-            rob_chara_item_equip_object* skin_disp = rob_disp->get_skin_disp((ROB_PARTS_KIND)i);
+            RobSkinDisp* skin_disp = rob_disp->get_skin_work((ROB_PARTS_KIND)i);
             ::obj* obj = objset_info_storage_get_obj(skin_disp->obj_uid);
             if (!obj || !skin_disp->osage_blk.size() && !skin_disp->cloth.size())
                 continue;
@@ -771,7 +771,7 @@ bool RobOsageTest::ctrl() {
                     kv.open_scope_fmt(sort_index_data[k]);
                     SkinParam::CollisionParam* cls_param = &vc[sort_index_data[k]];
 
-                    kv.write(s, "bone.0.name", object_bones->data()[cls_param->node_idx[0]].c_str());
+                    kv.write(s, "bone.0.name", bone_name_table->data()[cls_param->node_idx[0]].c_str());
                     kv.write(s, "bone.0.posx", cls_param->pos[0].x, flt_fmt);
                     kv.write(s, "bone.0.posy", cls_param->pos[0].y, flt_fmt);
                     kv.write(s, "bone.0.posz", cls_param->pos[0].z, flt_fmt);
@@ -780,7 +780,7 @@ bool RobOsageTest::ctrl() {
                     case SkinParam::CollisionTypeCapsule:
                     case SkinParam::CollisionTypePlane:
                     case SkinParam::CollisionTypeEllipse:
-                        kv.write(s, "bone.1.name", object_bones->data()[cls_param->node_idx[1]].c_str());
+                        kv.write(s, "bone.1.name", bone_name_table->data()[cls_param->node_idx[1]].c_str());
                         kv.write(s, "bone.1.posx", cls_param->pos[1].x, flt_fmt);
                         kv.write(s, "bone.1.posy", cls_param->pos[1].y, flt_fmt);
                         kv.write(s, "bone.1.posz", cls_param->pos[1].z, flt_fmt);
@@ -883,12 +883,12 @@ bool RobOsageTest::dest() {
 }
 
 void RobOsageTest::disp() {
-    if (chara_id < 0 || chara_id >= ROB_ID_MAX)
+    if (rob_id < 0 || rob_id >= ROB_ID_MAX)
         return;
 
-    rob_chara* rob_chr = rob_chara_array_get(chara_id);
-    if (rob_chr && !pv_osage_manager_array_get_disp(chara_id)
-        && rob_chr->is_visible() && !rob_chr->data.flag.bit.rf_31) {
+    rob_chara* rob_chr = get_rob_management()->get_rob(rob_id);
+    if (rob_chr && !pv_osage_manager_array_get_disp(rob_id)
+        && rob_chr->get_disp_flag() && !rob_chr->rob_base.flag.bit.no_ctrl) {
         disp_coli();
         disp_line();
     }
@@ -903,7 +903,7 @@ void RobOsageTest::basic() {
         rob_osage_test_dw->UpdateLayout();
     }
 
-    rob_chara_item_equip_object* skin_disp = get_skin_disp();
+    RobSkinDisp* skin_disp = get_skin_work();
     if (!skin_disp)
         return;
 
@@ -938,7 +938,7 @@ void RobOsageTest::disp_coli() {
     if (!coli)
         return;
 
-    rob_chara_item_equip_object* skin_disp = get_skin_disp();
+    RobSkinDisp* skin_disp = get_skin_work();
     if (!skin_disp || skin_disp->obj_uid != obj_info)
         return;
 
@@ -1143,7 +1143,7 @@ void RobOsageTest::disp_line() {
     if (!line)
         return;
 
-    rob_chara_item_equip_object* skin_disp = get_skin_disp();
+    RobSkinDisp* skin_disp = get_skin_work();
     if (!skin_disp || skin_disp->obj_uid != obj_info)
         return;
 
@@ -1257,7 +1257,7 @@ void RobOsageTest::disp_line_cls_param(const mat4& motion_matrix, const vec3& po
         SCREEN_MODE_MAX, spr::SPR_PRIO_DW, color_yellow);
 }
 
-inline ExClothBlock* RobOsageTest::get_cloth_block(rob_chara_item_equip_object* skin_disp) const {
+inline ExClothBlock* RobOsageTest::get_cloth_block(RobSkinDisp* skin_disp) const {
     if (skin_disp && skin_disp->obj_uid == obj_info && osage_index >= skin_disp->osage_blk.size()
         && osage_index - skin_disp->osage_blk.size() < skin_disp->cloth.size())
         return skin_disp->cloth[osage_index - skin_disp->osage_blk.size()];
@@ -1282,17 +1282,17 @@ inline SkinParam::CollisionParam* RobOsageTest::get_cls_param(
     return 0;
 }
 
-inline rob_chara_item_equip_object* RobOsageTest::get_skin_disp() const {
-    if (chara_id < 0 || chara_id >= ROB_ID_MAX)
+inline RobSkinDisp* RobOsageTest::get_skin_work() const {
+    if (rob_id < 0 || rob_id >= ROB_ID_MAX)
         return 0;
 
-    rob_chara_item_equip* rob_disp = rob_chara_array_get_rob_disp(chara_id);
+    RobDisp* rob_disp = get_rob_management()->get_rob_robdisp_work((ROB_ID)rob_id);
     if (rob_disp && rpk >= 0 && rpk < RPK_MAX)
-        return rob_disp->get_skin_disp(rpk);
+        return rob_disp->get_skin_work(rpk);
     return 0;
 }
 
-inline ExNodeBlock* RobOsageTest::get_node_block(rob_chara_item_equip_object* skin_disp) const {
+inline ExNodeBlock* RobOsageTest::get_node_block(RobSkinDisp* skin_disp) const {
     if (skin_disp && skin_disp->obj_uid == obj_info)
         if (osage_index < skin_disp->osage_blk.size())
             return skin_disp->osage_blk[osage_index];
@@ -1302,7 +1302,7 @@ inline ExNodeBlock* RobOsageTest::get_node_block(rob_chara_item_equip_object* sk
     return 0;
 }
 
-inline ExOsageBlock* RobOsageTest::get_osage_block(rob_chara_item_equip_object* skin_disp) const {
+inline ExOsageBlock* RobOsageTest::get_osage_block(RobSkinDisp* skin_disp) const {
     if (skin_disp && skin_disp->obj_uid == obj_info && osage_index < skin_disp->osage_blk.size())
         return skin_disp->osage_blk[osage_index];
     return 0;
@@ -1385,14 +1385,14 @@ void RobOsageTestDw::Rob::Init(dw::Composite* parent) {
 void RobOsageTestDw::Rob::CharaCallback(dw::Widget* data) {
     dw::ListBox* list_box = dynamic_cast<dw::ListBox*>(data);
     if (list_box)
-        rob_osage_test->load_chara_id = (int32_t)list_box->list->selected_item;
+        rob_osage_test->rob_id_load = (ROB_ID)(int32_t)list_box->list->selected_item;
 }
 
 void RobOsageTestDw::Rob::DefaultCallback(dw::Widget* data) {
     dw::Button* button = dynamic_cast<dw::Button*>(data);
     if (button) {
-        rob_osage_test->chara_id = -1;
-        rob_osage_test->load_chara_id = 0;
+        rob_osage_test->rob_id = ROB_ID_NULL;
+        rob_osage_test->rob_id_load = ROB_ID_1P;
         rob_osage_test->rpk = RPK_NONE;
         rob_osage_test->obj_info = object_info();
         rob_osage_test->osage_index = -1;
@@ -1427,7 +1427,7 @@ void RobOsageTestDw::Rob::ObjectCallback(dw::Widget* data) {
 
         rob_osage_test_dw->root.list_box->ClearItems();
 
-        rob_chara_item_equip_object* skin_disp = rob_osage_test->get_skin_disp();
+        RobSkinDisp* skin_disp = rob_osage_test->get_skin_work();
         if (skin_disp) {
             for (ExOsageBlock*& i : skin_disp->osage_blk)
                 rob_osage_test_dw->root.list_box->AddItem(i->name);
@@ -2222,7 +2222,7 @@ void RobOsageTestDw::Node::CollisionRadius::Update(bool value) {
 void RobOsageTestDw::Node::CollisionRadius::Callback(dw::Widget* data) {
     dw::Slider* slider = dynamic_cast<dw::Slider*>(data);
     if (slider) {
-        rob_chara_item_equip_object* skin_disp = rob_osage_test->get_skin_disp();
+        RobSkinDisp* skin_disp = rob_osage_test->get_skin_work();
         ExOsageBlock* osg = rob_osage_test->get_osage_block(skin_disp);
         if (osg) {
             float_t value = slider->GetValue();
@@ -2321,7 +2321,7 @@ void RobOsageTestDw::Node::Hinge::Update(bool value) {
 void RobOsageTestDw::Node::Hinge::YMinCallback(dw::Widget* data) {
     dw::Slider* slider = dynamic_cast<dw::Slider*>(data);
     if (slider) {
-        rob_chara_item_equip_object* skin_disp = rob_osage_test->get_skin_disp();
+        RobSkinDisp* skin_disp = rob_osage_test->get_skin_work();
         ExOsageBlock* osg = rob_osage_test->get_osage_block(skin_disp);
         if (osg) {
             float_t value = slider->GetValue() * DEG_TO_RAD_FLOAT;
@@ -2336,7 +2336,7 @@ void RobOsageTestDw::Node::Hinge::YMinCallback(dw::Widget* data) {
 void RobOsageTestDw::Node::Hinge::YMaxCallback(dw::Widget* data) {
     dw::Slider* slider = dynamic_cast<dw::Slider*>(data);
     if (slider) {
-        rob_chara_item_equip_object* skin_disp = rob_osage_test->get_skin_disp();
+        RobSkinDisp* skin_disp = rob_osage_test->get_skin_work();
         ExOsageBlock* osg = rob_osage_test->get_osage_block(skin_disp);
         if (osg) {
             float_t value = slider->GetValue() * DEG_TO_RAD_FLOAT;
@@ -2351,7 +2351,7 @@ void RobOsageTestDw::Node::Hinge::YMaxCallback(dw::Widget* data) {
 void RobOsageTestDw::Node::Hinge::ZMinCallback(dw::Widget* data) {
     dw::Slider* slider = dynamic_cast<dw::Slider*>(data);
     if (slider) {
-        rob_chara_item_equip_object* skin_disp = rob_osage_test->get_skin_disp();
+        RobSkinDisp* skin_disp = rob_osage_test->get_skin_work();
         ExOsageBlock* osg = rob_osage_test->get_osage_block(skin_disp);
         if (osg) {
             float_t value = slider->GetValue() * DEG_TO_RAD_FLOAT;
@@ -2366,7 +2366,7 @@ void RobOsageTestDw::Node::Hinge::ZMinCallback(dw::Widget* data) {
 void RobOsageTestDw::Node::Hinge::ZMaxCallback(dw::Widget* data) {
     dw::Slider* slider = dynamic_cast<dw::Slider*>(data);
     if (slider) {
-        rob_chara_item_equip_object* skin_disp = rob_osage_test->get_skin_disp();
+        RobSkinDisp* skin_disp = rob_osage_test->get_skin_work();
         ExOsageBlock* osg = rob_osage_test->get_osage_block(skin_disp);
         if (osg) {
             float_t value = slider->GetValue() * DEG_TO_RAD_FLOAT;
@@ -2425,7 +2425,7 @@ void RobOsageTestDw::Node::InertialCancel::Update(bool value) {
 void RobOsageTestDw::Node::InertialCancel::Callback(dw::Widget* data) {
     dw::Slider* slider = dynamic_cast<dw::Slider*>(data);
     if (slider) {
-        rob_chara_item_equip_object* skin_disp = rob_osage_test->get_skin_disp();
+        RobSkinDisp* skin_disp = rob_osage_test->get_skin_work();
         ExOsageBlock* osg = rob_osage_test->get_osage_block(skin_disp);
         if (osg) {
             float_t value = slider->GetValue();
@@ -2484,7 +2484,7 @@ void RobOsageTestDw::Node::Weight::Update(bool value) {
 void RobOsageTestDw::Node::Weight::Callback(dw::Widget* data) {
     dw::Slider* slider = dynamic_cast<dw::Slider*>(data);
     if (slider) {
-        rob_chara_item_equip_object* skin_disp = rob_osage_test->get_skin_disp();
+        RobSkinDisp* skin_disp = rob_osage_test->get_skin_work();
         ExOsageBlock* osg = rob_osage_test->get_osage_block(skin_disp);
         if (osg) {
             float_t value = slider->GetValue();
@@ -2569,7 +2569,7 @@ void RobOsageTestDw::Collision::Update() {
 
     data_struct* aft_data = &data_list[DATA_AFT];
     bone_database* aft_bone_data = &aft_data->data_ft.bone_data;
-    const std::vector<std::string>* object_bones = aft_bone_data->get_bone_name(BONE_KIND_CMN);
+    const std::vector<std::string>* bone_name_table = aft_bone_data->get_bone_name_table(BONE_KIND_CMN);
 
     char buf[0x200];
     int32_t index = 0;
@@ -2585,7 +2585,7 @@ void RobOsageTestDw::Collision::Update() {
         case SkinParam::CollisionTypeEllipse:
         case SkinParam::CollisionTypeAABB:
             sprintf_s(buf, sizeof(buf), "%d %s/%s", index,
-                collision_type_name_list[i.type], object_bones->data()[i.node_idx[0]].c_str());
+                collision_type_name_list[i.type], bone_name_table->data()[i.node_idx[0]].c_str());
             break;
         default:
             sprintf_s(buf, sizeof(buf), "%d", index);
@@ -2690,11 +2690,11 @@ void RobOsageTestDw::ColliElement::Init(dw::Composite* parent) {
 
     data_struct* aft_data = &data_list[DATA_AFT];
     bone_database* aft_bone_data = &aft_data->data_ft.bone_data;
-    const std::vector<std::string>* object_bones = aft_bone_data->get_bone_name(BONE_KIND_CMN);
+    const std::vector<std::string>* bone_name_table = aft_bone_data->get_bone_name_table(BONE_KIND_CMN);
 
     bone0_list_box = new dw::ListBox(group);
     bone0_list_box->SetMaxItems(20);
-    for (const std::string& i : *object_bones)
+    for (const std::string& i : *bone_name_table)
         bone0_list_box->AddItem(i);
     bone0_list_box->callback_data.i32 = 0;
     bone0_list_box->AddSelectionListener(new dw::SelectionListenerOnHook(
@@ -2726,7 +2726,7 @@ void RobOsageTestDw::ColliElement::Init(dw::Composite* parent) {
 
     bone1_list_box = new dw::ListBox(group);
     bone1_list_box->SetMaxItems(20);
-    for (const std::string& i : *object_bones)
+    for (const std::string& i : *bone_name_table)
         bone1_list_box->AddItem(i);
     bone1_list_box->callback_data.i32 = 1;
     bone1_list_box->AddSelectionListener(new dw::SelectionListenerOnHook(

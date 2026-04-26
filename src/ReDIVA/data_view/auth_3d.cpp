@@ -5,6 +5,7 @@
 
 #include "auth_3d.hpp"
 #include "../../KKdLib/database/item_table.hpp"
+#include "../../CRE/rob/rob.hpp"
 #include "../../CRE/auth_3d.hpp"
 #include "../imgui_helper.hpp"
 #include "../task_window.hpp"
@@ -155,8 +156,8 @@ void DataViewAuth3D::window() {
         tree_node_flags = tree_node_base_flags;
         tree_node_flags |= ImGuiTreeNodeFlags_DefaultOpen;
 
-        if (auth->chara_id != -1)
-            ImGui::Text("Chara: %d", auth->chara_id);
+        if (auth->rob_id != ROB_ID_NULL)
+            ImGui::Text("Chara: %d", auth->rob_id + 1);
         else
             ImGui::Text("Chara: None");
 

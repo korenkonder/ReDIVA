@@ -563,8 +563,6 @@ struct render_context {
     bool chara_reflect;
     bool chara_refract;
 
-    mat4 matrix_buffer[MATRIX_BUFFER_COUNT];
-
     GLuint box_vao;
     GL::ArrayBuffer box_vbo;
 

@@ -107,7 +107,7 @@ public:
 
 struct x_pv_play_data_set_motion {
     float_t frame_speed;
-    uint32_t motion_id;
+    uint32_t motnum;
     float_t frame;
     float_t blend_duration;
     bool blend;
@@ -185,7 +185,7 @@ struct x_pv_game_song_effect_glitter {
 
 struct x_pv_game_song_effect {
     bool enable;
-    int32_t chara_id;
+    ROB_ID rob_id;
     int64_t time;
     std::vector<x_pv_game_song_effect_auth_3d> auth_3d;
     std::vector<x_pv_game_song_effect_glitter> glitter;
@@ -233,7 +233,7 @@ struct x_pv_game_effect {
     void load(int32_t pv_id, pvpp* play_param, FrameRateControl* frame_rate_control);
     void load_data(int32_t pv_id, object_database* obj_db, texture_database* tex_db);
     void reset();
-    void set_chara_id(int32_t index, int32_t chara_id, bool chara_scale);
+    void set_chara_id(int32_t index, ROB_ID rob_id, bool chara_scale);
     void set_song_effect(int32_t index, int64_t time);
     void set_song_effect_time(int32_t index, int64_t time, bool glitter);
     void set_song_effect_time_inner(int32_t index, int64_t time, bool glitter);
@@ -274,15 +274,15 @@ struct x_pv_game_chara_effect {
     ~x_pv_game_chara_effect();
 
     void ctrl(int32_t pv_id, object_database* obj_db, texture_database* tex_db);
-    vec3 get_node_translation(int32_t chara_id, int32_t chara_effect, int32_t objhrc_index, const char* node_name);
+    vec3 get_node_translation(ROB_ID rob_id, int32_t chara_effect, int32_t objhrc_index, const char* node_name);
     void load(int32_t pv_id, pvpp* play_param, FrameRateControl* frame_rate_control, CHARA_NUM charas[6]);
     void load_data();
     void reset();
-    void set_chara_effect(int32_t chara_id, int32_t index, int64_t time);
-    void set_chara_effect_time(int32_t chara_id, int32_t index, int64_t time);
+    void set_chara_effect(ROB_ID rob_id, int32_t index, int64_t time);
+    void set_chara_effect_time(ROB_ID rob_id, int32_t index, int64_t time);
     void set_time(int64_t time);
     void stop();
-    void stop_chara_effect(int32_t chara_id, int32_t index);
+    void stop_chara_effect(ROB_ID rob_id, int32_t index);
     void unload();
     void unload_data();
 };
@@ -479,7 +479,7 @@ struct x_pv_game_pv_data {
     dsc_data* dsc_data_ptr;
     dsc_data* dsc_data_ptr_end;
     std::vector<pv_data_set_motion> set_motion[ROB_ID_MAX];
-    int32_t chara_id;
+    ROB_ID rob_id;
     class x_pv_game* pv_game;
     float_t measured_fps;
     float_t anim_frame_speed;
@@ -500,8 +500,8 @@ struct x_pv_game_pv_data {
         int32_t* pv_branch_mode, dsc_data* start, dsc_data* end);
     void find_bar_beat(x_pv_bar_beat& bar_beat);
     void find_change_fields(std::vector<int64_t>& change_fields);
-    void find_playdata_item_anim(int32_t chara_id);
-    void find_playdata_set_motion(int32_t chara_id);
+    void find_playdata_item_anim(ROB_ID rob_id);
+    void find_playdata_set_motion(ROB_ID rob_id);
     int64_t find_pv_end();
     void find_set_motion();
     void find_stage_effects(prj::vector_pair<int64_t, int32_t>& stage_effects);
@@ -510,7 +510,7 @@ struct x_pv_game_pv_data {
     bool set_pv_param_post_process_bloom_data(bool set, int32_t id, float_t duration);
     bool set_pv_param_post_process_color_correction_data(bool set, int32_t id, float_t duration);
     bool set_pv_param_post_process_dof_data(bool set, int32_t id, float_t duration);
-    void set_motion_max_frame(int32_t chara_id, int32_t motion_index, int64_t time);
+    void set_motion_max_frame(ROB_ID rob_id, int32_t motion_index, int64_t time);
     void stop();
     void unload();
     void unload_data();
@@ -756,7 +756,7 @@ public:
     int32_t frame;
     double_t frame_float;
     int64_t time;
-    int32_t rob_chara_ids[ROB_ID_MAX];
+    ROB_ID rob_ids[ROB_ID_MAX];
 
     std::string light_category;
 

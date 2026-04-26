@@ -68,7 +68,7 @@ namespace Glitter {
         enum_or(flags, EFFECT_INST_EXT_SCALE);
     }
 
-    int32_t EffectInst::GetExtAnimBoneIndex(GPM, EffectExtAnimCharaNode node) {
+    int32_t EffectInst::GetExtAnimNodeIndex(GPM, EffectExtAnimCharaNode node) {
         if (node < EFFECT_EXT_ANIM_CHARA_HEAD || node > EFFECT_EXT_ANIM_CHARA_RIGHT_TOE)
             return -1;
 
@@ -136,8 +136,8 @@ namespace Glitter {
                     enum_or(flags, EFFECT_INST_EXT_ANIM_TRANS_ONLY);
 
                 if (ext_anim->flags & EFFECT_EXT_ANIM_CHARA) {
-                    inst_ext_anim->chara_index = ext_anim->chara_index;
-                    inst_ext_anim->bone_index = GetExtAnimBoneIndex(GPM_VAL, ext_anim->node_index);
+                    inst_ext_anim->rob_id = ext_anim->rob_id;
+                    inst_ext_anim->node_index = GetExtAnimNodeIndex(GPM_VAL, ext_anim->node_index);
                     enum_or(flags, EFFECT_INST_EXT_ANIM_CHARA);
                     inst_ext_anim->mesh_name = 0;
                 }
@@ -379,11 +379,15 @@ namespace Glitter {
         int32_t chara_id;
 
         if (flags & EFFECT_INST_EXT_ANIM_CHARA) {
-            rob_chara* rob_chr = rob_chara_array_get(ext_anim->chara_index);
+            RobManagement* rob_man = get_rob_management();
+            if (!rob_man)
+                return;
+
+            rob_chara* rob_chr = rob_man->get_rob((ROB_ID)ext_anim->rob_id);
             if (!rob_chr)
                 return;
 
-            mat4 mat = rob_chr->data.adjust_data.mat;
+            mat4 mat = rob_chr->rob_base.adjust.mat;
 
             vec3 scale;
             mat4_get_scale(&mat, &scale);
@@ -391,9 +395,9 @@ namespace Glitter {
             ext_anim_scale.z = 0.0f;
             enum_or(flags, EFFECT_INST_EXT_SCALE);
 
-            int32_t bone_index = ext_anim->bone_index;
-            if (bone_index != -1) {
-                mat4* bone_mat = rob_chr->get_bone_data_mat(bone_index);
+            int32_t node_index = ext_anim->node_index;
+            if (node_index != -1) {
+                mat4* bone_mat = rob_chr->get_bone_data_mat(node_index);
                 if (!bone_mat)
                     return;
 
@@ -430,15 +434,18 @@ namespace Glitter {
             mat4 mat = mat4_identity;
             chara_id = auth_3d_id(ext_anim->a3da_id).get_chara_id();
             if (chara_id >= 0 && chara_id < ROB_ID_MAX) {
-                rob_chara* rob_chr = rob_chara_array_get(chara_id);
-                if (rob_chr) {
-                    mat = rob_chr->data.adjust_data.mat;
+                RobManagement* rob_man = get_rob_management();
+                if (rob_man) {
+                    rob_chara* rob_chr = rob_man->get_rob((ROB_ID)ext_anim->rob_id);
+                    if (rob_chr) {
+                        mat = rob_chr->rob_base.adjust.mat;
 
-                    vec3 scale;
-                    mat4_get_scale(&mat, &scale);
-                    ext_anim_scale = scale - 1.0f;
-                    ext_anim_scale.z = 0.0f;
-                    enum_or(flags, EFFECT_INST_EXT_SCALE);
+                        vec3 scale;
+                        mat4_get_scale(&mat, &scale);
+                        ext_anim_scale = scale - 1.0f;
+                        ext_anim_scale.z = 0.0f;
+                        enum_or(flags, EFFECT_INST_EXT_SCALE);
+                    }
                 }
             }
 
@@ -715,8 +722,8 @@ namespace Glitter {
                     enum_or(flags, EFFECT_INST_EXT_ANIM_GET_THEN_UPDATE);
 
                 if (ext_anim->flags & EFFECT_EXT_ANIM_CHARA) {
-                    inst_ext_anim->chara_index = ext_anim->chara_index;
-                    inst_ext_anim->bone_index = GetExtAnimBoneIndex(GPM_VAL, ext_anim->node_index);
+                    inst_ext_anim->rob_id = ext_anim->rob_id;
+                    inst_ext_anim->node_index = GetExtAnimNodeIndex(GPM_VAL, ext_anim->node_index);
                     enum_or(flags, EFFECT_INST_EXT_ANIM_CHARA);
                 }
                 else {
@@ -1074,11 +1081,15 @@ namespace Glitter {
             enum_or(flags, EFFECT_INST_EXT_ANIM_NON_INIT);
 
         if (flags & EFFECT_INST_EXT_ANIM_CHARA) {
-            rob_chara* rob_chr = rob_chara_array_get(ext_anim->chara_index);
+            RobManagement* rob_man = get_rob_management();
+            if (!rob_man)
+                return;
+
+            rob_chara* rob_chr = rob_man->get_rob((ROB_ID)ext_anim->rob_id);
             if (!rob_chr)
                 return;
 
-            mat4* mat = &rob_chr->data.adjust_data.mat;
+            mat4* mat = &rob_chr->rob_base.adjust.mat;
 
             vec3 scale;
             mat4_get_scale(mat, &scale);
@@ -1086,14 +1097,14 @@ namespace Glitter {
             ext_anim_scale.z = 0.0f;
             enum_or(flags, EFFECT_INST_EXT_SCALE);
 
-            if (rob_chr->is_visible() || !(data.ext_anim_x->flags & EFFECT_EXT_ANIM_NO_DRAW_IF_NO_DATA))
+            if (rob_chr->get_disp_flag() || !(data.ext_anim_x->flags & EFFECT_EXT_ANIM_NO_DRAW_IF_NO_DATA))
                 set_flags = true;
             else
                 set_flags = false;
 
-            int32_t bone_index = ext_anim->bone_index;
-            if (bone_index != -1) {
-                mat4* bone_mat = rob_chr->get_bone_data_mat(bone_index);
+            int32_t node_index = ext_anim->node_index;
+            if (node_index != -1) {
+                mat4* bone_mat = rob_chr->get_bone_data_mat(node_index);
                 if (bone_mat)
                     SetExtAnim(mat, bone_mat, 0, set_flags);
             }
@@ -1124,15 +1135,18 @@ namespace Glitter {
 
             int32_t chara_id = auth_3d_id(ext_anim->a3da_id).get_chara_id();
             if (chara_id >= 0 && chara_id < ROB_ID_MAX) {
-                rob_chara* rob_chr = rob_chara_array_get(chara_id);
-                if (rob_chr) {
-                    mat = rob_chr->data.adjust_data.mat;
+                RobManagement* rob_man = get_rob_management();
+                if (rob_man) {
+                    rob_chara* rob_chr = rob_man->get_rob((ROB_ID)ext_anim->rob_id);
+                    if (rob_chr) {
+                        mat = rob_chr->rob_base.adjust.mat;
 
-                    vec3 scale;
-                    mat4_get_scale(&mat, &scale);
-                    ext_anim_scale = scale - 1.0f;
-                    ext_anim_scale.z = 0.0f;
-                    enum_or(flags, EFFECT_INST_EXT_SCALE);
+                        vec3 scale;
+                        mat4_get_scale(&mat, &scale);
+                        ext_anim_scale = scale - 1.0f;
+                        ext_anim_scale.z = 0.0f;
+                        enum_or(flags, EFFECT_INST_EXT_SCALE);
+                    }
                 }
             }
 

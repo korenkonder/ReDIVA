@@ -44,7 +44,7 @@ public:
 
     void Hide() override;
 
-    void GetCharaCos(CHARA_NUM chara_index, int32_t chara_id, dw::ListBox* list_box);
+    void GetCharaCos(CHARA_NUM chara_num, int32_t chara_id, dw::ListBox* list_box);
 };
 
 class Auth3dTestSubWindow : public dw::Shell {
@@ -243,7 +243,7 @@ public:
     dw::Button* play;
     dw::Button* end;
     dw::Button* repeat;
-    dw::Button* left_right_reverse;
+    dw::Button* mirror;
     dw::Button* pos;
     dw::Button* log;
     dw::Button* snap_shot;
@@ -269,7 +269,7 @@ public:
     SelectionButtonEnd end_listener;
     SelectionButtonBindBoolFunc pos_listener;
     SelectionButtonBindBoolFunc repeat_listener;
-    SelectionButtonBindBoolFunc left_right_reverse_listener;
+    SelectionButtonBindBoolFunc mirror_listener;
     SelectionButtonSnapShot snap_shot_listener;
     SelectionButtonLog log_listener;
     SelectionButtonShadowType shadow_type_listener;
@@ -304,7 +304,6 @@ public:
 };
 
 extern render_context* rctx_ptr;
-extern bool auth_3d_chara_visible;
 
 Auth3dTestTask* auth_3d_test_task;
 Auth3dTestWindow* auth_3d_test_window;
@@ -316,8 +315,8 @@ static bool snap_shot;
 static void auth_3d_test_window_init();
 static const char* get_dev_ram_ss_dir();
 
-Auth3dTestTask::DataEventListener::Data::Data() : state(), field_C(), field_D(),
-load_chara_num(), chara_num(), prev_chara_num(), load_cos_id(), cos_id(), chara_visible() {
+Auth3dTestTask::DataEventListener::Data::Data() : rob_man(), state(), field_C(), field_D(),
+load_chara_num(), chara_num(), prev_chara_num(), load_cos_id(), cos_id(), colli_check_on() {
 
 }
 
@@ -346,7 +345,21 @@ void Auth3dTestTask::DataEventListener::Data::ctrl() {
             }
 
             if (field_D) {
-                free_all_chara();
+                rob_man->dest_all();
+
+                if (prev_chara_num[0] < CN_MAX) {
+                    const RobData* rob_data = get_rob_data(prev_chara_num[0]);
+                    motion_set_unload_motion(rob_data->motfile_auth);
+                    motion_set_unload_mothead(rob_data->motfile_auth);
+                    prev_chara_num[0] = CN_MAX;
+                }
+
+                if (prev_chara_num[1] < CN_MAX) {
+                    const RobData* rob_data = get_rob_data(prev_chara_num[1]);
+                    motion_set_unload_motion(rob_data->motfile_auth);
+                    motion_set_unload_mothead(rob_data->motfile_auth);
+                    prev_chara_num[1] = CN_MAX;
+                }
                 field_D = false;
             }
 
@@ -382,11 +395,10 @@ void Auth3dTestTask::DataEventListener::Data::ctrl() {
         dtm_eq_vs[0].SetCharaNumCosId(load_chara_num[0], load_cos_id[0]);
         dtm_eq_vs[1].SetCharaNumCosId(load_chara_num[1], load_cos_id[1]);
 
-        if (state == 4)
-        {
-            rob_chara_array_set_visibility(0, false);
+        if (state == 4) {
+            rob_man->set_disp_on(ROB_ID_1P, false);
             if (state == 4)
-                rob_chara_array_set_visibility(1, false);
+                rob_man->set_disp_on(ROB_ID_2P, false);
         }
     }
 }
@@ -395,13 +407,10 @@ void Auth3dTestTask::DataEventListener::Data::dest() {
     dtm_eq_vs[0].del_task();
     dtm_eq_vs[1].del_task();
 
-    auth_3d_chara_visible = chara_visible;
+    rob_man->set_colli_check_on(colli_check_on);
 
-    free_all_chara();
-}
-
-inline void Auth3dTestTask::DataEventListener::Data::free_all_chara() {
-    task_rob_manager_free_all_chara();
+    rob_man->dest_all();
+    rob_man = 0;
 
     if (prev_chara_num[0] < CN_MAX) {
         const RobData* rob_data = get_rob_data(prev_chara_num[0]);
@@ -419,8 +428,9 @@ inline void Auth3dTestTask::DataEventListener::Data::free_all_chara() {
 }
 
 void Auth3dTestTask::DataEventListener::Data::init() {
-    chara_visible = auth_3d_chara_visible;
-    auth_3d_chara_visible = false;
+    rob_man = get_rob_management();
+    colli_check_on = rob_man->get_colli_check_on();
+    rob_man->set_colli_check_on(false);
 
     field_C = false;
     field_D = false;
@@ -451,10 +461,10 @@ void Auth3dTestTask::DataEventListener::Data::sub_140244E20() {
     data_struct* aft_data = &data_list[DATA_AFT];
     motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
-    rob_chara_pv_data pv_data;
-    pv_data.field_4 = false;
-    rob_chara_array_init_chara_num(load_chara_num[0], pv_data, load_cos_id[0], true);
-    rob_chara_array_init_chara_num(load_chara_num[1], pv_data, load_cos_id[1], true);
+    RobInit rob_init;
+    rob_init.disp = false;
+    rob_man->create_rob(load_chara_num[0], rob_init, load_cos_id[0], true);
+    rob_man->create_rob(load_chara_num[1], rob_init, load_cos_id[1], true);
 
     if (load_chara_num[0] < CN_MAX) {
         const RobData* rob_data = get_rob_data(load_chara_num[0]);
@@ -473,13 +483,17 @@ void Auth3dTestTask::DataEventListener::Data::sub_140244E20() {
     state = 1;
 }
 
-void Auth3dTestTask::DataEventListener::Data::sub_140249A40(bool other_chara) {
+void Auth3dTestTask::DataEventListener::Data::sub_140249A40(int32_t rob_id) {
     if (state != 4)
         return;
 
-    rob_chara_pv_data pv_data;
-    pv_data.field_4 = false;
-    auth_3d_check_chara_visible(other_chara, &pv_data);
+    data_struct* aft_data = &data_list[DATA_AFT];
+    bone_database* aft_bone_data = &aft_data->data_ft.bone_data;
+    motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
+
+    RobInit rob_init;
+    rob_init.disp = false;
+    rob_man->reset_rob(rob_id ? ROB_ID_2P : ROB_ID_1P, rob_init, aft_bone_data, aft_mot_db);
 }
 
 Auth3dTestTask::DataEventListener::DataEventListener() {
@@ -540,7 +554,7 @@ Auth3dTestTask::Auth3dTestTask() {
     auth_3d_id = {};
     auth_3d_uid = -1;
     repeat = true;
-    left_right_reverse = false;
+    mirror = false;
     pos = false;
     snap_shot = false;
     snap_shot_state = 0;
@@ -578,7 +592,7 @@ bool Auth3dTestTask::init() {
     auth_3d_id = {};
     auth_3d_uid = -1;
     repeat = true;
-    left_right_reverse = false;
+    mirror = false;
     pos = false;
     snap_shot = false;
     snap_shot_state = 0;
@@ -641,7 +655,7 @@ bool Auth3dTestTask::ctrl() {
         auth_3d_id.set_enable(true);
         auth_3d_id.set_paused(false);
         auth_3d_id.set_repeat(auth_3d_test_task->repeat);
-        auth_3d_id.set_left_right_reverse(auth_3d_test_task->left_right_reverse);
+        auth_3d_id.set_mirror(auth_3d_test_task->mirror);
         auth_3d_id.set_pos(auth_3d_test_task->pos);
         state = 4;
     }
@@ -727,13 +741,14 @@ void Auth3dTestTask::disp() {
 }
 
 void Auth3dTestTask::DispAuth3dChara(::auth_3d_id& id) {
+    RobManagement* rob_man = get_rob_management();
     id.get_uid(); // ???
-    rob_chara_item_equip* rob_disp = rob_chara_array_get_rob_disp(0);
+    RobDisp* rob_disp = rob_man->get_rob_robdisp_work(ROB_ID_1P);
     if (!rob_disp)
         return;
 
     for (int32_t i = RPK_ITEM_BEGIN; i <= RPK_ITEM_END; i++)
-        rob_disp->set_disp((ROB_PARTS_KIND)i, true);
+        rob_disp->set_disp_flag((ROB_PARTS_KIND)i, true);
 }
 
 void Auth3dTestTask::DispChara() {
@@ -1009,17 +1024,18 @@ void Auth3dTestRobWindow::Hide() {
     SetDisp();
 }
 
-void Auth3dTestRobWindow::GetCharaCos(CHARA_NUM chara_index, int32_t chara_id, dw::ListBox* list_box) {
+void Auth3dTestRobWindow::GetCharaCos(CHARA_NUM chara_num, int32_t chara_id, dw::ListBox* list_box) {
     list_box->ClearItems();
 
-    for (const auto& i : item_table_handler_array_get_table(chara_index)->cos) {
-        if (!i.second.data.outer)
+    for (const auto& i : get_rob_item_header(chara_num)->defset) {
+        if (!i.second.item_no[ROB_ITEM_EQUIP_SUB_ID_OUTER])
             continue;
 
-        const item_table_item* item = item_table_handler_array_get_item(chara_index, i.second.data.outer);
-        if (item) {
+        const RobItemTable* tbl = get_rob_item_table(chara_num,
+            i.second.item_no[ROB_ITEM_EQUIP_SUB_ID_OUTER]);
+        if (tbl) {
             char buf[0x100];
-            sprintf_s(buf, sizeof(buf), "%03d %s", i.first + 1, item->name.c_str());
+            sprintf_s(buf, sizeof(buf), "%03d %s", i.first + 1, tbl->name.c_str());
             list_box->AddItem(buf);
         }
     }
@@ -1453,7 +1469,7 @@ Auth3dTestWindow::Auth3dTestWindow() {
 
     const char* nage_text;
     const char* obj_link_text;
-    const char* left_right_reverse_text;
+    const char* mirror_text;
     const char* snap_shot_text;
     const char* self_shadow_off_text;
     const char* black_mask_text;
@@ -1461,7 +1477,7 @@ Auth3dTestWindow::Auth3dTestWindow() {
     if (dw::translate) {
         nage_text = u8"NAGE▽";
         obj_link_text = u8"OBJ Link";
-        left_right_reverse_text = u8"Left Right Reverse";
+        mirror_text = u8"Mirror";
         snap_shot_text = u8"ss capture";
         self_shadow_off_text = u8"Self Shadow Off";
         black_mask_text = u8"Black Mask";
@@ -1470,7 +1486,7 @@ Auth3dTestWindow::Auth3dTestWindow() {
     else {
         nage_text = u8"投▽";
         obj_link_text = u8"OBJ連動";
-        left_right_reverse_text = u8"左右逆";
+        mirror_text = u8"左右逆";
         snap_shot_text = u8"ss画撮";
         self_shadow_off_text = u8"セルフ影OFF";
         black_mask_text = u8"黒mask";
@@ -1584,11 +1600,11 @@ Auth3dTestWindow::Auth3dTestWindow() {
     repeat_listener.callback = Auth3dTestWindow::RepeatCallback;
     repeat->AddSelectionListener(&repeat_listener);
 
-    left_right_reverse = new dw::Button(this, dw::CHECKBOX);
-    left_right_reverse->SetText(left_right_reverse_text);
-    left_right_reverse->SetValue(auth_3d_test_task->left_right_reverse);
-    left_right_reverse_listener.callback = Auth3dTestWindow::LeftRightReverseCallback;
-    left_right_reverse->AddSelectionListener(&left_right_reverse_listener);
+    mirror = new dw::Button(this, dw::CHECKBOX);
+    mirror->SetText(mirror_text);
+    mirror->SetValue(auth_3d_test_task->mirror);
+    mirror_listener.callback = Auth3dTestWindow::LeftRightReverseCallback;
+    mirror->AddSelectionListener(&mirror_listener);
 
     dw::Composite* v79 = new dw::Composite(this);
     v79->SetLayout(new dw::RowLayout(dw::HORIZONTAL));
@@ -1770,10 +1786,10 @@ void Auth3dTestWindow::CategoryCharaMenuInit(dw::Button* button, dw::Menu*& menu
 }
 
 void Auth3dTestWindow::LeftRightReverseCallback(bool value) {
-    auth_3d_test_task->left_right_reverse = value;
+    auth_3d_test_task->mirror = value;
     if (auth_3d_test_task->auth_3d_id.check_not_empty()) {
         auth_3d_test_task->auth_3d_id.set_req_frame(0.0f);
-        auth_3d_test_task->auth_3d_id.set_left_right_reverse(value);
+        auth_3d_test_task->auth_3d_id.set_mirror(value);
     }
 }
 

@@ -686,9 +686,9 @@ static void stage_modern_set(stage_modern* s, stage_modern* other) {
 
     if (pv_osage_manager_array_get_disp() && other)
         for (int32_t i = 0; i < ROB_ID_MAX; i++) {
-            rob_chara* rob_chr = rob_chara_array_get(i);
+            rob_chara* rob_chr = get_rob_management()->get_rob((ROB_ID)i);
             //if (rob_chr)
-                //rob_chara_set_stage_data_ring(rob_chr, &other->index);
+                //rob_chr->set_stage_data_ring(other->index);
         }
 }
 

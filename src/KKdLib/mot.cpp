@@ -50,7 +50,7 @@ mot_key_set_data::mot_key_set_data() : type(), frames(), values(), keys_count(),
 
 }
 
-mot_data::mot_data() : info(), frame_count(), bone_info_count(), murmurhash(),
+mot_data::mot_data() : info(), frame_max(), bone_info_count(), murmurhash(),
 div_frames(), div_count(), name(), bone_info_array(), key_set_array() {
 
 }
@@ -631,7 +631,7 @@ static void mot_classic_read_inner(mot_set* ms, prj::shared_ptr<prj::stack_alloc
 
         s.set_position(mh[i].key_set_info_offset, SEEK_SET);
         m->info = s.read_uint16_t();
-        m->frame_count = s.read_uint16_t();
+        m->frame_max = s.read_uint16_t();
 
         uint32_t key_set_count = m->key_set_count;
         mot_key_set_data* key_set_array = alloc->allocate<mot_key_set_data>(key_set_count);
@@ -698,7 +698,7 @@ static void mot_classic_write_inner(mot_set* ms, stream& s) {
 
         mh[i].key_set_info_offset = (uint32_t)s.get_position();
         s.write_uint16_t(m->info);
-        s.write_uint16_t(m->frame_count);
+        s.write_uint16_t(m->frame_max);
 
         uint16_t key_set_count = m->key_set_count;
         mot_key_set_data* key_set_array = m->key_set_array;
@@ -843,7 +843,7 @@ static void mot_modern_read_inner(mot_set* ms, prj::shared_ptr<prj::stack_alloca
 
     s_motc.set_position(mh.key_set_info_offset, SEEK_SET);
     m->info = s_motc.read_uint16_t_reverse_endianness();
-    m->frame_count = s_motc.read_uint16_t_reverse_endianness();
+    m->frame_max = s_motc.read_uint16_t_reverse_endianness();
 
     uint32_t key_set_count = m->key_set_count;
     mot_key_set_data* key_set_array = alloc->allocate<mot_key_set_data>(key_set_count);
@@ -1061,7 +1061,7 @@ static void mot_modern_write_inner(mot_set* ms, stream& s) {
 
         mh.key_set_info_offset = s_motc.get_position();
         s_motc.write_uint16_t_reverse_endianness(m->info);
-        s_motc.write_uint16_t_reverse_endianness(m->frame_count);
+        s_motc.write_uint16_t_reverse_endianness(m->frame_max);
 
         mh.key_set_types_offset = s_motc.get_position();
         uint16_t key_set_type_buf = 0;
@@ -1217,7 +1217,7 @@ inline static const char* mot_move_data_string(const char* str,
 static void mot_data_move_data(mot_data* mot_dst, const mot_data* mot_src,
     prj::shared_ptr<prj::stack_allocator> alloc) {
     mot_dst->info = mot_src->info;
-    mot_dst->frame_count = mot_src->frame_count;
+    mot_dst->frame_max = mot_src->frame_max;
     mot_dst->bone_info_count = mot_src->bone_info_count;
 
     mot_dst->murmurhash = mot_src->murmurhash;

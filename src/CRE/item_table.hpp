@@ -12,96 +12,94 @@
 #include "object.hpp"
 #include "texture.hpp"
 
-struct item_table_item_data_obj {
-    object_info obj_info;
-    ROB_PARTS_KIND rpk;
+struct RobItemDataObj {
+    object_info uid;
+    ROB_PARTS_KIND replace_id;
 
-    item_table_item_data_obj();
+    RobItemDataObj();
 };
 
-struct item_table_item_data_ofs {
-    item_sub_id sub_id;
-    int32_t no;
-    vec3 position;
-    vec3 rotation;
+struct RobItemDataOfs {
+    ROB_ITEM_EQUIP_SUB_ID equip_sub_id;
+    uint32_t item_no;
+    vec3 trans;
+    vec3 rot;
     vec3 scale;
 
-    item_table_item_data_ofs();
+    RobItemDataOfs();
 };
 
-struct item_table_item_data_tex {
-    uint32_t org;
-    uint32_t chg;
+struct RobItemDataTex {
+    uint32_t org_uid;
+    uint32_t chg_uid;
 
-    item_table_item_data_tex();
+    RobItemDataTex();
 };
 
-struct item_table_item_data_col {
-    uint32_t tex_id;
-    int32_t flag;
-    color_tone col_tone;
-
-    item_table_item_data_col();
+struct RobItemDataColFlagMember {
+    uint32_t is_available : 1;
+    uint32_t reserve : 31;
 };
 
-struct item_table_item_data {
-    std::vector<item_table_item_data_obj> obj;
-    std::vector<item_table_item_data_ofs> ofs;
-    std::vector<item_table_item_data_tex> tex;
-    std::vector<item_table_item_data_col> col;
-
-    item_table_item_data();
-    ~item_table_item_data();
+union RobItemDataColFlag {
+    uint32_t w;
+    RobItemDataColFlagMember m;
 };
 
-struct item_table_item {
-    int32_t flag;
+struct RobItemDataCol {
+    uint32_t tex_uid;
+    RobItemDataColFlag flag;
+    ImgfColorToneParam color;
+
+    RobItemDataCol();
+};
+
+struct RobItemData {
+    std::vector<RobItemDataObj> obj;
+    std::vector<RobItemDataOfs> ofs;
+    std::vector<RobItemDataTex> tex;
+    std::vector<RobItemDataCol> col;
+
+    RobItemData();
+    ~RobItemData();
+};
+
+struct RobItemTableFlagMember {
+    uint32_t is_dummy : 1;
+    uint32_t is_present : 1;
+    uint32_t is_texorg : 1;
+    uint32_t is_objorg : 1;
+    uint32_t reserve : 28;
+};
+
+union RobItemTableFlag {
+    uint32_t w;
+    RobItemTableFlagMember m;
+};
+
+struct RobItemTable {
+    RobItemTableFlag flag;
     std::string name;
     std::vector<uint32_t> objset;
-    int32_t type;
-    int32_t attr;
-    int32_t des_id;
-    item_sub_id sub_id;
-    item_table_item_data data;
-    int32_t exclusion;
-    int32_t point;
-    int32_t org_itm;
+    ROB_ITEM_TYPE type;
+    uint32_t attr;
+    ROB_ITEM_EQUIP_DES_ID equip_des_id;
+    ROB_ITEM_EQUIP_SUB_ID equip_sub_id;
+    RobItemData data;
+    uint32_t exclusion;
+    uint32_t point;
+    uint32_t org_itm;
     bool npr_flag;
     float_t face_depth;
 
-    item_table_item();
-    ~item_table_item();
+    RobItemTable();
+    ~RobItemTable();
 };
 
-union item_cos_data {
-    struct {
-        int32_t zujo;
-        int32_t kami;
-        int32_t hitai;
-        int32_t me;
-        int32_t megane;
-        int32_t mimi;
-        int32_t kuchi;
-        int32_t maki;
-        int32_t kubi;
-        int32_t inner;
-        int32_t outer;
-        int32_t joha_mae;
-        int32_t joha_ushiro;
-        int32_t hada;
-        int32_t kata;
-        int32_t u_ude;
-        int32_t l_ude;
-        int32_t te;
-        int32_t belt;
-        int32_t cosi;
-        int32_t pants;
-        int32_t asi;
-        int32_t sune;
-        int32_t kutsu;
-        int32_t head;
-    } data;
-    int32_t arr[ITEM_SUB_MAX];
+struct RobItemEquip {
+    uint32_t item_no[ROB_ITEM_EQUIP_SUB_ID_MAX];
+
+    RobItemEquip();
 };
 
 struct item_table_dbgset {
@@ -109,24 +107,24 @@ struct item_table_dbgset {
     ~item_table_dbgset();
 };
 
-struct item_table {
-    prj::vector_pair_combine<int32_t, item_table_item> item;
-    prj::vector_pair_combine<int32_t, item_cos_data> cos;
-    prj::vector_pair_combine<std::string, item_cos_data> dbgset;
+struct RobItemHeader {
+    prj::vector_pair_combine<uint32_t, RobItemTable> table;
+    prj::vector_pair_combine<uint32_t, RobItemEquip> defset;
+    prj::vector_pair_combine<std::string, RobItemEquip> dbgset;
 
-    item_table();
-    ~item_table();
+    RobItemHeader();
+    ~RobItemHeader();
 
-    const item_table_item* get_item(int32_t item_no);
+    const RobItemTable* get_item(uint32_t item_no);
 };
 
 extern void item_table_handler_array_init();
-extern const item_cos_data* item_table_handler_array_get_item_cos_data(CHARA_NUM cn, int32_t cos_id);
-extern const item_table_item* item_table_handler_array_get_item(CHARA_NUM cn, int32_t item_no);
-extern std::string item_table_handler_array_get_item_name(CHARA_NUM cn, int32_t item_no);
-extern item_sub_id item_table_handler_array_get_item_sub_id(CHARA_NUM cn, int32_t item_no);
-extern const std::vector<uint32_t>* item_table_handler_array_get_item_objset(CHARA_NUM cn, int32_t item_no);
-extern const item_table* item_table_handler_array_get_table(CHARA_NUM cn);
 extern bool item_table_handler_array_load();
 extern void item_table_handler_array_read();
 extern void item_table_handler_array_free();
+
+extern const RobItemEquip* get_default_costume_data(CHARA_NUM cn, int32_t cos_id);
+extern const RobItemHeader* get_rob_item_header(CHARA_NUM cn);
+extern const RobItemTable* get_rob_item_table(CHARA_NUM cn, uint32_t item_no);
+extern std::string get_rob_item_table_name(CHARA_NUM cn, uint32_t item_no);
+extern const std::vector<uint32_t>* get_rob_item_table_objset(CHARA_NUM cn, uint32_t item_no);

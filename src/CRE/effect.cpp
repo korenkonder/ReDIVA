@@ -435,17 +435,11 @@ struct ripple_emit_draw_data {
     ripple_emit_draw_data();
 };
 
-struct struc_192 {
-    int32_t index;
-    vec3 pos;
+struct RippleRobColli {
+    ROB_COLLI_ID colli_id;
+    vec3 old_pos;
 
-    struc_192();
-};
-
-struct struc_207 {
-    struc_192 field_0[18];
-
-    struc_207();
+    RippleRobColli();
 };
 
 struct EffectRipple {
@@ -480,8 +474,8 @@ struct EffectRipple {
     ripple_emit_draw_data field_178;
     ripple_emit_draw_data field_2A0;
     ripple_emit_draw_data field_3C8;
-    int32_t field_4F0;
-    struc_207 field_4F4[6];
+    int32_t num_rob_colli;
+    RippleRobColli rob_colli[ROB_ID_MAX][18];
     int32_t field_BB4;
     RenderTexture ripple_texture;
     int32_t counter;
@@ -590,15 +584,16 @@ struct splash_particle {
     void restart();
 };
 
-struct ParticleEmitter {
-    splash_particle* splash;
-    vec3 pos;
-    int32_t field_1C;
-    float_t field_20;
-    int field_24;
-    float_t field_28;
-    float_t particle_size;
+class ParticleEmitter {
+friend class ParticleEmitterRob;
+private:
+    splash_particle* m_particle_set;
+    vec3 m_pos;
+    vec3 m_dir;
+    float_t m_initial_life;
+    float_t m_initial_size;
 
+public:
     ParticleEmitter();
     virtual ~ParticleEmitter();
 
@@ -608,19 +603,21 @@ struct ParticleEmitter {
     void reset_data();
 };
 
-struct ParticleEmitterRob : ParticleEmitter {
-    int32_t chara_id;
-    int32_t bone_index;
-    vec3 prev_pos;
-    vec3 velocity;
-    vec3 prev_velocity;
-    int32_t emit_num;
-    float_t field_60;
-    float_t emission_ratio_attn;
-    float_t emission_velocity_scale;
-    bool in_water;
-    bool init_trans;
+class ParticleEmitterRob : public ParticleEmitter {
+private:
+    ROB_ID m_rob_id;
+    ROB_COLLI_ID m_colli_id;
+    vec3 m_old_pos;
+    vec3 m_velocity;
+    vec3 m_old_velocity;
+    int32_t m_emit_num;
+    float_t m_emission_ratio;
+    float_t m_emission_ratio_attn;
+    float_t m_emission_velocity_scale;
+    bool m_flag_in_water;
+    bool m_set_old_pos;
 
+public:
     ParticleEmitterRob();
     virtual ~ParticleEmitterRob() override;
 
@@ -631,7 +628,12 @@ struct ParticleEmitterRob : ParticleEmitter {
     void get_trans();
     void reset_data();
     void reset_data_base();
-    void set_chara(int32_t chara_id, int32_t bone_index, bool in_water);
+    void set_chara(ROB_ID rob_id, ROB_COLLI_ID colli_id, bool in_water);
+    void set_emit_num(int32_t value);
+    void set_emission_ratio_attn(float_t value);
+    void set_emission_velocity_scale(float_t value);
+    void set_initial_life(float_t value);
+    void set_initial_size(float_t value);
     void set_splash(splash_particle* value);
 };
 
@@ -2595,12 +2597,13 @@ float_t EffectFogRing::ptcl_random(float_t value) {
 void EffectFogRing::sub_140347B40(float_t delta_time) {
     field_124 = 0;
 
+    RobManagement* rob_man = get_rob_management();
     struc_573(*v5)[5] = field_5C;
-    for (int32_t i = 0; i < 2; i++, v5++) {
-        if (!rob_chara_array_get(i) || !rob_chara_array_check_visibility(i))
+    for (int32_t i = 0; i <= ROB_ID_2P; i++, v5++) {
+        if (!rob_man->get_rob((ROB_ID)i) || !rob_man->get_disp_on((ROB_ID)i))
             continue;
 
-        rob_chara_bone_data* rob_bone_data = rob_chara_array_get_bone_data(i);
+        rob_chara_bone_data* rob_bone_data = get_rob_management()->get_rob_motion_work((ROB_ID)i);
         if (!rob_bone_data)
             continue;
 
@@ -3185,12 +3188,8 @@ ripple_emit_draw_data::ripple_emit_draw_data() : data() {
 
 }
 
-struc_192::struc_192() {
-    index = -1;
-}
-
-struc_207::struc_207() {
-
+RippleRobColli::RippleRobColli() {
+    colli_id = ROB_COLLI_ID_DUMMY;
 }
 
 EffectRipple::Params::Params() {
@@ -3203,7 +3202,7 @@ EffectRipple::Params::Params() {
 EffectRipple::EffectRipple() : delta_frame(), update(), rain_ripple_num(), rain_ripple_min_value(),
 rain_ripple_max_value(), field_14(), emit_pos_scale(), emit_pos_ofs_x(), emit_pos_ofs_z(), ripple_tex_id(),
 use_float_ripplemap(), field_30(), rob_emitter_size(), emitter_num(), emitter_size(), field_4C(), field_50(),
-field_178(), field_2A0(), field_3C8(), field_4F0(), field_BB4(), counter(), field_BEC(), stage_set() {
+field_178(), field_2A0(), field_3C8(), num_rob_colli(), field_BB4(), counter(), field_BEC(), stage_set() {
     ground_y = -1001.0f;
     emitter_list = 0;
     current_stage_index = -1;
@@ -3356,10 +3355,10 @@ void EffectRipple::draw(render_data_context& rend_data_ctx, const cam_data& cam)
 }
 
 void EffectRipple::reset() {
-    field_4F0 = 18;
-    for (struc_207& i : field_4F4)
-        for (int32_t j = 0; j < field_4F0; j++)
-            i.field_0[j].pos = 0.0f;
+    num_rob_colli = 18;
+    for (auto& i : rob_colli)
+        for (int32_t j = 0; j < num_rob_colli; j++)
+            i[j].old_pos = 0.0f;
 
     field_30 = 60;
 
@@ -3387,8 +3386,12 @@ void EffectRipple::set_stage_index(int32_t stage_index) {
 }
 
 void EffectRipple::set_stage_indices(const std::vector<int32_t>& stage_indices) {
-    static const int32_t dword_1409E5330[] = {
-        0, 1, 2, 4, 10, 5, 12, 7, 14, 9, 21, 15, 23, 17, 25, 19, 26, 20
+    static const ROB_COLLI_ID ripple_colli_id[] = {
+       ROB_COLLI_ID_KOSHI, ROB_COLLI_ID_MUNE_L, ROB_COLLI_ID_MUNE_R, ROB_COLLI_ID_KAO,
+       ROB_COLLI_ID_KATA_L1, ROB_COLLI_ID_KATA_R1, ROB_COLLI_ID_UDE_L1, ROB_COLLI_ID_UDE_R1,
+       ROB_COLLI_ID_TE_L, ROB_COLLI_ID_TE_R,  ROB_COLLI_ID_MOMO_L1, ROB_COLLI_ID_MOMO_R1,
+       ROB_COLLI_ID_SUNE_L1, ROB_COLLI_ID_SUNE_R1,
+       ROB_COLLI_ID_ASI_L, ROB_COLLI_ID_ASI_R, ROB_COLLI_ID_TOE_L, ROB_COLLI_ID_TOE_R
     };
 
     stage_set = false;
@@ -3423,11 +3426,11 @@ void EffectRipple::set_stage_indices(const std::vector<int32_t>& stage_indices) 
     rctx_ptr->render_manager->set_pass_sw(rndr::RND_PASSID_PRE_PROCESS, true);
     rctx_ptr->render_manager->add_pre_process(0, EffectRipple::draw_static, this);
 
-    field_4F0 = 18;
-    for (struc_207& i : field_4F4)
-        for (int32_t j = 0; j < field_4F0; j++) {
-            i.field_0[j].index = dword_1409E5330[j];
-            i.field_0[j].pos = 0.0f;
+    num_rob_colli = 18;
+    for (auto& i : rob_colli)
+        for (int32_t j = 0; j < num_rob_colli; j++) {
+            i[j].colli_id = ripple_colli_id[j];
+            i[j].old_pos = 0.0f;
         }
 
     update = false;
@@ -3601,26 +3604,26 @@ void EffectRipple::sub_14035AED0() {
     ripple_emit_draw_data& v2 = field_178;
     ripple_emit_draw_data& v3 = field_2A0;
 
-    int32_t chara_id = 0;
-    for (struc_207& i : field_4F4) {
-        if (!rob_chara_array_check_visibility(chara_id)) {
-            chara_id++;
+    int32_t rob_id = 0;
+    for (auto& i : rob_colli) {
+        if (!get_rob_management()->get_disp_on((ROB_ID)rob_id)) {
+            rob_id++;
             continue;
         }
 
-        rob_chara* rob_chr = rob_chara_array_get(chara_id);
+        rob_chara* rob_chr = get_rob_management()->get_rob((ROB_ID)rob_id);
         if (!rob_chr) {
-            chara_id++;
+            rob_id++;
             continue;
         }
 
-        for (int32_t j = 0; j < field_4F0; j++) {
-            struc_192& v4 = i.field_0[j];
+        for (int32_t j = 0; j < num_rob_colli; j++) {
+            RippleRobColli& rob_colli = i[j];
             vec3 pos = 0.0f;
-            float_t scale = rob_chr->get_pos_scale(v4.index, pos);
+            float_t scale = rob_chr->get_pos_scale(rob_colli.colli_id, pos);
             if (pos.y - ground_y < scale) {
                 if (use_float_ripplemap)
-                    sub_1403587C0(pos, v4.pos, scale, v2.data, v3.data);
+                    sub_1403587C0(pos, rob_colli.old_pos, scale, v2.data, v3.data);
                 else if (v2.data.count < 16) {
                     v2.data.position[v2.data.count].x = ((rand_state_array_get_float(4) - 0.5f)
                         * 0.02f + pos.x) * emit_pos_scale + emit_pos_ofs_x;
@@ -3631,10 +3634,10 @@ void EffectRipple::sub_14035AED0() {
                     v2.data.count++;
                 }
             }
-            v4.pos = pos;
+            rob_colli.old_pos = pos;
         }
 
-        chara_id++;
+        rob_id++;
     }
 
     if (use_float_ripplemap) {
@@ -3934,8 +3937,7 @@ void splash_particle::restart() {
     alive = 0;
 }
 
-ParticleEmitter::ParticleEmitter() : splash(), field_1C(),
-field_20(), field_24(), field_28(), particle_size() {
+ParticleEmitter::ParticleEmitter() : m_particle_set(), m_initial_life(), m_initial_size() {
     reset_data();
 }
 
@@ -3952,17 +3954,16 @@ void ParticleEmitter::restart() {
 }
 
 void ParticleEmitter::reset_data() {
-    splash = 0;
-    pos = 0.0f;
-    field_1C = 0;
-    field_20 = 1.0f;
-    field_24 = 0;
-    particle_size = 1.0f;
-    field_28 = 1.0f;
+    m_particle_set = 0;
+    m_pos = 0.0f;
+    m_dir = { 0.0f, 1.0f, 0.0f };
+    m_initial_life = 1.0f;
+    m_initial_size = 1.0f;
 }
 
-ParticleEmitterRob::ParticleEmitterRob() : chara_id(), bone_index(), emit_num(),
-field_60(), emission_ratio_attn(), emission_velocity_scale(), in_water(), init_trans() {
+ParticleEmitterRob::ParticleEmitterRob() : m_rob_id(), m_colli_id(),
+m_emit_num(), m_emission_ratio(), m_emission_ratio_attn(),
+m_emission_velocity_scale(), m_flag_in_water(), m_set_old_pos() {
     reset_data();
 }
 
@@ -3995,53 +3996,56 @@ static inline vec3 rand_b_get_float() {
 }
 
 void ParticleEmitterRob::ctrl(float_t delta_time) {
-    if (fabsf(delta_time) <= 0.000001f || !splash
-        || !rob_chara_array_get(chara_id) || !rob_chara_array_check_visibility(chara_id))
+    if (fabsf(delta_time) <= 0.000001f || !m_particle_set)
+        return;
+
+    RobManagement* rob_man = get_rob_management();
+    if (!rob_man->get_rob(m_rob_id) || !rob_man->get_disp_on(m_rob_id))
         return;
 
     get_trans();
     get_velocity(delta_time);
 
-    float_t v8 = vec3::length(velocity);
+    float_t v8 = vec3::length(m_velocity);
     if (v8 > 100.0f)
         return;
 
-    if (pos.y >= 0.3f)
-        field_60 = max_def(field_60 - delta_time * emission_ratio_attn, 0.0f);
+    if (m_pos.y >= 0.3f)
+        m_emission_ratio = max_def(m_emission_ratio - delta_time * m_emission_ratio_attn, 0.0f);
     else
-        field_60 = 1.0f;
+        m_emission_ratio = 1.0f;
 
     if (v8 < 1.0f)
         return;
 
     float_t v27 = min_def(v8 * 0.05f, 1.0f);
-    int32_t emit_num = (int32_t)((float_t)this->emit_num * (v27 * v27) * field_60);
+    int32_t emit_num = (int32_t)((float_t)m_emit_num * (v27 * v27) * m_emission_ratio);
     if (emit_num <= 0)
         return;
 
-    vec3 prev_velocity = this->prev_velocity * emission_velocity_scale;
-    vec3 velocity = this->velocity * emission_velocity_scale;
-    vec3 trans_diff = pos - prev_pos;
-    vec3 velocity_diff = velocity - prev_velocity;
+    vec3 old_velocity = m_old_velocity * m_emission_velocity_scale;
+    vec3 velocity = m_velocity * m_emission_velocity_scale;
+    vec3 pos_diff = m_pos - m_old_pos;
+    vec3 velocity_diff = velocity - m_old_velocity;
 
     float_t v41 = flt_140C9A588;
     for (int32_t i = 0; i < emit_num; i++) {
-        splash_particle_data* ptcl = splash->emit();
+        splash_particle_data* ptcl = m_particle_set->emit();
         if (!ptcl)
             break;
 
         float_t diff_scale = rand_a_get_float();
         vec3 rand_vec = rand_b_get_float();
 
-        ptcl->position = rand_vec * 0.05f + (trans_diff * diff_scale + prev_pos);
-        ptcl->direction = rand_vec * 0.65f + (velocity_diff * diff_scale + prev_velocity);
+        ptcl->position = rand_vec * 0.05f + (pos_diff * diff_scale + m_old_pos);
+        ptcl->direction = rand_vec * 0.65f + (velocity_diff * diff_scale + old_velocity);
 
         float_t size_scale = rand_a_get_float();
 
         ptcl->flags = 0x01;
-        ptcl->size = max_def(size_scale * size_scale * particle_size, 1.0f);
+        ptcl->size = max_def(size_scale * size_scale * m_initial_size, 1.0f);
 
-        if (in_water && (trans_diff.y * diff_scale) + prev_pos.y < 0.3f) {
+        if (m_flag_in_water && (pos_diff.y * diff_scale) + m_old_pos.y < 0.3f) {
             ptcl->flags = 0x00;
             ptcl->size += v41;
             ptcl->direction.y += 0.8f;
@@ -4056,69 +4060,89 @@ void ParticleEmitterRob::ctrl(float_t delta_time) {
 }
 
 void ParticleEmitterRob::restart() {
-    velocity = 0.0f;
-    prev_velocity = 0.0f;
-    init_trans = true;
-    field_60 = 0.0f;
+    m_velocity = 0.0f;
+    m_old_velocity = 0.0f;
+    m_set_old_pos = true;
+    m_emission_ratio = 0.0f;
 }
 
 void ParticleEmitterRob::get_trans() {
     vec3 pos;
-    rob_chara_array_get(chara_id)->get_pos_scale(bone_index, pos);
+    get_rob_management()->get_rob(m_rob_id)->get_pos_scale(m_colli_id, pos);
 
-    if (init_trans) {
-        prev_pos = pos;
-        init_trans = false;
+    if (m_set_old_pos) {
+        m_old_pos = pos;
+        m_set_old_pos = false;
     }
     else
-        prev_pos = this->pos;
+        m_old_pos = m_pos;
 
-    this->pos = pos;
+    m_pos = pos;
 }
 
 void ParticleEmitterRob::get_velocity(float_t delta_time) {
-    prev_velocity = velocity;
-    velocity = (pos - prev_pos) * (1.0f / delta_time);
+    m_old_velocity = m_velocity;
+    m_velocity = (m_pos - m_old_pos) * (1.0f / delta_time);
 }
 
 void ParticleEmitterRob::reset_data() {
-    bone_index = -1;
-    chara_id = 0;
-    prev_pos = 0.0f;
-    velocity = 0.0f;
-    prev_velocity = 0.0f;
-    emit_num = 0;
-    field_60 = 0.0f;
-    emission_ratio_attn = 0.0f;
-    emission_velocity_scale = 0.0f;
-    in_water = true;
-    init_trans = true;
+    m_rob_id = (ROB_ID)0;
+    m_colli_id = ROB_COLLI_ID_DUMMY;
+    m_old_pos = 0.0f;
+    m_velocity = 0.0f;
+    m_old_velocity = 0.0f;
+    m_emit_num = 0;
+    m_emission_ratio = 0.0f;
+    m_emission_ratio_attn = 0.0f;
+    m_emission_velocity_scale = 0.0f;
+    m_flag_in_water = true;
+    m_set_old_pos = true;
 }
 
 void ParticleEmitterRob::reset_data_base() {
     ParticleEmitter::reset_data();
 }
 
-void ParticleEmitterRob::set_chara(int32_t chara_id, int32_t bone_index, bool in_water) {
+void ParticleEmitterRob::set_chara(ROB_ID rob_id, ROB_COLLI_ID colli_id, bool in_water) {
     reset_data_base();
     reset_data();
 
-    this->chara_id = chara_id;
-    this->bone_index = bone_index;
-    prev_pos = 0.0f;
-    velocity = 0.0f;
-    prev_velocity = 0.0f;
-    emit_num = 0;
-    field_60 = 0.0f;
-    emission_ratio_attn = 0.2f;
-    emission_velocity_scale = 0.08f;
-    this->in_water = in_water;
-    init_trans = true;
+    m_rob_id = rob_id;
+    m_colli_id = colli_id;
+    m_old_pos = 0.0f;
+    m_velocity = 0.0f;
+    m_old_velocity = 0.0f;
+    m_emit_num = 0;
+    m_emission_ratio = 0.0f;
+    m_emission_ratio_attn = 0.2f;
+    m_emission_velocity_scale = 0.08f;
+    m_flag_in_water = in_water;
+    m_set_old_pos = true;
 
 }
 
+void ParticleEmitterRob::set_emit_num(int32_t value) {
+    m_emit_num = value;
+}
+
+void ParticleEmitterRob::set_emission_ratio_attn(float_t value) {
+    m_emission_ratio_attn = value;
+}
+
+void ParticleEmitterRob::set_emission_velocity_scale(float_t value) {
+    m_emission_velocity_scale = value;
+}
+
+void ParticleEmitterRob::set_initial_life(float_t value) {
+    m_initial_life = value;
+}
+
+void ParticleEmitterRob::set_initial_size(float_t value) {
+    m_initial_size = value;
+}
+
 void ParticleEmitterRob::set_splash(splash_particle* value) {
-    splash = value;
+    m_particle_set = value;
 }
 
 water_particle_vertex_data::water_particle_vertex_data() : size() {
@@ -4419,11 +4443,12 @@ void EffectSplashParticle::disp() {
 }
 
 bool EffectSplashParticle::init(int32_t splash_tex_id, object_info splash_obj_id, bool in_water, bool blink) {
-    static const int32_t dword_1409E59A8[5] = {
-        26, 20, 14, 9, 0,
+    static const ROB_COLLI_ID  splash_colli_id[] = {
+        ROB_COLLI_ID_TOE_L, ROB_COLLI_ID_TOE_R,
+        ROB_COLLI_ID_TE_L, ROB_COLLI_ID_TE_R, ROB_COLLI_ID_KOSHI,
     };
 
-    static const int32_t dword_1409E59A8_size = sizeof(dword_1409E59A8) / sizeof(int32_t);
+    static const int32_t splash_colli_id_count = sizeof(splash_colli_id) / sizeof(BONE_ID);
 
     splash_count = 1;
     splash = new splash_particle[splash_count];
@@ -4431,7 +4456,7 @@ bool EffectSplashParticle::init(int32_t splash_tex_id, object_info splash_obj_id
     if (!splash)
         return false;
 
-    emitter_rob_count = dword_1409E59A8_size * ROB_ID_MAX;
+    emitter_rob_count = splash_colli_id_count * ROB_ID_MAX;
     emitter_rob = new ParticleEmitterRob[emitter_rob_count];
 
     if (!emitter_rob)
@@ -4446,10 +4471,10 @@ bool EffectSplashParticle::init(int32_t splash_tex_id, object_info splash_obj_id
     for (int32_t i = 0; i < splash_count; i++)
         splash[i].init(5000);
 
-    for (int32_t i = 0, j = 0; i < ROB_ID_MAX; i++)
-        for (const int32_t& l : dword_1409E59A8) {
+    for (int32_t rob_id = 0, j = 0; rob_id < ROB_ID_MAX; rob_id++)
+        for (const ROB_COLLI_ID colli_id : splash_colli_id) {
             ParticleEmitterRob& ptcl_emit_rob = emitter_rob[j++];
-            ptcl_emit_rob.set_chara(i, l, in_water);
+            ptcl_emit_rob.set_chara((ROB_ID)rob_id, colli_id, in_water);
             ptcl_emit_rob.set_splash(splash);
         }
 
@@ -4461,20 +4486,20 @@ bool EffectSplashParticle::init(int32_t splash_tex_id, object_info splash_obj_id
     if (splash_obj_id.not_null()) {
         splash_object.init(100);
 
-        object_emitter_rob_count = dword_1409E59A8_size * ROB_ID_MAX;
+        object_emitter_rob_count = splash_colli_id_count * ROB_ID_MAX;
         object_emitter_rob = new ParticleEmitterRob[object_emitter_rob_count];
 
         if (!object_emitter_rob)
             return false;
 
-        for (int32_t i = 0, j = 0; i < ROB_ID_MAX; i++)
-            for (const int32_t& l : dword_1409E59A8) {
+        for (int32_t rob_id = 0, j = 0; rob_id < ROB_ID_MAX; rob_id++)
+            for (const ROB_COLLI_ID colli_id : splash_colli_id) {
                 ParticleEmitterRob& ptcl_emit_rob = object_emitter_rob[j++];
-                ptcl_emit_rob.set_chara(i, l, in_water);
+                ptcl_emit_rob.set_chara((ROB_ID)rob_id, colli_id, in_water);
                 ptcl_emit_rob.set_splash(&splash_object);
-                ptcl_emit_rob.emit_num = 10;
-                ptcl_emit_rob.particle_size = 1.0f;
-                ptcl_emit_rob.field_28 = 1.0f;
+                ptcl_emit_rob.set_emit_num(10);
+                ptcl_emit_rob.set_initial_life(1.0f);
+                ptcl_emit_rob.set_initial_size(1.0f);
             }
 
         particle_disp_obj.init(&splash_object, splash_obj_id);
@@ -4546,22 +4571,22 @@ void EffectSplashParticle::set_color(const vec4& value) {
 
 void EffectSplashParticle::set_emission_ratio_attn(float_t value) {
     for (int32_t i = 0; i < emitter_rob_count; i++)
-        emitter_rob[i].emission_ratio_attn = value;
+        emitter_rob[i].set_emission_ratio_attn(value);
 
     if (has_splash_object)
         for (int32_t i = 0; i < object_emitter_rob_count; i++)
-            object_emitter_rob[i].emission_ratio_attn = value;
+            object_emitter_rob[i].set_emission_ratio_attn(value);
 
     emission_ratio_attn = value;
 }
 
 void EffectSplashParticle::set_emission_velocity_scale(float_t value) {
     for (int32_t i = 0; i < emitter_rob_count; i++)
-        emitter_rob[i].emission_velocity_scale = value;
+        emitter_rob[i].set_emission_velocity_scale(value);
 
     if (has_splash_object)
         for (int32_t i = 0; i < object_emitter_rob_count; i++)
-            object_emitter_rob[i].emission_velocity_scale = value;
+            object_emitter_rob[i].set_emission_velocity_scale(value);
 
     emission_velocity_scale = value;
 }
@@ -4570,7 +4595,7 @@ void EffectSplashParticle::set_emit_num(int32_t value) {
     emit_num = value;
 
     for (int32_t i = 0; i < emitter_rob_count; i++)
-        emitter_rob[i].emit_num = value;
+        emitter_rob[i].set_emit_num(value);
 }
 
 void EffectSplashParticle::set_particle_size(float_t value) {
@@ -4580,7 +4605,7 @@ void EffectSplashParticle::set_particle_size(float_t value) {
         water_ptcl[i].particle_size = value;
 
     for (int32_t i = 0; i < emitter_rob_count; i++)
-        emitter_rob[i].particle_size = value;
+        emitter_rob[i].set_initial_size(value);
 }
 
 void EffectSplashParticle::set_ripple_emission(float_t value) {

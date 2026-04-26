@@ -51,20 +51,21 @@ material_list_struct::material_list_struct(uint32_t hash, vec4& blend_color,
 
 }
 
-texture_pattern_struct::texture_pattern_struct() {
+TexChange::TexChange() {
 
 }
 
-texture_pattern_struct::texture_pattern_struct(texture_id src, texture_id dst) : src(src), dst(dst) {
+TexChange::TexChange(texture_id org_texid, texture_id change_texid)
+    : org_texid(org_texid), change_texid(change_texid) {
 
 }
 
 texture_transform_struct::texture_transform_struct() {
-    id = (uint32_t)-1;
+    texid = (uint32_t)-1;
     mat = mat4_identity;
 }
 
-texture_transform_struct::texture_transform_struct(uint32_t id, const mat4& mat) : id(id), mat(mat) {
+texture_transform_struct::texture_transform_struct(uint32_t texid, const mat4& mat) : texid(texid), mat(mat) {
 
 }
 
@@ -2833,14 +2834,16 @@ namespace mdl {
     }
 
     void DispManager::entry_obj_by_object_info_object_skin(object_info obj_info,
-        const std::vector<texture_pattern_struct>* texture_pattern,
+        const std::vector<TexChange>* texture_pattern,
         const RobSkinCol* skin_col, float_t alpha,
         const mat4* matrices, const mat4* ex_data_matrices, const mat4* mat, const mat4& global_mat) {
         obj_skin* skin = objset_info_storage_get_obj_skin(obj_info);
         if (!skin)
             return;
 
-        obj_skin_set_matrix_buffer(skin, matrices, ex_data_matrices, rctx_ptr->matrix_buffer, mat, global_mat);
+        static mat4 env_mtx[MATRIX_BUFFER_COUNT];
+
+        obj_skin_set_matrix_buffer(skin, matrices, ex_data_matrices, env_mtx, mat, global_mat);
 
         vec4 blend_color;
         vec4 offset_color;
@@ -2874,9 +2877,9 @@ namespace mdl {
             set_texture_pattern((int32_t)texture_pattern_count, texture_pattern->data());
 
         if (fabsf(alpha - 1.0f) > 0.000001f)
-            entry_obj_by_object_info(global_mat, obj_info, alpha, rctx_ptr->matrix_buffer);
+            entry_obj_by_object_info(global_mat, obj_info, alpha, env_mtx);
         else
-            entry_obj_by_object_info(global_mat, obj_info, rctx_ptr->matrix_buffer);
+            entry_obj_by_object_info(global_mat, obj_info, env_mtx);
 
         if (texture_pattern && texture_pattern_count)
             set_texture_pattern();
@@ -2995,7 +2998,7 @@ namespace mdl {
         value = texture_color_offset;
     }
 
-    void DispManager::get_texture_pattern(int32_t& count, texture_pattern_struct*& value) {
+    void DispManager::get_texture_pattern(int32_t& count, TexChange*& value) {
         count = texture_pattern_count;
 
         for (int32_t i = 0; i < count; i++)
@@ -3253,7 +3256,7 @@ namespace mdl {
         texture_color_offset = value;
     }
 
-    void DispManager::set_texture_pattern(int32_t count, const texture_pattern_struct* value) {
+    void DispManager::set_texture_pattern(int32_t count, const TexChange* value) {
         if (count > TEXTURE_PATTERN_COUNT)
             return;
 

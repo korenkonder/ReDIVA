@@ -122,6 +122,7 @@ void sss_data::pre_proc(const struct cam_data& cam) {
     vec3 interest = rctx->camera->interest;
     vec3 view_point = rctx->camera->view_point;
 
+    RobManagement* rob_man = get_rob_management();
     vec3 chara_position[2];
     chara_position[0] = 0.0f;
     chara_position[1] = 0.0f;
@@ -129,8 +130,8 @@ void sss_data::pre_proc(const struct cam_data& cam) {
     for (int32_t i = 0; i < 2; i++) {
         chara_position[i] = interest;
         chara_distance[i] = 999999.0f;
-        rob_chara_bone_data* rob_bone_data = rob_chara_array_get_bone_data(i);
-        if (rob_chara_pv_data_array_check_chara_id(i) && rob_chara_array_check_visibility(i)) {
+        rob_chara_bone_data* rob_bone_data = rob_man->get_rob_motion_work((ROB_ID)i);
+        if (rob_man->is_init((ROB_ID)i) && rob_man->get_disp_on((ROB_ID)i)) {
             mat4* mat = rob_bone_data->get_mats_mat(BLK_N_HARA_CP);
             if (mat) {
                 mat4_get_translation(mat, &chara_position[i]);

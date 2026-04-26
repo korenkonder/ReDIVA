@@ -17,60 +17,60 @@
 
 struct struc_595 {
     const char* name;
-    int32_t mottbl_index;
+    MOTTABLE_TYPE mottbl_type;
     int32_t type;
     int32_t field_10;
 };
 
 struct struc_595 stru_1409A0AA0[] = {
-    { u8"通常", 0xA7, 0, 0 },
-    { u8"カメラ目線", 0xA7, 1, 0 },
-    { u8"上", 0xA9, 0, 0 },
-    { u8"下", 0xAB, 0, 0 },
-    { u8"左", 0xAD, 0, 0 },
-    { u8"右", 0xAF, 0, 0 },
-    { u8"右上", 0xB3, 0, 0 },
-    { u8"右下", 0xB7, 0, 0 },
-    { u8"左上", 0xB1, 0, 0 },
-    { u8"左下", 0xB5, 0, 0 },
-    { u8"上 →　下", 0xB9, 2, 8 },
-    { u8"下 →　上", 0xB9, 3, 8 },
-    { u8"左 →　右", 0xBB, 2, 8 },
-    { u8"右 →　左", 0xBB, 3, 8 },
-    { u8"左上 →　右下", 0xBD, 2, 8 },
-    { u8"右上 →　左下", 0xBF, 2, 8 },
-    { u8"右下 →　左上", 0xBD, 3, 8 },
-    { u8"左下 →　右上", 0xBF, 3, 8 },
-    { u8"中央 →　上", 0xA9, 2, 8 },
-    { u8"中央 →　下", 0xAB, 2, 8 },
-    { u8"中央 →　左", 0xAD, 2, 8 },
-    { u8"中央 →　右", 0xAF, 2, 8 },
-    { u8"中央 →　右上", 0xB3, 2, 8 },
-    { u8"中央 →　右下", 0xB7, 2, 8 },
-    { u8"中央 →　左上", 0xB1, 2, 8 },
-    { u8"中央 →　左下", 0xB5, 2, 8 },
-    { u8"上 →　中央", 0xA9, 3, 8 },
-    { u8"下 →　中央", 0xAB, 3, 8 },
-    { u8"左 →　中央", 0xAD, 3, 8 },
-    { u8"右 →　中央", 0xAF, 3, 8 },
-    { u8"右上 →　中央", 0xB3, 3, 8 },
-    { u8"右下 →　中央", 0xB7, 3, 8 },
-    { u8"左上 →　中央", 0xB1, 3, 8 },
-    { u8"左下 →　中央", 0xB5, 3, 8 },
+    { u8"通常", MTP_EYES_RESET_OLD, 0, 0 },
+    { u8"カメラ目線", MTP_EYES_RESET_OLD, 1, 0 },
+    { u8"上", MTP_EYES_UP_OLD, 0, 0 },
+    { u8"下", MTP_EYES_DOWN_OLD, 0, 0 },
+    { u8"左", MTP_EYES_LEFT_OLD, 0, 0 },
+    { u8"右", MTP_EYES_RIGHT_OLD, 0, 0 },
+    { u8"右上", MTP_EYES_UP_RIGHT_OLD, 0, 0 },
+    { u8"右下", MTP_EYES_DOWN_RIGHT_OLD, 0, 0 },
+    { u8"左上", MTP_EYES_UP_LEFT_OLD, 0, 0 },
+    { u8"左下", MTP_EYES_DOWN_LEFT_OLD, 0, 0 },
+    { u8"上 →　下", MTP_EYES_MOVE_U_D_OLD, 2, 8 },
+    { u8"下 →　上", MTP_EYES_MOVE_U_D_OLD, 3, 8 },
+    { u8"左 →　右", MTP_EYES_MOVE_U_D, 2, 8 },
+    { u8"右 →　左", MTP_EYES_MOVE_U_D, 3, 8 },
+    { u8"左上 →　右下", MTP_EYES_MOVE_UL_DR_OLD, 2, 8 },
+    { u8"右上 →　左下", MTP_EYES_MOVE_UR_DL_OLD, 2, 8 },
+    { u8"右下 →　左上", MTP_EYES_MOVE_UL_DR_OLD, 3, 8 },
+    { u8"左下 →　右上", MTP_EYES_MOVE_UR_DL_OLD, 3, 8 },
+    { u8"中央 →　上", MTP_EYES_UP_OLD, 2, 8 },
+    { u8"中央 →　下", MTP_EYES_DOWN_OLD, 2, 8 },
+    { u8"中央 →　左", MTP_EYES_LEFT_OLD, 2, 8 },
+    { u8"中央 →　右", MTP_EYES_RIGHT_OLD, 2, 8 },
+    { u8"中央 →　右上", MTP_EYES_UP_RIGHT_OLD, 2, 8 },
+    { u8"中央 →　右下", MTP_EYES_DOWN_RIGHT_OLD, 2, 8 },
+    { u8"中央 →　左上", MTP_EYES_UP_LEFT_OLD, 2, 8 },
+    { u8"中央 →　左下", MTP_EYES_DOWN_LEFT_OLD, 2, 8 },
+    { u8"上 →　中央", MTP_EYES_UP_OLD, 3, 8 },
+    { u8"下 →　中央", MTP_EYES_DOWN_OLD, 3, 8 },
+    { u8"左 →　中央", MTP_EYES_LEFT_OLD, 3, 8 },
+    { u8"右 →　中央", MTP_EYES_RIGHT_OLD, 3, 8 },
+    { u8"右上 →　中央", MTP_EYES_UP_RIGHT_OLD, 3, 8 },
+    { u8"右下 →　中央", MTP_EYES_DOWN_RIGHT_OLD, 3, 8 },
+    { u8"左上 →　中央", MTP_EYES_UP_LEFT_OLD, 3, 8 },
+    { u8"左下 →　中央", MTP_EYES_DOWN_LEFT_OLD, 3, 8 },
 };
 
 struct struc_595  stru_1409A0DD0[] = {
-    { u8"上", 0xA8, 0, 0 },
-    { u8"下", 0xAA, 0, 0 },
-    { u8"右", 0xAE, 0, 0 },
-    { u8"左", 0xAC, 0, 0 },
-    { u8"右上", 0xB2, 0, 0 },
-    { u8"左上", 0xB0, 0, 0 },
-    { u8"右下", 0xB6, 0, 0 },
-    { u8"左下", 0xB4, 0, 0 },
-    { u8"カメラ目線", 0xA6, 1, 0 },
-    { u8"通常", 0xA6, 0, 0 },
-    { u8"通常", 0xA5, 0, 0 },
+    { u8"上", MTP_EYES_UP, 0, 0 },
+    { u8"下", MTP_EYES_DOWN, 0, 0 },
+    { u8"右", MTP_EYES_RIGHT, 0, 0 },
+    { u8"左", MTP_EYES_LEFT, 0, 0 },
+    { u8"右上", MTP_EYES_UP_RIGHT, 0, 0 },
+    { u8"左上", MTP_EYES_UP_LEFT, 0, 0 },
+    { u8"右下", MTP_EYES_DOWN_RIGHT, 0, 0 },
+    { u8"左下", MTP_EYES_DOWN_LEFT, 0, 0 },
+    { u8"カメラ目線", MTP_EYES_RESET, 1, 0 },
+    { u8"通常", MTP_EYES_RESET, 0, 0 },
+    { u8"通常", MTP_EYES_NULL, 0, 0 },
 };
 
 extern render_context* rctx_ptr;
@@ -136,17 +136,17 @@ void pv_play_data_motion_data::ctrl_inner() {
 
     RobAngle ang;
     ang.set_deg(rot);
-    rob_chr->set_base_position_pos(pos);
-    rob_chr->set_base_position_yang(ang);
+    rob_chr->set_rob_pos(pos);
+    rob_chr->set_rob_yang(ang);
     rob_chr->set_osage_reset();
 
     if (rob_chr->check_for_ageageagain_module()) {
         if (fabsf(vec3::distance(start_pos, end_pos) <= 0.000001f && fabsf(end_rot - start_rot) <= 0.000001f)) {
-            rob_chara_age_age_array_set_skip(rob_chr->chara_id, 1);
-            rob_chara_age_age_array_set_skip(rob_chr->chara_id, 2);
+            rob_chara_age_age_array_set_skip(rob_chr->idnm, 1);
+            rob_chara_age_age_array_set_skip(rob_chr->idnm, 2);
         }
-        rob_chara_age_age_array_set_step_full(rob_chr->chara_id, 1);
-        rob_chara_age_age_array_set_step_full(rob_chr->chara_id, 2);
+        rob_chara_age_age_array_set_step_full(rob_chr->idnm, 1);
+        rob_chara_age_age_array_set_step_full(rob_chr->idnm, 2);
     }
 }
 
@@ -311,7 +311,7 @@ void struc_676::reset() {
 
 pv_game_pv_data::pv_game_pv_data() : field_0(), dsc_state(), play()/*, dsc_buffer(), dsc_buffer_counter()*/,
 dsc_data_ptr(), dsc_data_ptr_end(), field_2BF38(), curr_time(), curr_time_float(), prev_time_float(),
-field_2BF50(), field_2BF60(), field_2BF64(), field_2BF68(), chara_id(), pv_game()/*, field_2BF80()*/,
+field_2BF50(), field_2BF60(), field_2BF64(), field_2BF68(), rob_id(), pv_game()/*, field_2BF80()*/,
 music(), dsc_file_handler(), dsc_time(), music_playing(), field_2BFC4(), pv_end(), look_camera_enable(),
 field_2BFD5(), data_camera(), has_signature(), has_perf_id(), targets_remaining(), target_index(),
 scene_rot_y(), field_2C550(), branch_mode(), last_challenge_note(), field_2C560() {
@@ -440,7 +440,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
     bone_database* aft_bone_data = &aft_data->data_ft.bone_data;
     motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
-    pv_play_data* playdata = &this->playdata[chara_id];
+    pv_play_data* playdata = &this->playdata[rob_id];
     rob_chara* rob_chr = playdata->rob_chr;
 
     switch (func) {
@@ -457,8 +457,8 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         *dsc_time_offset = (float_t)((double_t)(curr_time - dsc_time) * 0.000000001);
     } break;
     case DSC_FT_MIKU_MOVE: {
-        chara_id = data[0];
-        playdata = &this->playdata[chara_id];
+        rob_id = (ROB_ID)data[0];
+        playdata = &this->playdata[rob_id];
         rob_chr = playdata->rob_chr;
 
         vec3 pos;
@@ -469,13 +469,13 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         if (rob_chr) {
             pos *= (pv_game->data.pv->edit == 2 ? 1.0f : 0.227f);
             mat4_transform_point(&scene_rot_mat, &pos, &pos);
-            rob_chr->set_base_position_pos(pos);
+            rob_chr->set_rob_pos(pos);
             rob_chr->set_osage_reset();
         }
     } break;
     case DSC_FT_MIKU_ROT: {
-        chara_id = data[0];
-        playdata = &this->playdata[chara_id];
+        rob_id = (ROB_ID)data[0];
+        playdata = &this->playdata[rob_id];
         rob_chr = playdata->rob_chr;
 
         float_t rot = (float_t)data[1] * 0.001f;
@@ -483,13 +483,13 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         if (rob_chr) {
             RobAngle ang;
             ang.set_deg(rot + scene_rot_y);
-            rob_chr->set_base_position_yang(ang);
+            rob_chr->set_rob_yang(ang);
             rob_chr->set_osage_reset();
         }
     } break;
     case DSC_FT_MIKU_DISP: {
-        chara_id = data[0];
-        playdata = &this->playdata[chara_id];
+        rob_id = (ROB_ID)data[0];
+        playdata = &this->playdata[rob_id];
         rob_chr = playdata->rob_chr;
 
         int32_t disp = data[1];
@@ -499,36 +499,36 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
             break;
 
         if (disp == 1) {
-            rob_chr->set_visibility(true);
+            rob_chr->set_disp_flag(true);
             if (rob_chr->check_for_ageageagain_module()) {
-                rob_chara_age_age_array_set_skip(rob_chr->chara_id, 1);
-                rob_chara_age_age_array_set_skip(rob_chr->chara_id, 2);
+                rob_chara_age_age_array_set_skip(rob_chr->idnm, 1);
+                rob_chara_age_age_array_set_skip(rob_chr->idnm, 2);
             }
 
-            pv_game->set_data_itmpv_visibility(chara_id, true);
+            pv_game->set_data_itmpv_visibility(rob_id, true);
             for (pv_play_data_set_motion& i : playdata->set_motion) {
-                bool set = rob_chr->set_motion_id(i.motion_id, i.frame, i.blend_duration,
+                bool set = rob_chr->replace_rob_motion(i.motion_id, i.frame, i.blend_duration,
                     i.blend, 0, i.blend_type, aft_bone_data, aft_mot_db);
                 rob_chr->set_motion_reset_data(i.motion_id, i.dsc_frame);
                 rob_chr->bone_data->set_disable_eye_motion(i.disable_eye_motion);
                 rob_chr->set_motion_step(i.frame_speed);
                 if (set)
                     pv_expression_array_set_motion(pv_game->data.pv->
-                        pv_expression_file_name.c_str(), chara_id, i.motion_id);
+                        pv_expression_file_name.c_str(), rob_id, i.motion_id);
 
                 if (!pv_game->data.pv->disable_calc_motfrm_limit)
-                    set_motion_max_frame(chara_id, i.motion_index, i.dsc_time);
+                    set_motion_max_frame(rob_id, i.motion_index, i.dsc_time);
             }
             playdata->set_motion.clear();
         }
         else {
-            rob_chr->set_visibility(false);
-            pv_game->set_data_itmpv_visibility(chara_id, false);
+            rob_chr->set_disp_flag(false);
+            pv_game->set_data_itmpv_visibility(rob_id, false);
         }
     } break;
     case DSC_FT_MIKU_SHADOW: {
-        chara_id = data[0];
-        playdata = &this->playdata[chara_id];
+        rob_id = (ROB_ID)data[0];
+        playdata = &this->playdata[rob_id];
         rob_chr = playdata->rob_chr;
     } break;
     case DSC_FT_TARGET: {
@@ -541,8 +541,8 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         }
     } break;
     case DSC_FT_SET_MOTION: {
-        chara_id = data[0];
-        playdata = &this->playdata[chara_id];
+        rob_id = (ROB_ID)data[0];
+        playdata = &this->playdata[rob_id];
         rob_chr = playdata->rob_chr;
 
         int32_t motion_index = data[1];
@@ -592,21 +592,20 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         if (!diff)
             break;
 
-        uint32_t motion_id = diff->get_motion_or_default(chara_id, motion_index).id;
+        uint32_t motion_id = diff->get_motion_or_default(rob_id, motion_index).id;
         if (pv_game_get()->data.pv)
-            motion_id = pv_game_get()->data.pv->get_chrmot_motion_id(rob_chr->chara_id,
-                rob_chr->chara_num, diff->get_motion_or_default(chara_id, motion_index));
+            motion_id = pv_game_get()->data.pv->get_chrmot_motion_id(rob_chr->idnm,
+                rob_chr->chara_num, diff->get_motion_or_default(rob_id, motion_index));
 
-        if (!motion_index) {
-            if (motion_id == -1) {
-                motion_id = rob_chr->get_rob_cmn_mottbl_motion_id(5);
-                if (motion_id == -1)
-                    motion_id = rob_chr->get_rob_cmn_mottbl_motion_id(0);
-            }
-        }
-        else
+        if (motion_index) {
             if (motion_id == -1)
-                motion_id = rob_chr->get_rob_cmn_mottbl_motion_id(0);
+                motion_id = rob_chr->get_common_mot(MTP_NONE);
+        }
+        else if (motion_id == -1) {
+            motion_id = rob_chr->get_common_mot(MTP_5);
+            if (motion_id == -1)
+                motion_id = rob_chr->get_common_mot(MTP_NONE);
+        }
 
         if (blend)
             blend_duration = 0.0f;
@@ -627,11 +626,11 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         v518.dsc_time = motion ? motion->time : dsc_time;
         v518.dsc_frame = dsc_frame;
 
-        field_2C560.field_0[chara_id] = true;
-        field_2C560.field_8[chara_id] = v518;
+        field_2C560.field_0[rob_id] = true;
+        field_2C560.field_8[rob_id] = v518;
 
         if (playdata->disp) {
-            bool set = rob_chr->set_motion_id(motion_id, frame, blend_duration,
+            bool set = rob_chr->replace_rob_motion(motion_id, frame, blend_duration,
                 blend, false, MOTION_BLEND_CROSS, aft_bone_data, aft_mot_db);
             rob_chr->set_motion_reset_data(motion_id, dsc_frame);
             rob_chr->set_motion_skin_param(motion_id, dsc_frame);
@@ -639,10 +638,10 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
             rob_chr->set_motion_step(frame_speed);
             if (set)
                 pv_expression_array_set_motion(pv_game->data.pv->
-                    pv_expression_file_name.c_str(), chara_id, motion_id);
+                    pv_expression_file_name.c_str(), rob_id, motion_id);
 
             if (!pv_game->data.pv->disable_calc_motfrm_limit)
-                set_motion_max_frame(chara_id, motion_index, motion ? motion->time : 0);
+                set_motion_max_frame(rob_id, motion_index, motion ? motion->time : 0);
         }
         else {
             playdata->set_motion.clear();
@@ -651,8 +650,8 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         }
     } break;
     case DSC_FT_SET_PLAYDATA: {
-        chara_id = data[0];
-        playdata = &this->playdata[chara_id];
+        rob_id = (ROB_ID)data[0];
+        playdata = &this->playdata[rob_id];
         rob_chr = playdata->rob_chr;
 
         int32_t motion_index = data[1];
@@ -750,8 +749,8 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
     case DSC_FT_FADEOUT_FIELD: {
     } break;
     case DSC_FT_EYE_ANIM: {
-        chara_id = data[0];
-        playdata = &this->playdata[chara_id];
+        rob_id = (ROB_ID)data[0];
+        playdata = &this->playdata[rob_id];
         rob_chr = playdata->rob_chr;
 
         int32_t v114 = data[1];
@@ -768,8 +767,8 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
                 -1.0f, pv_game->data.get_anim_offset(), aft_mot_db);
     } break;
     case DSC_FT_MOUTH_ANIM: {
-        chara_id = data[0];
-        playdata = &this->playdata[chara_id];
+        rob_id = (ROB_ID)data[0];
+        playdata = &this->playdata[rob_id];
         rob_chr = playdata->rob_chr;
 
         int32_t mouth_anim_id = data[2];
@@ -795,18 +794,18 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
             value = 1.0f;
 
         if (rob_chr) {
-            int32_t mottbl_index = mouth_anim_id_to_mottbl_index(mouth_anim_id);
-            if (pv_game->data.field_2D090 && mottbl_index != 144)
+            MOTTABLE_TYPE mottbl_type = mouth_anim_id_to_mottbl_type(mouth_anim_id);
+            if (pv_game->data.field_2D090 && mottbl_type != 144)
                 value = 0.0f;
 
-            rob_chr->set_mouth_mottbl_motion(0, mottbl_index, value, ROB_PARTIAL_MOTION_PLAYBACK_STOP,
+            rob_chr->set_mouth_mottbl_motion(0, mottbl_type, value, ROB_PARTIAL_MOTION_PLAYBACK_STOP,
                 blend_duration / anim_frame_speed, 0.0f, 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE,
                 pv_game->data.get_anim_offset(), aft_mot_db);
         }
     } break;
     case DSC_FT_HAND_ANIM: {
-        chara_id = data[0];
-        playdata = &this->playdata[chara_id];
+        rob_id = (ROB_ID)data[0];
+        playdata = &this->playdata[rob_id];
         rob_chr = playdata->rob_chr;
 
         int32_t hand_index = data[1];
@@ -833,15 +832,15 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
             value = 1.0f;
 
         if (rob_chr) {
-            int32_t mottbl_index = hand_anim_id_to_mottbl_index(hand_anim_id);
+            MOTTABLE_TYPE mottbl_type = hand_anim_id_to_mottbl_type(hand_anim_id);
             switch (hand_index) {
             case 0:
-                rob_chr->set_hand_l_mottbl_motion(0, mottbl_index, value, ROB_PARTIAL_MOTION_PLAYBACK_STOP,
+                rob_chr->set_hand_l_mottbl_motion(0, mottbl_type, value, ROB_PARTIAL_MOTION_PLAYBACK_STOP,
                     blend_duration / anim_frame_speed, 0.0f, 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE,
                     pv_game->data.get_anim_offset(), aft_mot_db);
                 break;
             case 1:
-                rob_chr->set_hand_r_mottbl_motion(0, mottbl_index, value, ROB_PARTIAL_MOTION_PLAYBACK_STOP,
+                rob_chr->set_hand_r_mottbl_motion(0, mottbl_type, value, ROB_PARTIAL_MOTION_PLAYBACK_STOP,
                     blend_duration / anim_frame_speed, 0.0f, 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE,
                     pv_game->data.get_anim_offset(), aft_mot_db);
                 break;
@@ -849,8 +848,8 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         }
     } break;
     case DSC_FT_LOOK_ANIM: {
-        chara_id = data[0];
-        playdata = &this->playdata[chara_id];
+        rob_id = (ROB_ID)data[0];
+        playdata = &this->playdata[rob_id];
         rob_chr = playdata->rob_chr;
 
         int32_t look_anim_id = data[1];
@@ -876,17 +875,17 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
             value = 1.0f;
 
         if (rob_chr) {
-            int32_t mottbl_index = look_anim_id_to_mottbl_index(look_anim_id);
-            rob_chr->set_eyes_mottbl_motion(0, mottbl_index, value,
-                mottbl_index == 224
+            MOTTABLE_TYPE mottbl_type = look_anim_id_to_mottbl_type(look_anim_id);
+            rob_chr->set_eyes_mottbl_motion(0, mottbl_type, value,
+                mottbl_type == MTP_EYES_BASE_MOT
                 ? ROB_PARTIAL_MOTION_PLAYBACK_CHARA_MOTION : ROB_PARTIAL_MOTION_PLAYBACK_STOP,
                 blend_duration / anim_frame_speed, 0.0f, 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE,
                 pv_game->data.get_anim_offset(), aft_mot_db);
         }
     } break;
     case DSC_FT_EXPRESSION: {
-        chara_id = data[0];
-        playdata = &this->playdata[chara_id];
+        rob_id = (ROB_ID)data[0];
+        playdata = &this->playdata[rob_id];
         rob_chr = playdata->rob_chr;
 
         int32_t expression_id = data[1];
@@ -912,20 +911,20 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
             value = 1.0f;
 
         if (rob_chr) {
-            int32_t mottbl_index = expression_id_to_mottbl_index(expression_id);
+            MOTTABLE_TYPE mottbl_type = expression_id_to_mottbl_type(expression_id);
             bool v167 = true;
             if (has_perf_id)
                 v167 = pv_game->data.pv->edit != 1 && pv_game->data.pv->edit != 2;
-            rob_chr->set_face_mottbl_motion(0, mottbl_index, value,
-                mottbl_index >= 214 && mottbl_index <= 223
+            rob_chr->set_face_mottbl_motion(0, mottbl_type, value,
+                mottbl_type >= MTP_FACE_MOT_SLOT_1 && mottbl_type <= MTP_FACE_MOT_SLOT_10
                 ? ROB_PARTIAL_MOTION_PLAYBACK_CHARA_MOTION : ROB_PARTIAL_MOTION_PLAYBACK_STOP,
                 blend_duration / anim_frame_speed, 0.0f, 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE,
                 pv_game->data.get_anim_offset(), v167, aft_mot_db);
         }
     } break;
     case DSC_FT_LOOK_CAMERA: {
-        chara_id = data[0];
-        playdata = &this->playdata[chara_id];
+        rob_id = (ROB_ID)data[0];
+        playdata = &this->playdata[rob_id];
         rob_chr = playdata->rob_chr;
 
         int32_t enable = data[1];
@@ -1055,24 +1054,24 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         const pv_db_pv_difficulty* diff = pv_game->data.pv->get_difficulty(
             sub_14013C8C0()->difficulty, sub_14013C8C0()->edition);
         if (diff) {
-            motion_id = diff->get_motion_or_default(chara_id, motion_index).id;
+            motion_id = diff->get_motion_or_default(rob_id, motion_index).id;
             if (pv_game_get()->data.pv)
-                motion_id = pv_game_get()->data.pv->get_chrmot_motion_id(rob_chr->chara_id,
-                    rob_chr->chara_num, diff->get_motion_or_default(chara_id, motion_index));
+                motion_id = pv_game_get()->data.pv->get_chrmot_motion_id(rob_chr->idnm,
+                    rob_chr->chara_num, diff->get_motion_or_default(rob_id, motion_index));
 
             if (motion_id == -1)
-                motion_id = rob_chr->get_rob_cmn_mottbl_motion_id(0);
+                motion_id = rob_chr->get_common_mot(MTP_NONE);
         }
         else
-            motion_id = rob_chr->get_rob_cmn_mottbl_motion_id(0);
+            motion_id = rob_chr->get_common_mot(MTP_NONE);
 
         frame_speed *= anim_frame_speed;
 
-        float_t frame_count = motion_storage_get_mot_data_frame_count(motion_id, aft_mot_db) - 1.0f;
-        float_t frame = frame_count * value;
-        if (pv_game->data.use_osage_play_data && frame_count > 0.0f)
+        float_t frame_max = get_mot_frame_max(motion_id, aft_mot_db) - 1.0f;
+        float_t frame = frame_max * value;
+        if (pv_game->data.use_osage_play_data && frame_max > 0.0f)
             frame = fmodf((dsc_time_to_frame(curr_time - dsc_time) * frame_speed)
-                + frame_count * value, frame_count);
+                + frame_max * value, frame_max);
 
         float_t blend_duration = playdata->motion_data.mot_smooth_len / anim_frame_speed;
         MotionBlendType blend_type = MOTION_BLEND_CROSS;
@@ -1109,14 +1108,14 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
             loop = false;
 
         if (playdata->disp || loop) {
-            rob_chr->set_motion_id(motion_id, frame, blend_duration, blend, 0, blend_type, aft_bone_data, aft_mot_db);
+            rob_chr->replace_rob_motion(motion_id, frame, blend_duration, blend, 0, blend_type, aft_bone_data, aft_mot_db);
             rob_chr->set_motion_step(frame_speed);
             if (loop)
                 rob_chr->set_motion_loop(0.0f, -1.0f, -1);
 
-            field_2C560.field_148[chara_id] = true;
-            field_2C560.field_150[chara_id] = v518;
-            field_2C560.field_270[chara_id] = frame_count * value;
+            field_2C560.field_148[rob_id] = true;
+            field_2C560.field_150[rob_id] = v518;
+            field_2C560.field_270[rob_id] = frame_max * value;
         }
         else {
             playdata->set_motion.push_back(v518);
@@ -1134,8 +1133,8 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         this->time_signature = time_signature;
     } break;
     case DSC_FT_SHADOWHEIGHT: {
-        chara_id = data[0];
-        playdata = &this->playdata[chara_id];
+        rob_id = (ROB_ID)data[0];
+        playdata = &this->playdata[rob_id];
         rob_chr = playdata->rob_chr;
     } break;
     case DSC_FT_EDIT_FACE:
@@ -1150,18 +1149,18 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
             mouth_anim_id = data[1];
 
         if (rob_chr) {
-            int32_t mottbl_index = expression_id_to_mottbl_index(expression_id);
+            MOTTABLE_TYPE mottbl_type = expression_id_to_mottbl_type(expression_id);
             bool v236 = true;
             if (has_perf_id)
                 v236 = pv_game->data.pv->edit != 1 && pv_game->data.pv->edit != 2;
-            rob_chr->set_face_mottbl_motion(0, mottbl_index, 1.0f, ROB_PARTIAL_MOTION_PLAYBACK_STOP,
+            rob_chr->set_face_mottbl_motion(0, mottbl_type, 1.0f, ROB_PARTIAL_MOTION_PLAYBACK_STOP,
                 blend_duration / anim_frame_speed, 0.0f, 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE,
                 pv_game->data.get_anim_offset(), v236, aft_mot_db);
 
             if (!has_perf_id) {
-                int32_t mottbl_index = mouth_anim_id_to_mottbl_index(mouth_anim_id);
-                float_t value = pv_game->data.field_2D090 && mottbl_index != 144 ? 0.0f : 1.0f;
-                rob_chr->set_mouth_mottbl_motion(0, mottbl_index, value, ROB_PARTIAL_MOTION_PLAYBACK_STOP,
+                MOTTABLE_TYPE mottbl_type = mouth_anim_id_to_mottbl_type(mouth_anim_id);
+                float_t value = pv_game->data.field_2D090 && mottbl_type != 144 ? 0.0f : 1.0f;
+                rob_chr->set_mouth_mottbl_motion(0, mottbl_type, value, ROB_PARTIAL_MOTION_PLAYBACK_STOP,
                     measured_fps * 0.1f, 0.0f, 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE,
                     pv_game->data.get_anim_offset(), aft_mot_db);
             }
@@ -1211,17 +1210,17 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
             acceleration_2 = (float_t)data[20] * 0.001f;
 
         int32_t follow_chara = 0;
-        int32_t chara_id = 0;
+        int32_t rob_id = 0;
         int32_t chara_follow_point = 0;
         if (func == DSC_FT_EDIT_CAMERA) {
             follow_chara = data[21];
-            chara_id = data[22];
+            rob_id = data[22];
             chara_follow_point = data[23];
         }
 
         pv_game_camera_set_fov_min_dist(fov, min_dist);
         pv_game_camera_set_dsc_data(duration, start, end, acceleration_1, acceleration_2,
-            follow_chara, chara_id, chara_follow_point, func == DSC_FT_EDIT_CAMERA);
+            follow_chara, rob_id, chara_follow_point, func == DSC_FT_EDIT_CAMERA);
         pv_game_camera_ctrl(0.0f);
 
         rctx_ptr->camera->set_fast_change_hist0(true);
@@ -1234,8 +1233,8 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         return false;
     }
     case DSC_FT_SHADOWPOS: {
-        chara_id = data[0];
-        playdata = &this->playdata[chara_id];
+        rob_id = (ROB_ID)data[0];
+        playdata = &this->playdata[rob_id];
         rob_chr = playdata->rob_chr;
     } break;
     case DSC_FT_EDIT_LYRIC: {
@@ -1256,17 +1255,17 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         if (!rob_chr)
             break;
 
-        int32_t mottbl_index = mouth_anim_id_to_mottbl_index(mouth_anim_id);
+        MOTTABLE_TYPE mottbl_type = mouth_anim_id_to_mottbl_type(mouth_anim_id);
         blend_duration *= measured_fps;
 
-        float_t value = pv_game->data.field_2D090 && mottbl_index != 144 ? 0.0f : 1.0f;
-        rob_chr->set_mouth_mottbl_motion(0, mottbl_index, value, ROB_PARTIAL_MOTION_PLAYBACK_STOP,
+        float_t value = pv_game->data.field_2D090 && mottbl_type != 144 ? 0.0f : 1.0f;
+        rob_chr->set_mouth_mottbl_motion(0, mottbl_type, value, ROB_PARTIAL_MOTION_PLAYBACK_STOP,
             blend_duration, 0.0f, 1.0f, ROB_PARTIAL_MOTION_LOOP_NONE,
             pv_game->data.get_anim_offset(), aft_mot_db);
     } break;
     case DSC_FT_SET_CHARA: {
-        chara_id = data[0];
-        playdata = &this->playdata[chara_id];
+        rob_id = (ROB_ID)data[0];
+        playdata = &this->playdata[rob_id];
         rob_chr = playdata->rob_chr;
     } break;
     case DSC_FT_EDIT_MOVE: {
@@ -1326,7 +1325,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
 
         Shadow* shad = shadow_ptr_get();
         if (shad)
-            if (chara_id == 1)
+            if (rob_id == ROB_ID_2P)
                 shad->blur_filter_enable[1] = playdata->shadow;
             else
                 shad->blur_filter_enable[0] = playdata->shadow;
@@ -1374,7 +1373,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
 
         struc_595& v355 = func == DSC_FT_EDIT_EYE_ANIM ? stru_1409A0DD0[eye_anim_id] : stru_1409A0AA0[eye_anim_id];
 
-        int32_t mottbl_index = v355.mottbl_index;
+        MOTTABLE_TYPE mottbl_type = v355.mottbl_type;
         float_t _blend_duration = blend_duration;
         bool rotation_enable = false;
         float_t value = 1.0f;
@@ -1390,20 +1389,20 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
             value = 0.0f;
             playback_state = ROB_PARTIAL_MOTION_PLAYBACK_FORWARD;
             loop_state = ROB_PARTIAL_MOTION_LOOP_ONCE;
-            float_t frame_count = motion_storage_get_mot_data_frame_count(
-                rob_chr->get_rob_cmn_mottbl_motion_id(mottbl_index), aft_mot_db) - 1.0f;
-            step = v533 > 0.0f ? frame_count / measured_fps * v533 : 1.0f;
+            float_t frame_max = get_mot_frame_max(
+                rob_chr->get_common_mot(mottbl_type), aft_mot_db) - 1.0f;
+            step = v533 > 0.0f ? frame_max / measured_fps * v533 : 1.0f;
         } break;
         case 3: {
             playback_state = ROB_PARTIAL_MOTION_PLAYBACK_BACKWARD;
             loop_state = ROB_PARTIAL_MOTION_LOOP_ONCE;
-            float_t frame_count = motion_storage_get_mot_data_frame_count(
-                rob_chr->get_rob_cmn_mottbl_motion_id(mottbl_index), aft_mot_db) - 1.0f;
-            step = v533 > 0.0f ? frame_count / measured_fps * v533 : 1.0f;
+            float_t frame_max = get_mot_frame_max(
+                rob_chr->get_common_mot(mottbl_type), aft_mot_db) - 1.0f;
+            step = v533 > 0.0f ? frame_max / measured_fps * v533 : 1.0f;
         } break;
         }
 
-        rob_chr->set_eyes_mottbl_motion(0, mottbl_index, value, playback_state,
+        rob_chr->set_eyes_mottbl_motion(0, mottbl_type, value, playback_state,
             _blend_duration, 0.0f, step, loop_state, pv_game->data.get_anim_offset(), aft_mot_db);
 
         if (pv_game->data.pv->is_old_pv)
@@ -1435,36 +1434,36 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         playdata->disp = disp == 1;
         if (rob_chr)
             if (disp == 1) {
-                rob_chr->set_visibility(true);
+                rob_chr->set_disp_flag(true);
                 if (rob_chr->check_for_ageageagain_module()) {
-                    rob_chara_age_age_array_set_skip(rob_chr->chara_id, 1);
-                    rob_chara_age_age_array_set_skip(rob_chr->chara_id, 2);
+                    rob_chara_age_age_array_set_skip(rob_chr->idnm, 1);
+                    rob_chara_age_age_array_set_skip(rob_chr->idnm, 2);
                 }
 
                 for (pv_play_data_set_motion& i : playdata->set_motion) {
-                    bool set = rob_chr->set_motion_id(i.motion_id, i.frame, i.blend_duration,
+                    bool set = rob_chr->replace_rob_motion(i.motion_id, i.frame, i.blend_duration,
                         i.blend, false, i.blend_type, aft_bone_data, aft_mot_db);
                     rob_chr->bone_data->set_disable_eye_motion(i.disable_eye_motion);
                     rob_chr->set_motion_step(i.frame_speed);
                     if (set)
                         pv_expression_array_set_motion(pv_game->data.pv->
-                            pv_expression_file_name.c_str(), chara_id, i.motion_id);
+                            pv_expression_file_name.c_str(), rob_id, i.motion_id);
                 }
                 playdata->set_motion.clear();
             }
             else
-                rob_chr->set_visibility(false);
+                rob_chr->set_disp_flag(false);
 
-        pv_game->edit_instrument_set_disp(chara_id, playdata->disp);
+        pv_game->edit_instrument_set_disp(rob_id, playdata->disp);
     } break;
     case DSC_FT_AIM: {
-        chara_id = data[0];
-        playdata = &this->playdata[chara_id];
+        rob_id = (ROB_ID)data[0];
+        playdata = &this->playdata[rob_id];
         rob_chr = playdata->rob_chr;
     } break;
     case DSC_FT_HAND_ITEM: {
-        chara_id = data[0];
-        playdata = &this->playdata[chara_id];
+        rob_id = (ROB_ID)data[0];
+        playdata = &this->playdata[rob_id];
         rob_chr = playdata->rob_chr;
 
         int32_t hand_index = data[1];
@@ -1521,8 +1520,8 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         pv_game_camera_set_fov_min_dist(_fov, _min_dist);
     } break;
     case DSC_FT_CLOTH_WET: {
-        chara_id = data[0];
-        playdata = &this->playdata[chara_id];
+        rob_id = (ROB_ID)data[0];
+        playdata = &this->playdata[rob_id];
         rob_chr = playdata->rob_chr;
 
         float_t wet = (float_t)data[0] * 0.001f;
@@ -1530,7 +1529,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         wet = clamp_def(wet, 0.0f, 1.0f);
 
         if (rob_chr)
-            rob_chr->rob_disp->wet = wet;
+            rob_chr->disp->wet_cloth = wet;
     } break;
     case DSC_FT_LIGHT_ROT: {
     } break;
@@ -1570,8 +1569,8 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         rctx_ptr->render.set_scene_fade_blend_func(blend_func, 1);
     } break;
     case DSC_FT_AUTO_BLINK: {
-        chara_id = data[0];
-        playdata = &this->playdata[chara_id];
+        rob_id = (ROB_ID)data[0];
+        playdata = &this->playdata[rob_id];
         rob_chr = playdata->rob_chr;
 
         int32_t enable = data[0];
@@ -1583,8 +1582,8 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
                 rob_chr->autoblink_disable();
     } break;
     case DSC_FT_PARTS_DISP: {
-        chara_id = data[0];
-        playdata = &this->playdata[chara_id];
+        rob_id = (ROB_ID)data[0];
+        playdata = &this->playdata[rob_id];
         rob_chr = playdata->rob_chr;
 
         int32_t id = data[1];
@@ -1600,8 +1599,8 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
             field_2BF80->field_0.target_flying_time = target_flying_time;*/
     } break;
     case DSC_FT_CHARA_SIZE: {
-        chara_id = data[0];
-        playdata = &this->playdata[chara_id];
+        rob_id = (ROB_ID)data[0];
+        playdata = &this->playdata[rob_id];
         rob_chr = playdata->rob_chr;
 
         int32_t chara_size = data[1];
@@ -1612,11 +1611,11 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         if (chara_size == 0)
             chara_size_index = rob_data_get_chara_size_index(rob_chr->chara_num);
         else if (chara_size == 1)
-            chara_size_index = rob_data_get_chara_size_index(pv_game->data.pv->get_performer_chara(chara_id));
+            chara_size_index = rob_data_get_chara_size_index(pv_game->data.pv->get_performer_chara(rob_id));
         else if (chara_size == 2)
             chara_size_index = 1;
         else if (chara_size == 3) {
-            chara_size_index = rob_chr->pv_data.chara_size_index;
+            chara_size_index = rob_chr->rob_init.chara_size_index;
             if (chara_size_index < 0 || chara_size_index > 4)
                 break;
         }
@@ -1630,8 +1629,8 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         break;
     } break;
     case DSC_FT_CHARA_HEIGHT_ADJUST: {
-        chara_id = data[0];
-        playdata = &this->playdata[chara_id];
+        rob_id = (ROB_ID)data[0];
+        playdata = &this->playdata[rob_id];
         rob_chr = playdata->rob_chr;
 
         int32_t height_adjust = data[1];
@@ -1640,8 +1639,8 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
             rob_chr->set_chara_height_adjust(height_adjust != 0);
     } break;
     case DSC_FT_ITEM_ANIM: {
-        chara_id = data[0];
-        playdata = &this->playdata[chara_id];
+        rob_id = (ROB_ID)data[0];
+        playdata = &this->playdata[rob_id];
         rob_chr = playdata->rob_chr;
 
         int32_t index = data[1];
@@ -1652,27 +1651,27 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
             break;
 
         if (v290 == 2) {
-            int64_t time = pv_game->get_data_itmpv_time(chara_id, index);
+            int64_t time = pv_game->get_data_itmpv_time(rob_id, index);
             if (time >= 0 && time <= dsc_time && time <= curr_time) {
                 float_t frame = dsc_time_to_frame(curr_time - time);
                 float_t dsc_frame = prj::roundf(dsc_time_to_frame(dsc_time - time));
                 if (frame < dsc_frame)
                     frame = dsc_frame;
-                pv_game->set_data_itmpv_req_frame(chara_id, index, frame);
-                set_item_anim_max_frame(chara_id, index, time);
+                pv_game->set_data_itmpv_req_frame(rob_id, index, frame);
+                set_item_anim_max_frame(rob_id, index, time);
             }
         }
         else if (v290 >= 0) {
-            pv_game->set_data_itmpv(chara_id, index, v290 != 0, dsc_time);
-            set_item_anim_max_frame(chara_id, index, dsc_time);
+            pv_game->set_data_itmpv(rob_id, index, v290 != 0, dsc_time);
+            set_item_anim_max_frame(rob_id, index, dsc_time);
         }
 
         if (disp >= 0)
-            pv_game->set_data_itmpv_visibility(chara_id, index, disp != 0);
+            pv_game->set_data_itmpv_visibility(rob_id, index, disp != 0);
     } break;
     case DSC_FT_CHARA_POS_ADJUST: {
-        chara_id = data[0];
-        playdata = &this->playdata[chara_id];
+        rob_id = (ROB_ID)data[0];
+        playdata = &this->playdata[rob_id];
         rob_chr = playdata->rob_chr;
 
         vec3 pos;
@@ -1685,8 +1684,8 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         mat4_transform_point(&scene_rot_mat, &pos, &pos);
         rob_chr->set_chara_pos_adjust(pos);
         if (rob_chr->check_for_ageageagain_module()) {
-            rob_chara_age_age_array_set_skip(rob_chr->chara_id, 1);
-            rob_chara_age_age_array_set_skip(rob_chr->chara_id, 2);
+            rob_chara_age_age_array_set_skip(rob_chr->idnm, 1);
+            rob_chara_age_age_array_set_skip(rob_chr->idnm, 2);
         }
     } break;
     case DSC_FT_SCENE_ROT: {
@@ -1696,8 +1695,8 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         mat4_rotate_y(scene_rot * DEG_TO_RAD_FLOAT, &scene_rot_mat);
     } break;
     case DSC_FT_EDIT_MOT_SMOOTH_LEN: {
-        chara_id = data[0];
-        playdata = &this->playdata[chara_id];
+        rob_id = (ROB_ID)data[0];
+        playdata = &this->playdata[rob_id];
         rob_chr = playdata->rob_chr;
 
         int32_t value = data[1];
@@ -1763,8 +1762,8 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         }
     } break;
     case DSC_FT_WIND: {
-        chara_id = data[0];
-        playdata = &this->playdata[chara_id];
+        rob_id = (ROB_ID)data[0];
+        playdata = &this->playdata[rob_id];
         rob_chr = playdata->rob_chr;
 
         float_t wind_strength_kami = (float_t)data[1] * 0.001f;
@@ -1774,8 +1773,8 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
             rob_chr->set_wind_strength(wind_strength_outer);
     } break;
     case DSC_FT_OSAGE_STEP: {
-        chara_id = data[0];
-        playdata = &this->playdata[chara_id];
+        rob_id = (ROB_ID)data[0];
+        playdata = &this->playdata[rob_id];
         rob_chr = playdata->rob_chr;
 
         float_t osage_step_kami = (float_t)data[1] * 0.001f;
@@ -1785,8 +1784,8 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
             rob_chr->set_osage_step(osage_step_outer);
     } break;
     case DSC_FT_OSAGE_MV_CCL: {
-        chara_id = data[0];
-        playdata = &this->playdata[chara_id];
+        rob_id = (ROB_ID)data[0];
+        playdata = &this->playdata[rob_id];
         rob_chr = playdata->rob_chr;
 
         float_t osage_mv_ccl_kami = (float_t)data[1] * 0.001f;
@@ -1798,8 +1797,8 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         }
     } break;
     case DSC_FT_CHARA_COLOR: {
-        chara_id = data[0];
-        playdata = &this->playdata[chara_id];
+        rob_id = (ROB_ID)data[0];
+        playdata = &this->playdata[rob_id];
         rob_chr = playdata->rob_chr;
 
         int32_t chara_color = data[1];
@@ -1848,10 +1847,11 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         float_t frame_speed = (float_t)data[1] * 0.001f;
 
         if (rob_chr) {
-            field_2C560.field_288[chara_id] = index != -1;
-            field_2C560.field_290[chara_id] = index;
-            field_2C560.field_2A8[chara_id] = frame_speed;
-            pv_game->set_edit_instrument(chara_id, playdata->disp, index, rob_chr->get_frame(), frame_speed);
+            field_2C560.field_288[rob_id] = index != -1;
+            field_2C560.field_290[rob_id] = index;
+            field_2C560.field_2A8[rob_id] = frame_speed;
+            pv_game->set_edit_instrument(rob_id, playdata->disp,
+                index, rob_chr->get_frame(), frame_speed);
         }
     } break;
     case DSC_FT_PV_END_FADEOUT: {
@@ -1865,15 +1865,15 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
     case DSC_FT_TARGET_FLAG: {
     } break;
     case DSC_FT_ITEM_ANIM_ATTACH: {
-        chara_id = data[0];
-        playdata = &this->playdata[chara_id];
+        rob_id = (ROB_ID)data[0];
+        playdata = &this->playdata[rob_id];
         rob_chr = playdata->rob_chr;
 
         int32_t index = data[1];
         int32_t attach = data[2];
 
         if (index >= 0)
-            pv_game->set_data_itmpv_chara_id(chara_id, index, attach == 1);
+            pv_game->set_data_itmpv_chara_id(rob_id, index, attach == 1);
     } break;
     case DSC_FT_SHADOW_RANGE: {
         float_t shadow_range_factor = (float_t)data[0] * 0.001f;
@@ -1881,8 +1881,8 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         shadow_ptr_get()->shadow_range_factor = shadow_range_factor;
     } break;
     case DSC_FT_HAND_SCALE: {
-        chara_id = data[0];
-        playdata = &this->playdata[chara_id];
+        rob_id = (ROB_ID)data[0];
+        playdata = &this->playdata[rob_id];
         rob_chr = playdata->rob_chr;
 
         int32_t hand = data[1];
@@ -1913,8 +1913,8 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
     case DSC_FT_FACE_TYPE: {
     } break;
     case DSC_FT_SHADOW_CAST: {
-        chara_id = data[0];
-        playdata = &this->playdata[chara_id];
+        rob_id = (ROB_ID)data[0];
+        playdata = &this->playdata[rob_id];
         rob_chr = playdata->rob_chr;
 
         int32_t shadow_cast = data[1];
@@ -1945,15 +1945,15 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         pv_game->set_pv_param_post_process_dof_data(set == 1, id, duration);
     } break;
     case DSC_FT_CHARA_ALPHA: {
-        chara_id = data[0];
-        playdata = &this->playdata[chara_id];
+        rob_id = (ROB_ID)data[0];
+        playdata = &this->playdata[rob_id];
         rob_chr = playdata->rob_chr;
 
         float_t alpha = (float_t)data[1] * 0.001f;
         float_t duration = (float_t)data[2];
         int32_t type = data[3];
 
-        pv_game->set_pv_param_post_process_chara_alpha_data(chara_id, alpha, type, duration);
+        pv_game->set_pv_param_post_process_chara_alpha_data(rob_id, alpha, type, duration);
     } break;
     case DSC_FT_AOTO_CAP: {
         int32_t enable = data[0];
@@ -1981,15 +1981,15 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
     case DSC_FT_SHIMMER: {
     } break;
     case DSC_FT_ITEM_ALPHA: {
-        chara_id = data[0];
-        playdata = &this->playdata[chara_id];
+        rob_id = (ROB_ID)data[0];
+        playdata = &this->playdata[rob_id];
         rob_chr = playdata->rob_chr;
 
         float_t alpha = (float_t)data[1] * 0.001f;
         float_t duration = (float_t)data[2];
         int32_t type = data[3];
 
-        pv_game->set_pv_param_post_process_chara_item_alpha_data(chara_id, alpha, type, duration);
+        pv_game->set_pv_param_post_process_chara_item_alpha_data(rob_id, alpha, type, duration);
     } break;
     case DSC_FT_MOVIE_CUT_CHG: {
         int32_t index = data[0];
@@ -2051,7 +2051,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         light_stage->set_position(light_data.position);
     } break;
     case DSC_FT_AGEAGE_CTRL: {
-        int32_t chara_id = data[0];
+        int32_t rob_id = (ROB_ID)data[0];
         int32_t parts = data[1];
         int32_t npr = data[2];
         int32_t speed = data[3];
@@ -2060,14 +2060,14 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
 
         switch (parts) {
         case 0:
-            rob_chara_age_age_array_set_params(chara_id, 1, npr, speed, skip, disp);
-            rob_chara_age_age_array_set_params(chara_id, 2, npr, speed, skip, disp);
+            rob_chara_age_age_array_set_params(rob_id, 1, npr, speed, skip, disp);
+            rob_chara_age_age_array_set_params(rob_id, 2, npr, speed, skip, disp);
             break;
         case 1:
-            rob_chara_age_age_array_set_params(chara_id, 1, npr, speed, skip, disp);
+            rob_chara_age_age_array_set_params(rob_id, 1, npr, speed, skip, disp);
             break;
         case 2:
-            rob_chara_age_age_array_set_params(chara_id, 2, npr, speed, skip, disp);
+            rob_chara_age_age_array_set_params(rob_id, 2, npr, speed, skip, disp);
             break;
         }
     } break;
@@ -2201,11 +2201,11 @@ void pv_game_pv_data::find_data_camera() {
     }
 }
 
-void pv_game_pv_data::find_playdata_item_anim(int32_t chara_id) {
-    if (chara_id < 0 || chara_id >= ROB_ID_MAX)
+void pv_game_pv_data::find_playdata_item_anim(int32_t rob_id) {
+    if (rob_id < 0 || rob_id >= ROB_ID_MAX)
         return;
 
-    std::vector<pv_play_data_event>& item_anim = playdata[chara_id].motion_data.item_anim;
+    std::vector<pv_play_data_event>& item_anim = playdata[rob_id].motion_data.item_anim;
     item_anim.clear();
 
     int32_t pv_branch_mode = 0;
@@ -2222,7 +2222,7 @@ void pv_game_pv_data::find_playdata_item_anim(int32_t chara_id) {
         }
 
         int32_t* data = dsc.get_func_data(i);
-        if (chara_id == data[0] && data[2] == 2)
+        if (rob_id == data[0] && data[2] == 2)
             item_anim.push_back({ time, data[1], pv_branch_mode });
 
         prev_time = time;
@@ -2230,11 +2230,11 @@ void pv_game_pv_data::find_playdata_item_anim(int32_t chara_id) {
     }
 }
 
-void pv_game_pv_data::find_playdata_set_motion(int32_t chara_id) {
-    if (chara_id < 0 || chara_id >= ROB_ID_MAX)
+void pv_game_pv_data::find_playdata_set_motion(int32_t rob_id) {
+    if (rob_id < 0 || rob_id >= ROB_ID_MAX)
         return;
 
-    std::vector<pv_play_data_event>& set_motion = playdata[chara_id].motion_data.set_motion;
+    std::vector<pv_play_data_event>& set_motion = playdata[rob_id].motion_data.set_motion;
     set_motion.clear();
 
     int32_t pv_branch_mode = 0;
@@ -2251,7 +2251,7 @@ void pv_game_pv_data::find_playdata_set_motion(int32_t chara_id) {
         }
 
         int32_t* data = dsc.get_func_data(i);
-        if (chara_id == data[0])
+        if (rob_id == data[0])
             set_motion.push_back({ time, data[1], pv_branch_mode });
 
         prev_time = time;
@@ -2282,10 +2282,10 @@ void pv_game_pv_data::find_set_motion(const pv_db_pv_difficulty* diff) {
 
         int32_t* data = dsc.get_func_data(i);
 
-        int32_t chara_id = data[0];
+        int32_t rob_id = (ROB_ID)data[0];
         int32_t motion_index = data[1];
 
-        set_playdata[chara_id].push_back({ time, motion_index, pv_branch_mode });
+        set_playdata[rob_id].push_back({ time, motion_index, pv_branch_mode });
 
         prev_time = time;
         i++;
@@ -2355,7 +2355,7 @@ void pv_game_pv_data::find_set_motion(const pv_db_pv_difficulty* diff) {
             if (pv_game_get() && pv_game_get()->data.pv) {
                 rob_chara* rob_chr = playdata.rob_chr;
                 if (rob_chr)
-                    motion_id = pv_game_get()->data.pv->get_chrmot_motion_id(rob_chr->chara_id,
+                    motion_id = pv_game_get()->data.pv->get_chrmot_motion_id(rob_chr->idnm,
                         rob_chr->chara_num, diff->get_motion_or_default(i, j.index));
             }
 
@@ -2365,9 +2365,9 @@ void pv_game_pv_data::find_set_motion(const pv_db_pv_difficulty* diff) {
     }
 }
 
-const std::vector<pv_data_set_motion>* pv_game_pv_data::get_set_motion(size_t chara_id) {
-    if (chara_id >= 0 && chara_id < ROB_ID_MAX)
-        return &set_motion[chara_id];
+const std::vector<pv_data_set_motion>* pv_game_pv_data::get_set_motion(size_t rob_id) {
+    if (rob_id >= 0 && rob_id < ROB_ID_MAX)
+        return &set_motion[rob_id];
     return 0;
 }
 
@@ -2397,19 +2397,19 @@ void pv_game_pv_data::init(::pv_game* pv_game, bool music_play) {
 
     for (int32_t i = 0; i < ROB_ID_MAX; i++) {
         pv_game_chara& chr = pv_game->data.chara[i];
-        if (chr.chara_id == -1 || !chr.rob_chr)
+        if (chr.rob_id == ROB_ID_NULL || !chr.rob_chr)
             continue;
 
         pv_play_data& playdata = this->playdata[i];
         playdata.reset();
         playdata.set_motion.clear();
 
-        if (chr.chara_id != -1)
-            playdata.rob_chr = rob_chara_array_get(chr.chara_id);
+        if (chr.rob_id != ROB_ID_NULL)
+            playdata.rob_chr = get_rob_management()->get_rob(chr.rob_id);
 
         if (playdata.rob_chr) {
             playdata.rob_chr->frame_speed = anim_frame_speed;
-            playdata.rob_chr->data.motion.step_data.step = anim_frame_speed;
+            playdata.rob_chr->rob_base.robmot.step.req_f = anim_frame_speed;
             pv_expression_array_set(i, playdata.rob_chr, anim_frame_speed);
         }
 
@@ -2471,7 +2471,7 @@ void pv_game_pv_data::init(::pv_game* pv_game, bool music_play) {
     pv_game->data.play_data.lyric_color = 0xFFFFFFFF;
 
     field_0 = true;
-    chara_id = 0;
+    rob_id = ROB_ID_1P;
 
     field_2C560.reset();
 
@@ -2600,22 +2600,23 @@ void pv_game_pv_data::set_camera_max_frame(int64_t time) {
     }
 }
 
-void pv_game_pv_data::set_item_anim_max_frame(int32_t chara_id, int32_t index, int64_t time) {
-    if (chara_id < 0 || chara_id >= ROB_ID_MAX || index < 0)
+void pv_game_pv_data::set_item_anim_max_frame(int32_t rob_id, int32_t index, int64_t time) {
+    if (rob_id < 0 || rob_id >= ROB_ID_MAX || index < 0)
         return;
 
-    for (auto& i : playdata[chara_id].motion_data.item_anim)
+    for (auto& i : playdata[rob_id].motion_data.item_anim)
         if (10000LL * i.time > dsc_time && i.index == index && (!branch_mode || branch_mode == i.pv_branch_mode)) {
-            pv_game->set_data_itmpv_max_frame(chara_id, index, prj::roundf(dsc_time_to_frame(10000LL * i.time - time)) - 1.0f);
+            pv_game->set_data_itmpv_max_frame(rob_id, index,
+                prj::roundf(dsc_time_to_frame(10000LL * i.time - time)) - 1.0f);
             break;
         }
 }
 
-void pv_game_pv_data::set_motion_max_frame(int32_t chara_id, int32_t motion_index, int64_t time) {
-    if (chara_id < 0 || chara_id >= ROB_ID_MAX || motion_index < 0)
+void pv_game_pv_data::set_motion_max_frame(int32_t rob_id, int32_t motion_index, int64_t time) {
+    if (rob_id < 0 || rob_id >= ROB_ID_MAX || motion_index < 0)
         return;
 
-    pv_play_data& playdata = this->playdata[chara_id];
+    pv_play_data& playdata = this->playdata[rob_id];
 
     std::vector<pv_play_data_event>& set_motion = playdata.motion_data.set_motion;
     for (pv_play_data_event& i : set_motion)

@@ -293,7 +293,7 @@ int32_t bone_database::get_block_index(const char* kind_name, const char* name) 
     return -1;
 }
 
-const std::vector<BODYTYPE>* bone_database::get_body_type(const char* kind_name) const {
+const std::vector<BODYTYPE>* bone_database::get_body_type_table(const char* kind_name) const {
     if (!kind_name)
         return 0;
 
@@ -303,7 +303,7 @@ const std::vector<BODYTYPE>* bone_database::get_body_type(const char* kind_name)
     return 0;
 }
 
-const std::vector<CHAINPOSRADIUS>* bone_database::get_chain_pos_rad(const char* kind_name) const {
+const std::vector<CHAINPOSRADIUS>* bone_database::get_joint_table(const char* kind_name) const {
     if (!kind_name)
         return 0;
 
@@ -327,7 +327,7 @@ int32_t bone_database::get_bone_index(const char* kind_name, const char* name) c
     return -1;
 }
 
-const std::vector<std::string>* bone_database::get_bone_name(const char* kind_name) const {
+const std::vector<std::string>* bone_database::get_bone_name_table(const char* kind_name) const {
     if (!kind_name)
         return 0;
 
@@ -351,7 +351,7 @@ int32_t bone_database::get_bone_node_index(const char* kind_name, const char* na
     return -1;
 }
 
-const std::vector<std::string>* bone_database::get_bone_node_name(const char* kind_name) const {
+const std::vector<std::string>* bone_database::get_bone_node_name_table(const char* kind_name) const {
     if (!kind_name)
         return 0;
 
@@ -361,7 +361,7 @@ const std::vector<std::string>* bone_database::get_bone_node_name(const char* ki
     return 0;
 }
 
-const std::vector<std::uint16_t>* bone_database::get_parent_node(const char* kind_name) const {
+const std::vector<std::uint16_t>* bone_database::get_node_parent_table(const char* kind_name) const {
     if (!kind_name)
         return 0;
 
@@ -397,35 +397,34 @@ bool bone_database::load_file(void* data, const char* dir, const char* file, uin
     return bone_data->ready;
 }
 
-void bone_database_bones_calculate_count(const std::vector<BODYTYPE>* bones,
-    size_t& bone_name_num, size_t& bone_node_num,
-    size_t& node_count, size_t& leaf_pos, size_t& chain_pos) {
-    bone_name_num = 0;
-    bone_node_num = 0;
-    node_count = 0;
-    leaf_pos = 0;
-    chain_pos = 0;
+void bone_database_bones_calculate_count(const std::vector<BODYTYPE>* body_type_table,
+    size_t& mat_max, size_t& block_max, size_t& node_max, size_t& leaf_pos_max, size_t& chain_pos_max) {
+    mat_max = 0;
+    block_max = 0;
+    node_max = 0;
+    leaf_pos_max = 0;
+    chain_pos_max = 0;
 
-    for (const BODYTYPE& i : *bones) {
-        bone_name_num++;
-        node_count++;
+    for (const BODYTYPE& i : *body_type_table) {
+        mat_max++;
+        node_max++;
         if (i.ik_type >= IKT_2)
-            bone_name_num += 2;
-        chain_pos++;
+            mat_max += 2;
+        chain_pos_max++;
 
         if (i.ik_type >= IKT_1) {
-            chain_pos++;
-            node_count += 2;
+            chain_pos_max++;
+            node_max += 2;
 
             if (i.ik_type >= IKT_2) {
-                chain_pos++;
-                node_count++;
+                chain_pos_max++;
+                node_max++;
             }
         }
 
         if (i.ik_type >= IKT_ROOT)
-            leaf_pos++;
-        bone_node_num++;
+            leaf_pos_max++;
+        block_max++;
     }
 }
 

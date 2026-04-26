@@ -318,8 +318,8 @@ namespace mdl {
 
             if (texture_id != -1) {
                 for (int32_t j = 0; j < args->texture_pattern_count; j++)
-                    if (args->texture_pattern_array[j].src == ::texture_id(0x00, texture_id)) {
-                        texture* tex = texture_manager_get_texture(args->texture_pattern_array[j].dst);
+                    if (args->texture_pattern_array[j].org_texid == ::texture_id(0x00, texture_id)) {
+                        texture* tex = texture_manager_get_texture(args->texture_pattern_array[j].change_texid);
                         if (tex)
                             tex_id = tex->glid;
                         break;
@@ -592,8 +592,8 @@ static void draw_object_material_set_cheap(
 
         GLuint tex_id = -1;
         for (int32_t j = 0; j < args->texture_pattern_count; j++)
-            if (args->texture_pattern_array[j].src == ::texture_id(0x00, texture_id)) {
-                texture* tex = texture_manager_get_texture(args->texture_pattern_array[j].dst);
+            if (args->texture_pattern_array[j].org_texid == ::texture_id(0x00, texture_id)) {
+                texture* tex = texture_manager_get_texture(args->texture_pattern_array[j].change_texid);
                 if (tex)
                     tex_id = tex->glid;
                 break;
@@ -681,8 +681,8 @@ static void draw_object_material_set_default(render_data_context& rend_data_ctx,
         GLuint tex_id = -1;
         uint32_t texture_id = texdata->tex_index;
         for (int32_t j = 0; j < args->texture_pattern_count; j++)
-            if (args->texture_pattern_array[j].src == ::texture_id(0x00, texture_id)) {
-                texture* tex = texture_manager_get_texture(args->texture_pattern_array[j].dst);
+            if (args->texture_pattern_array[j].org_texid == ::texture_id(0x00, texture_id)) {
+                texture* tex = texture_manager_get_texture(args->texture_pattern_array[j].change_texid);
                 if (tex)
                     tex_id = tex->glid;
                 break;
@@ -1012,7 +1012,7 @@ static void draw_object_vertex_attrib_set_cheap(
         mats[0] = material->material.texdata[0].tex_coord_mat;
         if (material->material.texdata[0].shader_info.m.tex_type == OBJ_MATERIAL_TEXTURE_COLOR)
             for (int32_t j = 0; j < args->texture_transform_count; j++)
-                if (args->texture_transform_array[j].id == tex_index) {
+                if (args->texture_transform_array[j].texid == tex_index) {
                     mats[0] = args->texture_transform_array[j].mat;
                     break;
                 }
@@ -1074,7 +1074,7 @@ static void draw_object_vertex_attrib_set_default(
         mats[texcoord_index] = texdata->tex_coord_mat;
         if (texdata->shader_info.m.tex_type == OBJ_MATERIAL_TEXTURE_COLOR)
             for (int32_t k = 0; k < args->texture_transform_count; k++)
-                if (args->texture_transform_array[k].id == texture_id) {
+                if (args->texture_transform_array[k].texid == texture_id) {
                     mats[texcoord_index] = args->texture_transform_array[k].mat;
                     texcoord_mat_set[texcoord_index] = true;
                     break;

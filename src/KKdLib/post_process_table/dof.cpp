@@ -156,7 +156,7 @@ static void dof_read_inner(dof* d, stream& s, uint32_t header_length) {
             i.fuzzing_range = s.read_float_t_reverse_endianness(i.fuzzing_range);
             i.ratio = s.read_float_t_reverse_endianness(i.ratio);
             i.quality = s.read_float_t_reverse_endianness(i.quality);
-            i.chara_id = -1;
+            i.rob_id = -1;
         }
         s.position_pop();
     }
@@ -173,7 +173,7 @@ static void dof_read_inner(dof* d, stream& s, uint32_t header_length) {
             i.fuzzing_range = s.read_float_t_reverse_endianness(i.fuzzing_range);
             i.ratio = s.read_float_t_reverse_endianness(i.ratio);
             i.quality = s.read_float_t_reverse_endianness(i.quality);
-            i.chara_id = s.read_int32_t_reverse_endianness(i.chara_id);
+            i.rob_id = s.read_int32_t_reverse_endianness(i.rob_id);
         }
         s.position_pop();
     }
@@ -250,7 +250,7 @@ static void dof_write_inner(dof* d, stream& s) {
                 s.write_float_t_reverse_endianness(i.fuzzing_range);
                 s.write_float_t_reverse_endianness(i.ratio);
                 s.write_float_t_reverse_endianness(i.quality);
-                s.write_int32_t_reverse_endianness(i.chara_id);
+                s.write_int32_t_reverse_endianness(i.rob_id);
             }
         }
 

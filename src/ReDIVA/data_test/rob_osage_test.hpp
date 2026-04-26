@@ -70,8 +70,8 @@ public:
     bool coli;
     bool line;
 
-    int32_t chara_id;
-    int32_t load_chara_id;
+    ROB_ID rob_id;
+    ROB_ID rob_id_load;
     CHARA_NUM chara_num;
     int32_t cos_id;
     ROB_PARTS_KIND rpk;
@@ -107,17 +107,17 @@ public:
     void disp_line();
     void disp_line_cls_param(const mat4& transform, const vec3& pos);
 
-    ExClothBlock* get_cloth_block(rob_chara_item_equip_object* skin_disp) const;
+    ExClothBlock* get_cloth_block(RobSkinDisp* skin_disp) const;
     std::vector<SkinParam::CollisionParam>* get_cls_list(ExNodeBlock* cls) const;
     SkinParam::CollisionParam* get_cls_param(std::vector<SkinParam::CollisionParam>* cls_list) const;
-    rob_chara_item_equip_object* get_skin_disp() const;
-    ExNodeBlock* get_node_block(rob_chara_item_equip_object* skin_disp) const;
-    ExOsageBlock* get_osage_block(rob_chara_item_equip_object* skin_disp) const;
+    RobSkinDisp* get_skin_work() const;
+    ExNodeBlock* get_node_block(RobSkinDisp* skin_disp) const;
+    ExOsageBlock* get_osage_block(RobSkinDisp* skin_disp) const;
     void set_node(skin_param_osage_node* skp_osg_node);
     void set_root(skin_param* skp);
 
     inline std::vector<SkinParam::CollisionParam>* get_cls_list() const {
-        rob_chara_item_equip_object* skin_disp = get_skin_disp();
+        RobSkinDisp* skin_disp = get_skin_work();
         if (!skin_disp)
             return 0;
 
@@ -129,7 +129,7 @@ public:
     }
 
     inline skin_param* get_skin_param() const {
-        rob_chara_item_equip_object* skin_disp = get_skin_disp();
+        RobSkinDisp* skin_disp = get_skin_work();
         ExNodeBlock* ex_node = get_node_block(skin_disp);
         if (!ex_node)
             return 0;
@@ -142,7 +142,7 @@ public:
     }
 
     inline skin_param_osage_node* get_skin_param_osage_node() const {
-        rob_chara_item_equip_object* skin_disp = get_skin_disp();
+        RobSkinDisp* skin_disp = get_skin_work();
         ExOsageBlock* osg = get_osage_block(skin_disp);
         if (osg && osg->osage_work.joint_node_vec.size() > 1)
             return &osg->osage_work.joint_node_vec.data()[1].data_ptr->skp_osg_node;

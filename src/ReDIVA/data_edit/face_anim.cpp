@@ -282,7 +282,7 @@ void FaceAnim::Auth3D::reset() {
     tex_db.clear();
 }
 
-FaceAnim::FaceAnim() : state(), play(), sound_play(), frame(), frame_count() {
+FaceAnim::FaceAnim() : state(), play(), sound_play(), frame(), frame_max() {
 
 }
 
@@ -345,7 +345,7 @@ bool FaceAnim::ctrl() {
         auth_3d.patch();
 
         frame = 5000;
-        frame_count = (int32_t)auth_3d.id.get_last_frame();
+        frame_max = (int32_t)auth_3d.id.get_last_frame();
 
         ogg_path.assign("H:\\C\\Documents\\A\\pv826\\lipsync\\01_rin.ogg");
         //sound_work_play_stream(0, ogg_path.c_str(), (float_t)((double_t)frame / 60.0));
@@ -366,7 +366,7 @@ bool FaceAnim::ctrl() {
         if (play)
             frame++;
 
-        if (frame >= frame_count) {
+        if (frame >= frame_max) {
             frame = 5000;
 
             sound_work_release_stream(0);
@@ -414,7 +414,7 @@ void FaceAnim::window() {
     if (ImGui::Button(play ? "Pause" : "Play"))
         play ^= true;
 
-    ImGui::Text("% 5d/% 5d", frame, frame_count);
+    ImGui::Text("% 5d/% 5d", frame, frame_max);
     ImGui::End();
 }
 
@@ -427,6 +427,6 @@ void FaceAnim::reset() {
     play = false;
     sound_play = false;
     frame = 0;
-    frame_count = 0;
+    frame_max = 0;
 }
 #endif
