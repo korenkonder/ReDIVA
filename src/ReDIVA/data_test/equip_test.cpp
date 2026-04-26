@@ -19,12 +19,12 @@ public:
         bool set_item_no;
         bool reset_item_no;
         bool refresh;
-        int32_t item_no;
-        const item_cos_data* cos;
-        CHARA_NUM chara_num;
-        int32_t cos_id;
+        uint32_t item_no;
+        const RobItemEquip* item_set;
+        CHARA_NUM cn;
+        int32_t cs;
         bool update_item;
-        int32_t disp_parts;
+        int32_t dp;
         std::vector<int32_t> items[DATA_TEST_ITEM_EQUIP_MAX];
         std::map<int32_t, int32_t> field_278[DATA_TEST_ITEM_EQUIP_MAX];
         int32_t current_items[DATA_TEST_ITEM_EQUIP_MAX];
@@ -42,7 +42,7 @@ public:
         Item();
     };
 
-    int32_t chara_id;
+    int32_t rc;
     Data data[ROB_ID_MAX];
     Item item;
 
@@ -51,38 +51,38 @@ public:
 
     virtual void Hide() override;
 
-    void DataReset(int32_t chara_id);
+    void DataReset(int32_t rc);
     int32_t GetCharaID();
-    CHARA_NUM GetCharaNum(int32_t chara_id);
-    const item_cos_data* GetCos(int32_t chara_id);
-    int32_t GetCosId(int32_t chara_id);
-    int32_t GetCurrentCharaItem(int32_t chara_id, dw::Widget* data);
-    int32_t GetDispParts(int32_t chara_id);
-    int32_t GetItemNo(int32_t chara_id);
-    bool GetRefresh(int32_t chara_id);
-    bool GetResetItemNo(int32_t chara_id);
-    bool GetSetItemNo(int32_t chara_id);
-    int32_t GetSelectedCharaItemNo(int32_t chara_id, dw::Widget* data);
+    CHARA_NUM GetCharaNum(int32_t rc);
+    int32_t GetCosId(int32_t rc);
+    int32_t GetCurrentCharaItem(int32_t rc, dw::Widget* data);
+    int32_t GetDispParts(int32_t rc);
+    const RobItemEquip* GetEquip(int32_t rc);
+    int32_t GetItemNo(int32_t rc);
+    bool GetRefresh(int32_t rc);
+    bool GetResetItemNo(int32_t rc);
+    bool GetSetItemNo(int32_t rc);
+    int32_t GetSelectedCharaItemNo(int32_t rc, dw::Widget* data);
     bool IsEquipAllowed(int32_t equip);
     void ItemReset();
-    void ResetCharaItemCos(int32_t chara_id);
-    void SetCharaDisp(int32_t chara_id, bool value);
+    void ResetCharaItemCos(int32_t rc);
+    void SetCharaDisp(int32_t rc, bool value);
     void SetCharaID(int32_t value);
-    void SetCharaItemCos(int32_t chara_id, const item_cos_data* cos);
-    void SetCharaNum(int32_t chara_id, CHARA_NUM chara_num);
-    void SetCos(int32_t chara_id, const item_cos_data* cos);
-    void SetCosId(int32_t chara_id, int32_t cos_id);
-    void SetCurrentItemNo(int32_t chara_id, dw::Widget* data, int32_t value);
-    void SetDispParts(int32_t chara_id, int32_t parts);
-    void SetItemNo(int32_t chara_id, int32_t value);
-    void SetRefresh(int32_t chara_id, bool value);
-    void SetResetItemNo(int32_t chara_id, bool value);
-    void SetSetItemNo(int32_t chara_id, bool value);
-    void SetUpdateItem(int32_t chara_id, bool value);
+    void SetCharaItemEquip(int32_t rc, const RobItemEquip* item_set);
+    void SetCharaNum(int32_t rc, CHARA_NUM cn);
+    void SetCosId(int32_t rc, int32_t cs);
+    void SetCurrentItemNo(int32_t rc, dw::Widget* data, int32_t value);
+    void SetDispParts(int32_t rc, int32_t parts);
+    void SetEquip(int32_t rc, const RobItemEquip* item_set);
+    void SetItemNo(int32_t rc, int32_t value);
+    void SetRefresh(int32_t rc, bool value);
+    void SetResetItemNo(int32_t rc, bool value);
+    void SetSetItemNo(int32_t rc, bool value);
+    void SetUpdateItem(int32_t rc, bool value);
 
     static void Disp1pCallback(dw::Widget* data);
     static void Disp2pCallback(dw::Widget* data);
-    static void DispCallback(int32_t chara_id, dw::Widget* widget);
+    static void DispCallback(int32_t rc, dw::Widget* widget);
     static void DispPartsCallback(dw::Widget* data);
     static void ExclusiveCheckCallback(dw::Widget* widget);
     static void ItemCallback(dw::Widget* data);
@@ -90,20 +90,24 @@ public:
     static void RefreshCallback(dw::Widget* data);
     static void RobCallback(dw::Widget* data);
 
-    void sub_14025FD80(int32_t chara_id);
+    void sub_14025FD80(int32_t rc);
 
-    void sub_140261520(int32_t chara_id);
-    void sub_140261580(int32_t chara_id);
-    void sub_140261AF0(int32_t chara_id);
-    void sub_140261C40(int32_t chara_id);
+    void sub_140261520(int32_t rc);
+    void sub_140261580(int32_t rc);
+    void sub_140261AF0(int32_t rc);
+    void sub_140261C40(int32_t rc);
 };
 
-static const item_sub_id data_test_equip_sub_ids[] = {
-     ITEM_SUB_ZUJO, ITEM_SUB_KAMI, ITEM_SUB_HITAI, ITEM_SUB_ME, ITEM_SUB_MEGANE,
-     ITEM_SUB_MIMI, ITEM_SUB_KUCHI, ITEM_SUB_MAKI, ITEM_SUB_KUBI, ITEM_SUB_INNER,
-     ITEM_SUB_OUTER, ITEM_SUB_KATA, ITEM_SUB_U_UDE, ITEM_SUB_L_UDE, ITEM_SUB_TE,
-     ITEM_SUB_JOHA_MAE, ITEM_SUB_JOHA_USHIRO, ITEM_SUB_BELT, ITEM_SUB_KOSI, ITEM_SUB_PANTS,
-     ITEM_SUB_ASI, ITEM_SUB_SUNE, ITEM_SUB_KUTSU, ITEM_SUB_HADA, ITEM_SUB_HEAD,
+static const ROB_ITEM_EQUIP_SUB_ID data_test_equip_sub_ids[] = {
+     ROB_ITEM_EQUIP_SUB_ID_ZUJO, ROB_ITEM_EQUIP_SUB_ID_KAMI, ROB_ITEM_EQUIP_SUB_ID_HITAI,
+     ROB_ITEM_EQUIP_SUB_ID_ME, ROB_ITEM_EQUIP_SUB_ID_MEGANE, ROB_ITEM_EQUIP_SUB_ID_MIMI,
+     ROB_ITEM_EQUIP_SUB_ID_KUCHI, ROB_ITEM_EQUIP_SUB_ID_MAKI, ROB_ITEM_EQUIP_SUB_ID_KUBI,
+     ROB_ITEM_EQUIP_SUB_ID_INNER, ROB_ITEM_EQUIP_SUB_ID_OUTER, ROB_ITEM_EQUIP_SUB_ID_KATA,
+     ROB_ITEM_EQUIP_SUB_ID_U_UDE, ROB_ITEM_EQUIP_SUB_ID_L_UDE, ROB_ITEM_EQUIP_SUB_ID_TE,
+     ROB_ITEM_EQUIP_SUB_ID_JOHA_MAE, ROB_ITEM_EQUIP_SUB_ID_JOHA_USHIRO, ROB_ITEM_EQUIP_SUB_ID_BELT,
+     ROB_ITEM_EQUIP_SUB_ID_KOSI, ROB_ITEM_EQUIP_SUB_ID_PANTS, ROB_ITEM_EQUIP_SUB_ID_ASI,
+     ROB_ITEM_EQUIP_SUB_ID_SUNE, ROB_ITEM_EQUIP_SUB_ID_KUTSU, ROB_ITEM_EQUIP_SUB_ID_HADA,
+     ROB_ITEM_EQUIP_SUB_ID_HEAD,
 };
 
 extern render_context* rctx_ptr;
@@ -112,38 +116,21 @@ DtmEqVs* dtm_eq_vs_array;
 
 DataTestEquipDw* data_test_equip_dw;
 
-int32_t data_test_item_array_load_count;
-std::vector<int32_t> data_test_item_array[CN_MAX][ITEM_SUB_MAX];
-
-int32_t data_test_item_equip_array_load_count;
-std::vector<int32_t> data_test_item_equip_array[CN_MAX][5];
-
 CHARA_NUM data_test_equip_dw_chara_index_array[ROB_ID_MAX];
 
-static int32_t data_test_equip_dw_get_disp_parts(int32_t chara_id);
-static void data_test_equip_dw_set_chara_num(int32_t chara_id, CHARA_NUM chara_num);
-static void data_test_equip_dw_set_chara_item_cos(int32_t chara_id, const item_cos_data* cos);
-static const item_cos_data* data_test_equip_dw_get_cos(int32_t chara_id);
-static int32_t data_test_equip_dw_get_item_no(int32_t chara_id);
-static bool data_test_equip_dw_get_reset_item_no(int32_t chara_id);
-static bool data_test_equip_dw_get_set_item_no(int32_t chara_id);
-static void data_test_equip_dw_reset_chara_item_cos(int32_t chara_id);
-static void data_test_equip_dw_set_cos_id(int32_t chara_id, int32_t cos);
-static void data_test_equip_dw_sub_140261520(int32_t chara_id);
+static int32_t data_test_equip_dw_get_disp_parts(int32_t rc);
+static void data_test_equip_dw_set_chara_num(int32_t rc, CHARA_NUM cn);
+static void data_test_equip_dw_set_chara_item_equip(int32_t rc, const RobItemEquip* item_set);
+static const RobItemEquip* data_test_equip_dw_get_equip(int32_t rc);
+static int32_t data_test_equip_dw_get_item_no(int32_t rc);
+static bool data_test_equip_dw_get_reset_item_no(int32_t rc);
+static bool data_test_equip_dw_get_set_item_no(int32_t rc);
+static void data_test_equip_dw_reset_chara_item_cos(int32_t rc);
+static void data_test_equip_dw_set_cos_id(int32_t rc, int32_t cos);
+static void data_test_equip_dw_sub_140261520(int32_t rc);
 
-static std::vector<int32_t>* data_test_item_array_get(CHARA_NUM chara_num);
-static void data_test_item_array_load();
-static void data_test_item_array_unload();
-
-static std::vector<int32_t>* data_test_item_equip_array_get(CHARA_NUM chara_num);
-static void data_test_item_equip_array_load();
-static void data_test_item_equip_array_unload();
-
-static int32_t data_test_item_get_item_equip(CHARA_NUM chara_num, int32_t item_no);
-
-DtmEqVs::DtmEqVs() : chara_id(), chara_num(),
-curr_chara_num(), cos_id(), curr_cos_id(), disp_parts() {
-    state = -1;
+DtmEqVs::DtmEqVs() : m_rc(), m_cn_cur(), m_cn_pre(), m_cs_cur(), m_cs_pre(), m_dp() {
+    m_mode = -1;
 }
 
 DtmEqVs::~DtmEqVs() {
@@ -151,79 +138,80 @@ DtmEqVs::~DtmEqVs() {
 }
 
 bool DtmEqVs::init() {
-    state = 0;
+    m_mode = 0;
     return true;
 }
 
 bool DtmEqVs::ctrl() {
-    rob_chara_item_cos_data* item_cos_data = rob_chara_array_get_item_cos_data(chara_id);
-    rob_chara* rob_chr = rob_chara_array_get(chara_id);
-    switch (state) {
+    RobManagement* rob_man = get_rob_management();
+    RobItem* rob_item = rob_man->get_rob_robitem_work((ROB_ID)m_rc);
+    rob_chara* rob_chr = rob_man->get_rob((ROB_ID)m_rc);
+    switch (m_mode) {
     case 0:
-        data_test_equip_dw_sub_140261520(chara_id);
-        data_test_equip_dw_set_chara_item_cos(chara_id, item_cos_data->get_cos());
-        state = 3;
+        data_test_equip_dw_sub_140261520(m_rc);
+        data_test_equip_dw_set_chara_item_equip(m_rc, rob_item->get_equip());
+        m_mode = 3;
     case 3:
         if (dtm_mot_array_get_loaded()) {
             CtrlDispParts();
             CtrlChara();
 
-            int32_t item_no = data_test_equip_dw_get_item_no(chara_id);
-            ::item_cos_data temp_cos;
+            uint32_t item_no = data_test_equip_dw_get_item_no(m_rc);
+            RobItemEquip temp_equip;
             if (rob_chr)
-                temp_cos = *rob_chr->item_cos_data.get_cos();
+                temp_equip = *rob_chr->item.get_equip();
 
             bool reload = false;
-            if (data_test_equip_dw_get_set_item_no(chara_id)) {
-                item_cos_data->set_chara_num_item(chara_num, item_no);
+            if (data_test_equip_dw_get_set_item_no(m_rc)) {
+                RobItem::s_regist_item_one((CHARA_NUM)m_cn_cur, item_no, rob_item);
                 reload = true;
             }
 
-            if (data_test_equip_dw_get_reset_item_no(chara_id)) {
-                item_cos_data->set_chara_num_item_zero(chara_num, item_no);
+            if (data_test_equip_dw_get_reset_item_no(m_rc)) {
+                RobItem::s_delete_item((CHARA_NUM)m_cn_cur, item_no, rob_item);
                 reload = true;
             }
 
-            const ::item_cos_data* cos = data_test_equip_dw_get_cos(chara_id);
-            if (cos) {
-                item_cos_data->set_chara_num_item_nos(chara_num, cos->arr);
+            const RobItemEquip* item_set = data_test_equip_dw_get_equip(m_rc);
+            if (item_set) {
+                RobItem::s_regist_item_all((CHARA_NUM)m_cn_cur, item_set, rob_item);
                 reload = true;
             }
 
-            /*if (sub_1402CEEC0(chara_id)) {
+            /*if (sub_1402CEEC0(rc)) {
                 reload = true;
                 sub_1402CF8F0();
             }*/
 
-            data_test_equip_dw_reset_chara_item_cos(chara_id);
+            data_test_equip_dw_reset_chara_item_cos(m_rc);
 
             if (reload) {
                 if (rob_chr)
-                    task_rob_load_append_free_req_data_obj(rob_chr->chara_num, &temp_cos);
-                rob_chara_array_reset_bone_data_item_equip(chara_id);
+                    task_rob_load_append_free_req_data_obj(rob_chr->chara_num, &temp_equip);
+                rob_chara_array_reset_bone_data_item_equip((ROB_ID)m_rc);
                 task_rob_manager_hide_task();
-                state = 1;
+                m_mode = 1;
             }
         }
         break;
     case 1:
         if (rob_chr) {
-            task_rob_load_append_load_req_data_obj(rob_chr->chara_num, rob_chr->item_cos_data.get_cos());
-            state = 2;
+            task_rob_load_append_load_req_data_obj(rob_chr->chara_num, rob_chr->item.get_equip());
+            m_mode = 2;
         }
         break;
     case 2:
         if (!task_rob_load_check_load_req_data()) {
             task_rob_manager_run_task();
-            if (rob_chara_array_get(chara_id)) {
+            if (get_rob_management()->get_rob((ROB_ID)m_rc)) {
                 data_struct* aft_data = &data_list[DATA_AFT];
                 bone_database* aft_bone_data = &aft_data->data_ft.bone_data;
                 object_database* aft_obj_db = &aft_data->data_ft.obj_db;
-                item_cos_data->reload_items(chara_id, aft_bone_data, aft_data, aft_obj_db);
+                rob_item->equip(m_rc, aft_bone_data, aft_data, aft_obj_db);
             }
             auth_3d_test_task_disp_chara();
             dtm_mot_array_set_reset_mot();
-            state = 3;
+            m_mode = 3;
         }
         break;
     }
@@ -234,15 +222,15 @@ bool DtmEqVs::dest() {
     return true;
 }
 
-bool DtmEqVs::add_task(int32_t chara_id, CHARA_NUM chara_num) {
-    this->chara_id = chara_id;
-    this->chara_num = chara_num;
-    this->curr_chara_num = chara_num;
-    cos_id = 0;
-    curr_cos_id = 0;
-    disp_parts = 0;
-    data_test_equip_dw_set_chara_num(chara_id, chara_num);
-    data_test_equip_dw_set_cos_id(chara_id, cos_id);
+bool DtmEqVs::add_task(int32_t rc, int32_t cn) {
+    m_rc = rc;
+    m_cn_cur = cn;
+    m_cn_pre = cn;
+    m_cs_cur = 0;
+    m_cs_pre = 0;
+    m_dp = 0;
+    data_test_equip_dw_set_chara_num(rc, (CHARA_NUM)cn);
+    data_test_equip_dw_set_cos_id(rc, m_cs_cur);
     return app::TaskWork::add_task(this, "DATA TEST EQUIP MANAGER FOR VS");
 }
 
@@ -250,35 +238,35 @@ bool DtmEqVs::del_task() {
     return app::Task::del();
 }
 
-void DtmEqVs::SetCharaNumCosId(CHARA_NUM chara_num, int32_t cos_id) {
-    this->chara_num = chara_num;
-    this->cos_id = cos_id;
-    data_test_equip_dw_set_chara_num(chara_id, chara_num);
-    data_test_equip_dw_set_cos_id(chara_id, cos_id);
+void DtmEqVs::SetCharaNumCosId(int32_t cn, int32_t cs) {
+    m_cn_cur = cn;
+    m_cs_cur = cs;
+    data_test_equip_dw_set_chara_num(m_rc, (CHARA_NUM)cn);
+    data_test_equip_dw_set_cos_id(m_rc, m_cs_cur);
 }
 
 void DtmEqVs::CtrlChara() {
-    if (chara_num == curr_chara_num && cos_id == curr_cos_id)
+    if (m_cn_cur == m_cn_pre && m_cs_cur == m_cs_pre)
         return;
 
-    curr_chara_num = chara_num;
-    curr_cos_id = cos_id;
-    const item_cos_data* cos = item_table_handler_array_get_item_cos_data(chara_num, cos_id);
-    if (!check_cos_id_is_501(curr_cos_id) || !cos) {
-        data_test_equip_dw_sub_140261520(chara_id);
-        data_test_equip_dw_set_chara_item_cos(chara_id, cos);
+    m_cn_pre = m_cn_cur;
+    m_cs_pre = m_cs_cur;
+    const RobItemEquip* item_set = get_default_costume_data((CHARA_NUM)m_cn_cur, m_cs_cur);
+    if (!check_cos_id_is_501(m_cs_pre) || !item_set) {
+        data_test_equip_dw_sub_140261520(m_rc);
+        data_test_equip_dw_set_chara_item_equip(m_rc, item_set);
     }
 }
 
 void DtmEqVs::CtrlDispParts() {
-    int32_t disp_parts = data_test_equip_dw_get_disp_parts(chara_id);
-    if (this->disp_parts == disp_parts)
+    int32_t dp = data_test_equip_dw_get_disp_parts(m_rc);
+    if (m_dp == dp)
         return;
 
-    rob_chara_item_equip* rob_disp = rob_chara_array_get_rob_disp(chara_id);
+    RobDisp* rob_disp = get_rob_management()->get_rob_robdisp_work((ROB_ID)m_rc);
     bool disp = false;
     ROB_PARTS_KIND rpk;
-    switch (disp_parts) {
+    switch (dp) {
     default:
         rpk = RPK_NONE;
         disp = true;
@@ -295,14 +283,14 @@ void DtmEqVs::CtrlDispParts() {
     }
 
     for (int32_t i = RPK_DISP_BEGIN; i <= RPK_DISP_END; i++)
-        if (rob_disp->get_object_info((ROB_PARTS_KIND)i).not_null())
-            rob_disp->set_disp((ROB_PARTS_KIND)i, true);
+        if (rob_disp->get_objid((ROB_PARTS_KIND)i).not_null())
+            rob_disp->set_disp_flag((ROB_PARTS_KIND)i, true);
 
     for (int32_t i = RPK_DISP_BEGIN; i <= RPK_DISP_END; i++)
         if (i != rpk && (!disp || i != rob_disp->hyoutan_rpk))
-            rob_disp->set_disp((ROB_PARTS_KIND)i, disp);
+            rob_disp->set_disp_flag((ROB_PARTS_KIND)i, disp);
 
-    this->disp_parts = disp_parts;
+    m_dp = dp;
 }
 
 void equip_test_init() {
@@ -317,8 +305,8 @@ void equip_test_free() {
     }
 }
 
-DataTestEquipDw::Data::Data() : disp(), set_item_no(), reset_item_no(), refresh(), item_no(),
-cos(), chara_num(), cos_id(), update_item(), disp_parts(), current_items() {
+DataTestEquipDw::Data::Data() : disp(), set_item_no(), reset_item_no(), refresh(),
+item_no(), item_set(), cn(), cs(), update_item(), dp(), current_items() {
 
 }
 
@@ -330,15 +318,15 @@ DataTestEquipDw::Item::Item() : comp(), label(), list_box(), parts() {
 
 }
 
-DataTestEquipDw::DataTestEquipDw() : chara_id() {
+DataTestEquipDw::DataTestEquipDw() : rc() {
     ItemReset();
 
     for (int32_t i = 0; i < ROB_ID_MAX; i++) {
         DataReset(i);
-        data[i].chara_num = data_test_equip_dw_chara_index_array[i];
+        data[i].cn = data_test_equip_dw_chara_index_array[i];
     }
 
-    data_test_item_array_load();
+    RobItem::init_have_dbg();
 
     const char* exclusive_check_text;
     if (dw::translate)
@@ -442,11 +430,11 @@ DataTestEquipDw::DataTestEquipDw() : chara_id() {
         j++;
     }
 
-    sub_140261520(0);
-    SetCharaItemCos(0, &rob_chara_array_get_item_cos_data(0)->cos);
-
-    sub_140261520(1);
-    SetCharaItemCos(1, &rob_chara_array_get_item_cos_data(1)->cos);
+    for (int32_t i = 0; i <= ROB_ID_2P; i++) {
+        ROB_ID rob_id = (ROB_ID)i;
+        sub_140261520(rob_id);
+        SetCharaItemEquip(rob_id, get_rob_management()->get_rob_robitem_work(rob_id)->get_equip());
+    }
 
     rect.pos = { 953.0f, 0.0f };
 }
@@ -461,19 +449,19 @@ void DataTestEquipDw::Hide() {
     for (DataTestEquipDw::Data& i : data)
         i.update_item = false;
 
-    data_test_item_equip_array_unload();
+    RobItem::dest_have_dbg();
 }
 
-void DataTestEquipDw::DataReset(int32_t chara_id) {
-    DataTestEquipDw::Data& data = this->data[chara_id];
+void DataTestEquipDw::DataReset(int32_t rc) {
+    DataTestEquipDw::Data& data = this->data[rc];
     data.disp = true;
     data.set_item_no = false;
     data.reset_item_no = false;
     data.refresh = false;
     data.item_no = 0;
-    data.chara_num = CN_MIKU;
+    data.cn = CN_MIKU;
     data.update_item = false;
-    data.disp_parts = 0;
+    data.dp = 0;
 
     for (int32_t i = 0; i < DATA_TEST_ITEM_EQUIP_MAX; i++) {
         data.items[i].clear();
@@ -486,50 +474,50 @@ void DataTestEquipDw::DataReset(int32_t chara_id) {
 }
 
 int32_t DataTestEquipDw::GetCharaID() {
-    return chara_id;
+    return rc;
 }
 
-CHARA_NUM DataTestEquipDw::GetCharaNum(int32_t chara_id) {
-    return data[chara_id].chara_num;
+CHARA_NUM DataTestEquipDw::GetCharaNum(int32_t rc) {
+    return data[rc].cn;
 }
 
-const item_cos_data* DataTestEquipDw::GetCos(int32_t chara_id) {
-    return data[chara_id].cos;
+int32_t DataTestEquipDw::GetCosId(int32_t rc) {
+    return data[rc].cs;
 }
 
-int32_t DataTestEquipDw::GetCosId(int32_t chara_id) {
-    return data[chara_id].cos_id;
+int32_t DataTestEquipDw::GetCurrentCharaItem(int32_t rc, dw::Widget* data) {
+    return this->data[rc].current_items[data->callback_data.i32];
 }
 
-int32_t DataTestEquipDw::GetCurrentCharaItem(int32_t chara_id, dw::Widget* data) {
-    return this->data[chara_id].current_items[data->callback_data.i32];
+int32_t DataTestEquipDw::GetDispParts(int32_t rc) {
+    return data[rc].dp;
 }
 
-int32_t DataTestEquipDw::GetDispParts(int32_t chara_id) {
-    return data[chara_id].disp_parts;
+const RobItemEquip* DataTestEquipDw::GetEquip(int32_t rc) {
+    return data[rc].item_set;
 }
 
-int32_t DataTestEquipDw::GetItemNo(int32_t chara_id) {
-    return data[chara_id].item_no;
+int32_t DataTestEquipDw::GetItemNo(int32_t rc) {
+    return data[rc].item_no;
 }
 
-bool DataTestEquipDw::GetRefresh(int32_t chara_id) {
-    return data[chara_id].refresh;
+bool DataTestEquipDw::GetRefresh(int32_t rc) {
+    return data[rc].refresh;
 }
 
-bool DataTestEquipDw::GetResetItemNo(int32_t chara_id) {
-    return data[chara_id].reset_item_no;
+bool DataTestEquipDw::GetResetItemNo(int32_t rc) {
+    return data[rc].reset_item_no;
 }
 
-int32_t DataTestEquipDw::GetSelectedCharaItemNo(int32_t chara_id, dw::Widget* data) {
+int32_t DataTestEquipDw::GetSelectedCharaItemNo(int32_t rc, dw::Widget* data) {
     dw::ListBox* list_box = dynamic_cast<dw::ListBox*>(data);
     if (list_box)
-        return this->data[chara_id].items[data->callback_data.i32][list_box->list->selected_item];
+        return this->data[rc].items[data->callback_data.i32][list_box->list->selected_item];
     return 0;
 }
 
-bool DataTestEquipDw::GetSetItemNo(int32_t chara_id) {
-    return data[chara_id].set_item_no;
+bool DataTestEquipDw::GetSetItemNo(int32_t rc) {
+    return data[rc].set_item_no;
 }
 
 bool DataTestEquipDw::IsEquipAllowed(int32_t equip) {
@@ -553,84 +541,84 @@ void DataTestEquipDw::ItemReset() {
     item.parts = 0;
 }
 
-void DataTestEquipDw::ResetCharaItemCos(int32_t chara_id) {
-    data[chara_id].set_item_no = false;
-    data[chara_id].reset_item_no = false;
-    data[chara_id].item_no = 0;
-    data[chara_id].cos = 0;
+void DataTestEquipDw::ResetCharaItemCos(int32_t rc) {
+    data[rc].set_item_no = false;
+    data[rc].reset_item_no = false;
+    data[rc].item_no = 0;
+    data[rc].item_set = 0;
 }
 
-void DataTestEquipDw::SetCharaDisp(int32_t chara_id, bool value) {
-    data[chara_id].disp = value;
-    data[chara_id].disp_parts = value ? 0 : 1;
+void DataTestEquipDw::SetCharaDisp(int32_t rc, bool value) {
+    data[rc].disp = value;
+    data[rc].dp = value ? 0 : 1;
 }
 
 void DataTestEquipDw::SetCharaID(int32_t value) {
-    chara_id = value;
+    rc = value;
 }
 
-void DataTestEquipDw::SetCharaItemCos(int32_t chara_id, const item_cos_data* cos) {
-    if (!cos)
+void DataTestEquipDw::SetCharaItemEquip(int32_t rc, const RobItemEquip* item_set) {
+    if (!item_set)
         return;
 
-    DataTestEquipDw::Data& data = this->data[chara_id];
+    DataTestEquipDw::Data& data = this->data[rc];
 
     for (int32_t i = 0, j = 0; i < DATA_TEST_ITEM_EQUIP_MAX; i++) {
         if (!IsEquipAllowed(i))
             continue;
 
-        if (this->chara_id == chara_id) {
-            auto elem = data.field_278[j].find(cos->arr[data_test_equip_sub_ids[i]]);
+        if (this->rc == rc) {
+            auto elem = data.field_278[j].find(item_set->item_no[data_test_equip_sub_ids[i]]);
             if (elem != data.field_278[j].end() && elem->second)
                 item.list_box[j]->SetItemIndex(elem->second);
             else
                 item.list_box[j]->SetItemIndex(-1);
         }
 
-        data.current_items[j] = cos->arr[data_test_equip_sub_ids[i]];
+        data.current_items[j] = item_set->item_no[data_test_equip_sub_ids[i]];
         j++;
     }
 }
 
-void DataTestEquipDw::SetCharaNum(int32_t chara_id, CHARA_NUM chara_num) {
-    data[chara_id].chara_num = chara_num;
+void DataTestEquipDw::SetCharaNum(int32_t rc, CHARA_NUM cn) {
+    data[rc].cn = cn;
 }
 
-void DataTestEquipDw::SetCos(int32_t chara_id, const item_cos_data* cos) {
-    data[chara_id].cos = cos;
+void DataTestEquipDw::SetCosId(int32_t rc, int32_t cs) {
+    data[rc].cs = cs;
 }
 
-void DataTestEquipDw::SetCosId(int32_t chara_id, int32_t cos_id) {
-    data[chara_id].cos_id = cos_id;
+void DataTestEquipDw::SetCurrentItemNo(int32_t rc, dw::Widget* data, int32_t value) {
+    this->data[rc].current_items[data->callback_data.i32] = value;
 }
 
-void DataTestEquipDw::SetCurrentItemNo(int32_t chara_id, dw::Widget* data, int32_t value) {
-    this->data[chara_id].current_items[data->callback_data.i32] = value;
+void DataTestEquipDw::SetDispParts(int32_t rc, int32_t parts) {
+    if (data[rc].disp)
+        data[rc].dp = parts;
 }
 
-void DataTestEquipDw::SetDispParts(int32_t chara_id, int32_t parts) {
-    if (data[chara_id].disp)
-        data[chara_id].disp_parts = parts;
+void DataTestEquipDw::SetEquip(int32_t rc, const RobItemEquip* item_set) {
+    data[rc].item_set = item_set;
 }
 
-void DataTestEquipDw::SetItemNo(int32_t chara_id, int32_t value) {
-    data[chara_id].item_no = value;
+void DataTestEquipDw::SetItemNo(int32_t rc, int32_t value) {
+    data[rc].item_no = value;
 }
 
-void DataTestEquipDw::SetRefresh(int32_t chara_id, bool value) {
-    data[chara_id].refresh = value;
+void DataTestEquipDw::SetRefresh(int32_t rc, bool value) {
+    data[rc].refresh = value;
 }
 
-void DataTestEquipDw::SetResetItemNo(int32_t chara_id, bool value) {
-    data[chara_id].reset_item_no = value;
+void DataTestEquipDw::SetResetItemNo(int32_t rc, bool value) {
+    data[rc].reset_item_no = value;
 }
 
-void DataTestEquipDw::SetSetItemNo(int32_t chara_id, bool value) {
-    data[chara_id].set_item_no = value;
+void DataTestEquipDw::SetSetItemNo(int32_t rc, bool value) {
+    data[rc].set_item_no = value;
 }
 
-void DataTestEquipDw::SetUpdateItem(int32_t chara_id, bool value) {
-    data[chara_id].update_item = value;
+void DataTestEquipDw::SetUpdateItem(int32_t rc, bool value) {
+    data[rc].update_item = value;
 }
 
 void DataTestEquipDw::Disp1pCallback(dw::Widget* data) {
@@ -641,10 +629,10 @@ void DataTestEquipDw::Disp2pCallback(dw::Widget* data) {
     DispCallback(1, data);
 }
 
-void DataTestEquipDw::DispCallback(int32_t chara_id, dw::Widget* data) {
+void DataTestEquipDw::DispCallback(int32_t rc, dw::Widget* data) {
     dw::Button* button = dynamic_cast<dw::Button*>(data);
     if (button)
-        data_test_equip_dw->SetCharaDisp(chara_id, button->value);
+        data_test_equip_dw->SetCharaDisp(rc, button->value);
 }
 
 void DataTestEquipDw::DispPartsCallback(dw::Widget* data) {
@@ -660,27 +648,27 @@ void DataTestEquipDw::ExclusiveCheckCallback(dw::Widget* data) {
 }
 
 void DataTestEquipDw::ItemCallback(dw::Widget* data) {
-    int32_t chara_id = data_test_equip_dw->GetCharaID();
-    int32_t item_no = data_test_equip_dw->GetSelectedCharaItemNo(chara_id, data);
-    int32_t curr_item_no = data_test_equip_dw->GetCurrentCharaItem(chara_id, data);
+    int32_t rc = data_test_equip_dw->GetCharaID();
+    uint32_t item_no = data_test_equip_dw->GetSelectedCharaItemNo(rc, data);
+    int32_t curr_item_no = data_test_equip_dw->GetCurrentCharaItem(rc, data);
 
     if (item_no) {
-        data_test_equip_dw->SetSetItemNo(chara_id, true);
-        data_test_equip_dw->SetResetItemNo(chara_id, false);
-        data_test_equip_dw->SetUpdateItem(chara_id, true);
-        data_test_equip_dw->SetItemNo(chara_id, item_no);
-        data_test_equip_dw->SetCurrentItemNo(chara_id, data, item_no);
+        data_test_equip_dw->SetSetItemNo(rc, true);
+        data_test_equip_dw->SetResetItemNo(rc, false);
+        data_test_equip_dw->SetUpdateItem(rc, true);
+        data_test_equip_dw->SetItemNo(rc, item_no);
+        data_test_equip_dw->SetCurrentItemNo(rc, data, item_no);
     }
     else if (curr_item_no) {
-        data_test_equip_dw->SetSetItemNo(chara_id, false);
-        data_test_equip_dw->SetResetItemNo(chara_id, true);
-        data_test_equip_dw->SetUpdateItem(chara_id, true);
-        data_test_equip_dw->SetItemNo(chara_id, curr_item_no);
-        data_test_equip_dw->SetCurrentItemNo(chara_id, data, curr_item_no);
+        data_test_equip_dw->SetSetItemNo(rc, false);
+        data_test_equip_dw->SetResetItemNo(rc, true);
+        data_test_equip_dw->SetUpdateItem(rc, true);
+        data_test_equip_dw->SetItemNo(rc, curr_item_no);
+        data_test_equip_dw->SetCurrentItemNo(rc, data, curr_item_no);
     }
     else{
-        data_test_equip_dw->SetItemNo(chara_id, item_no);
-        data_test_equip_dw->SetCurrentItemNo(chara_id, data, item_no);
+        data_test_equip_dw->SetItemNo(rc, item_no);
+        data_test_equip_dw->SetCurrentItemNo(rc, data, item_no);
     }
 
 }
@@ -690,67 +678,67 @@ void DataTestEquipDw::PartsCallback(dw::Widget* data) {
     if (!list_box)
         return;
 
-    int32_t chara_id = data_test_equip_dw->GetCharaID();
-    CHARA_NUM chara_num = data_test_equip_dw->GetCharaNum(chara_id);
-    int32_t cos = data_test_equip_dw->GetCosId(chara_id);
+    int32_t rc = data_test_equip_dw->GetCharaID();
+    CHARA_NUM cn = data_test_equip_dw->GetCharaNum(rc);
+    int32_t cos = data_test_equip_dw->GetCosId(rc);
 
-    const item_cos_data* v9 = item_table_handler_array_get_item_cos_data(chara_num, cos);
+    const RobItemEquip* item_set = get_default_costume_data(cn, cos);
     size_t selected_item = list_box->list->selected_item;
     switch (selected_item) {
     case 0:
         break;
     case 1:
-        v9 = item_table_handler_array_get_item_cos_data(chara_num, 499);
+        item_set = get_default_costume_data(cn, 499);
         break;
     case 2:
     default: {
-        auto& dbgset = item_table_handler_array_get_table(chara_num)->dbgset;
-        auto elem = dbgset.find(list_box->GetItemStr(selected_item).c_str());
-        if (elem != dbgset.end())
-            v9 = &elem->second;
+        const RobItemDbgSet* dbgset = RobItem::get_dbgset(cn);
+        auto elem = dbgset->find(list_box->GetItemStr(selected_item).c_str());
+        if (elem != dbgset->end())
+            item_set = &elem->second;
     } break;
     }
 
-    item_cos_data* v23 = &rob_chara_array_get_item_cos_data(chara_id)->cos;
-    if (selected_item >= 2 && data_test_equip_dw->GetRefresh(chara_id)) {
-        *v23 = *v9;
-        v9 = v23;
+    RobItemEquip* rob_item_set = get_rob_management()->get_rob_robitem_work((ROB_ID)rc)->get_equip();
+    if (selected_item >= 2 && data_test_equip_dw->GetRefresh(rc)) {
+        *rob_item_set = *item_set;
+        item_set = rob_item_set;
     }
 
-    data_test_equip_dw->SetCos(chara_id, v9);
-    data_test_equip_dw->sub_140261C40(chara_id);
-    data_test_equip_dw->sub_140261580(chara_id);
+    data_test_equip_dw->SetEquip(rc, item_set);
+    data_test_equip_dw->sub_140261C40(rc);
+    data_test_equip_dw->sub_140261580(rc);
     data_test_equip_dw->UpdateLayout();
-    data_test_equip_dw->SetCharaItemCos(chara_id, v9);
+    data_test_equip_dw->SetCharaItemEquip(rc, item_set);
 }
 
 void DataTestEquipDw::RefreshCallback(dw::Widget* data) {
     dw::Button* button = dynamic_cast<dw::Button*>(data);
     if (button) {
-        int32_t chara_id = data_test_equip_dw->GetCharaID();
+        int32_t rc = data_test_equip_dw->GetCharaID();
         if (button->value)
-            data_test_equip_dw->SetRefresh(chara_id, false);
+            data_test_equip_dw->SetRefresh(rc, false);
         else
-            data_test_equip_dw->SetRefresh(chara_id, true);
+            data_test_equip_dw->SetRefresh(rc, true);
     }
 }
 
 void DataTestEquipDw::RobCallback(dw::Widget* data) {
     dw::ListBox* list_box = dynamic_cast<dw::ListBox*>(data);
     if (list_box) {
-        int32_t chara_id = (int32_t)list_box->list->selected_item;
-        data_test_equip_dw->SetCharaID(chara_id);
-        data_test_equip_dw->sub_140261C40(chara_id);
-        data_test_equip_dw->sub_140261AF0(chara_id);
-        data_test_equip_dw->sub_14025FD80(chara_id);
+        int32_t rc = (int32_t)list_box->list->selected_item;
+        data_test_equip_dw->SetCharaID(rc);
+        data_test_equip_dw->sub_140261C40(rc);
+        data_test_equip_dw->sub_140261AF0(rc);
+        data_test_equip_dw->sub_14025FD80(rc);
     }
 }
 
-void DataTestEquipDw::sub_14025FD80(int32_t chara_id) {
-    if (this->chara_id != chara_id)
+void DataTestEquipDw::sub_14025FD80(int32_t rc) {
+    if (this->rc != rc)
         return;
 
-    DataTestEquipDw::Data& data = this->data[chara_id];
+    DataTestEquipDw::Data& data = this->data[rc];
 
     for (int32_t i = 0, j = 0; i < DATA_TEST_ITEM_EQUIP_MAX; i++) {
         if (!IsEquipAllowed(i))
@@ -764,27 +752,27 @@ void DataTestEquipDw::sub_14025FD80(int32_t chara_id) {
     }
 }
 
-void DataTestEquipDw::sub_140261520(int32_t chara_id) {
-    if (this->chara_id == chara_id) {
-        sub_140261C40(chara_id);
-        sub_140261AF0(chara_id);
-        sub_140261580(chara_id);
+void DataTestEquipDw::sub_140261520(int32_t rc) {
+    if (this->rc == rc) {
+        sub_140261C40(rc);
+        sub_140261AF0(rc);
+        sub_140261580(rc);
         UpdateLayout();
     }
     else
-        sub_140261580(chara_id);
+        sub_140261580(rc);
 }
 
-void DataTestEquipDw::sub_140261580(int32_t chara_id) {
-    DataTestEquipDw::Data& data = this->data[chara_id];
+void DataTestEquipDw::sub_140261580(int32_t rc) {
+    DataTestEquipDw::Data& data = this->data[rc];
 
-    CHARA_NUM chara_num = data.chara_num;
+    CHARA_NUM cn = data.cn;
 
     for (int32_t i = 0, j = 0; i < DATA_TEST_ITEM_EQUIP_MAX; i++) {
         if (!IsEquipAllowed(i))
             continue;
 
-        std::vector<int32_t>* item_array = data_test_item_array_get(chara_num);
+        RobItemHaveSub* have_dbg = RobItem::get_have_sub_dbg(cn);
         data.items[j].clear();
         data.field_278[j].clear();
         data.current_items[j] = 0;
@@ -793,7 +781,7 @@ void DataTestEquipDw::sub_140261580(int32_t chara_id) {
         data.field_278[j].insert({ 0, 0 });
 
         int32_t index = 1;
-        for (int32_t& k : item_array[data_test_equip_sub_ids[i]]) {
+        for (uint32_t& k : have_dbg->part[data_test_equip_sub_ids[i]].item_no) {
             data.items[j].push_back(k);
             data.field_278[j].insert({ k, index++ });
         }
@@ -801,39 +789,35 @@ void DataTestEquipDw::sub_140261580(int32_t chara_id) {
     }
 }
 
-void DataTestEquipDw::sub_140261AF0(int32_t chara_id) {
+void DataTestEquipDw::sub_140261AF0(int32_t rc) {
     dw::ListBox* parts = item.parts;
     parts->ClearItems();
     parts->AddItem("DEFAULT");
     parts->AddItem("NUDE");
 
-    for (auto& i : item_table_handler_array_get_table(data[chara_id].chara_num)->dbgset)
+    for (auto& i : *RobItem::get_dbgset(data[rc].cn))
         parts->AddItem(i.first);
 }
 
-void DataTestEquipDw::sub_140261C40(int32_t chara_id) {
-    DataTestEquipDw::Data& data = this->data[chara_id];
+void DataTestEquipDw::sub_140261C40(int32_t rc) {
+    DataTestEquipDw::Data& data = this->data[rc];
 
-    CHARA_NUM chara_num = data.chara_num;
+    CHARA_NUM cn = data.cn;
 
     char buf[0x20];
-    sprintf_s(buf, sizeof(buf), "ITEM EQUIP (%s)", get_chara_name_full(chara_num));
+    sprintf_s(buf, sizeof(buf), "ITEM EQUIP (%s)", get_chara_name_full(cn));
     SetText(buf);
 
     for (int32_t i = 0, j = 0; i < DATA_TEST_ITEM_EQUIP_MAX; i++) {
         if (!IsEquipAllowed(i))
             continue;
 
-        std::vector<int32_t>* item_array = data_test_item_array_get(chara_num);
+        RobItemHaveSub* have_dbg = RobItem::get_have_sub_dbg(cn);
         item.list_box[j]->ClearItems();
         item.list_box[j]->AddItem("REMOVE ITEM");
 
-        for (int32_t& k : item_array[data_test_equip_sub_ids[i]]) {
-            char buf[0x200];
-            sprintf_s(buf, sizeof(buf), "%03d %s", k,
-                item_table_handler_array_get_item_name(chara_num, k).c_str());
-            item.list_box[j]->AddItem(buf);
-        }
+        for (uint32_t& k : have_dbg->part[data_test_equip_sub_ids[i]].item_no)
+            item.list_box[j]->AddItem(sprintf_s_string("%03d", k) + get_rob_item_table_name(cn, k));
         j++;
     }
 }
@@ -844,142 +828,64 @@ void data_test_equip_dw_init() {
         data_test_equip_dw->LimitPosDisp();
     }
     else {
-        data_test_item_equip_array_load();
+        RobItem::init_have_dbg();
         //if (!data_test_item_check_dw_get_disp())
             data_test_equip_dw->Disp();
     }
 }
 
-static int32_t data_test_equip_dw_get_disp_parts(int32_t chara_id) {
+static int32_t data_test_equip_dw_get_disp_parts(int32_t rc) {
     if (data_test_equip_dw)
-        return data_test_equip_dw->GetDispParts(chara_id);
+        return data_test_equip_dw->GetDispParts(rc);
     return 0;
 }
 
-static void data_test_equip_dw_set_chara_num(int32_t chara_id, CHARA_NUM chara_num) {
+static void data_test_equip_dw_set_chara_num(int32_t rc, CHARA_NUM cn) {
     if (data_test_equip_dw)
-        data_test_equip_dw->SetCharaNum(chara_id, chara_num);
-    data_test_equip_dw_chara_index_array[chara_id] = chara_num;
+        data_test_equip_dw->SetCharaNum(rc, cn);
+    data_test_equip_dw_chara_index_array[rc] = cn;
 }
 
-static void data_test_equip_dw_set_chara_item_cos(int32_t chara_id, const item_cos_data* cos) {
+static void data_test_equip_dw_set_chara_item_equip(int32_t rc, const RobItemEquip* item_set) {
     if (data_test_equip_dw)
-        data_test_equip_dw->SetCharaItemCos(chara_id, cos);
+        data_test_equip_dw->SetCharaItemEquip(rc, item_set);
 }
 
-static const item_cos_data* data_test_equip_dw_get_cos(int32_t chara_id) {
+static const RobItemEquip* data_test_equip_dw_get_equip(int32_t rc) {
     if (data_test_equip_dw)
-        return data_test_equip_dw->GetCos(chara_id);
+        return data_test_equip_dw->GetEquip(rc);
     return 0;
 }
 
-static int32_t data_test_equip_dw_get_item_no(int32_t chara_id) {
+static int32_t data_test_equip_dw_get_item_no(int32_t rc) {
     if (data_test_equip_dw)
-        return data_test_equip_dw->GetItemNo(chara_id);
+        return data_test_equip_dw->GetItemNo(rc);
     return 0;
 }
 
-static bool data_test_equip_dw_get_reset_item_no(int32_t chara_id) {
+static bool data_test_equip_dw_get_reset_item_no(int32_t rc) {
     if (data_test_equip_dw)
-        return data_test_equip_dw->GetResetItemNo(chara_id);
+        return data_test_equip_dw->GetResetItemNo(rc);
     return false;
 }
 
-static bool data_test_equip_dw_get_set_item_no(int32_t chara_id) {
+static bool data_test_equip_dw_get_set_item_no(int32_t rc) {
     if (data_test_equip_dw)
-        return data_test_equip_dw->GetSetItemNo(chara_id);
+        return data_test_equip_dw->GetSetItemNo(rc);
     return false;
 }
 
-static void data_test_equip_dw_reset_chara_item_cos(int32_t chara_id) {
+static void data_test_equip_dw_reset_chara_item_cos(int32_t rc) {
     if (data_test_equip_dw)
-        data_test_equip_dw->ResetCharaItemCos(chara_id);
+        data_test_equip_dw->ResetCharaItemCos(rc);
 }
 
-static void data_test_equip_dw_set_cos_id(int32_t chara_id, int32_t cos) {
+static void data_test_equip_dw_set_cos_id(int32_t rc, int32_t cos) {
     if (data_test_equip_dw)
-        data_test_equip_dw->SetCosId(chara_id, cos);
+        data_test_equip_dw->SetCosId(rc, cos);
 }
 
-static void data_test_equip_dw_sub_140261520(int32_t chara_id) {
+static void data_test_equip_dw_sub_140261520(int32_t rc) {
     if (data_test_equip_dw)
-        data_test_equip_dw->sub_140261520(chara_id);
-}
-
-static std::vector<int32_t>* data_test_item_array_get(CHARA_NUM chara_num) {
-    return data_test_item_array[chara_num];
-}
-
-static void data_test_item_array_load() {
-    if (data_test_item_array_load_count)
-        data_test_item_array_load_count++;
-    else
-        for (int32_t i = 0; i < CN_MAX; i++) {
-            const item_table* table = item_table_handler_array_get_table((CHARA_NUM)i);
-            if (!table)
-                continue;
-
-            for (auto& j : table->item) {
-                const item_table_item* item = item_table_handler_array_get_item((CHARA_NUM)i, j.first);
-                if (item && item->sub_id != -1)
-                    data_test_item_array[i][item->sub_id].push_back(j.first);
-            }
-        }
-}
-
-static void data_test_item_array_unload() {
-    if (--data_test_item_array_load_count < 0)
-        data_test_item_array_load_count = 0;
-    else if (!data_test_item_array_load_count)
-        for (auto& i : data_test_item_array)
-            for (auto& j : i) {
-                j.clear();
-                j.shrink_to_fit();
-            }
-}
-
-static std::vector<int32_t>* data_test_item_equip_array_get(CHARA_NUM chara_num) {
-    return data_test_item_equip_array[chara_num];
-}
-
-static void data_test_item_equip_array_load() {
-    if (data_test_item_equip_array_load_count)
-        data_test_item_equip_array_load_count++;
-    else
-        for (int32_t i = 0; i < CN_MAX; i++) {
-            const item_table* table = item_table_handler_array_get_table((CHARA_NUM)i);
-            if (!table || !data_test_item_equip_array[i]->size())
-                continue;
-
-            for (auto& j : table->item) {
-                int32_t equip = data_test_item_get_item_equip((CHARA_NUM)i, j.first);
-                if (equip != -1)
-                    data_test_item_equip_array[i][equip].push_back(j.first);
-            }
-        }
-}
-
-static void data_test_item_equip_array_unload() {
-    if (--data_test_item_equip_array_load_count < 0)
-        data_test_item_equip_array_load_count = 0;
-    else if (!data_test_item_equip_array_load_count)
-        for (auto& i : data_test_item_equip_array)
-            for (auto& j : i) {
-                j.clear();
-                j.shrink_to_fit();
-            }
-}
-
-static int32_t data_test_item_get_item_equip(CHARA_NUM chara_num, int32_t item_no) {
-    static const int32_t data_test_item_item_equip_array[] = {
-        0, 0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3, 3, 2, 2, 4, 4, 4, 4, 4, 4, 2, 1,
-    };
-
-    if (!item_table_handler_array_get_table(chara_num))
-        return -1;
-
-    item_sub_id sub_id = item_table_handler_array_get_item_sub_id(chara_num, item_no);
-    if (sub_id != ITEM_SUB_NONE)
-        return data_test_item_item_equip_array[sub_id];
-    return -1;
+        data_test_equip_dw->sub_140261520(rc);
 }

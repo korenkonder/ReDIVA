@@ -2232,7 +2232,7 @@ namespace Glitter {
         int32_t tex_trans_count = 0;
 
         for (texture_transform_struct& i : tex_trans) {
-            tex_trans->id = hash_murmurhash_empty;
+            tex_trans->texid = hash_murmurhash_empty;
             tex_trans->mat = mat4_identity;
         }
 
@@ -2242,7 +2242,7 @@ namespace Glitter {
             if (i.tex_index == hash_murmurhash_empty || i.tex_index == hash_murmurhash_null)
                 continue;
 
-            tex_trans[tex_trans_count].id = i.tex_index;
+            tex_trans[tex_trans_count].texid = i.tex_index;
             tex_trans[tex_trans_count].mat = mat4_identity;
             tex_trans_count++;
 

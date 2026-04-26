@@ -481,7 +481,7 @@ struct auth_3d_camera_root {
 struct auth_3d_chara {
     auth_3d_model_transform model_transform;
     std::string name;
-    int32_t index;
+    int32_t rob_id;
 
     auth_3d_chara();
     ~auth_3d_chara();
@@ -865,7 +865,7 @@ struct auth_3d_id {
     float_t get_frame();
     float_t get_frame_offset();
     float_t get_last_frame();
-    bool get_left_right_reverse();
+    bool get_mirror();
     bool get_paused();
     float_t get_play_control_begin();
     float_t get_play_control_size();
@@ -881,9 +881,9 @@ struct auth_3d_id {
     void set_enable(bool value);
     void set_frame_rate(FrameRateControl* value);
     void set_last_frame(float_t value);
-    void set_left_right_reverse(bool value);
     void set_mat(const mat4& value);
     void set_max_frame(float_t value);
+    void set_mirror(bool value);
     void set_paused(bool value);
     void set_pos(int32_t value);
     void set_reflect(bool value);
@@ -928,12 +928,12 @@ struct auth_3d {
     bool repeat;
     bool field_C;
     bool ended;
-    bool left_right_reverse;
+    bool mirror;
     bool once;
     mat4 mat;
     float_t alpha;
     mdl::ObjFlags obj_flags;
-    int32_t chara_id;
+    int32_t rob_id;
     bool chara_item;
     bool shadow;
     bool reflect;
@@ -1073,8 +1073,6 @@ extern void auth_3d_data_load_category(void* data, const char* category_name, ui
 extern void auth_3d_data_unload_category(const char* category_name);
 extern void auth_3d_data_unload_category(uint32_t category_hash);
 extern void auth_3d_data_free();
-
-extern void auth_3d_check_chara_visible(int32_t chara_id, const struct rob_chara_pv_data* pv_data);
 
 extern void task_auth_3d_init();
 extern bool task_auth_3d_add_task();

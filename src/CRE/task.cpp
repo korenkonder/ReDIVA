@@ -129,19 +129,27 @@ namespace app {
     }
 
     void Task::set_name(const char* name) {
-        if (!name) {
-            this->name[0] = 0;
-            return;
-        }
-
-        size_t len = utf8_length(name);
-        len = min_def(len, sizeof(this->name) - 1);
-        memmove(&this->name, name, len);
-        this->name[len] = 0;
+        set_name_sub(this->name, name, -1);
     }
 
     void Task::set_priority(int32_t priority) {
         this->priority = priority;
+    }
+
+    void Task::set_name_sub(char dst[0x20], const char* src, size_t size) {
+        if (dst == src)
+            return;
+
+        if (size) {
+            const char* end = (const char*)memchr(src, 0, size);
+            if (end)
+                size = end - src;
+        }
+
+        size = min_def(size, sizeof(dst) - 1);
+        if (size)
+            memcpy_s(dst, 0x20, src, size);
+        memset(&dst[size], 0, size < 0x20);
     }
 
     TaskWork::TaskWork() : current_task(), disp_task() {

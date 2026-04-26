@@ -34,13 +34,13 @@ enum IH_TYPE {
 };
 
 enum IK_TYPE {
-    IKT_0    = 0x00,
-    IKT_0N   = 0x01,
-    IKT_0T   = 0x02,
-    IKT_ROOT = 0x03,
-    IKT_1    = 0x04,
-    IKT_2    = 0x05,
-    IKT_2R   = 0x06,
+    IKT_0    = 0x00, // Rotation
+    IKT_0N   = 0x01, // Normal(?)
+    IKT_0T   = 0x02, // Translation
+    IKT_ROOT = 0x03, // Rotation + Translation
+    IKT_1    = 0x04, // Rotation + IK with 1 Segment
+    IKT_2    = 0x05, // Rotation + IK with 2 Segment
+    IKT_2R   = 0x06, // Rotation + IK with 2 Segment (Reverse)
 };
 
 struct CHAINPOSRADIUS {
@@ -100,32 +100,32 @@ struct bone_database {
 
     const BoneData* get_bone_data(const char* kind_name) const;
     int32_t get_block_index(const char* kind_name, const char* name) const;
-    const std::vector<BODYTYPE>* get_body_type(const char* kind_name) const;
-    const std::vector<CHAINPOSRADIUS>* get_chain_pos_rad(const char* kind_name) const;
+    const std::vector<BODYTYPE>* get_body_type_table(const char* kind_name) const;
+    const std::vector<CHAINPOSRADIUS>* get_joint_table(const char* kind_name) const;
     int32_t get_bone_index(const char* kind_name, const char* name) const;
-    const std::vector<std::string>* get_bone_name(const char* kind_name) const;
+    const std::vector<std::string>* get_bone_name_table(const char* kind_name) const;
     int32_t get_bone_node_index(const char* kind_name, const char* name) const;
-    const std::vector<std::string>* get_bone_node_name(const char* kind_name) const;
-    const std::vector<uint16_t>* get_parent_node(const char* kind_name) const;
+    const std::vector<std::string>* get_bone_node_name_table(const char* kind_name) const;
+    const std::vector<uint16_t>* get_node_parent_table(const char* kind_name) const;
     const float_t* get_heel_height(const char* kind_name) const;
 
     static bool load_file(void* data, const char* dir, const char* file, uint32_t hash);
 
     const BoneData* get_bone_data(BONE_KIND kind) const;
     int32_t get_block_index(BONE_KIND kind, const char* name) const;
-    const std::vector<BODYTYPE>* get_body_type(BONE_KIND kind) const;
-    const std::vector<CHAINPOSRADIUS>* get_chain_pos_rad(BONE_KIND kind) const;
+    const std::vector<BODYTYPE>* get_body_type_table(BONE_KIND kind) const;
+    const std::vector<CHAINPOSRADIUS>* get_joint_table(BONE_KIND kind) const;
     int32_t get_bone_index(BONE_KIND kind, const char* name) const;
-    const std::vector<std::string>* get_bone_name(BONE_KIND kind) const;
+    const std::vector<std::string>* get_bone_name_table(BONE_KIND kind) const;
     int32_t get_bone_node_index(BONE_KIND kind, const char* name) const;
-    const std::vector<std::string>* get_bone_node_name(BONE_KIND kind) const;
-    const std::vector<uint16_t>* get_parent_node(BONE_KIND kind) const;
+    const std::vector<std::string>* get_bone_node_name_table(BONE_KIND kind) const;
+    const std::vector<uint16_t>* get_node_parent_table(BONE_KIND kind) const;
     const float_t* get_heel_height(BONE_KIND kind) const;
 };
 
-extern void bone_database_bones_calculate_count(const std::vector<BODYTYPE>* bones,
-    size_t& object_bone_count, size_t& motion_bone_count,
-    size_t& node_count, size_t& leaf_pos, size_t& chain_pos);
+extern void bone_database_bones_calculate_count(const std::vector<BODYTYPE>* body_type_table,
+    size_t& mat_max, size_t& block_max,
+    size_t& node_max, size_t& leaf_pos_max, size_t& chain_pos_max);
 
 extern const char* bone_database_skeleton_type_to_string(BONE_KIND kind);
 
@@ -137,32 +137,32 @@ inline int32_t bone_database::get_block_index(BONE_KIND kind, const char* name) 
     return get_block_index(bone_database_skeleton_type_to_string(kind), name);
 }
 
-inline const std::vector<BODYTYPE>* bone_database::get_body_type(BONE_KIND kind) const {
-    return get_body_type(bone_database_skeleton_type_to_string(kind));
+inline const std::vector<BODYTYPE>* bone_database::get_body_type_table(BONE_KIND kind) const {
+    return get_body_type_table(bone_database_skeleton_type_to_string(kind));
 }
 
-inline const std::vector<CHAINPOSRADIUS>* bone_database::get_chain_pos_rad(BONE_KIND kind) const {
-    return get_chain_pos_rad(bone_database_skeleton_type_to_string(kind));
+inline const std::vector<CHAINPOSRADIUS>* bone_database::get_joint_table(BONE_KIND kind) const {
+    return get_joint_table(bone_database_skeleton_type_to_string(kind));
 }
 
 inline int32_t bone_database::get_bone_index(BONE_KIND kind, const char* name) const {
     return get_bone_index(bone_database_skeleton_type_to_string(kind), name);
 }
 
-inline const std::vector<std::string>* bone_database::get_bone_name(BONE_KIND kind) const {
-    return get_bone_name(bone_database_skeleton_type_to_string(kind));
+inline const std::vector<std::string>* bone_database::get_bone_name_table(BONE_KIND kind) const {
+    return get_bone_name_table(bone_database_skeleton_type_to_string(kind));
 }
 
 inline int32_t bone_database::get_bone_node_index(BONE_KIND kind, const char* name) const {
     return get_bone_node_index(bone_database_skeleton_type_to_string(kind), name);
 }
 
-inline const std::vector<std::string>* bone_database::get_bone_node_name(BONE_KIND kind) const {
-    return get_bone_node_name(bone_database_skeleton_type_to_string(kind));
+inline const std::vector<std::string>* bone_database::get_bone_node_name_table(BONE_KIND kind) const {
+    return get_bone_node_name_table(bone_database_skeleton_type_to_string(kind));
 }
 
-inline const std::vector<uint16_t>* bone_database::get_parent_node(BONE_KIND kind) const {
-    return get_parent_node(bone_database_skeleton_type_to_string(kind));
+inline const std::vector<uint16_t>* bone_database::get_node_parent_table(BONE_KIND kind) const {
+    return get_node_parent_table(bone_database_skeleton_type_to_string(kind));
 }
 
 inline const float_t* bone_database::get_heel_height(BONE_KIND kind) const {

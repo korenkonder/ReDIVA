@@ -121,7 +121,7 @@ namespace Glitter {
         PIVOT_TOP_LEFT,
     };
 
-    const char* effect_ext_anim_index_name[] = {
+    const char* effect_ext_anim_rob_id_name[] = {
         "P1",
         "P2",
         "P3",

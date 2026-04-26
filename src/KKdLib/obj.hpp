@@ -651,7 +651,7 @@ struct obj_skin_ex_data {
     obj_skin_osage_joint* osage_joint;
     obj_skin_ex_node* ex_node_table;
     int32_t num_ex_node;
-    int32_t nb_node_name;
+    uint32_t nb_node_name;
     const char** ex_node_name;
     obj_skin_osage_constraint_info* osage_constraint_tbl;
     int32_t num_osage_constraint;

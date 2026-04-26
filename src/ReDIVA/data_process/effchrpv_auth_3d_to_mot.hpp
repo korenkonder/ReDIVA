@@ -8,7 +8,7 @@
 #include "../../KKdLib/default.hpp"
 #include <string>
 
-extern void effchrpv_auth_3d_to_mot_init(int32_t pv_id, const int32_t* rob_chara_ids);
+extern void effchrpv_auth_3d_to_mot_init(int32_t pv_id, const enum ROB_ID* rob_ids);
 extern void effchrpv_auth_3d_to_mot_add_chara_effect_auth_3d(uint32_t hash, int32_t id);
 extern void effchrpv_auth_3d_to_mot_add_file_name(const std::string& file, const std::string& category);
 extern void effchrpv_auth_3d_to_mot_disp();

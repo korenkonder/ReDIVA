@@ -90,7 +90,7 @@ namespace pv_param {
         fuzzing_range = 2.0f;
         ratio = 0.0f;
         quality = 1.0f;
-        chara_id = -1;
+        rob_id = -1;
     }
 
     chara_alpha::chara_alpha() {
@@ -648,7 +648,7 @@ namespace pv_param {
             if (i.flags & DOF_QUALITY)
                 d.quality = i.quality;
             if (i.flags & DOF_AUTO_FOCUS)
-                d.chara_id = i.chara_id;
+                d.rob_id = i.rob_id;
             dof.push_back(d);
         }
     }
@@ -836,9 +836,9 @@ namespace pv_param_task {
     }
 
     void post_process_task_set_chara_alpha(
-        int32_t chara_id, int32_t type, float_t alpha, float_t duration) {
+        ROB_ID rob_id, int32_t type, float_t alpha, float_t duration) {
         PostProcessCtrlCharaAlpha& chara_alpha = post_process_task.chara_alpha;
-        pv_param::chara_alpha& chara_alpha_data = chara_alpha.data.data[chara_id];
+        pv_param::chara_alpha& chara_alpha_data = chara_alpha.data.data[rob_id];
         chara_alpha_data.type = type;
         chara_alpha_data.frame = 0.0f;
         chara_alpha_data.alpha = alpha;
@@ -846,17 +846,17 @@ namespace pv_param_task {
     }
 
     void post_process_task_set_chara_item_alpha(
-        int32_t chara_id, int32_t type, float_t alpha, float_t duration,
+        ROB_ID rob_id, int32_t type, float_t alpha, float_t duration,
         post_process_task_set_chara_item_alpha_callback callback, void* callback_data) {
         PostProcessCtrlCharaItemAlpha& chara_item_alpha = post_process_task.chara_item_alpha;
-        pv_param::chara_alpha& chara_item_alpha_data = chara_item_alpha.data.data[chara_id];
+        pv_param::chara_alpha& chara_item_alpha_data = chara_item_alpha.data.data[rob_id];
         chara_item_alpha_data.type = type;
         chara_item_alpha_data.frame = 0.0f;
         chara_item_alpha_data.alpha = alpha;
         chara_item_alpha_data.duration = duration;
 
-        chara_item_alpha.callback[chara_id] = callback;
-        chara_item_alpha.callback_data[chara_id] = callback_data;
+        chara_item_alpha.callback[rob_id] = callback;
+        chara_item_alpha.callback_data[rob_id] = callback_data;
     }
 
     bool post_process_task_del_task() {
@@ -1007,10 +1007,10 @@ namespace pv_param_task {
     }
 
     void PostProcessCtrlCharaAlpha::Set() {
-        int32_t index = 0;
+        int32_t rob_id = 0;
         for (pv_param::chara_alpha& i : data.data) {
             if (i.frame < 0.0f) {
-                index++;
+                rob_id++;
                 continue;
             }
 
@@ -1036,14 +1036,14 @@ namespace pv_param_task {
                 break;
             }
 
-            rob_chara_array_set_alpha_obj_flags(index, value, obj_flags);
+            rob_chara_array_set_alpha_obj_flags((ROB_ID)rob_id, value, obj_flags);
 
             i.frame += get_delta_frame();
             if (i.frame > i.duration) {
                 i.frame = -1.0f;
                 i.prev_alpha = i.alpha;
             }
-            index++;
+            rob_id++;
         }
     }
 
@@ -1067,10 +1067,10 @@ namespace pv_param_task {
     }
 
     void PostProcessCtrlCharaItemAlpha::Set() {
-        int32_t index = 0;
+        int32_t rob_id = 0;
         for (pv_param::chara_alpha& i : data.data) {
             if (i.frame < 0.0f) {
-                index++;
+                rob_id++;
                 continue;
             }
 
@@ -1083,14 +1083,14 @@ namespace pv_param_task {
                 value = lerp_def(i.prev_alpha, i.alpha, i.frame / i.duration);
 
             if (callback)
-                callback[index](callback_data[index], index, i.type, value);
+                callback[rob_id](callback_data[rob_id], (ROB_ID)rob_id, i.type, value);
 
             i.frame += get_delta_frame();
             if (i.frame > i.duration) {
                 i.frame = -1.0f;
                 i.prev_alpha = i.alpha;
             }
-            index++;
+            rob_id++;
         }
     }
 
@@ -1145,16 +1145,16 @@ namespace pv_param_task {
     }
 
     void PostProcessCtrlDof::Set() {
-        bool autofocus = data.data.chara_id != -1;
+        bool autofocus = data.data.rob_id != ROB_ID_NULL;
         if (autofocus) {
             if (!rctx_ptr->render.get_dof_update())
                 return;
 
             vec3 trans = 0.0f;
             if (callback)
-                trans = callback(callback_data, data.data.chara_id);
+                trans = callback(callback_data, (ROB_ID)data.data.rob_id);
             else {
-                rob_chara* rob_chr = rob_chara_array_get(data.data.chara_id);
+                rob_chara* rob_chr = get_rob_management()->get_rob((ROB_ID)data.data.rob_id);
                 if (rob_chr)
                     mat4_get_translation(rob_chr->get_bone_data_mat(BLK_CL_KAO), &trans);
             }

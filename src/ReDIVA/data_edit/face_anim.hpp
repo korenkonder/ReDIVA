@@ -37,7 +37,7 @@ public:
     bool play;
     bool sound_play;
     int32_t frame;
-    int32_t frame_count;
+    int32_t frame_max;
 
     FaceAnim();
     virtual ~FaceAnim() override;

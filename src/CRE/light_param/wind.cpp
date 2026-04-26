@@ -4,10 +4,11 @@
 */
 
 #include "wind.hpp"
-#include "../rob/rob.hpp"
 #include "../app_system_detail.hpp"
 
 TaskWind* task_wind;
+
+extern bool pv_osage_manager_array_get_disp();
 
 Wind::Wind() : scale(), cycle(), yrot(), zrot(),
 bias(), spectrum(), val(), frame(), strength() {

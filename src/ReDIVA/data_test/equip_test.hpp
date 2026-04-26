@@ -6,19 +6,19 @@
 #pragma once
 
 #include "../../KKdLib/default.hpp"
-#include "../../CRE/rob/rob.hpp"
 #include "../../CRE/task.hpp"
 
 class DtmEqVs : public app::Task {
-public:
-    int32_t state;
-    int32_t chara_id;
-    CHARA_NUM chara_num;
-    CHARA_NUM curr_chara_num;
-    int32_t cos_id;
-    int32_t curr_cos_id;
-    int32_t disp_parts;
+private:
+    int32_t m_mode;
+    int32_t m_rc;
+    int32_t m_cn_cur;
+    int32_t m_cn_pre;
+    int32_t m_cs_cur;
+    int32_t m_cs_pre;
+    int32_t m_dp;
 
+public:
     DtmEqVs();
     virtual ~DtmEqVs() override;
 
@@ -26,10 +26,10 @@ public:
     virtual bool ctrl() override;
     virtual bool dest() override;
 
-    virtual bool add_task(int32_t chara_id, CHARA_NUM chara_index);
+    virtual bool add_task(int32_t rob_id, int32_t cn);
     virtual bool del_task();
 
-    void SetCharaNumCosId(CHARA_NUM chara_index, int32_t cos_id);
+    void SetCharaNumCosId(int32_t cn, int32_t cs);
 
     void CtrlChara();
     void CtrlDispParts();

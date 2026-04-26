@@ -45,12 +45,12 @@ struct mot_data {
     union {
         struct {
             uint16_t key_set_count : 14;
-            uint16_t skeleton_select : 1;
-            uint16_t high_bit : 1;
+            uint16_t motion_body_type : 1;
+            uint16_t key_num_type : 1;
         };
         uint16_t info;
     };
-    uint16_t frame_count;
+    uint16_t frame_max;
     int32_t bone_info_count;
 
     uint32_t murmurhash;

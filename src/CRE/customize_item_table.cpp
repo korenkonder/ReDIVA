@@ -38,10 +38,10 @@ struct customize_item_data_handler {
     ~customize_item_data_handler();
 
     void add_all_customize_items();
-    void get_chara_item(const std::string& name, CHARA_NUM& chara_num, int32_t& item_no);
+    void get_chara_item(const std::string& name, CHARA_NUM& chara_num, uint32_t& item_no);
     void add_customize_items();
     bool get_customize_item(int32_t id, customize_item_data& data);
-    int32_t get_customize_item_obj_id(int32_t id);
+    uint32_t get_customize_item_obj_id(int32_t id);
 };
 
 customize_item_table_handler* customize_item_table_handler_data;
@@ -120,7 +120,7 @@ void customize_item_data_handler_data_add_all_customize_items() {
 }
 
 void customize_item_table_handler_data_get_chara_item(
-    const std::string& name, CHARA_NUM& chara_num, int32_t& item_no) {
+    const std::string& name, CHARA_NUM& chara_num, uint32_t& item_no) {
     customize_item_data_handler_data->get_chara_item(name, chara_num, item_no);
 }
 
@@ -128,7 +128,7 @@ bool customize_item_data_handler_data_get_customize_item(int32_t id, customize_i
     return customize_item_data_handler_data->get_customize_item(id, data);
 }
 
-int32_t customize_item_data_handler_data_get_customize_item_obj_id(int32_t id) {
+uint32_t customize_item_data_handler_data_get_customize_item_obj_id(int32_t id) {
     return customize_item_data_handler_data->get_customize_item_obj_id(id);
 }
 
@@ -316,7 +316,7 @@ void customize_item_data_handler::add_all_customize_items() {
 }
 
 void customize_item_data_handler::get_chara_item(
-    const std::string& name, CHARA_NUM& chara_num, int32_t& item_no) {
+    const std::string& name, CHARA_NUM& chara_num, uint32_t& item_no) {
     size_t pos = name.find('_');
     if (pos < 6)
         return;
@@ -326,7 +326,7 @@ void customize_item_data_handler::get_chara_item(
     if (!_item_no)
         return;
 
-    item_no = _item_no;
+    item_no = (uint32_t)_item_no;
 
     std::string chara(name.substr(0, 3));
     if (chara.compare("CMN"))
@@ -394,7 +394,7 @@ bool customize_item_data_handler::get_customize_item(int32_t id, customize_item_
     return false;
 }
 
-int32_t customize_item_data_handler::get_customize_item_obj_id(int32_t id) {
+uint32_t customize_item_data_handler::get_customize_item_obj_id(int32_t id) {
     for (customize_item_data& i : customize_items)
         if (i.id == id)
             return i.obj_id;

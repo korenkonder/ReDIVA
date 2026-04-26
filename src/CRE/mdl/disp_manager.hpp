@@ -40,20 +40,20 @@ struct material_list_struct {
         vec4u8& has_blend_color, vec4& emission, vec4u8& has_emission);
 };
 
-struct texture_pattern_struct {
-    texture_id src;
-    texture_id dst;
+struct TexChange {
+    texture_id org_texid;
+    texture_id change_texid;
 
-    texture_pattern_struct();
-    texture_pattern_struct(texture_id src, texture_id dst);
+    TexChange();
+    TexChange(texture_id org_texid, texture_id change_texid);
 };
 
 struct texture_transform_struct {
-    uint32_t id;
+    uint32_t texid;
     mat4 mat;
 
     texture_transform_struct();
-    texture_transform_struct(uint32_t id, const mat4& mat);
+    texture_transform_struct(uint32_t texid, const mat4& mat);
 };
 
 struct morph_struct {
@@ -203,7 +203,7 @@ namespace mdl {
         size_t morph_vertex_buffer_offset;
         float_t morph_weight;
         int32_t texture_pattern_count;
-        texture_pattern_struct texture_pattern_array[TEXTURE_PATTERN_COUNT];
+        TexChange texture_pattern_array[TEXTURE_PATTERN_COUNT];
         vec4 texture_color_coefficients;
         vec4 texture_color_offset;
         vec4 texture_specular_coefficients;
@@ -505,7 +505,7 @@ namespace mdl {
         void* buff;
         morph_struct morph;
         int32_t texture_pattern_count;
-        texture_pattern_struct texture_pattern_array[TEXTURE_PATTERN_COUNT];
+        TexChange texture_pattern_array[TEXTURE_PATTERN_COUNT];
         vec4 texture_color_coefficients;
         vec4 texture_color_offset;
         vec4 texture_specular_coefficients;
@@ -565,7 +565,7 @@ namespace mdl {
         bool entry_obj_by_object_info_instanced(object_info obj_info,
             const std::vector<mat4>& instances, float_t r, float_t g, float_t b, float_t a);
         void entry_obj_by_object_info_object_skin(object_info obj_info,
-            const std::vector<texture_pattern_struct>* texture_pattern,
+            const std::vector<TexChange>* texture_pattern,
             const RobSkinCol* skin_col, float_t alpha,
             const mat4* matrices, const mat4* ex_data_matrices, const mat4* mat, const mat4& global_mat);
         void entry_obj_etc(const mat4& mat, const EtcObj& etc);
@@ -582,7 +582,7 @@ namespace mdl {
         SHADOW_GROUP get_shadow_group();
         void get_texture_color_coeff(vec4& value);
         void get_texture_color_offset(vec4& value);
-        void get_texture_pattern(int32_t& count, texture_pattern_struct*& value);
+        void get_texture_pattern(int32_t& count, TexChange*& value);
         void get_texture_specular_coeff(vec4& value);
         void get_texture_specular_offset(vec4& value);
         void get_texture_transform(int32_t& count, texture_transform_struct*& value);
@@ -605,7 +605,7 @@ namespace mdl {
         void set_shadow_group(SHADOW_GROUP value = SHADOW_GROUP_CHARA);
         void set_texture_color_coefficients(const vec4& value);
         void set_texture_color_offset(const vec4& value);
-        void set_texture_pattern(int32_t count = 0, const texture_pattern_struct* value = 0);
+        void set_texture_pattern(int32_t count = 0, const TexChange* value = 0);
         void set_texture_specular_coefficients(const vec4& value);
         void set_texture_specular_offset(const vec4& value);
         void set_texture_transform(int32_t count = 0, const texture_transform_struct* value = 0);

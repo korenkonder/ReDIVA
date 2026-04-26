@@ -74,8 +74,8 @@ bool RobCharaAdjust::init() {
 }
 
 bool RobCharaAdjust::ctrl() {
-    if (motion_id != dtm_mot_array[chara_id].motion_id) {
-        motion_id = dtm_mot_array[chara_id].motion_id;
+    if (motion_id != dtm_mot_array[chara_id].uid) {
+        motion_id = dtm_mot_array[chara_id].uid;
         parts = ROB_OSAGE_PARTS_NONE;
         data = 0;
     }
@@ -88,7 +88,7 @@ bool RobCharaAdjust::ctrl() {
         data_struct* aft_data = &data_list[DATA_AFT];
         motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
-        uint32_t set_id = dtm_mot_array[chara_id].motion_set_id;
+        uint32_t set_id = dtm_mot_array[chara_id].set;
 
         MhdFile* mhd = mothead_storage_get_mhd_file(set_id);
         const motion_set_info* set_info = aft_mot_db->get_motion_set_by_id(set_id);
@@ -223,19 +223,19 @@ void RobCharaAdjust::window() {
         motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
         float_t frame = dtm_mot_array[chara_id].GetFrame();
-        const mothead_data* data = mothead_storage_get_mot_by_motion_id(motion_id, aft_mot_db)->data;
-        if (data) {
-            mothead_data_type type = data->type;
-            while (type >= MOTHEAD_DATA_TYPE_0) {
-                if ((type == MOTHEAD_DATA_ROB_PARTS_ADJUST
-                    && ((RobCharaAdjust::PartsData*)data->data)->parts == parts
-                    || type == MOTHEAD_DATA_ROB_ADJUST_GLOBAL)
-                    && frame >= (float_t)data->frame) {
-                    this->data = (void*)data->data;
+        const MhpList* pp_list = mothead_storage_get_mot_by_motion_id(motion_id, aft_mot_db)->pp_list;
+        if (pp_list) {
+            int32_t type = pp_list->type;
+            while (type >= 0) {
+                if ((type == MHP_ROB_PARTS_ADJUST
+                    && ((RobCharaAdjust::PartsData*)pp_list->data)->parts == parts
+                    || type == MHP_ROB_ADJUST_GLOBAL)
+                    && frame >= (float_t)pp_list->frame) {
+                    data = pp_list->data;
                 }
 
-                data++;
-                type = data->type;
+                pp_list++;
+                type = pp_list->type;
             }
         }
     }
@@ -245,23 +245,23 @@ void RobCharaAdjust::window() {
         data_struct* aft_data = &data_list[DATA_AFT];
         motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
-        const mothead_data* data = mothead_storage_get_mot_by_motion_id(motion_id, aft_mot_db)->data;
-        if (data) {
-            mothead_data_type type = data->type;
-            while (type >= MOTHEAD_DATA_TYPE_0) {
-                if (type == MOTHEAD_DATA_ROB_PARTS_ADJUST
-                    && ((RobCharaAdjust::PartsData*)data->data)->parts == parts
-                    || type == MOTHEAD_DATA_ROB_ADJUST_GLOBAL) {
+        MhpList* pp_list = mothead_storage_get_mot_by_motion_id(motion_id, aft_mot_db)->pp_list;
+        if (pp_list) {
+            int32_t type = pp_list->type;
+            while (type >= 0) {
+                if (type == MHP_ROB_PARTS_ADJUST
+                    && ((RobCharaAdjust::PartsData*)pp_list->data)->parts == parts
+                    || type == MHP_ROB_ADJUST_GLOBAL) {
                     char buf[0x40];
-                    sprintf_s(buf, sizeof(buf), "%d", data->frame);
+                    sprintf_s(buf, sizeof(buf), "%d", pp_list->frame);
                     ImGui::PushID(data);
-                    if (ImGui::Selectable(buf, this->data == data->data) && !track_frame)
-                        this->data = (void*)data->data;
+                    if (ImGui::Selectable(buf, data == pp_list->data) && !track_frame)
+                        data = pp_list->data;
                     ImGui::PopID();
                 }
 
-                data++;
-                type = data->type;
+                pp_list++;
+                type = pp_list->type;
             }
         }
         ImGui::EndListBox();

@@ -3075,9 +3075,9 @@ static void glitter_editor_property_effect(GlitterEditor* glt_edt) {
 
             Glitter::Effect::ExtAnimX* ext_anim = effect->data.ext_anim_x;
             if (ext_anim->flags & Glitter::EFFECT_EXT_ANIM_CHARA) {
-                const int32_t max_chara = 4;
-                if (ImGui::ColumnComboBox("Chara Index", Glitter::effect_ext_anim_index_name,
-                    max_chara, &ext_anim->chara_index, 0, false, &input_locked))
+                const int32_t max_rob_id = 4;
+                if (ImGui::ColumnComboBox("Rob ID", Glitter::effect_ext_anim_rob_id_name,
+                    max_rob_id, &ext_anim->rob_id, 0, false, &input_locked))
                     changed = true;
 
                 int32_t node_index = ext_anim->node_index;
@@ -3166,9 +3166,9 @@ static void glitter_editor_property_effect(GlitterEditor* glt_edt) {
 
             Glitter::Effect::ExtAnim* ext_anim = effect->data.ext_anim;
             if (ext_anim->flags & Glitter::EFFECT_EXT_ANIM_CHARA) {
-                const int32_t max_chara = eg->type == Glitter::FT ? 6 : 3;
-                if (ImGui::ColumnComboBox("Chara Index", Glitter::effect_ext_anim_index_name,
-                    max_chara, &ext_anim->chara_index, 0, false, &input_locked))
+                const int32_t max_rob_id = eg->type == Glitter::FT ? 6 : 4;
+                if (ImGui::ColumnComboBox("ROB ID", Glitter::effect_ext_anim_rob_id_name,
+                    max_rob_id, &ext_anim->rob_id, 0, false, &input_locked))
                     changed = true;
 
                 int32_t node_index = ext_anim->node_index;

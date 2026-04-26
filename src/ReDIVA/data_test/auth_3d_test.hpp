@@ -8,6 +8,7 @@
 #include <string>
 #include "../../KKdLib/default.hpp"
 #include "../../KKdLib/database/item_table.hpp"
+#include "../../CRE/rob/rob.hpp"
 #include "../../CRE/auth_3d.hpp"
 #include "../../CRE/task.hpp"
 #include "equip_test.hpp"
@@ -17,6 +18,7 @@ public:
     class DataEventListener : public a3d::EventAdapter {
     public:
         struct Data {
+            RobManagement* rob_man;
             int32_t state;
             bool field_C;
             bool field_D;
@@ -26,18 +28,17 @@ public:
             int32_t load_cos_id[2];
             int32_t cos_id[2];
             DtmEqVs dtm_eq_vs[2];
-            bool chara_visible;
+            bool colli_check_on;
 
             Data();
             ~Data();
 
             void ctrl();
             void dest();
-            void free_all_chara();
             void init();
 
             void sub_140244E20();
-            void sub_140249A40(bool other_chara);
+            void sub_140249A40(int32_t rob_id);
         };
 
         Data data;
@@ -58,7 +59,7 @@ public:
     ::auth_3d_id auth_3d_id;
     int32_t auth_3d_uid;
     bool repeat;
-    bool left_right_reverse;
+    bool mirror;
     bool pos;
     bool snap_shot;
     int32_t snap_shot_state;

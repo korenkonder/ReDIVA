@@ -24,7 +24,7 @@ struct dof_data {
     float_t fuzzing_range;
     float_t ratio;
     float_t quality;
-    int32_t chara_id;
+    int32_t rob_id;
 };
 
 struct dof {

@@ -2257,14 +2257,15 @@ ROB_PARTS_KIND pv_performer_item_to_rob_parts_kind(pv_performer_item item) {
     return RPK_NONE;
 }
 
-item_sub_id pv_performer_item_to_item_sub_id(pv_performer_item item) {
-    static const item_sub_id pv_performer_item_id_to_item_sub_id_table[] = {
-         ITEM_SUB_ZUJO, ITEM_SUB_MEGANE, ITEM_SUB_KUBI, ITEM_SUB_JOHA_USHIRO,
+ROB_ITEM_EQUIP_SUB_ID pv_performer_item_to_item_sub_id(pv_performer_item item) {
+    static const ROB_ITEM_EQUIP_SUB_ID pv_performer_item_id_to_item_sub_id_table[] = {
+         ROB_ITEM_EQUIP_SUB_ID_ZUJO, ROB_ITEM_EQUIP_SUB_ID_MEGANE,
+         ROB_ITEM_EQUIP_SUB_ID_KUBI, ROB_ITEM_EQUIP_SUB_ID_JOHA_USHIRO,
     };
 
     if (item >= 0 && item < PV_PERFORMER_ITEM_MAX)
         return pv_performer_item_id_to_item_sub_id_table[item];
-    return ITEM_SUB_NONE;
+    return ROB_ITEM_EQUIP_SUB_ID_NONE;
 }
 
 void task_pv_db_init() {
