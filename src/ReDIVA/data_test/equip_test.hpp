@@ -26,8 +26,8 @@ public:
     virtual bool ctrl() override;
     virtual bool dest() override;
 
-    virtual bool add_task(int32_t rob_id, int32_t cn);
-    virtual bool del_task();
+    virtual bool open(int32_t rob_id, int32_t cn);
+    virtual bool close();
 
     void SetCharaNumCosId(int32_t cn, int32_t cs);
 

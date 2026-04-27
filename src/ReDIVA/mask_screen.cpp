@@ -31,12 +31,12 @@ struct TaskMaskScreen : app::Task {
 
 TaskMaskScreen task_mask_screen;
 
-bool task_mask_screen_add_task() {
-    return app::TaskWork::add_task(&task_mask_screen, "MASK_SCREEN");
+bool task_mask_screen_open() {
+    return task_mask_screen.open("MASK_SCREEN");
 }
 
-bool task_mask_screen_del_task() {
-    return task_mask_screen.del();
+bool task_mask_screen_close() {
+    return task_mask_screen.close();
 }
 
 void task_mask_screen_fade_in(float_t duration, int32_t index) {

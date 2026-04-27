@@ -67,7 +67,7 @@ public:
     virtual bool dest() override;
     virtual void disp() override;
 
-    bool add();
+    bool open();
     std::string GetStateString();
     void SetSkipCheck(bool value);
     void SetSkipMake(bool value);
@@ -194,7 +194,7 @@ namespace system_startup_detail {
                 system_startup.state = 4;
                 system_startup.field_10++;
             }
-            if (!app::TaskWork::check_task_ready(mdata_manager_get()))
+            if (!mdata_manager_get()->check_alive())
                 system_startup.state = 4;
         } break;
         case 4:
@@ -203,7 +203,7 @@ namespace system_startup_detail {
             system_startup.state = 5;
             break;
         case 5:
-            if (!task_pv_game_check_task_ready() && system_startup_check_ready())
+            if (!task_pv_game_check_alive() && system_startup_check_ready())
                 system_startup.state = 6;
             break;
         case 6:
@@ -223,11 +223,11 @@ namespace system_startup_detail {
     }
 
     bool TaskSystemStartup::dest() {
-        if (task_pv_game_check_task_ready() && !system_startup_check_ready())
+        if (task_pv_game_check_alive() && !system_startup_check_ready())
             return false;
 
         opd_make_stop();
-        mdata_manager_del_task();
+        mdata_manager_close();
         return true;
     }
 
@@ -337,12 +337,12 @@ namespace system_startup_detail {
     }
 }
 
-bool task_system_startup_add_task() {
-    return app::TaskWork::add_task(&task_system_startup, "SYSTEM_STARTUP");
+bool task_system_startup_open() {
+    return task_system_startup.open("SYSTEM_STARTUP");
 }
 
-bool task_system_startup_del_task() {
-    task_system_startup.del();
+bool task_system_startup_close() {
+    task_system_startup.close();
     return false;
 }
 
@@ -424,7 +424,7 @@ bool SSOpdMakeTask::ctrl() {
         state = 6;
         break;
     case 6:
-        if (opd_make_manager_check_task_ready()) {
+        if (opd_make_manager_check_alive()) {
             frame++;
             break;
         }
@@ -494,8 +494,8 @@ void SSOpdMakeTask::disp() {
     print_work.printf_align_left("%s\n", buf.c_str());
 }
 
-bool SSOpdMakeTask::add() {
-    return app::TaskWork::add_task(this, "SSOpdMakeTask");
+bool SSOpdMakeTask::open() {
+    return app::Task::open("SSOpdMakeTask");
 }
 
 std::string SSOpdMakeTask::GetStateString() {
@@ -528,7 +528,7 @@ void SSOpdMakeTask::SetSkipMake(bool value) {
 
 static void ss_opd_make_start() {
     opd_make_start();
-    ss_opd_make_task_get()->add();
+    ss_opd_make_task_get()->open();
 }
 
 static SSOpdMakeTask* ss_opd_make_task_get() {
@@ -539,11 +539,11 @@ static bool system_startup_check_ready() {
     if (test_mode_get() || system_startup.ready)
         return true;
 
-    task_pv_game_del_task();
-    if (!task_pv_game_check_task_ready()) {
+    task_pv_game_close();
+    if (!task_pv_game_check_alive()) {
         task_mask_screen_fade_in(0.0f, 0);
         rctx_ptr->render_manager->set_multisample(true);
-        if (task_rob_manager_del_task()) {
+        if (task_rob_manager_close()) {
             system_startup.ready = true;
             return true;
         }
@@ -560,7 +560,7 @@ static void system_startup_extended_data_ctrl() {
     switch (system_startup.extended_data_state) {
     case 0:
         system_startup.field_10++;
-        ss_opd_make_task_get()->add();
+        ss_opd_make_task_get()->open();
         system_startup.extended_data_state = 1;
         break;
     case 1:
@@ -573,7 +573,7 @@ static void system_startup_extended_data_ctrl() {
         if (system_startup.pv_information_state < 0)
             ss_opd_make_task_get()->SetSkipMake(false);
 
-        if (!app::TaskWork::check_task_ready(ss_opd_make_task_get())) {
+        if (!ss_opd_make_task_get()->check_alive()) {
             system_startup.extended_data_state = -1;
             system_startup.field_10--;
         }
@@ -621,7 +621,7 @@ static void system_startup_pv_information_ctrl() {
     case 0:
         /*if (system_startup.aime_state < 0)*/ {
             mdata_manager_get();
-            mdata_manager_add_task();
+            mdata_manager_open();
             system_startup.pv_information_state = 1;
         }
         break;
@@ -629,7 +629,7 @@ static void system_startup_pv_information_ctrl() {
         /*if (system_startup.field_28 < 0)
             mdata_manager_get()->field_179 = true;*/
 
-        if (!app::TaskWork::check_task_ready(mdata_manager_get())) {
+        if (!mdata_manager_get()->check_alive()) {
             system_startup.field_10--;
             system_startup.pv_information_state = -1;
         }
@@ -659,7 +659,7 @@ static void system_startup_pv_information_disp() {
         buf.append("OK");
         break;
     default:
-        if (!app::TaskWork::check_task_ready(mdata_manager_get()))
+        if (!mdata_manager_get()->check_alive())
             buf.append("WAIT");
         else
             buf.append(mdata_manager_get()->GetStateString());

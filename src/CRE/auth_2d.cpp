@@ -120,7 +120,7 @@ public:
     virtual bool ctrl() override;
     virtual bool dest() override;
     virtual void disp() override;
-    virtual void basic() override;
+    virtual void post() override;
 
     uint32_t AddSetModern();
     void AddAetSets(const aet_database* aet_db);
@@ -562,16 +562,16 @@ void aet_manager_add_aet_sets(const aet_database* aet_db) {
     aet_manager->AddAetSets(aet_db);
 }
 
-bool aet_manager_add_task() {
-    return app::TaskWork::add_task(aet_manager, "2DAUTH_TASK", 2);
+bool aet_manager_open() {
+    return aet_manager->open("2DAUTH_TASK", app::TASK_PRIO_LOW);
 }
 
-bool aet_manager_check_task_ready() {
-    return app::TaskWork::check_task_ready(aet_manager);
+bool aet_manager_check_alive() {
+    return aet_manager->check_alive();
 }
 
-bool aet_manager_del_task() {
-    return aet_manager->del();
+bool aet_manager_close() {
+    return aet_manager->close();
 }
 
 void aet_manager_free_aet_object(uint32_t id) {
@@ -1526,7 +1526,7 @@ void AetMgr::disp() {
         i.second.Disp();
 }
 
-void AetMgr::basic() {
+void AetMgr::post() {
     auto i = objects.begin();
     auto i_end = objects.end();
     while (i != i_end) {
@@ -1610,7 +1610,7 @@ AetObj* AetMgr::GetObj(uint32_t id) {
 }
 
 bool AetMgr::GetObjEnd(uint32_t id) {
-    if (app::TaskWork::check_task_ready(this)) {
+    if (check_alive()) {
         AetObj* obj = AetMgr::GetObj(id);
         if (obj)
             return obj->GetEnd();
@@ -1619,7 +1619,7 @@ bool AetMgr::GetObjEnd(uint32_t id) {
 }
 
 float_t AetMgr::GetObjFrame(uint32_t id) {
-    if (app::TaskWork::check_task_ready(this)) {
+    if (check_alive()) {
         AetObj* obj = AetMgr::GetObj(id);
         if (obj)
             return obj->GetFrame();
@@ -1628,7 +1628,7 @@ float_t AetMgr::GetObjFrame(uint32_t id) {
 }
 
 bool AetMgr::GetObjVisible(uint32_t id) {
-    if (app::TaskWork::check_task_ready(this)) {
+    if (check_alive()) {
         AetObj* obj = AetMgr::GetObj(id);
         if (obj)
             return obj->GetVisible();

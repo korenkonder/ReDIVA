@@ -855,7 +855,7 @@ public:
     virtual bool dest() override;
     virtual void disp() override;
 #if PV_DEBUG
-    virtual void basic() override;
+    virtual void post() override;
     virtual void window() override;
 #endif
 
@@ -896,9 +896,9 @@ extern bool pv_game_init();
 extern pv_game* pv_game_get();
 extern bool pv_game_free();
 
-extern bool task_pv_game_add_task(TaskPvGame::Args& args);
-extern bool task_pv_game_check_task_ready();
-extern bool task_pv_game_del_task();
+extern bool task_pv_game_open(TaskPvGame::Args& args);
+extern bool task_pv_game_check_alive();
+extern bool task_pv_game_close();
 
 extern void task_pv_game_init_pv();
 extern bool task_pv_game_init_demo_pv(int32_t pv_id, pv_difficulty difficulty, bool music_play);

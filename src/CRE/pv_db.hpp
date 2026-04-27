@@ -560,9 +560,9 @@ extern ROB_ITEM_EQUIP_SUB_ID pv_performer_item_to_item_sub_id(pv_performer_item 
 
 extern void task_pv_db_init();
 extern void task_pv_db_add_paths();
-extern bool task_pv_db_add_task();
+extern bool task_pv_db_open();
 extern void task_pv_db_free_pv_data();
-extern bool task_pv_db_del_task();
+extern bool task_pv_db_close();
 extern pv_db::TaskPvDB* task_pv_db_get();
 extern uint32_t task_pv_db_get_paths_count();
 extern const pv_db_pv* task_pv_db_get_pv(int32_t pv_id);

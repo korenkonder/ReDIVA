@@ -3208,16 +3208,16 @@ void task_auth_3d_init() {
         task_auth_3d = new auth_3d_detail::TaskAuth3d;
 }
 
-bool task_auth_3d_add_task() {
-    return app::TaskWork::add_task(task_auth_3d, "AUTH_3D");
+bool task_auth_3d_open() {
+    return task_auth_3d->open("AUTH_3D");
 }
 
-bool task_auth_3d_check_task_ready() {
-    return app::TaskWork::check_task_ready(task_auth_3d);
+bool task_auth_3d_check_alive() {
+    return task_auth_3d->check_alive();
 }
 
-bool task_auth_3d_del_task() {
-    return task_auth_3d->del();
+bool task_auth_3d_close() {
+    return task_auth_3d->close();
 }
 
 void task_auth_3d_free() {

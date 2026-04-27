@@ -26,13 +26,13 @@ public:
     virtual bool ctrl() override;
     virtual bool dest() override;
     virtual void disp() override;
-    virtual void basic() override;
+    virtual void post() override;
 
     void Log(const char* fmt, ...);
     const std::list<std::string>& GetPrefixes();
     std::string GetStateString();
 };
 
-extern bool mdata_manager_add_task();
-extern bool mdata_manager_del_task();
+extern bool mdata_manager_open();
+extern bool mdata_manager_close();
 extern MdataMgr* mdata_manager_get();

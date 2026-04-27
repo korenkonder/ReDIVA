@@ -62,8 +62,8 @@ public:
     virtual void disp() override;
 };
 
-extern bool task_game_2d_add_task();
+extern bool task_game_2d_open();
 extern void task_game_2d_set_energy_unit_no_fail(bool value);
 extern void task_game_2d_sub_140372670(bool value);
 extern void task_game_2d_sub_1403726D0(int32_t value);
-extern bool task_game_2d_del_task();
+extern bool task_game_2d_close();

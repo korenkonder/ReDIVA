@@ -154,7 +154,7 @@ void RobCharaAdjust::window() {
     ImGuiWindowFlags window_flags = 0;
     window_flags |= ImGuiWindowFlags_NoResize;
 
-    focus = false;
+    reset_focus();
     bool open = true;
     if (!ImGui::Begin("Rob Chara Adjust", &open, window_flags)) {
         ImGui::End();
@@ -439,15 +439,14 @@ void RobCharaAdjust::window() {
             if (ImGui::ColumnDragFloat("Phase", &phase, 0.1f, -FLT_MAX, FLT_MAX, "%g"))
                 data->phase = phase;
 
-            input_locked |= ImGui::IsWindowFocused();
+            set_focus(ImGui::IsWindowFocused());
             ImGui::EndTable();
         }
     }
     ImGui::SetDefaultColumnSpace();
     ImGui::EndGroup();
 
-    input_locked |= ImGui::IsWindowFocused();
-
+    set_focus(ImGui::IsWindowFocused());
     ImGui::End();
 }
 

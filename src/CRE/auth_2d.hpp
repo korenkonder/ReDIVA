@@ -146,9 +146,9 @@ public:
 
 extern void aet_manager_init();
 extern void aet_manager_add_aet_sets(const aet_database* aet_db);
-extern bool aet_manager_add_task();
-extern bool aet_manager_check_task_ready();
-extern bool aet_manager_del_task();
+extern bool aet_manager_open();
+extern bool aet_manager_check_alive();
+extern bool aet_manager_close();
 extern void aet_manager_free_aet_object(uint32_t id);
 extern void aet_manager_free_aet_object_reset(uint32_t* id);
 extern void aet_manager_free_aet_set_objects(uint32_t set_id, const aet_database* aet_db);

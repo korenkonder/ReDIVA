@@ -25,7 +25,7 @@ public:
 DataViewGlitter data_view_glitter;
 
 void data_view_glitter_init() {
-    app::TaskWork::add_task(&data_view_glitter, "DATA_VIEW_GLITTER", 2);
+    data_view_glitter.open("DATA_VIEW_GLITTER", app::TASK_PRIO_LOW);
 }
 
 DataViewGlitter::DataViewGlitter() : exit() {
@@ -63,7 +63,7 @@ void DataViewGlitter::window() {
     ImGui::SetNextWindowPos({ 0, 0 }, ImGuiCond_Appearing);
     ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Appearing);
 
-    focus = false;
+    reset_focus();
     bool open = true;
     if (!ImGui::Begin("Glitter##Data Viewer", &open, 0)) {
         ImGui::End();
@@ -232,6 +232,6 @@ void DataViewGlitter::window() {
         ImGui::TreePop();
     }
 
-    focus |= ImGui::IsWindowFocused();
+    set_focus(ImGui::IsWindowFocused());
     ImGui::End();
 }

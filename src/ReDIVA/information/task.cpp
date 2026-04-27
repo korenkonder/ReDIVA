@@ -95,10 +95,10 @@ void DwTask::Hide() {
 
 void DwTask::AddTaskTree(app::Task* parent_task, int32_t depth) {
     for (int32_t i = 0; ; i++) {
-        app::Task* t = app::TaskWork::get_task_by_index(i);
+        app::Task* t = app::get_task_info(i);
         if (!t)
             break;
-        else if (t->get_parent_task() != parent_task)
+        else if (t->get_parent() != parent_task)
             continue;
 
         std::string str(depth, ' ');
@@ -138,7 +138,7 @@ void DwTask::UpdateTasks() {
 void DwTask::UpdateTasksExec() {
     std::vector<app::Task*> vec;
     for (int32_t i = 0; ; i++) {
-        app::Task* t = app::TaskWork::get_task_by_index(i);
+        app::Task* t = app::get_task_info(i);
         if (!t)
             break;
 

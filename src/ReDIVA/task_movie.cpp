@@ -380,7 +380,7 @@ void TaskMovie::CtrlPlayer() {
 }
 
 texture* TaskMovie::GetTexture() {
-    if (app::TaskWork::check_task_ready(this) && CheckState())
+    if (check_alive() && CheckState())
         return tex;
     return 0;
 }
@@ -417,7 +417,7 @@ bool TaskMovie::Reset(const TaskMovie::SprParams& spr_params) {
     this->spr_params = spr_params;
 
     bool ret;
-    if (app::TaskWork::check_task_ready(this)) {
+    if (check_alive()) {
         if (player) {
             player->Destroy();
             player = 0;
@@ -431,7 +431,7 @@ bool TaskMovie::Reset(const TaskMovie::SprParams& spr_params) {
         player = new TaskMovie::Player;
         player_video_info = new TaskMovie::PlayerVideoInfo;
 
-        ret = app::TaskWork::add_task(this, "TaskMovie");
+        ret = app::Task::open("TaskMovie");
     }
 
     SetVolume(1.0f);

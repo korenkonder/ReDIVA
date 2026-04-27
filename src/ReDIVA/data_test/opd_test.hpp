@@ -26,7 +26,7 @@ public:
     void BeginDataCreation();
     void GetCustomizeItemObjectNames(const customize_item& cstm, std::vector<std::string>& objects);
 
-    bool add_task();
+    bool open();
 };
 
 extern TaskDataTestOpd* task_data_test_opd;

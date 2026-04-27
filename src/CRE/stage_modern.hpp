@@ -78,13 +78,13 @@ struct task_stage_modern_info {
 };
 
 extern void task_stage_modern_init();
-extern bool task_stage_modern_add_task(const char* name);
+extern bool task_stage_modern_open(const char* name);
 extern bool task_stage_modern_check_not_loaded();
-extern bool task_stage_modern_check_task_ready();
+extern bool task_stage_modern_check_alive();
 extern void task_stage_modern_current_set_ground(bool value);
 extern void task_stage_modern_current_set_sky(bool value);
 extern void task_stage_modern_current_set_stage_display(bool value, bool effect_enable);
-extern bool task_stage_modern_del_task();
+extern bool task_stage_modern_close();
 extern void task_stage_modern_disp_shadow();
 extern stage_modern* task_stage_modern_get_current_stage();
 extern uint32_t task_stage_modern_get_current_stage_hash();

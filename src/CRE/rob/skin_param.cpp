@@ -113,7 +113,7 @@ struct SkinParamManager : public app::Task {
     virtual bool dest() override;
     virtual void disp() override;
 
-    bool add_task(std::vector<osage_init_data>& vec);
+    bool open(std::vector<osage_init_data>& vec);
 
     void AddFiles();
     bool CtrlFiles();
@@ -281,19 +281,19 @@ void skin_param_data_free() {
     }
 }
 
-bool skin_param_manager_array_check_task_ready() {
+bool skin_param_manager_array_check_alive() {
     bool ret = false;
     for (int32_t i = 0; i < ROB_ID_MAX; i++)
-        ret |= app::TaskWork::check_task_ready(&skin_param_manager[i]);
+        ret |= skin_param_manager[i].check_alive();
     return ret;
 }
 
-bool skin_param_manager_add_task(int32_t chara_id, std::vector<osage_init_data>& vec) {
-    return skin_param_manager[chara_id].add_task(vec);
+bool skin_param_manager_open(int32_t chara_id, std::vector<osage_init_data>& vec) {
+    return skin_param_manager[chara_id].open(vec);
 }
 
-bool skin_param_manager_check_task_ready(int32_t chara_id) {
-    return app::TaskWork::check_task_ready(skin_param_manager_get(chara_id));
+bool skin_param_manager_check_alive(int32_t chara_id) {
+    return skin_param_manager_get(chara_id)->check_alive();
 }
 
 int32_t skin_param_manager_get_ext_skp_file(
@@ -764,8 +764,8 @@ void SkinParamManager::disp() {
 
 }
 
-bool SkinParamManager::add_task(std::vector<osage_init_data>& vec) {
-    if (app::TaskWork::check_task_ready(this) || !app::TaskWork::add_task(this, "SKIN_PARAM_MANAGER"))
+bool SkinParamManager::open(std::vector<osage_init_data>& vec) {
+    if (check_alive() || !app::Task::open("SKIN_PARAM_MANAGER"))
         return false;
 
     osage_init.assign(vec.begin(), vec.end());
@@ -1072,7 +1072,7 @@ void SkinParamManager::Reset() {
     }
     files.clear();
 
-    del();
+    close();
 }
 
 sp_skp_db::sp_skp_db() : farc_list_count() {

@@ -1075,7 +1075,7 @@ extern void auth_3d_data_unload_category(uint32_t category_hash);
 extern void auth_3d_data_free();
 
 extern void task_auth_3d_init();
-extern bool task_auth_3d_add_task();
-extern bool task_auth_3d_check_task_ready();
-extern bool task_auth_3d_del_task();
+extern bool task_auth_3d_open();
+extern bool task_auth_3d_check_alive();
+extern bool task_auth_3d_close();
 extern void task_auth_3d_free();

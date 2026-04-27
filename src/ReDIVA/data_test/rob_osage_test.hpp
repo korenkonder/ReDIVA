@@ -100,7 +100,7 @@ public:
     virtual bool ctrl() override;
     virtual bool dest() override;
     virtual void disp() override;
-    virtual void basic() override;
+    virtual void post() override;
 
     void disp_coli();
     void disp_coli_cls_list(ExNodeBlock* ex_node, SkinParam::CollisionParam* selected_cls_param);

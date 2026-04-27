@@ -25,7 +25,7 @@ public:
 GraphicsBackColor graphics_back_color;
 
 void graphics_background_color_init() {
-    app::TaskWork::add_task(&graphics_back_color, "GRAPHICS_BACK_COLOR");
+    graphics_back_color.open("GRAPHICS_BACK_COLOR");
 }
 
 GraphicsBackColor::GraphicsBackColor() : exit() {
@@ -66,7 +66,7 @@ void GraphicsBackColor::window() {
     ImGuiWindowFlags window_flags = 0;
     window_flags |= ImGuiWindowFlags_NoResize;
 
-    focus = false;
+    reset_focus();
     bool open = true;
     if (!ImGui::Begin("Background Color##Graphics", &open, 0)) {
         ImGui::End();
@@ -94,6 +94,6 @@ void GraphicsBackColor::window() {
         set_clear_color = true;
     }
 
-    focus |= ImGui::IsWindowFocused();
+    set_focus(ImGui::IsWindowFocused());
     ImGui::End();
 }

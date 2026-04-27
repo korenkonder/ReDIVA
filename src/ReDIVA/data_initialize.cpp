@@ -189,14 +189,14 @@ void TaskDataInit::disp() {
 
 }
 
-bool task_data_init_add_task() {
-    return app::TaskWork::add_task(&task_data_init, "DATA_INITIALIZE");
+bool task_data_init_open() {
+    return task_data_init.open("DATA_INITIALIZE");
 }
 
 bool task_data_init_check_state() {
     return task_data_init.state == 12;
 }
 
-bool task_data_init_del_task() {
-    return task_data_init.del();
+bool task_data_init_close() {
+    return task_data_init.close();
 }

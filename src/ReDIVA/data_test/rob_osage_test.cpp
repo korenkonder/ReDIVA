@@ -894,7 +894,7 @@ void RobOsageTest::disp() {
     }
 }
 
-void RobOsageTest::basic() {
+void RobOsageTest::post() {
     if (collision_update) {
         collision_update = false;
 

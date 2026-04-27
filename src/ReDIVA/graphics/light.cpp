@@ -281,7 +281,7 @@ void light_dw_init() {
         light_dw->Disp();
 
     if (!light_dw_task.ready)
-        app::TaskWork::add_task(&light_dw_task, "LIGHT_DW_TASK");
+        light_dw_task.open("LIGHT_DW_TASK");
 }
 
 LightDw::GAmbientSlider::GAmbientSlider(LightDw* light_dw, dw::Widget* parent) {
@@ -1399,7 +1399,7 @@ void LightDw::Hide() {
     dw::Shell::Hide();
     light_dw = 0;
     if (!light_dw_task.ready)
-        light_dw_task.del();
+        light_dw_task.close();
 }
 
 void LightDw::ResetData() {

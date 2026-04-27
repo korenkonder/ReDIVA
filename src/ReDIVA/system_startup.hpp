@@ -25,5 +25,5 @@ namespace system_startup_detail {
 
 extern int32_t system_startup_ready;
 
-extern bool task_system_startup_add_task();
-extern bool task_system_startup_del_task();
+extern bool task_system_startup_open();
+extern bool task_system_startup_close();

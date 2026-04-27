@@ -1929,7 +1929,7 @@ void pv_game_play_data::unload() {
         return;
 
     task_game_2d_sub_140372670(false);
-    task_game_2d_del_task();
+    task_game_2d_close();
 
     for (uint32_t& i : aet_ids)
         aet_manager_free_aet_object_reset(&i);
@@ -2070,7 +2070,7 @@ void pv_game_play_data::sub_140135ED0() {
 
     init_aet_white_fade();
 
-    task_game_2d_add_task();
+    task_game_2d_open();
     task_game_2d_sub_140372670(false);
     task_game_2d_set_energy_unit_no_fail(pv_game_get()->data.no_fail);
 }

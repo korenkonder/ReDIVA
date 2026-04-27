@@ -16,10 +16,10 @@ extern void skin_param_data_init();
 extern void skin_param_data_load();
 extern void skin_param_data_free();
 
-extern bool skin_param_manager_array_check_task_ready();
+extern bool skin_param_manager_array_check_alive();
 
-extern bool skin_param_manager_add_task(int32_t chara_id, std::vector<osage_init_data>& vec);
-extern bool skin_param_manager_check_task_ready(int32_t chara_id);
+extern bool skin_param_manager_open(int32_t chara_id, std::vector<osage_init_data>& vec);
+extern bool skin_param_manager_check_alive(int32_t chara_id);
 extern int32_t skin_param_manager_get_ext_skp_file(
     int32_t chara_id, const osage_init_data& osage_init, const std::string& dir,
     std::string& file, void* data, const motion_database* mot_db);

@@ -8,11 +8,10 @@
 extern bool input_locked;
 
 namespace app {
-    static void TaskWindow_do_disp(TaskWindow* t);
-
-    TaskWindow::TaskWindow() : focus() {
-        show = true;
-        first_show = true;
+    TaskWindow::TaskWindow() {
+        M_show = true;
+        M_focus = false;
+        M_first_show = true;
     }
 
     TaskWindow::~TaskWindow() {
@@ -23,33 +22,45 @@ namespace app {
 
     }
 
-    void TaskWindow::hide_window() {
-        show = false;
+    void TaskWindow::exec_window() {
+        if ((M_stat == TASK_STAT_ACTIVE || M_stat == TASK_STAT_SUSPEND)
+            && M_proc != TASK_PROC_INIT && M_proc != TASK_PROC_DEST) {
+            window();
+            M_first_show = false;
+        }
     }
 
-    void TaskWindow::show_window() {
-        show = true;
+    void TaskWindow::set_show(bool show) {
+        M_show = show;
     }
 
-    void TaskWork_window() {
-        task_work->disp_task = true;
-        for (int32_t i = 0; i < 3; i++)
-            for (Task*& j : task_work->tasks) {
+    bool TaskWindow::check_show() {
+        return M_show;
+    }
+
+    void TaskWindow::reset_focus() {
+        M_focus = false;
+    }
+
+    void TaskWindow::set_focus(bool focus) {
+        M_focus |= focus;
+    }
+
+    bool TaskWindow::check_focus() {
+        return M_focus;
+    }
+
+    void window_task() {
+        task_info->now_exec_disp = true;
+        for (int32_t i = 0; i < TASK_PRIO_MAX; i++)
+            for (Task*& j : task_info->list) {
                 Task* tsk = j;
                 TaskWindow* tsk_w = dynamic_cast<TaskWindow*>(tsk);
-                if (tsk_w && tsk_w->priority == i && tsk_w->show) {
-                    TaskWindow_do_disp(tsk_w);
-                    input_locked |= tsk_w->focus;
+                if (tsk_w && tsk_w->check_priority((TASK_PRIO)i) && tsk_w->check_show()) {
+                    tsk_w->exec_window();
+                    input_locked |= tsk_w->check_focus();
                 }
             }
-        task_work->disp_task = false;
-    }
-
-    static void TaskWindow_do_disp(TaskWindow* t) {
-        if ((t->state == Task::State::Running || t->state == Task::State::Suspended)
-            && t->op != Task::Op::Init && t->op != Task::Op::Dest) {
-            t->window();
-            t->first_show = false;
-        }
+        task_info->now_exec_disp = false;
     }
 }

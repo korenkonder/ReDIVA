@@ -5478,20 +5478,20 @@ extern bool opd_checker_has_objects();
 extern void opd_checker_launch_thread();
 extern void opd_checker_terminate_thread();
 
-extern void opd_make_manager_add_task(const OpdMakeManagerArgs& args);
-extern bool opd_make_manager_check_task_ready();
-extern bool opd_make_manager_del_task();
+extern void opd_make_manager_open(const OpdMakeManagerArgs& args);
+extern bool opd_make_manager_check_alive();
+extern bool opd_make_manager_close();
 extern OpdMakeManagerData* opd_make_manager_get_data();
 
 extern void opd_make_start();
 extern void opd_make_start_get_motion_ids(std::vector<int32_t>& motion_ids);
 extern void opd_make_stop();
 
-extern bool osage_play_data_manager_add_task();
+extern bool osage_play_data_manager_open();
 extern void osage_play_data_manager_append_chara_motion_id(rob_chara* rob_chr, uint32_t motnum);
 extern void osage_play_data_manager_append_chara_motion_ids(
     rob_chara* rob_chr, const std::vector<uint32_t>& motion_ids);
-extern bool osage_play_data_manager_check_task_ready();
+extern bool osage_play_data_manager_check_alive();
 extern void osage_play_data_manager_get_opd_file_data(object_info obj_info,
     uint32_t motnum, const float_t*& data, uint32_t& count);
 extern void osage_play_data_manager_reset();
@@ -5539,22 +5539,22 @@ extern void pv_osage_manager_array_set_pv_id(ROB_ID rob_id, int32_t pv_id, bool 
 extern void pv_osage_manager_array_set_pv_set_motion(
     ROB_ID rob_id, const std::vector<pv_data_set_motion>& set_motion);
 
-extern bool task_rob_load_add_task();
+extern bool task_rob_load_open();
 extern bool task_rob_load_append_free_req_data(CHARA_NUM cn);
 extern bool task_rob_load_append_free_req_data_obj(CHARA_NUM cn, const RobItemEquip* equip);
 extern bool task_rob_load_append_load_req_data(CHARA_NUM cn);
 extern bool task_rob_load_append_load_req_data_obj(CHARA_NUM cn, const RobItemEquip* equip);
 extern bool task_rob_load_check_load_req_data();
-extern bool task_rob_load_del_task();
+extern bool task_rob_load_close();
 
-extern bool task_rob_manager_add_task();
+extern bool task_rob_manager_open();
 extern bool task_rob_manager_check_chara_loaded(ROB_ID rob_id);
-extern bool task_rob_manager_check_task_ready();
+extern bool task_rob_manager_check_alive();
 extern bool task_rob_manager_get_free_chara_list_empty();
 extern bool task_rob_manager_get_wait(ROB_ID rob_id);
-extern bool task_rob_manager_hide_task();
-extern bool task_rob_manager_run_task();
-extern bool task_rob_manager_del_task();
+extern bool task_rob_manager_restart();
+extern bool task_rob_manager_suspend();
+extern bool task_rob_manager_close();
 
 extern MOTTABLE_TYPE expression_id_to_mottbl_type(int32_t id);
 extern MOTTABLE_TYPE hand_anim_id_to_mottbl_type(int32_t id);

@@ -7,8 +7,8 @@
 
 #include "../KKdLib/default.hpp"
 
-extern bool task_wait_screen_add_task();
-extern bool task_wait_screen_del_task();
+extern bool task_wait_screen_open();
+extern bool task_wait_screen_close();
 
 extern bool task_wait_screen_check_index_none();
 extern bool task_wait_screen_get_ended();

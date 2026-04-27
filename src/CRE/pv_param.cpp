@@ -794,8 +794,8 @@ namespace pv_param_task {
 
     PostProcessTask post_process_task;
 
-    bool post_process_task_add_task() {
-        return app::TaskWork::add_task(&post_process_task, "PV POST PROCESS TASK");
+    bool post_process_task_open() {
+        return post_process_task.open("PV POST PROCESS TASK");
     }
 
     void post_process_task_set_bloom_data(
@@ -859,8 +859,8 @@ namespace pv_param_task {
         chara_item_alpha.callback_data[rob_id] = callback_data;
     }
 
-    bool post_process_task_del_task() {
-        return post_process_task.del();
+    bool post_process_task_close() {
+        return post_process_task.close();
     }
 
     PostProcessCtrl::PostProcessCtrl() {

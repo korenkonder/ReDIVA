@@ -7,8 +7,20 @@
 
 #include <list>
 #include "../KKdLib/default.hpp"
+#include "../KKdLib/prj/string_on_array.hpp"
 
 namespace app {
+    enum TASK_PRIO {
+        TASK_PRIO_00 = 0,
+        TASK_PRIO_01,
+        TASK_PRIO_02,
+        TASK_PRIO_MAX,
+
+        TASK_PRIO_HIGH   = TASK_PRIO_00,
+        TASK_PRIO_NORMAL = TASK_PRIO_01,
+        TASK_PRIO_LOW    = TASK_PRIO_02,
+    };
+
     class TaskInterface {
     public:
         TaskInterface();
@@ -18,101 +30,119 @@ namespace app {
         virtual bool ctrl();
         virtual bool dest();
         virtual void disp();
-        virtual void basic();
+        virtual void post();
     };
 
     class Task : public TaskInterface {
+        friend class TaskWindow;
     public:
-        enum class Op {
-            None = 0,
-            Init,
-            Ctrl,
-            Dest,
-            Max,
+        enum TASK_PROC {
+            TASK_PROC_UNKNOWN = 0,
+            TASK_PROC_INIT,
+            TASK_PROC_CTRL,
+            TASK_PROC_DEST,
+            TASK_PROC_MAX,
         };
 
-        enum class Request {
-            None = 0,
-            Init,
-            Dest,
-            Suspend,
-            Hide,
-            Run,
+        enum TASK_STAT {
+            TASK_STAT_DEAD = 0,
+            TASK_STAT_ACTIVE,
+            TASK_STAT_PAUSE,
+            TASK_STAT_SUSPEND,
+            TASK_STAT_MAX,
         };
 
-        enum class State {
-            None = 0,
-            Running,
-            Suspended,
-            Hidden,
+        enum TASK_REQ {
+            TASK_REQ_NONE = 0,
+            TASK_REQ_OPEN,
+            TASK_REQ_CLOSE,
+            TASK_REQ_PAUSE,
+            TASK_REQ_SUSPEND,
+            TASK_REQ_RESTART,
+            TASK_REQ_MAX,
         };
 
-        int32_t priority;
-        Task* parent_task;
-        Op op;
-        State state;
-        Request request;
-        Op next_op;
-        State next_state;
-        bool field_2C;
-        bool frame_dependent;
-        char name[32];
-        uint32_t base_calc_time;
-        uint32_t calc_time;
-        uint32_t calc_time_max;
-        uint32_t disp_time;
-        uint32_t disp_time_max;
+    private:
+        bool check_req(TASK_REQ req);
+        void set_req(TASK_REQ req);
+        void set_name(const char* name);
 
+        TASK_PRIO priority;
+        Task* M_parent;
+        TASK_PROC M_proc;
+        TASK_STAT M_stat;
+        TASK_REQ M_req;
+        TASK_PROC M_next_proc;
+        TASK_STAT M_next_stat;
+        bool reopen_flag;
+        bool sync_pulse_mode;
+        prj::string_on_array<32> M_name;
+        uint32_t m_calc_time;
+        uint32_t m_total_calc_time;
+        uint32_t m_calc_time_max;
+        uint32_t m_disp_time;
+        uint32_t m_disp_time_max;
+
+    public:
         Task();
         virtual ~Task() override;
 
+        bool open(Task* parent, const char* name, TASK_PRIO prio);
+        bool open(Task* parent, const char* name);
+        bool open(const char* name, TASK_PRIO prio);
+        bool open(const char* name);
+        bool close();
+        bool reopen();
+        bool pause();
+        bool suspend();
+        bool restart();
+        bool check_alive();
+        bool check_pause();
+        bool check_suspend();
+        bool check_proc_ctrl();
+        bool check_closing();
+        bool check_entry();
+        void transition();
+        void exec_calc();
+        void exec_disp();
+        void exec_pre();
+        void exec_post();
+        void set_priority(TASK_PRIO prio);
+        TASK_PRIO get_priority() const;
+        bool check_priority(TASK_PRIO prio) const;
+        void set_sync_pulse_mode(bool mode);
+        bool check_sync_pulse_mode();
+        Task* get_parent() const;
+        const char* get_name() const;
+        void set_calc_time(uint32_t time);
+        void add_calc_time(uint32_t time);
         uint32_t get_calc_time() const;
         uint32_t get_calc_time_max() const;
+        void set_total_calc_time();
+        void set_disp_time(uint32_t time);
         uint32_t get_disp_time() const;
         uint32_t get_disp_time_max() const;
-        const char* get_name() const;
-        Task* get_parent_task() const;
-
-        bool del();
-        bool hide();
-        bool run();
-        bool suspend();
-
-        void set_name(const char* name);
-        void set_priority(int32_t priority);
-
-    private:
-        static void set_name_sub(char dst[0x20], const char* src, size_t size);
     };
 
-    struct TaskWork {
-        std::list<Task*> tasks;
-        Task* current_task;
-        bool disp_task;
+    struct TaskInfo {
+        std::list<Task*> list;
+        Task* current;
+        bool now_exec_disp;
 
-        TaskWork();
-        ~TaskWork();
-
-        static bool add_task(Task* t,
-            const char* name = "(unknown)", int32_t priority = 1);
-        static bool add_task(Task* t, Task* parent_task,
-            const char* name = "(unknown)", int32_t priority = 1);
-        static void basic();
-        static bool check_task_ctrl(Task* t);
-        static bool check_task_ready(Task* t);
-        static void ctrl();
-        static void dest();
-        static void disp();
-        static Task* get_task_by_index(int32_t index);
-        static bool has_task(Task* t);
-        static bool has_task_init(Task* t);
-        static bool has_task_ctrl(Task* t);
-        static bool has_task_dest(Task* t);
-        static bool has_tasks_dest();
+        TaskInfo();
+        ~TaskInfo();
     };
 
-    extern TaskWork* task_work;
+    extern TaskInfo* task_info;
 
-    extern void task_work_init();
-    extern void task_work_free();
+    extern void task_info_init();
+    extern void task_info_free();
+
+    extern bool check_closing_task();
+    extern void close_all_task();
+    extern void ctrl_task();
+    extern void dest_task();
+    extern void disp_task();
+    extern Task* get_task_info(int32_t index);
+    extern void post_task();
 }

@@ -1696,10 +1696,9 @@ namespace Glitter {
         virtual bool ctrl() override;
         virtual bool dest() override;
         virtual void disp() override;
-        virtual void basic() override;
+        virtual void post() override;
 
         bool AppendEffectGroup(uint64_t hash, EffectGroup* eff_group, FileReader* file_read);
-        void BasicEffectGroups();
         void CalcDisp();
         uint64_t CalculateHash(const char* str);
         bool CheckHasScreenEffect();
@@ -1730,6 +1729,7 @@ namespace Glitter {
         SceneCounter LoadScene(uint64_t effect_group_hash, uint64_t effect_hash);
         SceneCounter LoadSceneEffect(uint64_t hash, uint8_t load_flags = 0);
         SceneCounter LoadSceneEffect(uint64_t hash, const char* name, uint8_t load_flags = 0);
+        void PostEffectGroups();
         bool SceneHasNotEnded(SceneCounter load_counter);
         void SetFrame(EffectGroup* effect_group,
             Scene*& scene, float_t curr_frame, float_t next_frame,
@@ -1758,7 +1758,7 @@ namespace Glitter {
 #endif
 
     extern void glt_particle_manager_init();
-    extern bool glt_particle_manager_add_task();
-    extern bool glt_particle_manager_del_task();
+    extern bool glt_particle_manager_open();
+    extern bool glt_particle_manager_close();
     extern void glt_particle_manager_free();
 }

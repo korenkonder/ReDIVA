@@ -91,7 +91,7 @@ public:
     virtual bool ctrl() override;
     virtual bool dest() override;
     virtual void disp() override;
-    virtual void basic() override;
+    virtual void post() override;
 
     const char* GetStateText();
     void LoadAuth3d(std::string&& name);
@@ -151,12 +151,11 @@ public:
     virtual bool init() override;
     virtual bool ctrl() override;
     virtual bool dest() override;
-    virtual void disp() override;
-    virtual void basic() override;
+    virtual void post() override;
 
-    virtual bool add_task(CHARA_NUM chr, int32_t ptr, uint32_t set, uint32_t uid);
-    virtual bool add_task(CHARA_NUM chr, int32_t ptr, uint32_t uid);
-    virtual bool del_task();
+    virtual bool open(CHARA_NUM chr, int32_t ptr, uint32_t set, uint32_t uid);
+    virtual bool open(CHARA_NUM chr, int32_t ptr, uint32_t uid);
+    virtual bool close();
 
     bool CheckFirstFrame();
     void CtrlFaceMot();

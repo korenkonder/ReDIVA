@@ -24,7 +24,7 @@ public:
 DataViewTexture data_view_texture;
 
 void data_view_texture_init() {
-    app::TaskWork::add_task(&data_view_texture, "DATA_VIEW_TEXTURE", 2);
+    data_view_texture.open("DATA_VIEW_TEXTURE", app::TASK_PRIO_LOW);
 }
 
 DataViewTexture::DataViewTexture() : exit() {
@@ -62,7 +62,7 @@ void DataViewTexture::window() {
     ImGui::SetNextWindowPos({ 0, 0 }, ImGuiCond_Appearing);
     ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Appearing);
 
-    focus = false;
+    reset_focus();
     bool open = true;
     if (!ImGui::Begin("Texture##Data Viewer", &open, 0)) {
         ImGui::End();
@@ -88,6 +88,6 @@ void DataViewTexture::window() {
         ImGui::PopID();
     }
 
-    focus |= ImGui::IsWindowFocused();
+    set_focus(ImGui::IsWindowFocused());
     ImGui::End();
 }

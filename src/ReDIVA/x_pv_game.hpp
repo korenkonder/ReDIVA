@@ -780,7 +780,7 @@ public:
     virtual bool ctrl() override;
     virtual bool dest() override;
     virtual void disp() override;
-    virtual void basic() override;
+    virtual void post() override;
     virtual void window() override;
 
     void load(int32_t pv_id, int32_t stage_id, CHARA_NUM charas[6], int32_t modules[6]);
