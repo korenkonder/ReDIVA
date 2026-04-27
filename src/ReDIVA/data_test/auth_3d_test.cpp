@@ -404,8 +404,8 @@ void Auth3dTestTask::DataEventListener::Data::ctrl() {
 }
 
 void Auth3dTestTask::DataEventListener::Data::dest() {
-    dtm_eq_vs[0].del_task();
-    dtm_eq_vs[1].del_task();
+    dtm_eq_vs[0].close();
+    dtm_eq_vs[1].close();
 
     rob_man->set_colli_check_on(colli_check_on);
 
@@ -450,8 +450,8 @@ void Auth3dTestTask::DataEventListener::Data::init() {
     cos_id[0] = 0;
     cos_id[1] = 0;
 
-    dtm_eq_vs[0].add_task(0, CN_MIKU);
-    dtm_eq_vs[1].add_task(1, CN_MIKU);
+    dtm_eq_vs[0].open(0, CN_MIKU);
+    dtm_eq_vs[1].open(1, CN_MIKU);
 
     chara_num[0] = CN_MIKU;
     field_C = true;
@@ -629,7 +629,7 @@ bool Auth3dTestTask::init() {
 
     data_event_listener.data.init();
 
-    task_stage_add_task("A3D_STAGE");
+    task_stage_open("A3D_STAGE");
     objset_info_storage_load_set(aft_data, aft_obj_db, effcmn_obj_set);
     return true;
 }
@@ -710,7 +710,7 @@ bool Auth3dTestTask::dest() {
     aet.Free();
     auth_3d_id.unload(rctx_ptr);
     objset_info_storage_unload_set(effcmn_obj_set);
-    task_stage_del_task();
+    task_stage_close();
     data_event_listener.data.dest();
     auth_3d_test_window->Hide();
     clear_color = color_black;

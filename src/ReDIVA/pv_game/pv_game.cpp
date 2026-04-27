@@ -1551,7 +1551,7 @@ int32_t pv_game::ctrl(float_t delta_time, int64_t curr_time) {
             data.pv_data.ctrl(delta_time, curr_time, false);
         else
             for (int32_t i = 0; i < TASK_MOVIE_COUNT; i++)
-                if (app::TaskWork::check_task_ready(task_movie_get(i)))
+                if (task_movie_get(i)->check_alive())
                     task_movie_get(i)->Unload();
 
         if (!sub_14013C8C0()->sub_1400E7920()) {
@@ -2758,7 +2758,7 @@ bool pv_game::load() {
         const pv_db_pv_difficulty* diff = get_pv_db_pv()->get_difficulty(
             sub_14013C8C0()->difficulty, sub_14013C8C0()->edition);
         for (const pv_db_pv_movie& i : diff->movie_list)
-            if (app::TaskWork::check_task_ready(task_movie_get(i.index))
+            if (task_movie_get(i.index)->check_alive()
                 && !task_movie_get(i.index)->CheckDisp())
                 return false;
 
@@ -2881,7 +2881,7 @@ bool pv_game::load() {
             }
 
         if (has_chara) {
-            task_rob_manager_hide_task();
+            task_rob_manager_suspend();
 
             for (int32_t i = 0; i < ROB_ID_MAX; i++) {
                 pv_game_chara& chr = data.chara[i];
@@ -2901,7 +2901,7 @@ bool pv_game::load() {
         state = 5;
     } return false;
     case 5: {
-        if (skin_param_manager_array_check_task_ready())
+        if (skin_param_manager_array_check_alive())
             return false;
 
         if (!data.use_osage_play_data)
@@ -2919,7 +2919,7 @@ bool pv_game::load() {
     } return false;
     case 6: {
         rand_state_array_4_set_seed_1393939();
-        if (task_stage_add_task("PV_STAGE"))
+        if (task_stage_open("PV_STAGE"))
             return false;
 
         for (const pv_db_pv_chreff& i : data.pv->chreff) {
@@ -3520,7 +3520,7 @@ bool pv_game::load() {
             for (pv_game_chara& i : data.chara)
                 if (i.check_chara())
                     osage_play_data_manager_append_chara_motion_ids(i.rob_chr, i.motion_ids);
-            osage_play_data_manager_add_task();
+            osage_play_data_manager_open();
         }
 
         task_stage_get_loaded_stage_infos(data.stage_infos);
@@ -3570,7 +3570,7 @@ bool pv_game::load() {
             frame_texture_slot++;
         }
 
-        /*if (app::TaskWork::check_task_ready(sel_main_get()))
+        /*if (sel_main_get()->check_alive())
             return false;
 
         if (sub_14013C8C0()->sub_1400E7910() != 3 && get_pv_db_pv()->id != 999)
@@ -3648,7 +3648,7 @@ bool pv_game::load() {
         state = 13;
     } break;
     case 13: {
-        if (pv_osage_manager_array_get_disp() || osage_play_data_manager_check_task_ready())
+        if (pv_osage_manager_array_get_disp() || osage_play_data_manager_check_alive())
             return false;
 
         std::string effect_se_file_name = get_effect_se_file_name();
@@ -3664,7 +3664,7 @@ bool pv_game::load() {
         }
 
         set_chara_use_opd(true);
-        task_rob_manager_run_task();
+        task_rob_manager_restart();
 
         for (pv_game_chara& i : data.chara)
             if (i.check_chara()) {
@@ -3931,7 +3931,7 @@ bool pv_game::load() {
         state = false;
         //sel_vocal_change_get()->DelTask();
         rctx_ptr->render_manager->set_effect_texture(0);
-        pv_param_task::post_process_task_add_task();
+        pv_param_task::post_process_task_open();
     } return true;
     }
     return false;
@@ -4272,7 +4272,7 @@ void pv_game::restart() {
     }
 
     for (int32_t i = 0; i < TASK_MOVIE_COUNT; i++) {
-        if (!app::TaskWork::check_task_ready(task_movie_get(i)))
+        if (!task_movie_get(i)->check_alive())
             continue;
 
         task_movie_get(i)->Unload();
@@ -4569,7 +4569,7 @@ void pv_game::set_osage_init(const pv_game_chara& chr) {
         vec.push_back(osage_init);
     }
 
-    skin_param_manager_add_task(chr.rob_id, vec);
+    skin_param_manager_open(chr.rob_id, vec);
 }
 
 bool pv_game::set_pv_param_post_process_bloom_data(bool set, int32_t id, float_t duration) {
@@ -4667,7 +4667,7 @@ bool pv_game::unload() {
         pv_game_music_get()->stop();
 
         for (int32_t i = 0; i < TASK_MOVIE_COUNT; i++)
-            if (app::TaskWork::check_task_ready(task_movie_get(i)))
+            if (task_movie_get(i)->check_alive())
                 task_movie_get(i)->Unload();
 
         std::string effect_se_file_name = get_effect_se_file_name();
@@ -4750,7 +4750,7 @@ bool pv_game::unload() {
     data.stage_indices.clear();
     data.stage_infos.clear();
 
-    task_stage_del_task();
+    task_stage_close();
 
     if (data.field_2D7E8)
         for (uint32_t& i : data.spr_set_back_ids)
@@ -4844,11 +4844,11 @@ bool pv_game::unload() {
     data.effect_rs_list_hashes.clear();
 
     for (int32_t i = 0; i < TASK_MOVIE_COUNT; i++) {
-        if (!app::TaskWork::check_task_ready(task_movie_get(i)))
+        if (!task_movie_get(i)->check_alive())
             continue;
 
         task_movie_get(i)->Unload();
-        task_movie_get(i)->del();
+        task_movie_get(i)->close();
     }
 
     data.title_image_state = 0;
@@ -4905,7 +4905,7 @@ bool pv_game::unload() {
 
     sound_work_reset_all_se();
 
-    pv_param_task::post_process_task_del_task();
+    pv_param_task::post_process_task_close();
 
     data.current_time_float = 0.0f;
     data.current_time = 0;
@@ -5368,7 +5368,7 @@ void TaskPvGame::window() {
     ImGui::End();
 }
 
-void TaskPvGame::basic() {
+void TaskPvGame::post() {
     if (data.type != 2 || pv_game_parent_data.outer_state != 1 || pv_game_parent_data.init_time)
         return;
 
@@ -5528,7 +5528,7 @@ void PVGameSelector::window() {
     ImGuiWindowFlags window_flags = 0;
     window_flags |= ImGuiWindowFlags_NoResize;
 
-    focus = false;
+    reset_focus();
     bool open = true;
     if (!ImGui::Begin("PV Game Selector", &open, window_flags)) {
         ImGui::End();
@@ -5570,7 +5570,7 @@ void PVGameSelector::window() {
                 ImGui::SetItemDefaultFocus();
         }
 
-        focus |= true;
+        set_focus(true);
         ImGui::EndCombo();
     }
     if (imgui_font_arial)
@@ -5597,7 +5597,7 @@ void PVGameSelector::window() {
                 ImGui::SetItemDefaultFocus();
         }
 
-        focus |= true;
+        set_focus(true);
         ImGui::EndCombo();
     }
     ImGui::EndPropertyColumn();
@@ -5624,7 +5624,7 @@ void PVGameSelector::window() {
                 ImGui::SetItemDefaultFocus();
         }
 
-        focus |= true;
+        set_focus(true);
         ImGui::EndCombo();
     }
     ImGui::EndPropertyColumn();
@@ -5641,6 +5641,7 @@ void PVGameSelector::window() {
     for (int32_t i = 0; i < ROB_ID_MAX; i++) {
         CHARA_NUM chara_old = charas[i];
 
+        bool focus = false;
         sprintf_s(buf, sizeof(buf), "Chara %dP", i + 1);
         if (charas[i] == CN_MAX || pv->get_performer_fixed(i)) {
             const char* items = "";
@@ -5652,6 +5653,7 @@ void PVGameSelector::window() {
         else
             ImGui::ColumnComboBox(buf, chara_full_names, CN_MAX,
                 (int32_t*)&charas[i], 0, false, &focus);
+        set_focus(focus);
 
         if (chara_old != charas[i]) {
             modules[i] = 0;
@@ -5694,7 +5696,7 @@ void PVGameSelector::window() {
                     ImGui::SetItemDefaultFocus();
             }
 
-            focus |= true;
+            set_focus(true);
             ImGui::EndCombo();
         }
         ImGui::DisableElementPop(enable);
@@ -5709,6 +5711,7 @@ void PVGameSelector::window() {
         exit = true;
     }
 
+    set_focus(ImGui::IsWindowFocused());
     ImGui::End();
 }
 
@@ -5773,7 +5776,7 @@ bool pv_game_free() {
     return true;
 }
 
-bool task_pv_game_add_task(TaskPvGame::Args& args) {
+bool task_pv_game_open(TaskPvGame::Args& args) {
     if (!task_pv_game)
         task_pv_game = new TaskPvGame;
 
@@ -5801,23 +5804,23 @@ bool task_pv_game_add_task(TaskPvGame::Args& args) {
     task_pv_game->data.option = args.option;
 
     if (args.test_pv)
-        return app::TaskWork::add_task(task_pv_game, "PVGAME", 0);
+        return task_pv_game->open("PVGAME", app::TASK_PRIO_HIGH);
     else
-        return app::TaskWork::add_task(task_pv_game, 0, "PVGAME", 0);
+        return task_pv_game->open(0, "PVGAME", app::TASK_PRIO_HIGH);
 }
 
-bool task_pv_game_check_task_ready() {
-    return app::TaskWork::check_task_ready(task_pv_game);
+bool task_pv_game_check_alive() {
+    return task_pv_game->check_alive();
 }
 
-bool task_pv_game_del_task() {
-    if (!app::TaskWork::check_task_ready(task_pv_game)) {
+bool task_pv_game_close() {
+    if (!task_pv_game->check_alive()) {
         delete task_pv_game;
         task_pv_game = 0;
         return true;
     }
 
-    task_pv_game->del();
+    task_pv_game->close();
     return false;
 }
 
@@ -5904,7 +5907,7 @@ void task_pv_game_init_pv() {
     }
 
     args.option = sub_14038BB30()->field_0.option;
-    task_pv_game_add_task(args);
+    task_pv_game_open(args);
 }
 
 bool task_pv_game_init_demo_pv(int32_t pv_id, pv_difficulty difficulty, bool music_play) {
@@ -5954,14 +5957,14 @@ bool task_pv_game_init_demo_pv(int32_t pv_id, pv_difficulty difficulty, bool mus
 
     task_pv_game->data.option = 0;
 
-    return app::TaskWork::add_task(task_pv_game, 0, "PVGAMEDEMO", 0);
+    return task_pv_game->open(0, "PVGAMEDEMO", app::TASK_PRIO_HIGH);
 }
 
 void task_pv_game_init_test_pv() {
     if (test_mode_get())
         return;
 
-    task_rob_manager_add_task();
+    task_rob_manager_open();
     rctx_ptr->render_manager->set_multisample(true);
     TaskPvGame::Args args;
     args.init_data.pv_id = 999;
@@ -5976,7 +5979,7 @@ void task_pv_game_init_test_pv() {
     args.disp_lyrics = true;
     args.field_194 = true;
     args.mute = true;
-    task_pv_game_add_task(args);
+    task_pv_game_open(args);
 }
 
 #if PV_DEBUG

@@ -74,7 +74,7 @@ DataViewDrawTask data_view_draw_task;
 static void data_view_draw_task_window_sub_mesh_args(mdl::ObjSubMeshArgs* args);
 
 void data_view_draw_task_init() {
-    app::TaskWork::add_task(&data_view_draw_task, "DATA_VIEW_DRAW_TASK", 2);
+    data_view_draw_task.open("DATA_VIEW_DRAW_TASK", app::TASK_PRIO_LOW);
 }
 
 DataViewDrawTask::DataViewDrawTask() : exit() {
@@ -112,7 +112,7 @@ void DataViewDrawTask::window() {
     ImGui::SetNextWindowPos({ 0, 0 }, ImGuiCond_Appearing);
     ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Appearing);
 
-    focus = false;
+    reset_focus();
     bool open = false;
     if (!ImGui::Begin("Draw Task##Data Viewer", &open, 0)) {
         ImGui::End();
@@ -218,7 +218,7 @@ void DataViewDrawTask::window() {
         ImGui::PopID();
     }
 
-    focus |= ImGui::IsWindowFocused();
+    set_focus(ImGui::IsWindowFocused());
     ImGui::End();
 }
 

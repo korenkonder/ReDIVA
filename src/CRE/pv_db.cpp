@@ -2287,16 +2287,16 @@ void task_pv_db_add_paths() {
     }
 }
 
-bool task_pv_db_add_task() {
-    return app::TaskWork::add_task(task_pv_db_get(), "PV DB");
+bool task_pv_db_open() {
+    return task_pv_db_get()->open("PV DB");
 }
 
 void task_pv_db_free_pv_data() {
     task_pv_db_get()->pv_data.clear();
 }
 
-bool task_pv_db_del_task() {
-    return task_pv_db_get()->del();
+bool task_pv_db_close() {
+    return task_pv_db_get()->close();
 }
 
 pv_db::TaskPvDB* task_pv_db_get() {

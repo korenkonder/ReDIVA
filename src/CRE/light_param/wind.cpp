@@ -145,13 +145,13 @@ void task_wind_init() {
     task_wind = new TaskWind;
 }
 
-bool task_wind_hide_task() {
-    task_wind->stage_wind.wind->reset();
-    return task_wind->hide();
+bool task_wind_restart() {
+    return task_wind->restart();
 }
 
-bool task_wind_run_task() {
-    return task_wind->run();
+bool task_wind_suspend() {
+    task_wind->stage_wind.wind->reset();
+    return task_wind->suspend();
 }
 
 void task_wind_free() {

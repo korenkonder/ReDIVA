@@ -40,7 +40,7 @@ public:
     virtual bool ctrl() override;
     virtual bool dest() override;
     virtual void disp() override;
-    virtual void basic() override;
+    virtual void post() override;
 
     virtual void GetSoundFarcs();
     virtual void SetSetIndex(int32_t value);

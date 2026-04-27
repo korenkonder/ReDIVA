@@ -365,7 +365,7 @@ int64_t pv_game_pv_data::ctrl(float_t delta_time, int64_t curr_time, bool a4) {
     curr_time_float = (float_t)((double_t)this->curr_time * 0.000000001);
 
     for (int32_t i = 0; i < TASK_MOVIE_COUNT; i++)
-        if (app::TaskWork::check_task_ready(task_movie_get(i))) {
+        if (task_movie_get(i)->check_alive()) {
             if (pv_game_get()->loaded)
                 movie_current_time_set(this->curr_time);
             break;
@@ -1728,7 +1728,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         if (!pv_game_get()->loaded)
             break;
 
-        if (play && app::TaskWork::check_task_ready(task_movie_get(0))) {
+        if (play && task_movie_get(0)->check_alive()) {
             task_movie_get(0)->Play();
             pv_game_get()->data.movie_index = 0;
             movie_play_time_set_begin(curr_time);
@@ -1740,7 +1740,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
             break;
 
         for (int32_t i = 0; i < TASK_MOVIE_COUNT; i++) {
-            if (!app::TaskWork::check_task_ready(task_movie_get(i)))
+            if (!task_movie_get(i)->check_alive())
                 continue;
 
             TaskMovie::DispType disp_type = TaskMovie::DispType_None;
@@ -1999,10 +1999,10 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
             break;
 
         for (int32_t m = 0; m < TASK_MOVIE_COUNT; m++)
-            if (app::TaskWork::check_task_ready(task_movie_get(m)))
+            if (task_movie_get(m)->check_alive())
                 task_movie_get(m)->disp_type = TaskMovie::DispType_None;
 
-        if (index != -1 && app::TaskWork::check_task_ready(task_movie_get(index))) {
+        if (index != -1 && task_movie_get(index)->check_alive()) {
             task_movie_get(index)->Play();
             pv_game_get()->data.movie_index = index;
             movie_play_time_set(curr_time);

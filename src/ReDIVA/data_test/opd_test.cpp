@@ -61,7 +61,7 @@ public:
     bool GetDataCreation();
     void SetDataCreation();
 
-    bool add_task();
+    bool open();
 };
 
 DataTestOpdDw* data_test_opd_dw;
@@ -86,7 +86,7 @@ TaskDataTestOpd::~TaskDataTestOpd() {
 }
 
 bool TaskDataTestOpd::init() {
-    task_data_test_opd_dw->add_task();
+    task_data_test_opd_dw->open();
     state = 1;
     return true;
 }
@@ -98,11 +98,11 @@ bool TaskDataTestOpd::ctrl() {
             break;
 
         BeginDataCreation();
-        task_data_test_opd_dw->del();
+        task_data_test_opd_dw->close();
         state = 2;
         break;
     case 2:
-        if (!opd_make_manager_check_task_ready())
+        if (!opd_make_manager_check_alive())
             state = task_data_test_opd_dw->GetData().copy_to_local ? 3 : 5;
         break;
     case 3: {
@@ -137,7 +137,7 @@ bool TaskDataTestOpd::ctrl() {
 }
 
 bool TaskDataTestOpd::dest() {
-    task_data_test_opd_dw->del();
+    task_data_test_opd_dw->close();
     return true;
 }
 
@@ -237,11 +237,11 @@ void TaskDataTestOpd::BeginDataCreation() {
         for (auto& i : customize_item_table_handler_data_get_customize_items())
             GetCustomizeItemObjectNames(i.second, objects);
         args.objects = &objects;
-        opd_make_manager_add_task(args);
+        opd_make_manager_open(args);
     } break;
     case 1: {
         args.modules = &data.modules;
-        opd_make_manager_add_task(args);
+        opd_make_manager_open(args);
     } break;
     case 2: {
         const prj::vector_pair_combine<int32_t, customize_item>& customize_items
@@ -251,7 +251,7 @@ void TaskDataTestOpd::BeginDataCreation() {
         for (const uint32_t& i : data.modules)
             GetCustomizeItemObjectNames(customize_items.find(i)->second, objects);
         args.objects = &objects;
-        opd_make_manager_add_task(args);
+        opd_make_manager_open(args);
     } break;
     }
 }
@@ -268,8 +268,8 @@ void TaskDataTestOpd::GetCustomizeItemObjectNames(
             objects.push_back(aft_obj_db->get_object_name(i.uid));
 }
 
-bool TaskDataTestOpd::add_task() {
-    return app::TaskWork::add_task(this, "DATA_TEST_OPD");
+bool TaskDataTestOpd::open() {
+    return app::Task::open("DATA_TEST_OPD");
 }
 
 void opd_test_init() {
@@ -588,10 +588,10 @@ void TaskDataTestOpdDw::disp() {
 
 }
 
-bool TaskDataTestOpdDw::add_task() {
+bool TaskDataTestOpdDw::open() {
     data_creation = false;
     data.Reset();
-    return app::TaskWork::add_task(this, "DATA_TEST_OPD_DW");
+    return app::Task::open("DATA_TEST_OPD_DW");
 }
 
 TaskDataTestOpdDw::Data& TaskDataTestOpdDw::GetData() {

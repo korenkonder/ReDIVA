@@ -293,7 +293,7 @@ void DtmAet::disp() {
     }
 }
 
-void DtmAet::basic() {
+void DtmAet::post() {
     if (state != 7)
         return;
 
@@ -387,10 +387,10 @@ void dtm_aet_init() {
 }
 
 void dtm_aet_load() {
-    if (app::TaskWork::check_task_ready(dtm_aet))
+    if (dtm_aet->check_alive())
         return;
 
-    app::TaskWork::add_task(dtm_aet, "DATA_TEST_AET_MANAGER");
+    dtm_aet->open("DATA_TEST_AET_MANAGER");
 
     if (!dtw_aet) {
         dtw_aet = new DtwAet;
@@ -401,7 +401,7 @@ void dtm_aet_load() {
 }
 
 void dtm_aet_unload() {
-    dtm_aet->del();
+    dtm_aet->close();
     dtw_aet->Hide();
 }
 

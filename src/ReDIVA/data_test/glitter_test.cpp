@@ -340,12 +340,12 @@ void DataTestGlitterParticleDw::CharaCallback(dw::Widget* data) {
     if (button)
         if (dynamic_cast<DataTestGlitterParticleDw*>(button->parent_shell))
             if (button->value) {
-                /*if (!app::TaskWork::check_task_ready(&data_test_chr))
-                    app::TaskWork::add_task(&data_test_chr, "DATA_TEST_CHR");*/
+                /*if (!data_test_chr.check_alive())
+                    data_test_chr.open("DATA_TEST_CHR");*/
             }
             else {
-                /*if (app::TaskWork::check_task_ready(&data_test_chr))
-                    data_test_chr.del();*/
+                /*if (data_test_chr.check_alive())
+                    data_test_chr.close();*/
             }
 }
 

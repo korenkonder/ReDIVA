@@ -542,7 +542,7 @@ public:
     virtual bool ctrl() override;
     virtual bool dest() override;
     virtual void disp() override;
-    virtual void basic() override;
+    virtual void post() override;
 
     virtual void pre_init(int32_t stage_index) override;
     virtual void set_stage_indices(const std::vector<int32_t>& stage_indices) override;
@@ -1950,8 +1950,8 @@ TaskEffectAuth3D::~TaskEffectAuth3D() {
 }
 
 bool TaskEffectAuth3D::init() {
-    if (!task_auth_3d_check_task_ready()) {
-        del();
+    if (!task_auth_3d_check_alive()) {
+        close();
         return true;
     }
 
@@ -3749,7 +3749,7 @@ void TaskEffectSnow::disp() {
 
 }
 
-void TaskEffectSnow::basic() {
+void TaskEffectSnow::post() {
 
 }
 
@@ -5494,7 +5494,7 @@ std::pair<EffectType, TaskEffect*> EffectManager::add_effect(EffectType type) {
         const char* name = 0;
         TaskEffect* t = effect_array_get(type, &name);
         if (t) {
-            app::TaskWork::add_task(t, name);
+            t->open(name);
             return { type, t };
         }
     }
@@ -5520,7 +5520,7 @@ void EffectManager::dest() {
         state = 4;
     else if (state >= 2 && state <= 3) {
         for (std::pair<EffectType, TaskEffect*>& i : effects)
-            i.second->del();
+            i.second->close();
         state = 4;
     }
 }
@@ -5622,7 +5622,7 @@ bool EffectManager::load() {
 
     bool wait_load = false;
     for (std::pair<EffectType, TaskEffect*>& i : effects)
-        if (!app::TaskWork::check_task_ctrl(i.second)) {
+        if (!i.second->check_proc_ctrl()) {
             wait_load = true;
             break;
         }
@@ -5759,7 +5759,7 @@ bool EffectManager::unload() {
     }
 
     for (std::pair<EffectType, TaskEffect*>& i : effects)
-        if (app::TaskWork::check_task_ready(i.second))
+        if (i.second->check_alive())
             return true;
 
     for (uint32_t& i : obj_set_ids)

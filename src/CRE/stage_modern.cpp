@@ -156,7 +156,7 @@ void task_stage_modern_init() {
     task_stage_modern = new stage_detail::TaskStageModern;
 }
 
-bool task_stage_modern_add_task(const char* name) {
+bool task_stage_modern_open(const char* name) {
     task_stage_is_modern = true;
     return stage_detail::TaskStageModern_LoadTask(task_stage_modern, name);
 }
@@ -165,8 +165,8 @@ bool task_stage_modern_check_not_loaded() {
     return task_stage_modern->load_stage_hashes.size() || task_stage_modern->state != 6;
 }
 
-bool task_stage_modern_check_task_ready() {
-    return app::TaskWork::check_task_ready(task_stage_modern);
+bool task_stage_modern_check_alive() {
+    return task_stage_modern->check_alive();
 }
 
 void task_stage_modern_current_set_ground(bool value) {
@@ -246,8 +246,8 @@ void task_stage_modern_set_stage_hashes(std::vector<uint32_t>& stage_hashes,
         load_stage_data.begin(), load_stage_data.end());
 }
 
-bool task_stage_modern_del_task() {
-    return task_stage_modern->del();
+bool task_stage_modern_close() {
+    return task_stage_modern->close();
 }
 
 void task_stage_modern_free() {
@@ -362,14 +362,14 @@ static void stage_detail::TaskStageModern_Load(stage_detail::TaskStageModern* a1
 }
 
 static bool stage_detail::TaskStageModern_LoadTask(stage_detail::TaskStageModern* a1, const char* name) {
-    if (app::TaskWork::add_task(a1, name)) {
+    if (a1->open(name)) {
         stage_detail::TaskStageModern_Reset(a1);
         stage_detail::TaskStageModern_TaskWindAppend(a1);
         return false;
     }
     else {
-        if (!app::TaskWork::has_task_dest(a1))
-            a1->del();
+        if (!a1->check_closing())
+            a1->close();
         return true;
     }
 }
@@ -401,7 +401,7 @@ static void stage_detail::TaskStageModern_SetStage(
 }
 
 static void stage_detail::TaskStageModern_TaskWindAppend(stage_detail::TaskStageModern* a1) {
-    app::TaskWork::add_task(task_wind, a1, "CHARA WIND");
+    task_wind->open(a1, "CHARA WIND");
 }
 
 static void stage_detail::TaskStageModern_Unload(stage_detail::TaskStageModern* a1) {

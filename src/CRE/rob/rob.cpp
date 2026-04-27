@@ -96,8 +96,8 @@ struct OpdMakeWorker : public app::Task {
     virtual bool dest() override;
     virtual void disp() override;
 
-    bool add_task(bool use_current_skp);
-    bool del_task();
+    bool open(bool use_current_skp);
+    bool close();
 };
 
 #if OPD_PLAY_GEN
@@ -234,7 +234,7 @@ public:
     virtual bool dest() override;
     virtual void disp() override;
 
-    bool add();
+    bool open();
     void AppendCharaMotionId(rob_chara* rob_chr, const std::vector<uint32_t>& motion_ids);
     bool CheckTaskReady();
     void GetOpdFileData(object_info obj_info,
@@ -350,8 +350,8 @@ struct OpdMakeManager : app::Task {
     bool dest() override;
     void disp() override;
 
-    void add_task(const OpdMakeManagerArgs& args);
-    bool del_task();
+    void open(const OpdMakeManagerArgs& args);
+    bool close();
     OpdMakeManagerData* GetData();
 };
 
@@ -5855,7 +5855,7 @@ bool RobManagement::check_ringout_transit_rob(ROB_ID id) {
 // 0x140531670
 ROB_ID RobManagement::create_rob(CHARA_NUM cn,
     const RobInit& ri, int32_t cos_id, bool can_set_default) {
-    if (!app::TaskWork::check_task_ready(task_rob_manager)
+    if (!task_rob_manager->check_alive()
         || ri.rob_type < 0 || ri.rob_type >= ROB_TYPE_MAX)
         return ROB_ID_NULL;
 
@@ -11467,16 +11467,16 @@ void opd_checker_terminate_thread() {
     opd_checker_get()->TerminateThread();
 }
 
-void opd_make_manager_add_task(const OpdMakeManagerArgs& args) {
-    opd_make_manager->add_task(args);
+void opd_make_manager_open(const OpdMakeManagerArgs& args) {
+    opd_make_manager->open(args);
 }
 
-bool opd_make_manager_check_task_ready() {
-    return app::TaskWork::check_task_ready(opd_make_manager);
+bool opd_make_manager_check_alive() {
+    return opd_make_manager->check_alive();
 }
 
-bool opd_make_manager_del_task() {
-    return opd_make_manager->del_task();
+bool opd_make_manager_close() {
+    return opd_make_manager->close();
 }
 
 OpdMakeManagerData* opd_make_manager_get_data() {
@@ -11494,7 +11494,7 @@ void opd_make_start() {
     args.use_opdi = true;
     args.motion_ids = &motion_ids;
     args.objects = &objects;
-    opd_make_manager->add_task(args);
+    opd_make_manager->open(args);
 }
 
 void opd_make_start_get_motion_ids(std::vector<int32_t>& motion_ids) {
@@ -11526,11 +11526,11 @@ void opd_make_start_get_motion_ids(std::vector<int32_t>& motion_ids) {
 
 void opd_make_stop() {
     opd_checker_terminate_thread();
-    opd_make_manager_del_task();
+    opd_make_manager_close();
 }
 
-bool osage_play_data_manager_add_task() {
-    return osage_play_data_manager->add();
+bool osage_play_data_manager_open() {
+    return osage_play_data_manager->open();
 }
 
 void osage_play_data_manager_append_chara_motion_id(rob_chara* rob_chr, uint32_t motnum) {
@@ -11544,7 +11544,7 @@ void osage_play_data_manager_append_chara_motion_ids(
     osage_play_data_manager->AppendCharaMotionId(rob_chr, motion_ids);
 }
 
-bool osage_play_data_manager_check_task_ready() {
+bool osage_play_data_manager_check_alive() {
     return osage_play_data_manager->CheckTaskReady();
 }
 
@@ -11832,8 +11832,8 @@ void rob_sleeve_handler_data_read() {
     rob_sleeve_handler_data->read();
 }
 
-bool task_rob_load_add_task() {
-    return app::TaskWork::add_task(task_rob_load, 0, "ROB LOAD", 0);
+bool task_rob_load_open() {
+    return task_rob_load->open(0, "ROB LOAD", app::TASK_PRIO_HIGH);
 }
 
 bool task_rob_load_append_free_req_data(CHARA_NUM cn) {
@@ -11858,13 +11858,13 @@ bool task_rob_load_check_load_req_data() {
     return true;
 }
 
-bool task_rob_load_del_task() {
-    task_rob_load->del();
+bool task_rob_load_close() {
+    task_rob_load->close();
     return true;
 }
 
-bool task_rob_manager_add_task() {
-    return app::TaskWork::add_task(task_rob_manager, "ROB_MANAGER TASK");
+bool task_rob_manager_open() {
+    return task_rob_manager->open("ROB_MANAGER TASK");
 }
 
 bool task_rob_manager_check_chara_loaded(ROB_ID rob_id) {
@@ -11873,8 +11873,8 @@ bool task_rob_manager_check_chara_loaded(ROB_ID rob_id) {
     return task_rob_manager->CheckCharaLoaded(&RobManagement::rob_impl[rob_id]);
 }
 
-bool task_rob_manager_check_task_ready() {
-    return app::TaskWork::check_task_ready(task_rob_manager);
+bool task_rob_manager_check_alive() {
+    return task_rob_manager->check_alive();
 }
 
 bool task_rob_manager_get_free_chara_list_empty() {
@@ -11888,19 +11888,19 @@ bool task_rob_manager_get_wait(ROB_ID rob_id) {
     return task_rob_manager->GetWait(&RobManagement::rob_impl[rob_id]);
 }
 
-bool task_rob_manager_hide_task() {
-    return task_rob_manager->hide();
+bool task_rob_manager_restart() {
+    return task_rob_manager->restart();
 }
 
-bool task_rob_manager_run_task() {
-    return task_rob_manager->run();
+bool task_rob_manager_suspend() {
+    return task_rob_manager->suspend();
 }
 
-bool task_rob_manager_del_task() {
-    if (!app::TaskWork::check_task_ready(task_rob_manager))
+bool task_rob_manager_close() {
+    if (!task_rob_manager->check_alive())
         return true;
 
-    task_rob_manager->del();
+    task_rob_manager->close();
     return false;
 }
 
@@ -17750,12 +17750,12 @@ bool OpdMakeWorker::ctrl() {
         std::vector<osage_init_data> osage_init;
         for (const uint32_t& i : opd_make_manager->motion_ids)
             osage_init.push_back(osage_init_data(rob_chr, i));
-        skin_param_manager_add_task(rob_id, osage_init);
+        skin_param_manager_open(rob_id, osage_init);
 
         state = 7;
     } break;
     case 7: {
-        if (skin_param_manager_check_task_ready(rob_id))
+        if (skin_param_manager_check_alive(rob_id))
             break;
         state = 8;
     }
@@ -17822,16 +17822,16 @@ void OpdMakeWorker::disp() {
 
 }
 
-bool OpdMakeWorker::add_task(bool use_current_skp) {
+bool OpdMakeWorker::open(bool use_current_skp) {
     if (!task_rob_manager_check_chara_loaded(rob_id))
         return false;
 
     this->use_current_skp = use_current_skp;
-    return app::TaskWork::add_task(this, "OPD_MAKE_WORKER");
+    return app::Task::open("OPD_MAKE_WORKER");
 }
 
-bool OpdMakeWorker::del_task() {
-    return del();
+bool OpdMakeWorker::close() {
+    return app::Task::close();
 }
 
 #if OPD_PLAY_GEN
@@ -17861,7 +17861,7 @@ bool OpdPlayGen::CheckState() {
         }
         return true;
     case 1:
-        if (skin_param_manager_array_check_task_ready())
+        if (skin_param_manager_array_check_alive())
             return false;
 
         state = 2;
@@ -18587,8 +18587,8 @@ void OsagePlayDataManager::disp() {
 
 }
 
-bool OsagePlayDataManager::add() {
-    return app::TaskWork::add_task(this, "OSAGE_PLAY_DATA_MANAGER");
+bool OsagePlayDataManager::open() {
+    return app::Task::open("OSAGE_PLAY_DATA_MANAGER");
 }
 
 void OsagePlayDataManager::AppendCharaMotionId(rob_chara* rob_chr, const std::vector<uint32_t>& motion_ids) {
@@ -18608,7 +18608,7 @@ void OsagePlayDataManager::AppendCharaMotionId(rob_chara* rob_chr, const std::ve
 }
 
 bool OsagePlayDataManager::CheckTaskReady() {
-    return app::TaskWork::check_task_ready(this);
+    return check_alive();
 }
 
 void OsagePlayDataManager::GetOpdFileData(object_info obj_info,
@@ -19308,12 +19308,12 @@ bool OpdMakeManager::init() {
 
     path_delete_directory(get_ram_osage_play_data_tmp_dir());
 
-    if (use_current_skp || !app::TaskWork::check_task_ready(task_rob_manager)) {
-        task_rob_manager_add_task();
+    if (use_current_skp || !task_rob_manager->check_alive()) {
+        task_rob_manager_open();
         return true;
     }
     else {
-        task_rob_manager_del_task();
+        task_rob_manager_close();
         return false;
     }
 }
@@ -19383,20 +19383,20 @@ bool OpdMakeManager::ctrl() {
                 wait = true;
 
         if (!wait) {
-            task_rob_manager->hide();
+            task_rob_manager->suspend();
             mode = 7;
         }
     } break;
     case 7: {
         for (int32_t i = 0; i < OPD_MAKE_COUNT; i++)
             if (rob_chara_array_get((ROB_ID)i++))
-                workers[i]->add_task(use_current_skp);
+                workers[i]->open(use_current_skp);
         mode = 8;
     } break;
     case 8: {
         bool wait = false;
         for (int32_t i = 0; i < OPD_MAKE_COUNT; i++)
-            if (app::TaskWork::check_task_ready(workers[i]))
+            if (workers[i]->check_alive())
                 wait = true;
 
         if (!wait)
@@ -19405,7 +19405,7 @@ bool OpdMakeManager::ctrl() {
     case 9:
         for (int32_t i = 0; i < OPD_MAKE_COUNT; i++)
             get_rob_management()->dest_rob((ROB_ID)i);
-        task_rob_manager->run();
+        task_rob_manager->restart();
         mode = 10;
         break;
     case 10:
@@ -19431,7 +19431,7 @@ bool OpdMakeManager::ctrl() {
 
 bool OpdMakeManager::dest() {
     for (int32_t i = 0; i < OPD_MAKE_COUNT; i++)
-        if (app::TaskWork::check_task_ready(workers[i]))
+        if (workers[i]->check_alive())
             return false;
 
     if (!use_current_skp) {
@@ -19446,7 +19446,7 @@ bool OpdMakeManager::dest() {
             motion_set_unload_mothead(i);
         }
 
-        task_rob_manager_del_task();
+        task_rob_manager_close();
     }
 
     rctx_ptr->render_manager->set_pass_sw(rndr::RND_PASSID_3D, true);
@@ -19460,8 +19460,8 @@ void OpdMakeManager::disp() {
 
 }
 
-void OpdMakeManager::add_task(const OpdMakeManagerArgs& args) {
-    if (app::TaskWork::check_task_ready(this) || !args.motion_ids)
+void OpdMakeManager::open(const OpdMakeManagerArgs& args) {
+    if (check_alive() || !args.motion_ids)
         return;
 
     chara_data.Reset();
@@ -19483,13 +19483,13 @@ void OpdMakeManager::add_task(const OpdMakeManagerArgs& args) {
     use_current_skp = args.use_current_skp;
     use_opdi = args.use_opdi;
 
-    app::TaskWork::add_task(this, "OPD_MAKE_MANAGER");
+    app::Task::open("OPD_MAKE_MANAGER");
 }
 
-bool OpdMakeManager::del_task() {
+bool OpdMakeManager::close() {
     for (int32_t i = 0; i < OPD_MAKE_COUNT; i++)
-        workers[i]->del_task();
-    return app::Task::del();
+        workers[i]->close();
+    return app::Task::close();
 }
 
 OpdMakeManagerData* OpdMakeManager::GetData() {
@@ -21548,21 +21548,21 @@ TaskRobManager::~TaskRobManager() {
 }
 
 bool TaskRobManager::init() {
-    task_rob_load_add_task();
+    task_rob_load_open();
 
     const RobTaskList* list_before = get_rob_manager_list_before(this);
     for (; list_before->task; list_before++) {
         RobImplTask* task = list_before->task;
-        app::TaskWork::add_task(task, list_before->name);
-        task->frame_dependent = task->sync();
+        task->open(list_before->name);
+        task->set_sync_pulse_mode(task->sync());
         task->FreeCharaLists();
     }
 
     const RobTaskList* list_after = get_rob_manager_list_after(this);
     for (; list_after->task; list_after++) {
         RobImplTask* task = list_after->task;
-        app::TaskWork::add_task(task, list_after->name);
-        task->frame_dependent = task->sync();
+        task->open(list_after->name);
+        task->set_sync_pulse_mode(task->sync());
         task->FreeCharaLists();
     }
 
@@ -21644,11 +21644,11 @@ bool TaskRobManager::dest() {
     case 0: {
         const  RobTaskList* list_before = get_rob_manager_list_before(this);
         for (; list_before->task; list_before++)
-            list_before->task->del();
+            list_before->task->close();
 
         const RobTaskList* list_after = get_rob_manager_list_after(this);
         for (; list_after->task; list_after++)
-            list_after->task->del();
+            list_after->task->close();
 
         init_chara.clear();
         load_chara.clear();
@@ -21657,7 +21657,7 @@ bool TaskRobManager::dest() {
         dest_state = 1;
     }
     case 1:
-        if (!task_rob_load_del_task())
+        if (!task_rob_load_close())
             return false;
 
         dest_state = 2;
@@ -21762,8 +21762,7 @@ void TaskRobManager::AppendLoadedCharaList(rob_chara* rob_chr) {
 }
 
 bool TaskRobManager::CheckCharaLoaded(rob_chara* rob_chr) {
-    if (!app::TaskWork::check_task_ready(this)
-        || rob_chr->idnm < 0 || rob_chr->idnm >= ROB_ID_MAX)
+    if (!check_alive() || rob_chr->idnm < 0 || rob_chr->idnm >= ROB_ID_MAX)
         return false;
 
     int8_t idnm = rob_chr->idnm;
@@ -21822,7 +21821,7 @@ void TaskRobManager::FreeLoadedCharaList(int8_t* idnm) {
 }
 
 bool TaskRobManager::GetFreeCharaListEmpty() {
-    if (!app::TaskWork::check_task_ready(this))
+    if (!check_alive())
         return false;
 
     if (ctrl_state == 1 && !init_chara.size())
@@ -21831,7 +21830,7 @@ bool TaskRobManager::GetFreeCharaListEmpty() {
 }
 
 bool TaskRobManager::GetWait(rob_chara* rob_chr) {
-    if (!app::TaskWork::check_task_ready(this))
+    if (!check_alive())
         return false;
 
     int32_t idnm = rob_chr->idnm;

@@ -360,8 +360,8 @@ std::vector<uint32_t> motion_test_objset;
 
 static DataTestMot::Data* data_test_mot_data_get();
 
-static bool data_test_mot_a3d_add_task();
-static bool data_test_mot_a3d_del_task();
+static bool data_test_mot_a3d_open();
+static bool data_test_mot_a3d_close();
 static const char* data_test_mot_a3d_get_state_text();
 static DataTestMotA3d* data_test_mot_a3d_get();
 static void data_test_mot_a3d_set_auth_3d(std::string& value);
@@ -435,8 +435,8 @@ bool DataTestMot::init() {
     data_test_mot_a3d_dw_init();
     data.reset_cam = true;
     data.field_A8 = true;
-    dtm_eq_vs_array[ROB_ID_1P].add_task(ROB_ID_1P, data.chr[ROB_ID_1P]);
-    dtm_eq_vs_array[ROB_ID_2P].add_task(ROB_ID_2P, data.chr[ROB_ID_2P]);
+    dtm_eq_vs_array[ROB_ID_1P].open(ROB_ID_1P, data.chr[ROB_ID_1P]);
+    dtm_eq_vs_array[ROB_ID_2P].open(ROB_ID_2P, data.chr[ROB_ID_2P]);
     motion_test_objset_load();
     return true;
 }
@@ -598,15 +598,15 @@ bool DataTestMot::ctrl() {
     }
 
     if (v3)
-        dtm_mot_array[ROB_ID_1P].del_task();
+        dtm_mot_array[ROB_ID_1P].close();
     else
-        dtm_mot_array[ROB_ID_1P].add_task(data.chr[ROB_ID_1P],
+        dtm_mot_array[ROB_ID_1P].open(data.chr[ROB_ID_1P],
             data.ptr[ROB_ID_1P], data.set[ROB_ID_1P], data.uid[ROB_ID_1P]);
 
     if (v2)
-        dtm_mot_array[ROB_ID_2P].del_task();
+        dtm_mot_array[ROB_ID_2P].close();
     else
-        dtm_mot_array[ROB_ID_2P].add_task(data.chr[ROB_ID_2P],
+        dtm_mot_array[ROB_ID_2P].open(data.chr[ROB_ID_2P],
             data.ptr[ROB_ID_2P], data.set[ROB_ID_2P], data.uid[ROB_ID_2P]);
 
     if (data.reset_cam) {
@@ -653,17 +653,17 @@ bool DataTestMot::dest() {
     clear_color = 0xFF000000;
     set_clear_color = true;
 
-    dtm_mot_array[ROB_ID_1P].del();
-    dtm_mot_array[ROB_ID_2P].del();
+    dtm_mot_array[ROB_ID_1P].close();
+    dtm_mot_array[ROB_ID_2P].close();
     data_test_mot_dw_array_get(ROB_ID_1P)->Hide();
     data_test_mot_dw_array_get(ROB_ID_2P)->Hide();
     data_test_mot_ctrl_dw_get()->Hide();
     data_test_mot_a3d_dw_get()->Hide();
     data_test_face_mot_dw_array_unload();
-    dtm_eq_vs_array[ROB_ID_1P].del_task();
-    dtm_eq_vs_array[ROB_ID_2P].del_task();
+    dtm_eq_vs_array[ROB_ID_1P].close();
+    dtm_eq_vs_array[ROB_ID_2P].close();
     motion_test_objset_unload();
-    data_test_mot_a3d_get()->del();
+    data_test_mot_a3d_get()->close();
     return true;
 }
 
@@ -781,7 +781,7 @@ void DataTestMotA3d::disp() {
 
 }
 
-void DataTestMotA3d::basic() {
+void DataTestMotA3d::post() {
 
 }
 
@@ -1007,15 +1007,15 @@ bool DtmMot::ctrl() {
         state = 7;
     } break;
     case 5: {
-        if (osage_play_data_manager_check_task_ready())
+        if (osage_play_data_manager_check_alive())
             break;
 
         osage_play_data_manager_append_chara_motion_id(rob_man->get_rob(rctrl), uid);
-        osage_play_data_manager_add_task();
+        osage_play_data_manager_open();
         state = 6;
     } break;
     case 6: {
-        if (osage_play_data_manager_check_task_ready() || skin_param_manager_check_task_ready(rctrl))
+        if (osage_play_data_manager_check_alive() || skin_param_manager_check_alive(rctrl))
             break;
 
         rob_chara* rob_chr = rob_man->get_rob(rctrl);
@@ -1025,9 +1025,9 @@ bool DtmMot::ctrl() {
     } break;
     case 7: {
         loaded = false;
-        if (skin_param_manager_check_task_ready(rctrl)
+        if (skin_param_manager_check_alive(rctrl)
             || pv_osage_manager_array_get_disp(rctrl)
-            || osage_play_data_manager_check_task_ready())
+            || osage_play_data_manager_check_alive())
             break;
 
         const pv_db_pv_difficulty* diff = task_pv_db_get_pv_difficulty(
@@ -1092,8 +1092,8 @@ bool DtmMot::ctrl() {
             }
         }
 
-        task_rob_manager_hide_task();
-        task_wind_hide_task();
+        task_rob_manager_suspend();
+        task_wind_suspend();
         reset_mot = false;
         state = 8;
     } break;
@@ -1118,7 +1118,7 @@ bool DtmMot::ctrl() {
             for (pv_data_set_motion& i : set_motion)
                 vec.push_back({ rob_chr, pv->id, i.motnum, "", (int32_t)prj::roundf(i.frame_stage_index.first) });
         }
-        skin_param_manager_add_task(rctrl, vec);
+        skin_param_manager_open(rctrl, vec);
 
         state = 9;
 
@@ -1135,7 +1135,7 @@ bool DtmMot::ctrl() {
         }
     } break;
     case 9: {
-        if (skin_param_manager_check_task_ready(rctrl))
+        if (skin_param_manager_check_alive(rctrl))
             break;
 
         pv_osage_manager_array_reset(rctrl);
@@ -1180,8 +1180,8 @@ bool DtmMot::ctrl() {
         if (!field_100)
             break;
 
-        task_rob_manager_run_task();
-        task_wind_run_task();
+        task_rob_manager_restart();
+        task_wind_restart();
         state = 12;
     } break;
     case 12: {
@@ -1287,13 +1287,13 @@ bool DtmMot::dest() {
         return true;
 
     pv_osage_manager_array_set_not_reset_true();
-    if (skin_param_manager_check_task_ready(rctrl)
+    if (skin_param_manager_check_alive(rctrl)
         || pv_osage_manager_array_get_disp()
-        || osage_play_data_manager_check_task_ready())
+        || osage_play_data_manager_check_alive())
         return false;
 
-    task_rob_manager_run_task();
-    task_wind_run_task();
+    task_rob_manager_restart();
+    task_wind_restart();
     if (rob_man->get_rob(rctrl))
         rob_man->dest_rob(rctrl);
     motion_set_unload_motion(set);
@@ -1310,7 +1310,7 @@ bool DtmMot::dest() {
     return true;
 }
 
-void DtmMot::basic() {
+void DtmMot::post() {
     if (state != 13)
         return;
 
@@ -1362,8 +1362,8 @@ void DtmMot::basic() {
     this->frame = frame;
 }
 
-bool DtmMot::add_task(CHARA_NUM chr, int32_t ptr, uint32_t set, uint32_t uid) {
-    if (app::TaskWork::has_task(this) || app::TaskWork::check_task_ready(this))
+bool DtmMot::open(CHARA_NUM chr, int32_t ptr, uint32_t set, uint32_t uid) {
+    if (check_entry() || check_alive())
         return true;
 
     this->chr = chr;
@@ -1371,11 +1371,11 @@ bool DtmMot::add_task(CHARA_NUM chr, int32_t ptr, uint32_t set, uint32_t uid) {
     this->uid = uid;
     this->set = set;
     assign = IDX;
-    return app::TaskWork::add_task(this, "DATA_TEST_MOTION_MANAGER", 0);
+    return app::Task::open("DATA_TEST_MOTION_MANAGER", app::TASK_PRIO_HIGH);
 }
 
-bool DtmMot::add_task(CHARA_NUM chr, int32_t ptr, uint32_t uid) {
-    if (app::TaskWork::has_task(this) || app::TaskWork::check_task_ready(this))
+bool DtmMot::open(CHARA_NUM chr, int32_t ptr, uint32_t uid) {
+    if (check_entry() || check_alive())
         return true;
 
     data_struct* aft_data = &data_list[DATA_AFT];
@@ -1386,12 +1386,12 @@ bool DtmMot::add_task(CHARA_NUM chr, int32_t ptr, uint32_t uid) {
     this->uid = uid;
     this->set = aft_mot_db->get_motion_set_id_by_motion_id(uid);
     assign = UID;
-    return app::TaskWork::add_task(this, "DATA_TEST_MOTION_MANAGER", 0);
+    return app::Task::open("DATA_TEST_MOTION_MANAGER", app::TASK_PRIO_HIGH);
 }
 
-bool DtmMot::del_task() {
-    if (app::TaskWork::check_task_ready(this))
-        return del();
+bool DtmMot::close() {
+    if (check_alive())
+        return app::Task::close();
     return false;
 }
 
@@ -2754,7 +2754,7 @@ void DataTestMotA3dDw::Draw() {
 
 void DataTestMotA3dDw::Hide() {
     SetDisp();
-    data_test_mot_a3d_del_task();
+    data_test_mot_a3d_close();
 }
 
 void DataTestMotA3dDw::SetPvId(int32_t pv_id) {
@@ -2929,12 +2929,12 @@ static DataTestMot::Data* data_test_mot_data_get() {
     return &data_test_mot->data;
 }
 
-static bool data_test_mot_a3d_add_task() {
-    return app::TaskWork::add_task(data_test_mot_a3d_get(), "DATA_TEST_MOT_A3D", 0);
+static bool data_test_mot_a3d_open() {
+    return data_test_mot_a3d_get()->open("DATA_TEST_MOT_A3D", app::TASK_PRIO_HIGH);
 }
 
-static bool data_test_mot_a3d_del_task() {
-    return data_test_mot_a3d_get()->del();
+static bool data_test_mot_a3d_close() {
+    return data_test_mot_a3d_get()->close();
 }
 
 static const char* data_test_mot_a3d_get_state_text() {
@@ -2977,7 +2977,7 @@ static DataTestMotDw* data_test_mot_dw_array_get(ROB_ID id) {
 }
 
 static void data_test_mot_a3d_dw_init() {
-    data_test_mot_a3d_add_task();
+    data_test_mot_a3d_open();
     if (!data_test_mot_a3d_dw) {
         data_test_mot_a3d_dw = new DataTestMotA3dDw;
         data_test_mot_a3d_dw->LimitPosDisp();

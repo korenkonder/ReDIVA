@@ -26,7 +26,7 @@ public:
 DataViewObject data_view_object;
 
 void data_view_object_init() {
-    app::TaskWork::add_task(&data_view_object, "DATA_VIEW_AUTH_3D", 2);
+    data_view_object.open("DATA_VIEW_AUTH_3D", app::TASK_PRIO_LOW);
 }
 
 DataViewObject::DataViewObject() : exit() {
@@ -64,7 +64,7 @@ void DataViewObject::window() {
     ImGui::SetNextWindowPos({ 0, 0 }, ImGuiCond_Appearing);
     ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Appearing);
 
-    focus = false;
+    reset_focus();
     bool open = true;
     if (!ImGui::Begin("Object##Data Viewer", &open, 0)) {
         ImGui::End();
@@ -107,6 +107,6 @@ void DataViewObject::window() {
         ImGui::PopID();
     }
 
-    focus |= ImGui::IsWindowFocused();
+    set_focus(ImGui::IsWindowFocused());
     ImGui::End();
 }

@@ -69,7 +69,7 @@ static void data_view_auth_3d_window_auth_3d_point(auth_3d_point* p);
 static void data_view_auth_3d_window_auth_3d_post_process(auth_3d_post_process* pp);
 
 void data_view_auth_3d_init() {
-    app::TaskWork::add_task(&data_view_auth_3d, "DATA_VIEW_AUTH_3D", 2);
+    data_view_auth_3d.open("DATA_VIEW_AUTH_3D", app::TASK_PRIO_LOW);
 }
 
 DataViewAuth3D::DataViewAuth3D() : exit() {
@@ -107,7 +107,7 @@ void DataViewAuth3D::window() {
     ImGui::SetNextWindowPos({ 0, 0 }, ImGuiCond_Appearing);
     ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Appearing);
 
-    focus = false;
+    reset_focus();
     bool open = true;
     if (!ImGui::Begin("Auth 3D##Data Viewer", &open, 0)) {
         ImGui::End();
@@ -271,7 +271,7 @@ void DataViewAuth3D::window() {
             ImGui::PopStyleColor();
     }
 
-    focus |= ImGui::IsWindowFocused();
+    set_focus(ImGui::IsWindowFocused());
     ImGui::End();
 }
 

@@ -217,7 +217,7 @@ void task_stage_init() {
     task_stage = new stage_detail::TaskStage;
 }
 
-bool task_stage_add_task(const char* name) {
+bool task_stage_open(const char* name) {
     task_stage_is_modern = false;
     return stage_detail::TaskStage_LoadTask(task_stage, name);
 }
@@ -269,8 +269,8 @@ void task_stage_current_set_stage_display(bool value, bool effect_enable) {
         stg_info.set_stage_display(value, effect_enable);
 }
 
-bool task_stage_del_task() {
-    return task_stage->del();
+bool task_stage_close() {
+    return task_stage->close();
 }
 
 void task_stage_disp_shadow() {
@@ -428,14 +428,14 @@ static void stage_detail::TaskStage_Load(stage_detail::TaskStage* a1) {
 }
 
 static bool stage_detail::TaskStage_LoadTask(stage_detail::TaskStage* a1, const char* name) {
-    if (app::TaskWork::add_task(a1, name)) {
+    if (a1->open(name)) {
         stage_detail::TaskStage_Reset(a1);
         stage_detail::TaskStage_TaskWindAppend(a1);
         return false;
     }
     else {
-        if (!app::TaskWork::has_task_dest(a1))
-            a1->del();
+        if (!a1->check_closing())
+            a1->close();
         return true;
     }
 }
@@ -465,7 +465,7 @@ static void stage_detail::TaskStage_SetStage(stage_detail::TaskStage* a1, const 
 }
 
 static void stage_detail::TaskStage_TaskWindAppend(stage_detail::TaskStage* a1) {
-    app::TaskWork::add_task(task_wind, a1, "CHARA WIND");
+    task_wind->open(a1, "CHARA WIND");
 }
 
 static void stage_detail::TaskStage_Unload(stage_detail::TaskStage* a1) {

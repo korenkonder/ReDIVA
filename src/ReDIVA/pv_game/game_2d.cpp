@@ -493,8 +493,8 @@ void TaskGame2d::disp() {
         energy_unit.disp();
 }
 
-bool task_game_2d_add_task() {
-    return app::TaskWork::add_task(&task_game_2d, 0, "GAME_2D", 0);
+bool task_game_2d_open() {
+    return task_game_2d.open(0, "GAME_2D", app::TASK_PRIO_HIGH);
 }
 
 void task_game_2d_set_energy_unit_no_fail(bool value) {
@@ -509,6 +509,6 @@ void task_game_2d_sub_1403726D0(int32_t value) {
     task_game_2d.energy_unit.field_1D4 = value;
 }
 
-bool task_game_2d_del_task() {
-    return task_game_2d.del();
+bool task_game_2d_close() {
+    return task_game_2d.close();
 }

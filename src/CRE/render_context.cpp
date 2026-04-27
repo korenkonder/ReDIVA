@@ -1369,7 +1369,7 @@ void render_context::ctrl() {
 
     extern bool game_state_get_pause();
     if (!get_pause() || !game_state_get_pause())
-        app::TaskWork::ctrl();
+        app::ctrl_task();
     sound_ctrl();
     file_handler_storage_ctrl();
     finish_calc_process();
@@ -1383,7 +1383,7 @@ void render_context::disp() {
     sprite_manager_reset_req_list();
     camera->update();
     render_manager->cam.get(camera);
-    app::TaskWork::disp();
+    app::disp_task();
     shadow_ptr_get()->ctrl();
     spr::SprTarget target = sprite_manager_get_target();
     //sprite_manager_set_target(spr::SPR_TARGET_CSBACK);
@@ -1396,7 +1396,7 @@ void render_context::disp() {
     render_manager->rndpass_post_proc();
     render_manager->npr_mask = false;
     if (!get_pause())
-        app::TaskWork::basic();
+        app::post_task();
     finish_render_process();
 }
 

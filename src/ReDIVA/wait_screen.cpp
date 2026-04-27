@@ -76,12 +76,12 @@ TaskWaitScreen task_wait_screen;
 
 static void sub_14066FEC0(int32_t);
 
-bool task_wait_screen_add_task() {
-    return app::TaskWork::add_task(&task_wait_screen, "WAIT_SCREEN");
+bool task_wait_screen_open() {
+    return task_wait_screen.open("WAIT_SCREEN");
 }
 
-bool task_wait_screen_del_task() {
-    return task_wait_screen.del();
+bool task_wait_screen_close() {
+    return task_wait_screen.close();
 }
 
 bool task_wait_screen_check_index_none() {
@@ -89,13 +89,13 @@ bool task_wait_screen_check_index_none() {
 }
 
 bool task_wait_screen_get_ended() {
-    if (app::TaskWork::check_task_ready(&task_wait_screen))
+    if (task_wait_screen.check_alive())
         return task_wait_screen.get_ended();
     return true;
 }
 
 bool task_wait_screen_get_started() {
-    if (app::TaskWork::check_task_ready(&task_wait_screen))
+    if (task_wait_screen.check_alive())
         return task_wait_screen.get_started();
     return false;
 }
@@ -198,7 +198,7 @@ bool TaskWaitScreen::end_load_loop() {
         if (get_aet_obj_disp(0)) {
             free_aet_obj(0);
             free_aet_obj(1);
-            //task_sel_ticket_del_task();
+            //task_sel_ticket_close();
             sound_work_cue_release(1, "load01_2");
             ended = true;
         }

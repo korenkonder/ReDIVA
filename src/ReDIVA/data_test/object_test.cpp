@@ -29,7 +29,7 @@ public:
     virtual bool dest() override;
     virtual void disp() override;
 
-    void del_task();
+    void close();
 
     int32_t get_obj_num();
     const obj_bounding_sphere* get_object_bounding_sphere(int32_t obj_index);
@@ -103,7 +103,7 @@ bool TaskDataTestObj::ctrl() {
         data.curr_object_set_index = data.object_set_index;
         data.object_index = -1;
 
-        data_test_object_manager->del_task();
+        data_test_object_manager->close();
     }
 
     data.obj_num = data_test_object_manager->get_obj_num();
@@ -190,7 +190,7 @@ bool TaskDataTestObj::ctrl() {
 }
 
 bool TaskDataTestObj::dest() {
-    data_test_object_manager->del_task();
+    data_test_object_manager->close();
     clear_color = color_black;
     data_test_obj_dw->Hide();
     return true;
@@ -320,12 +320,12 @@ void DataTestObjectManager::disp() {
     rctx_ptr->disp_manager->set_obj_flags((mdl::ObjFlags)0);
 }
 
-void DataTestObjectManager::del_task() {
-    if (!app::TaskWork::check_task_ready(this))
+void DataTestObjectManager::close() {
+    if (!check_alive())
         return;
 
     state = 0;
-    del();
+    app::Task::close();
 }
 
 int32_t DataTestObjectManager::get_obj_num() {
@@ -365,7 +365,7 @@ void DataTestObjectManager::set_object_index(int32_t value) {
 }
 
 void DataTestObjectManager::set_object_set_index(int32_t object_set_index) {
-    if (app::TaskWork::check_task_ready(this))
+    if (check_alive())
         return;
 
     data_struct* aft_data = &data_list[DATA_AFT];
@@ -382,7 +382,7 @@ void DataTestObjectManager::set_object_set_index(int32_t object_set_index) {
         obj_set_name.assign(obj_set_name.substr(0, 10));
 
     object_set_id = aft_obj_db->get_object_set_id(obj_set_name.c_str());
-    app::TaskWork::add_task(this, "DATA_TEST_OBJECT_MANAGER");
+    app::Task::open("DATA_TEST_OBJECT_MANAGER");
 }
 
 void DataTestObjectManager::set_rotation(const vec3& value) {

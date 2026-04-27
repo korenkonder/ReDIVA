@@ -787,7 +787,7 @@ static render_context* render_context_load(const wchar_t* config_path) {
     texture_database* aft_tex_db = &aft_data->data_ft.tex_db;
     stage_database* aft_stage_data = &aft_data->data_ft.stage_data;
 
-    app::task_work_init();
+    app::task_info_init();
     motion_init();
     skin_param_data_init();
 
@@ -863,7 +863,7 @@ static render_context* render_context_load(const wchar_t* config_path) {
 
     rctx->init();
 
-    Glitter::glt_particle_manager_add_task();
+    Glitter::glt_particle_manager_open();
 
     for (int32_t i = 0; i < ROB_ID_MAX; i++)
         rob_chara_array_reset_pv_data((ROB_ID)i);
@@ -901,10 +901,10 @@ static render_context* render_context_load(const wchar_t* config_path) {
     for (int32_t i = 0; i < 30; i++) {
         render_timer->start_of_cycle();
         game_state_ctrl();
-        app::TaskWork::ctrl();
+        app::ctrl_task();
         sound_ctrl();
         file_handler_storage_ctrl();
-        app::TaskWork::basic();
+        app::post_task();
         render_timer->end_of_cycle();
     }
 
@@ -1044,7 +1044,7 @@ static void render_context_ctrl(render_context* rctx) {
 
     global_context_menu = true;
     ImGui::SetCurrentContext(imgui_context);
-    app::TaskWork_window();
+    app::window_task();
 
     if (old_width != width || old_height != height || old_scale_index != scale_index)
         app_resize_fb(rctx, true);
@@ -1328,15 +1328,15 @@ static void render_context_dispose(render_context* rctx) {
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext(imgui_context);
 
-    Glitter::glt_particle_manager_del_task();
+    Glitter::glt_particle_manager_close();
 
     rctx->free();
 
-    task_auth_3d_del_task();
-    aet_manager_del_task();
-    task_pv_db_del_task();
+    task_auth_3d_close();
+    aet_manager_close();
+    task_pv_db_close();
 
-    app::TaskWork::dest();
+    app::close_all_task();
 
     sound_work_unload_farc("rom/sound/se.farc");
     sound_work_unload_farc("rom/sound/button.farc");
@@ -1376,7 +1376,7 @@ static void render_context_dispose(render_context* rctx) {
     }
 
     render_timer->reset();
-    while (app::task_work->tasks.size()) {
+    while (app::get_task_info(0)) {
         render_timer->start_of_cycle();
         if (Vulkan::use) {
             app_begin_present_vulkan();
@@ -1393,14 +1393,14 @@ static void render_context_dispose(render_context* rctx) {
         }
 
         game_state_ctrl();
-        app::TaskWork::ctrl();
+        app::ctrl_task();
         sound_ctrl();
         file_handler_storage_ctrl();
 
         if (Vulkan::use)
             Vulkan::gl_wrap_manager_pre_render();
 
-        app::TaskWork::basic();
+        app::post_task();
 
         if (Vulkan::use) {
             Vulkan::end_render_pass(Vulkan::current_command_buffer);
@@ -1467,7 +1467,7 @@ static void render_context_dispose(render_context* rctx) {
     skin_param_data_free();
     motion_free();
 
-    app::task_work_free();
+    app::task_info_free();
 
     delete rctx;
 
@@ -1531,7 +1531,7 @@ static void app_drop_glfw(GLFWwindow* window, int32_t count, char** paths) {
     if (!count || !paths)
         return;
 
-    if (app::TaskWork::has_task(&glitter_editor)) {
+    if (glitter_editor.check_entry()) {
         glitter_editor.file.assign(paths[0]);
         glitter_editor.load_popup = true;
     }

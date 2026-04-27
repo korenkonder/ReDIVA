@@ -71,6 +71,6 @@ public:
 extern TaskWind* task_wind;
 
 extern void task_wind_init();
-extern bool task_wind_hide_task();
-extern bool task_wind_run_task();
+extern bool task_wind_restart();
+extern bool task_wind_suspend();
 extern void task_wind_free();

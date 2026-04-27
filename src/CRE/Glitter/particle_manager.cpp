@@ -94,8 +94,8 @@ namespace Glitter {
                 i->DispMesh(this);
     }
 
-    void GltParticleManager::basic() {
-        BasicEffectGroups();
+    void GltParticleManager::post() {
+        PostEffectGroups();
     }
 
     bool GltParticleManager::AppendEffectGroup(uint64_t hash, EffectGroup* eff_group, FileReader* file_read) {
@@ -110,75 +110,6 @@ namespace Glitter {
 
         effect_groups.insert({ hash, eff_group });
         return true;
-    }
-
-    void GltParticleManager::BasicEffectGroups() {
-        for (auto i = effect_groups.begin(); i != effect_groups.end(); ) {
-            if (i->second->load_count > 0) {
-                i++;
-                continue;
-            }
-
-            uint64_t hash = i->first;
-            for (auto j = scenes.begin(); j != scenes.end();) {
-                Scene* scene = *j;
-                if (!scene || scene->hash != hash) {
-                    j++;
-                    continue;
-                }
-
-                delete* j;
-                j = scenes.erase(j);
-            }
-
-            delete i->second;
-            i = effect_groups.erase(i);
-        }
-
-        bool screen = false;
-        for (auto i = scenes.begin(); i != scenes.end();) {
-            Scene* scene = *i;
-            if (scene->type != Glitter::X) {
-                i++;
-                continue;
-            }
-
-            if (!(scene->flags & SCENE_ENDED)) {
-                if (!screen && scene->CanDisp(DISP_SCREEN, true))
-                    screen = true;
-                i++;
-                continue;
-            }
-
-            if (scene->fade_frame_left > 0.0f) {
-                scene->fade_frame_left -= delta_frame;
-                if (scene->fade_frame_left <= 0.0f)
-                    scene->fade_frame_left = -1.0f;
-            }
-
-            bool free_scene = true;
-            for (auto j = scene->effects.begin(); j != scene->effects.end();)
-                if (!j->ptr || scene->fade_frame_left < 0.0f) {
-                    delete j->ptr;
-                    j = scene->effects.erase(j);
-                }
-                else {
-                    free_scene = false;
-                    j++;
-                }
-
-            if (free_scene) {
-                delete* i;
-                i = scenes.erase(i);
-            }
-            else
-                i++;
-        }
-
-        if (screen)
-            enum_or(flags, PARTICLE_MANAGER_SCREEN);
-        else
-            enum_and(flags, ~PARTICLE_MANAGER_SCREEN);
     }
 
     void GltParticleManager::CalcDisp() {
@@ -786,6 +717,75 @@ namespace Glitter {
         return counter;
     }
 
+    void GltParticleManager::PostEffectGroups() {
+        for (auto i = effect_groups.begin(); i != effect_groups.end(); ) {
+            if (i->second->load_count > 0) {
+                i++;
+                continue;
+            }
+
+            uint64_t hash = i->first;
+            for (auto j = scenes.begin(); j != scenes.end();) {
+                Scene* scene = *j;
+                if (!scene || scene->hash != hash) {
+                    j++;
+                    continue;
+                }
+
+                delete* j;
+                j = scenes.erase(j);
+            }
+
+            delete i->second;
+            i = effect_groups.erase(i);
+        }
+
+        bool screen = false;
+        for (auto i = scenes.begin(); i != scenes.end();) {
+            Scene* scene = *i;
+            if (scene->type != Glitter::X) {
+                i++;
+                continue;
+            }
+
+            if (!(scene->flags & SCENE_ENDED)) {
+                if (!screen && scene->CanDisp(DISP_SCREEN, true))
+                    screen = true;
+                i++;
+                continue;
+            }
+
+            if (scene->fade_frame_left > 0.0f) {
+                scene->fade_frame_left -= delta_frame;
+                if (scene->fade_frame_left <= 0.0f)
+                    scene->fade_frame_left = -1.0f;
+            }
+
+            bool free_scene = true;
+            for (auto j = scene->effects.begin(); j != scene->effects.end();)
+                if (!j->ptr || scene->fade_frame_left < 0.0f) {
+                    delete j->ptr;
+                    j = scene->effects.erase(j);
+                }
+                else {
+                    free_scene = false;
+                    j++;
+                }
+
+            if (free_scene) {
+                delete* i;
+                i = scenes.erase(i);
+            }
+            else
+                i++;
+        }
+
+        if (screen)
+            enum_or(flags, PARTICLE_MANAGER_SCREEN);
+        else
+            enum_and(flags, ~PARTICLE_MANAGER_SCREEN);
+    }
+
     bool GltParticleManager::SceneHasNotEnded(SceneCounter counter) {
         for (Scene*& i : scenes)
             if (i && i->counter.counter == counter.counter)
@@ -968,12 +968,12 @@ namespace Glitter {
         glt_particle_manager = new GltParticleManager;
     }
 
-    bool glt_particle_manager_add_task() {
-        return app::TaskWork::add_task(glt_particle_manager, "GLITTER_TASK", 2);
+    bool glt_particle_manager_open() {
+        return glt_particle_manager->open("GLITTER_TASK", app::TASK_PRIO_LOW);
     }
 
-    bool glt_particle_manager_del_task() {
-        return glt_particle_manager->del();
+    bool glt_particle_manager_close() {
+        return glt_particle_manager->close();
     }
 
     void glt_particle_manager_free() {

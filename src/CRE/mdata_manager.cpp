@@ -80,7 +80,7 @@ void MdataMgr::disp() {
 
 }
 
-void MdataMgr::basic() {
+void MdataMgr::post() {
 
 }
 
@@ -162,12 +162,12 @@ std::string MdataMgr::GetStateString() {
     return str;
 }
 
-bool mdata_manager_add_task() {
-    return app::TaskWork::add_task(mdata_manager_get(), 0, "M_DATA_MANAGER");
+bool mdata_manager_open() {
+    return mdata_manager_get()->open(0, "M_DATA_MANAGER");
 }
 
-bool mdata_manager_del_task() {
-    return mdata_manager_get()->del();
+bool mdata_manager_close() {
+    return mdata_manager_get()->close();
 }
 
 MdataMgr* mdata_manager_get() {

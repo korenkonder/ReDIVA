@@ -84,7 +84,7 @@ struct task_stage_info {
 };
 
 extern void task_stage_init();
-extern bool task_stage_add_task(const char* name);
+extern bool task_stage_open(const char* name);
 extern bool task_stage_check_not_loaded();
 extern float_t task_stage_current_get_floor_height(const vec3& pos, const float_t coli_r);
 extern void task_stage_current_set_ground(bool value);
@@ -92,7 +92,7 @@ extern void task_stage_current_set_lens_flare(bool value);
 extern void task_stage_current_set_ring(bool value);
 extern void task_stage_current_set_sky(bool value);
 extern void task_stage_current_set_stage_display(bool value, bool effect_enable);
-extern bool task_stage_del_task();
+extern bool task_stage_close();
 extern void task_stage_disp_shadow();
 extern stage* task_stage_get_current_stage();
 int32_t task_stage_get_current_stage_index();

@@ -189,7 +189,7 @@ bool DtmEqVs::ctrl() {
                 if (rob_chr)
                     task_rob_load_append_free_req_data_obj(rob_chr->chara_num, &temp_equip);
                 rob_chara_array_reset_bone_data_item_equip((ROB_ID)m_rc);
-                task_rob_manager_hide_task();
+                task_rob_manager_suspend();
                 m_mode = 1;
             }
         }
@@ -202,7 +202,7 @@ bool DtmEqVs::ctrl() {
         break;
     case 2:
         if (!task_rob_load_check_load_req_data()) {
-            task_rob_manager_run_task();
+            task_rob_manager_restart();
             if (get_rob_management()->get_rob((ROB_ID)m_rc)) {
                 data_struct* aft_data = &data_list[DATA_AFT];
                 bone_database* aft_bone_data = &aft_data->data_ft.bone_data;
@@ -222,7 +222,7 @@ bool DtmEqVs::dest() {
     return true;
 }
 
-bool DtmEqVs::add_task(int32_t rc, int32_t cn) {
+bool DtmEqVs::open(int32_t rc, int32_t cn) {
     m_rc = rc;
     m_cn_cur = cn;
     m_cn_pre = cn;
@@ -231,11 +231,11 @@ bool DtmEqVs::add_task(int32_t rc, int32_t cn) {
     m_dp = 0;
     data_test_equip_dw_set_chara_num(rc, (CHARA_NUM)cn);
     data_test_equip_dw_set_cos_id(rc, m_cs_cur);
-    return app::TaskWork::add_task(this, "DATA TEST EQUIP MANAGER FOR VS");
+    return app::Task::open("DATA TEST EQUIP MANAGER FOR VS");
 }
 
-bool DtmEqVs::del_task() {
-    return app::Task::del();
+bool DtmEqVs::close() {
+    return app::Task::close();
 }
 
 void DtmEqVs::SetCharaNumCosId(int32_t cn, int32_t cs) {
@@ -644,7 +644,7 @@ void DataTestEquipDw::DispPartsCallback(dw::Widget* data) {
 
 void DataTestEquipDw::ExclusiveCheckCallback(dw::Widget* data) {
     data_test_equip_dw->Hide();
-    //data_test_item_check_add_task(&data_test_item_check);
+    //data_test_item_check_open(&data_test_item_check);
 }
 
 void DataTestEquipDw::ItemCallback(dw::Widget* data) {
