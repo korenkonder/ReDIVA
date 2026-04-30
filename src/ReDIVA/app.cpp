@@ -74,11 +74,11 @@
 #include "information/dw_console.hpp"
 #include "pv_game/pv_game.hpp"
 #include "am_data.hpp"
-#include "game_state.hpp"
 #include "font_info.hpp"
 #include "imgui_helper.hpp"
 #include "input.hpp"
 #include "input_state.hpp"
+#include "mode.hpp"
 #include "task_movie.hpp"
 #include "task_window.hpp"
 #include "x_pv_game.hpp"
@@ -803,7 +803,7 @@ static render_context* render_context_load(const wchar_t* config_path) {
     ogg_file_handler_storage_init();
     ogg_playback_data_init();
 
-    game_state_init();
+    init_mode(MODE_STARTUP, MODE_SUB_MAX);
 
     render_manager_init_data(0, 0, 0, false);
     /*render_manager_init_data(
@@ -900,7 +900,7 @@ static render_context* render_context_load(const wchar_t* config_path) {
     render_timer->reset();
     for (int32_t i = 0; i < 30; i++) {
         render_timer->start_of_cycle();
-        game_state_ctrl();
+        ctrl_mode();
         app::ctrl_task();
         sound_ctrl();
         file_handler_storage_ctrl();
@@ -1077,52 +1077,52 @@ static void render_context_ctrl(render_context* rctx) {
 
     const InputState* input_state = input_state_get(0);
     if (input_state->CheckTapped(INPUT_BUTTON_F4))
-        game_state_set_game_state_next(GAME_STATE_ADVERTISE);
+        shift_next_mode(MODE_ADVERTISE);
 #if PV_DEBUG
     else if (input_state->CheckTapped(INPUT_BUTTON_F5) && input_state->CheckDown(INPUT_BUTTON_CONTROL)) {
         pv_x = false;
-        game_state_set_game_state_next(GAME_STATE_GAME);
+        shift_next_mode(MODE_GAME);
     }
 #if BAKE_X_PACK
     else if (input_state->CheckTapped(INPUT_BUTTON_F5) && input_state->CheckDown(INPUT_BUTTON_SHIFT)) {
         pv_x = true;
         pv_x_bake = true;
-        game_state_set_game_state_next(GAME_STATE_GAME);
+        shift_next_mode(MODE_GAME);
     }
     else if (input_state->CheckTapped(INPUT_BUTTON_F5)) {
         pv_x = true;
         pv_x_bake = false;
-        game_state_set_game_state_next(GAME_STATE_GAME);
+        shift_next_mode(MODE_GAME);
     }
 #else
     else if (input_state->CheckTapped(INPUT_BUTTON_F5)) {
         pv_x = true;
-        game_state_set_game_state_next(GAME_STATE_GAME);
+        shift_next_mode(MODE_GAME);
     }
 #endif
 #else
 #if BAKE_X_PACK
     else if (input_state->CheckTapped(INPUT_BUTTON_F5) && input_state->CheckDown(INPUT_BUTTON_SHIFT)) {
         pv_x_bake = true;
-        game_state_set_game_state_next(GAME_STATE_GAME);
+        shift_next_mode(MODE_GAME);
     }
     else if (input_state->CheckTapped(INPUT_BUTTON_F5)) {
         pv_x_bake = false;
-        game_state_set_game_state_next(GAME_STATE_GAME);
+        shift_next_mode(MODE_GAME);
     }
 #else
     else if (input_state->CheckTapped(INPUT_BUTTON_F5))
-        game_state_set_game_state_next(GAME_STATE_GAME);
+        shift_next_mode(MODE_GAME);
 #endif
 #endif
     else if (input_state->CheckTapped(INPUT_BUTTON_F6))
-        game_state_set_game_state_next(GAME_STATE_DATA_TEST);
+        shift_next_mode(MODE_DATA_TEST);
     else if (input_state->CheckTapped(INPUT_BUTTON_F7))
-        game_state_set_game_state_next(GAME_STATE_TEST_MODE);
+        shift_next_mode(MODE_TEST_MODE);
     else if (input_state->CheckTapped(INPUT_BUTTON_F8))
-        game_state_set_game_state_next(GAME_STATE_APP_ERROR);
+        shift_next_mode(MODE_APP_ERROR);
     else if (input_state->CheckTapped(INPUT_BUTTON_F9)) // Added
-        game_state_set_game_state_next(GAME_STATE_DATA_EDIT); // Added
+        shift_next_mode(MODE_DATA_EDIT); // Added
 #if DISPLAY_IBL
     else if (input_state->CheckTapped(INPUT_BUTTON_L))
         display_ibl ^= true;
@@ -1148,18 +1148,18 @@ static void render_context_ctrl(render_context* rctx) {
     input_state_am_ctrl();
     input_state_pc_ctrl();
     input_state_ctrl();
-    if (!get_pause() || !game_state_get_pause())
-        game_state_ctrl();
+    if (!get_pause() || !check_pause_enable())
+        ctrl_mode();
     rctx->ctrl();
 
-    if (fast_loader_speed > 1 && game_state_get_game_state() == GAME_STATE_STARTUP)
+    if (fast_loader_speed > 1 && get_mode() == MODE_STARTUP)
         for (int32_t i = 1; i < fast_loader_speed; i++) {
             rctx_ptr = rctx;
             input_state_am_ctrl();
             input_state_pc_ctrl();
             input_state_ctrl();
-            if (!get_pause() || !game_state_get_pause())
-                game_state_ctrl();
+            if (!get_pause() || !check_pause_enable())
+                ctrl_mode();
             rctx->ctrl();
         }
 
@@ -1167,7 +1167,7 @@ static void render_context_ctrl(render_context* rctx) {
         Vulkan::gl_wrap_manager_pre_render();
 
     char buf[0x200];
-    game_state_print(buf, sizeof(buf));
+    print_mode(buf, sizeof(buf));
     glfwSetWindowTitle(window, buf);
 
     ImGui::Render();
@@ -1392,7 +1392,7 @@ static void render_context_dispose(render_context* rctx) {
             Vulkan::manager_next_frame(vulkan_current_frame);
         }
 
-        game_state_ctrl();
+        ctrl_mode();
         app::ctrl_task();
         sound_ctrl();
         file_handler_storage_ctrl();

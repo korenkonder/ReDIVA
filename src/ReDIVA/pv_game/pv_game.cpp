@@ -19,11 +19,11 @@
 #include "../../CRE/stage_param.hpp"
 #include "../../KKdLib/prj/algorithm.hpp"
 #include "../am_data.hpp"
-#include "../game_state.hpp"
 #include "../imgui_helper.hpp"
 #include "../input_state.hpp"
 #include "../mask_screen.hpp"
 #include "../task_movie.hpp"
+#include "../test_mode.hpp"
 #include "../wait_screen.hpp"
 #include "player_data.hpp"
 #include "pv_game_camera.hpp"
@@ -5961,7 +5961,7 @@ bool task_pv_game_init_demo_pv(int32_t pv_id, pv_difficulty difficulty, bool mus
 }
 
 void task_pv_game_init_test_pv() {
-    if (test_mode_get())
+    if (is_test_mode_start())
         return;
 
     task_rob_manager_open();
