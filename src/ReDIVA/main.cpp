@@ -32,7 +32,7 @@ bool cpu_caps_avx2;
         else if (!i->compare(L"-debug"))
             stru_140EDA5B0.debug = 1;
         else if (!i->compare(L"-t"))
-            test_mode_set(1);
+            sys_am_set_test_mode_starting(true);
         else  if (!i->compare(L"-m")) {
             if (++i == i_end)
                 break;

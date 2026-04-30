@@ -4,20 +4,20 @@
 */
 
 #include "selector.hpp"
-#include "../game_state.hpp"
 #include "../input_state.hpp"
+#include "../mode.hpp"
 #include "../print_work.hpp"
 
 struct DataEditSelData {
-    SubGameStateEnum state;
+    ModeSub state;
     int32_t index;
     const char* name;
 };
 
 static const DataEditSelData data_edit_sel_data[] = {
-    { SUB_GAME_STATE_DATA_EDIT_GLITTER_EDITOR,  0, "GLITTER EDITOR" },
+    { MODE_SUB_DATA_EDIT_GLITTER_EDITOR,  0, "GLITTER EDITOR" },
 #if FACE_ANIM
-    { SUB_GAME_STATE_DATA_EDIT_FACE_ANIM     ,  1, "FACE ANIM" },
+    { MODE_SUB_DATA_EDIT_FACE_ANIM     ,  1, "FACE ANIM" },
 #endif
 };
 

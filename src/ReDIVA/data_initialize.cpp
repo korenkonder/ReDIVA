@@ -16,7 +16,7 @@
 #include "../CRE/object.hpp"
 #include "../CRE/sound.hpp"
 #include "../CRE/sprite.hpp"
-#include "game_state.hpp"
+#include "test_mode.hpp"
 
 extern uint32_t dbg_set_id;
 
@@ -42,7 +42,7 @@ TaskDataInit::~TaskDataInit() {
 
 bool TaskDataInit::init() {
     state = 0;
-    field_6C = !test_mode_get();
+    field_6C = !is_test_mode_start();
     return true;
 }
 

@@ -11,9 +11,9 @@
 #include "../KKdLib/io/path.hpp"
 #include "pv_game/pv_game.hpp"
 #include "input_state.hpp"
-#include "game_state.hpp"
 #include "mask_screen.hpp"
 #include "print_work.hpp"
+#include "test_mode.hpp"
 
 struct system_startup_struct {
     int32_t state;
@@ -111,7 +111,7 @@ namespace system_startup_detail {
     bool TaskSystemStartup::init() {
         system_startup.state = 0;
         system_startup.wait = 0;
-        if (test_mode_get())
+        if (is_test_mode_start())
             system_startup.time = 3600;
         else
             system_startup.time = 7200;
@@ -167,9 +167,9 @@ namespace system_startup_detail {
 
             //if (system_startup.location_server_state < 0 && system_startup.net_param_state < 0
             //    && system_startup.field_1C && system_startup.pv_information_state < 0
-            //    && system_startup.extended_data_state < 0 && (test_mode_get() || system_startup.all_net_state < 0))
+            //    && system_startup.extended_data_state < 0 && (is_test_mode_start() || system_startup.all_net_state < 0))
             if (system_startup.pv_information_state < 0 && system_startup.extended_data_state < 0)
-                if (test_mode_get())
+                if (is_test_mode_start())
                     system_startup.state = 6;
                 else {
                     system_startup.state = 4;
@@ -180,7 +180,7 @@ namespace system_startup_detail {
                 system_startup.time--;
 
             bool service = false;
-            if (test_mode_get() && input_state_get(0)->CheckTapped(INPUT_BUTTON_JVS_SERVICE))
+            if (is_test_mode_start() && input_state_get(0)->CheckTapped(INPUT_BUTTON_JVS_SERVICE))
                 service = true;
 
             if (system_startup.time >= 0 && !service)
@@ -188,7 +188,7 @@ namespace system_startup_detail {
 
             system_startup_pv_information_dest();
 
-            if (test_mode_get())
+            if (is_test_mode_start())
                 system_startup.state = 6;
             else {
                 system_startup.state = 4;
@@ -265,7 +265,7 @@ namespace system_startup_detail {
                 system_startup.print_work.PrintText(app::TEXT_FLAG_ALIGN_FLAG_LEFT, buf.data(), buf.size());
             }
 
-            if (test_mode_get()) {
+            if (is_test_mode_start()) {
                 system_startup.print_work.PrintText(app::TEXT_FLAG_ALIGN_FLAG_LEFT, "\n");
                 system_startup.print_work.PrintText(app::TEXT_FLAG_ALIGN_FLAG_LEFT,
                     "PRESS SERVICE BUTTON TO CANCEL\n");
@@ -328,7 +328,7 @@ namespace system_startup_detail {
                     system_startup.print_work.PrintText(app::TEXT_FLAG_ALIGN_FLAG_LEFT, buf.data(), buf.size());
                 }
 
-                if (test_mode_get())
+                if (is_test_mode_start())
                     system_startup.print_work.PrintText(app::TEXT_FLAG_ALIGN_FLAG_LEFT,
                         "PRESS SERVICE BUTTON TO CANCEL\n");
             }
@@ -536,7 +536,7 @@ static SSOpdMakeTask* ss_opd_make_task_get() {
 }
 
 static bool system_startup_check_ready() {
-    if (test_mode_get() || system_startup.ready)
+    if (is_test_mode_start() || system_startup.ready)
         return true;
 
     task_pv_game_close();
@@ -552,7 +552,7 @@ static bool system_startup_check_ready() {
 }
 
 static void system_startup_extended_data_ctrl() {
-    if (test_mode_get()) {
+    if (is_test_mode_start()) {
         system_startup.extended_data_state = -1;
         return;
     }
@@ -582,7 +582,7 @@ static void system_startup_extended_data_ctrl() {
 }
 
 static void system_startup_extended_data_disp() {
-    if (test_mode_get())
+    if (is_test_mode_start())
         return;
 
     std::string buf("EXTENDED DATA     : ");

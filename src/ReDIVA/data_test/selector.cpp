@@ -4,33 +4,33 @@
 */
 
 #include "selector.hpp"
-#include "../game_state.hpp"
 #include "../input_state.hpp"
+#include "../mode.hpp"
 #include "../print_work.hpp"
 
 struct DataTestSelData {
-    SubGameStateEnum state;
+    ModeSub state;
     int32_t index;
     const char* name;
 };
 
 static const DataTestSelData data_test_sel_data[] = {
-    { SUB_GAME_STATE_DATA_TEST_MISC     ,  0, "MISC   TEST" },
-    { SUB_GAME_STATE_DATA_TEST_OBJ      ,  1, "OBJECT TEST" },
-    { SUB_GAME_STATE_DATA_TEST_STG      ,  2, "STAGE  TEST" },
-    { SUB_GAME_STATE_DATA_TEST_MOT      ,  3, "MOTION TEST" },
-    { SUB_GAME_STATE_DATA_TEST_COLLISION,  4, "COLLISION TEST" },
-    { SUB_GAME_STATE_DATA_TEST_SPR      ,  5, "SPRITE TEST" },
-    { SUB_GAME_STATE_DATA_TEST_AET      ,  6, "2DAUTH TEST" },
-    { SUB_GAME_STATE_DATA_TEST_AUTH_3D  ,  7, "3DAUTH TEST" },
-    { SUB_GAME_STATE_DATA_TEST_CHR      ,  8, "CHARA  TEST" },
-    { SUB_GAME_STATE_DATA_TEST_ITEM     ,  9, "ITEM   TEST" },
-    { SUB_GAME_STATE_DATA_TEST_OPD      , 10, "OPD    TEST" },
-    { SUB_GAME_STATE_DATA_TEST_PERF     , 11, "PERFORMANCE TEST" },
-    { SUB_GAME_STATE_DATA_TEST_PRINT    , 12, "PRINT TEST" },
-    { SUB_GAME_STATE_DATA_TEST_CARD     , 13, "CARD TEST" },
-    { SUB_GAME_STATE_DATA_TEST_PVSCRIPT , 14, "PVSCRIPT TEST" },
-    { SUB_GAME_STATE_DATA_TEST_GLITTER  , 15, "GLITTER TEST" },
+    { MODE_SUB_DATA_TEST_MISC     ,  0, "MISC   TEST" },
+    { MODE_SUB_DATA_TEST_OBJ      ,  1, "OBJECT TEST" },
+    { MODE_SUB_DATA_TEST_STG      ,  2, "STAGE  TEST" },
+    { MODE_SUB_DATA_TEST_MOT      ,  3, "MOTION TEST" },
+    { MODE_SUB_DATA_TEST_COLLISION,  4, "COLLISION TEST" },
+    { MODE_SUB_DATA_TEST_SPR      ,  5, "SPRITE TEST" },
+    { MODE_SUB_DATA_TEST_AET      ,  6, "2DAUTH TEST" },
+    { MODE_SUB_DATA_TEST_AUTH_3D  ,  7, "3DAUTH TEST" },
+    { MODE_SUB_DATA_TEST_CHR      ,  8, "CHARA  TEST" },
+    { MODE_SUB_DATA_TEST_ITEM     ,  9, "ITEM   TEST" },
+    { MODE_SUB_DATA_TEST_OPD      , 10, "OPD    TEST" },
+    { MODE_SUB_DATA_TEST_PERF     , 11, "PERFORMANCE TEST" },
+    { MODE_SUB_DATA_TEST_PRINT    , 12, "PRINT TEST" },
+    { MODE_SUB_DATA_TEST_CARD     , 13, "CARD TEST" },
+    { MODE_SUB_DATA_TEST_PVSCRIPT , 14, "PVSCRIPT TEST" },
+    { MODE_SUB_DATA_TEST_GLITTER  , 15, "GLITTER TEST" },
 };
 
 static const int32_t data_test_sel_data_count = sizeof(data_test_sel_data) / sizeof(DataTestSelData);

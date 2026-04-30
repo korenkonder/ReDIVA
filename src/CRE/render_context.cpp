@@ -1367,8 +1367,8 @@ void render_context::ctrl() {
     rctx_ptr = this;
     start_frame_process();
 
-    extern bool game_state_get_pause();
-    if (!get_pause() || !game_state_get_pause())
+    extern bool check_pause_enable();
+    if (!get_pause() || !check_pause_enable())
         app::ctrl_task();
     sound_ctrl();
     file_handler_storage_ctrl();
