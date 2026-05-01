@@ -9295,13 +9295,13 @@ void obj_set_reflect::pack_file(void** data, size_t* size, bool mmp,
             uint8_t* iv = section_data + section_size + 0x20;
 
             time_t t;
-            rand_state_array_set_seed((uint32_t)time(&t), 4);
+            InitRandomState((uint32_t)time(&t), RANDOM_TYPE_GLOBAL);
 
             for (uint32_t i = 0; i < 0x20; i += sizeof(uint32_t))
-                *(uint32_t*)(key + i) = rand_state_array_get_int(4);
+                *(uint32_t*)(key + i) = Random(RANDOM_TYPE_GLOBAL);
 
             for (uint32_t i = 0; i < 0x10; i += sizeof(uint32_t))
-                *(uint32_t*)(iv + i) = rand_state_array_get_int(4);
+                *(uint32_t*)(iv + i) = Random(RANDOM_TYPE_GLOBAL);
 
 
             prj::Rijndael rijndael(prj::Rijndael_Nb, prj::Rijndael_Nk128, key);
@@ -10097,7 +10097,8 @@ static void x_pv_game_item_alpha_callback(void* data, ROB_ID rob_id, int32_t typ
 
 static void x_pv_game_change_field(x_pv_game* xpvgm, int32_t field, int64_t dsc_time, int64_t curr_time) {
     if (!xpvgm->task_effect_init && (dsc_time > -1 || curr_time > -1)) {
-        rand_state_array_4_set_seed_1393939();
+        extern void pv_init_random_state();
+        pv_init_random_state();
         effect_manager_reset();
         xpvgm->task_effect_init = true;
     }

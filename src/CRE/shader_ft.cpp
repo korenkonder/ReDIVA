@@ -2828,8 +2828,8 @@ static void glass_eye_calc(glass_eye_struct* glass_eye) {
 
     glass_eye->frame = frame;
     if (frame == (frame / 90) * 90) {
-        glass_eye->tex_offset.x = (rand_state_array_get_float(0) - 0.5f) * 0.015f;
-        glass_eye->tex_offset.y = (rand_state_array_get_float(0) - 0.5f) * 0.015f;
+        glass_eye->tex_offset.x = (RandomF(RANDOM_TYPE_0) - 0.5f) * 0.015f;
+        glass_eye->tex_offset.y = (RandomF(RANDOM_TYPE_0) - 0.5f) * 0.015f;
     }
 
     float_t phase = (float_t)(uint8_t)frame * (float_t)(M_PI * (1.0 / 128.0));

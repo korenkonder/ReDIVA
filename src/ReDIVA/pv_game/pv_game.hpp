@@ -896,6 +896,8 @@ extern bool pv_game_init();
 extern pv_game* pv_game_get();
 extern bool pv_game_free();
 
+extern void pv_init_random_state();
+
 extern bool task_pv_game_open(TaskPvGame::Args& args);
 extern bool task_pv_game_check_alive();
 extern bool task_pv_game_close();

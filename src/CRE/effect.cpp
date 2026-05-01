@@ -2591,7 +2591,7 @@ void EffectFogRing::draw_static(render_data_context& rend_data_ctx, void* data, 
 }
 
 float_t EffectFogRing::ptcl_random(float_t value) {
-    return (float_t)(rand_state_array_get_int(4) % 10000) * 0.0001f * value * 2.0f - value;
+    return (float_t)(Random(RANDOM_TYPE_GLOBAL) % 10000) * 0.0001f * value * 2.0f - value;
 }
 
 void EffectFogRing::sub_140347B40(float_t delta_time) {
@@ -3470,10 +3470,10 @@ void EffectRipple::sub_140358690() {
     v1.data.color = field_50.color;
 
     for (int32_t i = 0; i < 16; i++) {
-        v1.data.position[i].x = rand_state_array_get_float(4) * 1.8f - 0.9f;
-        v1.data.position[i].y = rand_state_array_get_float(4) * 1.8f - 0.9f;
-        rand_state_array_get_int(0x03, 0x07, 4);
-        v1.data.position[i].z = (float_t)rand_state_array_get_int(0x20, 0xA0, 4);
+        v1.data.position[i].x = RandomF(RANDOM_TYPE_GLOBAL) * 1.8f - 0.9f;
+        v1.data.position[i].y = RandomF(RANDOM_TYPE_GLOBAL) * 1.8f - 0.9f;
+        Random(0x03, 0x07, RANDOM_TYPE_GLOBAL);
+        v1.data.position[i].z = (float_t)Random(0x20, 0xA0, RANDOM_TYPE_GLOBAL);
     }
 
     v1.data.count = 16;
@@ -3560,23 +3560,23 @@ void EffectRipple::sub_14035AAE0() {
         min_value = min_def(min_value, 126);
 
         for (int32_t i = 0; i < rain_ripple_num; i++) {
-            v1.data.position[i].x = (float_t)(rand_state_array_get_int(4) % 1000) * 0.001f * 2.0f - 1.0f;
+            v1.data.position[i].x = (float_t)(Random(RANDOM_TYPE_GLOBAL) % 1000) * 0.001f * 2.0f - 1.0f;
             v1.data.position[i].y = 0.0f;
-            v1.data.position[i].y = (float_t)(rand_state_array_get_int(4) % 1000) * 0.001f * 2.0f - 1.0f;
+            v1.data.position[i].y = (float_t)(Random(RANDOM_TYPE_GLOBAL) % 1000) * 0.001f * 2.0f - 1.0f;
             v1.data.color[i] = { 0x00, 0x00, 0x00,
-                (uint8_t)(0x7F - rand_state_array_get_int(4) % max_value - min_value) };
+                (uint8_t)(0x7F - Random(RANDOM_TYPE_GLOBAL) % max_value - min_value) };
             v1.data.count++;
         }
     }
 
     for (size_t i = 0; i < emitter_num; i++) {
         float_t v10 = emitter_list[i].z;
-        v1.data.position[i].x = ((rand_state_array_get_float(4) - 0.5f)
+        v1.data.position[i].x = ((RandomF(RANDOM_TYPE_GLOBAL) - 0.5f)
             * v10 + emitter_list[i].x) * emit_pos_scale;
         v1.data.position[i].y = 0.0f;
-        v1.data.position[i].z = ((rand_state_array_get_float(4) - 0.5f)
+        v1.data.position[i].z = ((RandomF(RANDOM_TYPE_GLOBAL) - 0.5f)
             * v10 + emitter_list[i].y) * emit_pos_scale;
-        v1.data.color[i] = rand_state_array_get_float(4) < 0.5f
+        v1.data.color[i] = RandomF(RANDOM_TYPE_GLOBAL) < 0.5f
             ? color4u8(0x00, 0x00, 0x00, 0xFF) : color4u8(0x00);
         v1.data.count++;
     }
@@ -3625,10 +3625,10 @@ void EffectRipple::sub_14035AED0() {
                 if (use_float_ripplemap)
                     sub_1403587C0(pos, rob_colli.old_pos, scale, v2.data, v3.data);
                 else if (v2.data.count < 16) {
-                    v2.data.position[v2.data.count].x = ((rand_state_array_get_float(4) - 0.5f)
+                    v2.data.position[v2.data.count].x = ((RandomF(RANDOM_TYPE_GLOBAL) - 0.5f)
                         * 0.02f + pos.x) * emit_pos_scale + emit_pos_ofs_x;
                     v2.data.position[v2.data.count].y = pos.y;
-                    v2.data.position[v2.data.count].z = ((rand_state_array_get_float(4) - 0.5f)
+                    v2.data.position[v2.data.count].z = ((RandomF(RANDOM_TYPE_GLOBAL) - 0.5f)
                         * 0.02f + pos.z) * emit_pos_scale + emit_pos_ofs_z;
                     v2.data.color[v2.data.count] = { 0x00, 0x00, 0x00, 0x00 };
                     v2.data.count++;
@@ -5023,17 +5023,17 @@ static bool effect_array_parse_stage_param_data_star(stage_param_star* star, int
 void leaf_particle_data::init() {
     stage_param_leaf* leaf = stage_param_data_leaf_current;
 
-    position.x = rand_state_array_get_float(4);
-    position.y = rand_state_array_get_float(4);
-    position.z = rand_state_array_get_float(4);
+    position.x = RandomF(RANDOM_TYPE_GLOBAL);
+    position.y = RandomF(RANDOM_TYPE_GLOBAL);
+    position.z = RandomF(RANDOM_TYPE_GLOBAL);
     position = (position * vec3(2.0f, 1.0f, 2.0f) - vec3(1.0f, 0.0f, 1.0f)) * leaf->range + leaf->offset;
     direction = vec3(0.0f, -1.0f, 0.0f);
     normal = vec3(0.0f, 0.0f, 1.0f);
-    rotation.x = rand_state_array_get_float(4) * 6.28f;
-    rotation.y = rand_state_array_get_float(4) * 6.28f;
+    rotation.x = RandomF(RANDOM_TYPE_GLOBAL) * 6.28f;
+    rotation.y = RandomF(RANDOM_TYPE_GLOBAL) * 6.28f;
     rotation.z = 0.0f;
-    rotation_add.x = (rand_state_array_get_float(4) + 1.0f) * 3.0f;
-    rotation_add.y = (rand_state_array_get_float(4) + 1.0f) * 3.0f;
+    rotation_add.x = (RandomF(RANDOM_TYPE_GLOBAL) + 1.0f) * 3.0f;
+    rotation_add.y = (RandomF(RANDOM_TYPE_GLOBAL) + 1.0f) * 3.0f;
     rotation_add.z = 10.0f;
     type = 1;
     size = leaf->psize;
@@ -6271,16 +6271,16 @@ static void particle_event(particle_event_data* event_data) {
                 break;
 
             data->position = pos;
-            data->rotation.x = rand_state_array_get_float(4) * 6.28f;
-            data->rotation.y = rand_state_array_get_float(4) * 6.28f;
+            data->rotation.x = RandomF(RANDOM_TYPE_GLOBAL) * 6.28f;
+            data->rotation.y = RandomF(RANDOM_TYPE_GLOBAL) * 6.28f;
             vec3 direction = vec3(cosf(data->rotation.x), 0.0f, sinf(data->rotation.x));
-            data->direction = direction * (rand_state_array_get_float(4) * force);
+            data->direction = direction * (RandomF(RANDOM_TYPE_GLOBAL) * force);
             data->normal = vec3(0.0f, 0.0f, 1.0f);
-            data->rotation_add.x = (rand_state_array_get_float(4) + 1.0f) * 5.0f;
-            data->rotation_add.y = (rand_state_array_get_float(4) + 1.0f) * 2.5f;
+            data->rotation_add.x = (RandomF(RANDOM_TYPE_GLOBAL) + 1.0f) * 5.0f;
+            data->rotation_add.y = (RandomF(RANDOM_TYPE_GLOBAL) + 1.0f) * 2.5f;
             data->rotation_add.z = 20.0f;
 
-            int32_t color_rand = rand_state_array_get_int(0, 2, 4);
+            int32_t color_rand = Random(0, 2, RANDOM_TYPE_GLOBAL);
             data->color = color[color_rand];
             data->type = type;
             data->life_time = 10.0f;
@@ -6288,8 +6288,8 @@ static void particle_event(particle_event_data* event_data) {
         }
     }
     else if (type == 2.0f) {
-        float_t v13 = rand_state_array_get_float(4) * (float_t)(M_PI * 2.0);
-        float_t v14 = rand_state_array_get_float(4) * (float_t)(144.0 * DEG_TO_RAD);
+        float_t v13 = RandomF(RANDOM_TYPE_GLOBAL) * (float_t)(M_PI * 2.0);
+        float_t v14 = RandomF(RANDOM_TYPE_GLOBAL) * (float_t)(144.0 * DEG_TO_RAD);
         float_t v15 = sinf(v14);
 
         vec3 direction;
@@ -6304,11 +6304,11 @@ static void particle_event(particle_event_data* event_data) {
 
             data->position = pos;
             data->normal = vec3(0.0f, 0.0f, 1.0f);
-            data->rotation.x = rand_state_array_get_float(4) * 6.28f;
-            data->rotation.y = rand_state_array_get_float(4) * 6.28f;
-            data->direction = direction * ((rand_state_array_get_float(4) + 1.0f) * force);
-            data->rotation_add.x = (rand_state_array_get_float(4) + 1.0f) * 5.0f;
-            data->rotation_add.y = (rand_state_array_get_float(4) + 1.0f) * 2.5f;
+            data->rotation.x = RandomF(RANDOM_TYPE_GLOBAL) * 6.28f;
+            data->rotation.y = RandomF(RANDOM_TYPE_GLOBAL) * 6.28f;
+            data->direction = direction * ((RandomF(RANDOM_TYPE_GLOBAL) + 1.0f) * force);
+            data->rotation_add.x = (RandomF(RANDOM_TYPE_GLOBAL) + 1.0f) * 5.0f;
+            data->rotation_add.y = (RandomF(RANDOM_TYPE_GLOBAL) + 1.0f) * 2.5f;
             data->rotation_add.z = 20.0f;
             data->color.x = 5.0;
             data->color.y = 4.5;
@@ -6360,9 +6360,9 @@ static void rain_particle_init(bool change_stage) {
         data.alpha = 1.0f;
         data.life_time = 1;
         vec3 _velocity;
-        _velocity.x = rand_state_array_get_float(4);
-        _velocity.y = rand_state_array_get_float(4);
-        _velocity.z = rand_state_array_get_float(4);
+        _velocity.x = RandomF(RANDOM_TYPE_GLOBAL);
+        _velocity.y = RandomF(RANDOM_TYPE_GLOBAL);
+        _velocity.z = RandomF(RANDOM_TYPE_GLOBAL);
         data.velocity = (_velocity - 0.5f) * vel_range + velocity;
     }
 
@@ -6374,9 +6374,9 @@ static void rain_particle_init(bool change_stage) {
     vec3* vtx_data = prj::MemoryManager::alloc<vec3>(prj::MemCTemp, rain_ptcl_count, "init_rain");
     for (int32_t i = 0; i < rain_ptcl_count; i++) {
         vec3 position;
-        position.x = rand_state_array_get_float(4);
-        position.y = rand_state_array_get_float(4);
-        position.z = rand_state_array_get_float(4);
+        position.x = RandomF(RANDOM_TYPE_GLOBAL);
+        position.y = RandomF(RANDOM_TYPE_GLOBAL);
+        position.z = RandomF(RANDOM_TYPE_GLOBAL);
         *vtx_data++ = position;
     }
 
@@ -6472,29 +6472,29 @@ static void snow_particle_init(bool change_stage) {
         particle_data* snow_ptcl = snow_ptcl_data;
         for (int32_t i = ((stage_param_data_snow_current->num_snow - 1) >> 1) + 1; i; i--, snow_ptcl += 2) {
             vec3 position;
-            position.x = rand_state_array_get_float(4) - 0.5f;
-            position.y = rand_state_array_get_float(4);
-            position.z = rand_state_array_get_float(4) - 0.5f;
+            position.x = RandomF(RANDOM_TYPE_GLOBAL) - 0.5f;
+            position.y = RandomF(RANDOM_TYPE_GLOBAL);
+            position.z = RandomF(RANDOM_TYPE_GLOBAL) - 0.5f;
             snow_ptcl[0].position = position * range + offset;
 
-            snow_ptcl[0].size = rand_state_array_get_float(4) * 0.4f + 0.3f;
-            snow_ptcl[0].alpha = rand_state_array_get_float(4) * 0.5f + 0.4f;
+            snow_ptcl[0].size = RandomF(RANDOM_TYPE_GLOBAL) * 0.4f + 0.3f;
+            snow_ptcl[0].alpha = RandomF(RANDOM_TYPE_GLOBAL) * 0.5f + 0.4f;
             snow_ptcl[0].life_time = 1;
 
             vec3 _velocity;
-            _velocity.x = rand_state_array_get_float(4);
-            _velocity.y = rand_state_array_get_float(4);
-            _velocity.z = rand_state_array_get_float(4);
+            _velocity.x = RandomF(RANDOM_TYPE_GLOBAL);
+            _velocity.y = RandomF(RANDOM_TYPE_GLOBAL);
+            _velocity.z = RandomF(RANDOM_TYPE_GLOBAL);
             snow_ptcl[0].velocity = (_velocity - 0.5f) * vel_range + velocity;
 
             snow_ptcl[0].direction = 0.0f;
 
-            snow_ptcl[1].size = ((rand_state_array_get_float(4) * 0.5f) + 0.3f) * snow_ptcl[0].size;
-            snow_ptcl[1].alpha = (rand_state_array_get_float(4) + 1.0f) * 0.3f;
+            snow_ptcl[1].size = ((RandomF(RANDOM_TYPE_GLOBAL) * 0.5f) + 0.3f) * snow_ptcl[0].size;
+            snow_ptcl[1].alpha = (RandomF(RANDOM_TYPE_GLOBAL) + 1.0f) * 0.3f;
 
-            _velocity.x = rand_state_array_get_float(4);
-            _velocity.y = rand_state_array_get_float(4);
-            _velocity.z = rand_state_array_get_float(4);
+            _velocity.x = RandomF(RANDOM_TYPE_GLOBAL);
+            _velocity.y = RandomF(RANDOM_TYPE_GLOBAL);
+            _velocity.z = RandomF(RANDOM_TYPE_GLOBAL);
             snow_ptcl[1].velocity = (_velocity - 0.5f) * 0.035f * (snow_ptcl[1].size + snow_ptcl[0].size);
 
             snow_ptcl[0].size = snow_particle_size_mid * snow_ptcl[0].size;
@@ -6513,9 +6513,9 @@ static void snow_particle_init(bool change_stage) {
         i.life_time = 1;
 
         vec3 _velocity;
-        _velocity.x = rand_state_array_get_float(4);
-        _velocity.y = rand_state_array_get_float(4);
-        _velocity.z = rand_state_array_get_float(4);
+        _velocity.x = RandomF(RANDOM_TYPE_GLOBAL);
+        _velocity.y = RandomF(RANDOM_TYPE_GLOBAL);
+        _velocity.z = RandomF(RANDOM_TYPE_GLOBAL);
         i.velocity = (_velocity - 0.5f) * vel_range + velocity;
         i.direction = 0.0f;
     }
@@ -6540,10 +6540,10 @@ static void snow_particle_init(bool change_stage) {
     snow_particle_gpu_vertex_data* vtx_data = force_malloc<snow_particle_gpu_vertex_data>(snow_ptcl_count);
 
     for (int32_t i = 0; i < snow_ptcl_count; i++, vtx_data++) {
-        vtx_data->position.x = rand_state_array_get_float(4);
-        vtx_data->position.y = rand_state_array_get_float(4);
-        vtx_data->position.z = rand_state_array_get_float(4);
-        vtx_data->size = (rand_state_array_get_float(4) * 0.5f + 0.4f) * snow_particle_size_mid;
+        vtx_data->position.x = RandomF(RANDOM_TYPE_GLOBAL);
+        vtx_data->position.y = RandomF(RANDOM_TYPE_GLOBAL);
+        vtx_data->position.z = RandomF(RANDOM_TYPE_GLOBAL);
+        vtx_data->size = (RandomF(RANDOM_TYPE_GLOBAL) * 0.5f + 0.4f) * snow_particle_size_mid;
     }
 
     vtx_data -= snow_ptcl_count;
@@ -6589,7 +6589,7 @@ static void snow_particle_ctrl() {
             if (--snow_ptcl[0].life_time > 0)
                 direction = snow_ptcl[0].direction;
             else {
-                snow_ptcl[0].life_time = rand_state_array_get_int(15, 35, 4);
+                snow_ptcl[0].life_time = Random(15, 35, RANDOM_TYPE_GLOBAL);
                 direction = snow_particle_get_random_velocity();
                 snow_ptcl[0].direction = direction;
             }
@@ -6620,7 +6620,7 @@ static void snow_particle_ctrl() {
         if (--i.life_time > 0)
             direction = i.direction;
         else {
-            i.life_time = rand_state_array_get_int(0xFu, 0x23u, 4);
+            i.life_time = Random(15, 35, RANDOM_TYPE_GLOBAL);
             direction = snow_particle_get_random_velocity();
             i.direction = direction;
         }
@@ -6684,10 +6684,10 @@ static void snow_particle_data_emit_fallen(particle_data* data) {
         if (!d)
             break;
 
-        d->position.x = (rand_state_array_get_float(4) - 0.5f) * 0.05f + data->position.x;
+        d->position.x = (RandomF(RANDOM_TYPE_GLOBAL) - 0.5f) * 0.05f + data->position.x;
         d->position.y = data->position.y;
-        d->position.z = (rand_state_array_get_float(4) - 0.5f) * 0.05f + data->position.z;
-        d->size = (rand_state_array_get_float(4) * 0.5f + 0.2f) * data->size;
+        d->position.z = (RandomF(RANDOM_TYPE_GLOBAL) - 0.5f) * 0.05f + data->position.z;
+        d->size = (RandomF(RANDOM_TYPE_GLOBAL) * 0.5f + 0.2f) * data->size;
         d->velocity = 0.0f;
         d->alpha = data->alpha * 0.60f;
     }
@@ -6705,17 +6705,17 @@ static void snow_particle_data_kill_fallen(particle_data* data, bool kill) {
 static void snow_particle_data_reset(particle_data* data) {
     stage_param_snow* snow = stage_param_data_snow_current;
     vec3 position;
-    position.x = rand_state_array_get_float(4) - 0.5f;
+    position.x = RandomF(RANDOM_TYPE_GLOBAL) - 0.5f;
     position.y = 1.0f;
-    position.z = rand_state_array_get_float(4) - 0.5f;
+    position.z = RandomF(RANDOM_TYPE_GLOBAL) - 0.5f;
     data->position = position * snow->range + snow->offset;
 
     data->life_time = 1;
 
     vec3 velocity;
-    velocity.x = rand_state_array_get_float(4);
-    velocity.y = rand_state_array_get_float(4);
-    velocity.z = rand_state_array_get_float(4);
+    velocity.x = RandomF(RANDOM_TYPE_GLOBAL);
+    velocity.y = RandomF(RANDOM_TYPE_GLOBAL);
+    velocity.z = RandomF(RANDOM_TYPE_GLOBAL);
     data->velocity = (velocity - 0.5f) * snow->vel_range + snow->velocity;
     data->direction = 0.0f;
 }
@@ -6752,9 +6752,9 @@ static particle_data* snow_particle_emit_fallen() {
 static vec3 snow_particle_get_random_velocity() {
     stage_param_snow* snow = stage_param_data_snow_current;
     vec3 velocity;
-    velocity.x = rand_state_array_get_float(4);
-    velocity.y = rand_state_array_get_float(4);
-    velocity.z = rand_state_array_get_float(4);
+    velocity.x = RandomF(RANDOM_TYPE_GLOBAL);
+    velocity.y = RandomF(RANDOM_TYPE_GLOBAL);
+    velocity.z = RandomF(RANDOM_TYPE_GLOBAL);
     return (velocity - 0.5f) * snow->vel_range + snow->velocity;
 }
 
