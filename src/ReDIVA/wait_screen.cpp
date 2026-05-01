@@ -56,7 +56,7 @@ public:
 
     inline void reload_aet_obj(int32_t index, const char* start_marker, const char* end_marker) {
         data_struct* aft_data = &data_list[DATA_AFT];
-        sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
+        SprDb* aft_spr_db = &aft_data->data_ft.spr_db;
 
         AetArgs args;
         args.id.id = aet_id;
@@ -306,7 +306,7 @@ void TaskWaitScreen::set_load_loop(TaskWaitScreenIndex index) {
         return;
 
     data_struct* aft_data = &data_list[DATA_AFT];
-    sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
+    SprDb* aft_spr_db = &aft_data->data_ft.spr_db;
 
     switch (index) {
     case TASK_WAIT_SCREEN_NONE:
@@ -355,7 +355,7 @@ bool TaskWaitScreen::wait_load_loop() {
             break;
 
         data_struct* aft_data = &data_list[DATA_AFT];
-        sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
+        SprDb* aft_spr_db = &aft_data->data_ft.spr_db;
 
         AetArgs args;
         args.id.id = aet_id;

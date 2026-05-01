@@ -125,6 +125,7 @@ ScreenParam& get_render_screen_param() {
     return screen_info.render;
 }
 
+// 0x14019A5D0
 vec2 get_screen_conv_scale(const SCREEN_MODE dst_mode, const SCREEN_MODE src_mode) {
     if (dst_mode == SCREEN_MODE_MAX || src_mode == SCREEN_MODE_MAX
         || dst_mode < SCREEN_MODE_QVGA || src_mode < SCREEN_MODE_QVGA
@@ -154,6 +155,7 @@ vec2 get_screen_conv_scale(const SCREEN_MODE dst_mode, const SCREEN_MODE src_mod
         return scale_y;
 }
 
+// 0x14019A4C0
 void get_screen_conv_pos(vec2& dst_pos, const SCREEN_MODE dst_mode,
     const vec2& src_pos, const SCREEN_MODE src_mode) {
     if (dst_mode == SCREEN_MODE_MAX || src_mode == SCREEN_MODE_MAX

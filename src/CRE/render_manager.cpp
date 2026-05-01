@@ -294,7 +294,7 @@ namespace rndr {
 
     void RenderManager::render_all() {
         gl_state.get();
-        sprite_manager_pre_draw();
+        spr::preFlush();
         rctx_ptr->etc_obj_manager->pre_draw();
 
         {
@@ -339,7 +339,7 @@ namespace rndr {
         }
 
         rctx_ptr->etc_obj_manager->post_draw();
-        sprite_manager_post_draw();
+        spr::postFlush();
 
         render_data_context rend_data_ctx(GL_REND_STATE_POST_2D);
         rend_data_ctx.state.get();
@@ -838,7 +838,7 @@ namespace rndr {
         rndr::Render* rend = render;
         if (!rctx->sss_data->enable || !rctx->sss_data->downsample) {
             rend->bind_render_texture(rend_data_ctx.state);
-            if (sprite_manager_get_reqlist_count(2)) {
+            if (spr::getObjListCount(spr::SPR_TARGET_BACK)) {
                 rend_data_ctx.state.clear_color(0.0f, 0.0f, 0.0f, 0.0f);
                 rend_data_ctx.state.clear_depth(1.0f);
                 rend_data_ctx.state.clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -855,7 +855,7 @@ namespace rndr {
             }
         }
         else {
-            if (sprite_manager_get_reqlist_count(2)) {
+            if (spr::getObjListCount(spr::SPR_TARGET_BACK)) {
                 rend->bind_render_texture(rend_data_ctx.state);
                 rend_data_ctx.state.clear_color(0.0f, 0.0f, 0.0f, 0.0f);
                 rend_data_ctx.state.clear(GL_COLOR_BUFFER_BIT);
@@ -874,7 +874,7 @@ namespace rndr {
     }
 
     void RenderManager::pass_pre_sprite(render_data_context& rend_data_ctx) {
-        if (!sprite_manager_get_reqlist_count(2))
+        if (!spr::getObjListCount(spr::SPR_TARGET_BACK))
             return;
 
         render_context* rctx = rctx_ptr;
@@ -888,7 +888,7 @@ namespace rndr {
         rend_data_ctx.state.disable_depth_test();
         rend_data_ctx.state.enable_blend();
         rend_data_ctx.state.disable_cull_face();
-        sprite_manager_draw(rend_data_ctx, 2, true,
+        spr::flush(rend_data_ctx, spr::SPR_TARGET_BACK, true,
             rend->temp_buffer.color_texture,
             rctx->camera->view_projection_aet_3d);
         rend_data_ctx.state.enable_cull_face();
@@ -1127,7 +1127,7 @@ namespace rndr {
 
     void RenderManager::pass_sprite(render_data_context& rend_data_ctx) {
         render_context* rctx = rctx_ptr;
-        if (!sprite_manager_get_reqlist_count(0))
+        if (!spr::getObjListCount(spr::SPR_TARGET_FRONT))
             return;
 
         rend_data_ctx.state.begin_event("pass_sprite");
@@ -1150,7 +1150,7 @@ namespace rndr {
         rend_data_ctx.state.disable_depth_test();
         rend_data_ctx.state.enable_blend();
         rend_data_ctx.state.disable_cull_face();
-        sprite_manager_draw(rend_data_ctx, 0, true,
+        spr::flush(rend_data_ctx, spr::SPR_TARGET_FRONT, true,
             rctx->screen_overlay_buffer.color_texture,
             rctx->camera->view_projection_aet_2d);
         rend_data_ctx.state.enable_cull_face();
@@ -1230,7 +1230,7 @@ namespace rndr {
     }
 
     void RenderManager::pass_sprite_surf(render_data_context& rend_data_ctx) {
-        if (!sprite_manager_get_reqlist_count(1))
+        if (!spr::getObjListCount(spr::SPR_TARGET_FRONT_3D_SURF))
             return;
 
         render_context* rctx = rctx_ptr;
@@ -1240,7 +1240,7 @@ namespace rndr {
         rend_data_ctx.state.disable_depth_test();
         rend_data_ctx.state.enable_blend();
         rend_data_ctx.state.disable_cull_face();
-        sprite_manager_draw(rend_data_ctx, 1, true,
+        spr::flush(rend_data_ctx, spr::SPR_TARGET_FRONT_3D_SURF, true,
             rend->temp_buffer.color_texture,
             rctx->camera->view_projection_aet_2d);
     }

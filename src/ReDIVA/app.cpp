@@ -783,7 +783,7 @@ static render_context* render_context_load(const wchar_t* config_path) {
     bone_database* aft_bone_data = &aft_data->data_ft.bone_data;
     motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
     object_database* aft_obj_db = &aft_data->data_ft.obj_db;
-    sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
+    SprDb* aft_spr_db = &aft_data->data_ft.spr_db;
     texture_database* aft_tex_db = &aft_data->data_ft.tex_db;
     stage_database* aft_stage_data = &aft_data->data_ft.stage_data;
 
@@ -876,17 +876,17 @@ static render_context* render_context_load(const wchar_t* config_path) {
     dbg_set_id = aft_obj_db->get_object_set_id("DBG");
 
     aet_gam_loadsc_set_id = aft_aet_db->get_aet_set_id_by_name("AET_GAM_LOADSC");
-    spr_gam_loadsc_set_id = aft_spr_db->get_spr_set_id_by_name("SPR_GAM_LOADSC");
+    spr_gam_loadsc_set_id = aft_spr_db->getSetUidFromName("SPR_GAM_LOADSC");
 
     aet_cmn_all_set_id = aft_aet_db->get_aet_set_id_by_name("AET_CMN_ALL");
-    spr_cmn_all_set_id = aft_spr_db->get_spr_set_id_by_name("SPR_CMN_ALL");
+    spr_cmn_all_set_id = aft_spr_db->getSetUidFromName("SPR_CMN_ALL");
 
     aet_gam_cmn_set_id = aft_aet_db->get_aet_set_id_by_name("AET_GAM_CMN");
-    spr_gam_cmn_set_id = aft_spr_db->get_spr_set_id_by_name("SPR_GAM_CMN");
+    spr_gam_cmn_set_id = aft_spr_db->getSetUidFromName("SPR_GAM_CMN");
 
-    spr_fnt_24_set_id = aft_spr_db->get_spr_set_id_by_name("SPR_FNT_24");
-    spr_fnt_bold24_set_id = aft_spr_db->get_spr_set_id_by_name("SPR_FNT_BOLD24");
-    spr_fnt_cmn_set_id = aft_spr_db->get_spr_set_id_by_name("SPR_FNT_CMN");
+    spr_fnt_24_set_id = aft_spr_db->getSetUidFromName("SPR_FNT_24");
+    spr_fnt_bold24_set_id = aft_spr_db->getSetUidFromName("SPR_FNT_BOLD24");
+    spr_fnt_cmn_set_id = aft_spr_db->getSetUidFromName("SPR_FNT_CMN");
 
     hand_item_handler_data_init();
     module_table_handler_data_init();
@@ -895,7 +895,7 @@ static render_context* render_context_load(const wchar_t* config_path) {
     customize_item_data_handler_data_init();
 
     aet_manager_add_aet_sets(aft_aet_db);
-    sprite_manager_add_spr_sets(aft_spr_db);
+    spr::init(aft_spr_db);
 
     render_timer->reset();
     for (int32_t i = 0; i < 30; i++) {
@@ -1349,19 +1349,19 @@ static void render_context_dispose(render_context* rctx) {
 
     data_struct* aft_data = &data_list[DATA_AFT];
     aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
-    sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
+    SprDb* aft_spr_db = &aft_data->data_ft.spr_db;
 
     objset_info_storage_unload_set(dbg_set_id);
     fontmap_data_unload();
     aet_manager_unload_set(aet_gam_loadsc_set_id, aft_aet_db);
-    sprite_manager_unload_set(spr_gam_loadsc_set_id, aft_spr_db);
+    spr::free(spr_gam_loadsc_set_id, aft_spr_db);
     aet_manager_unload_set(aet_cmn_all_set_id, aft_aet_db);
-    sprite_manager_unload_set(spr_cmn_all_set_id, aft_spr_db);
-    sprite_manager_unload_set(spr_fnt_24_set_id, aft_spr_db);
-    sprite_manager_unload_set(spr_fnt_bold24_set_id, aft_spr_db);
-    sprite_manager_unload_set(spr_fnt_cmn_set_id, aft_spr_db);
+    spr::free(spr_cmn_all_set_id, aft_spr_db);
+    spr::free(spr_fnt_24_set_id, aft_spr_db);
+    spr::free(spr_fnt_bold24_set_id, aft_spr_db);
+    spr::free(spr_fnt_cmn_set_id, aft_spr_db);
 
-    sprite_manager_remove_spr_sets(aft_spr_db);
+    spr::dest(aft_spr_db);
     aet_manager_remove_aet_sets(aft_aet_db);
 
     customize_item_data_handler_data_free();

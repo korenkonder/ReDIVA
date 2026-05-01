@@ -55,11 +55,11 @@ DtmAet::~DtmAet() {
 bool DtmAet::init() {
     data_struct* aft_data = &data_list[DATA_AFT];
     aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
-    sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
+    SprDb* aft_spr_db = &aft_data->data_ft.spr_db;
 
     uint32_t set_id = aft_aet_db->get_aet_set_id_by_name_index(this->curr_set_index);
     std::string mdata_dir = "";//GetMdataDir(set_id);
-    sprite_manager_read_file(aft_aet_db->get_aet_set_by_id(set_id)->sprite_set_id,
+    spr::request(aft_aet_db->get_aet_set_by_id(set_id)->sprite_set_id,
         mdata_dir, aft_data, aft_spr_db);
     aet_manager_read_file(set_id, mdata_dir, aft_data, aft_aet_db);
     GetSoundFarcs();
@@ -70,7 +70,7 @@ bool DtmAet::init() {
 bool DtmAet::ctrl() {
     data_struct* aft_data = &data_list[DATA_AFT];
     aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
-    sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
+    SprDb* aft_spr_db = &aft_data->data_ft.spr_db;
 
     switch (state) {
     case 1: {
@@ -84,21 +84,21 @@ bool DtmAet::ctrl() {
     } break;
     case 2: {
         uint32_t prev_set_id = aft_aet_db->get_aet_set_id_by_name_index(curr_set_index);
-        sprite_manager_unload_set(aft_aet_db->get_aet_set_by_id(prev_set_id)->sprite_set_id, aft_spr_db);
+        spr::free(aft_aet_db->get_aet_set_by_id(prev_set_id)->sprite_set_id, aft_spr_db);
         aet_manager_unload_set(prev_set_id, aft_aet_db);
 
         curr_set_index = set_index;
         uint32_t set_id = aft_aet_db->get_aet_set_id_by_name_index(set_index);
 
         std::string mdata_dir = "";//GetMdataDir(set_id);
-        sprite_manager_read_file(aft_aet_db->get_aet_set_by_id(set_id)->sprite_set_id,
+        spr::request(aft_aet_db->get_aet_set_by_id(set_id)->sprite_set_id,
             mdata_dir, aft_data, aft_spr_db);
         aet_manager_read_file(set_id, mdata_dir, aft_data, aft_aet_db);
         state = 3;
     } break;
     case 3: {
         uint32_t set_id = aft_aet_db->get_aet_set_id_by_name_index(curr_set_index);
-        if (sprite_manager_load_file(aft_aet_db->get_aet_set_by_id(set_id)->sprite_set_id, aft_spr_db)
+        if (spr::wait(aft_aet_db->get_aet_set_by_id(set_id)->sprite_set_id, aft_spr_db)
             || aet_manager_load_file(set_id, aft_aet_db))
             break;
 
@@ -235,10 +235,10 @@ bool DtmAet::ctrl() {
 bool DtmAet::dest() {
     data_struct* aft_data = &data_list[DATA_AFT];
     aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
-    sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
+    SprDb* aft_spr_db = &aft_data->data_ft.spr_db;
 
     uint32_t set_id = aft_aet_db->get_aet_set_id_by_name_index(curr_set_index);
-    sprite_manager_unload_set(aft_aet_db->get_aet_set_by_id(set_id)->sprite_set_id, aft_spr_db);
+    spr::free(aft_aet_db->get_aet_set_by_id(set_id)->sprite_set_id, aft_spr_db);
     aet_manager_unload_set(set_id, aft_aet_db);
 
     for (std::string& i : sound_farcs)
@@ -253,7 +253,7 @@ void DtmAet::disp() {
         return;
 
     data_struct* aft_data = &data_list[DATA_AFT];
-    sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
+    SprDb* aft_spr_db = &aft_data->data_ft.spr_db;
 
     for (const auto& i : comp.data) {
         vec2 v7 = 0.0f;
@@ -265,7 +265,7 @@ void DtmAet::disp() {
         pos.z = i.second.position.z;
 
         spr::SprArgs v34;
-        v34.SetSize({ 10.0f, 10.0f});
+        v34.setSize({ 10.0f, 10.0f});
         v34.trans = pos;
         v34.anchor = { 5.0f, 5.0f, 0.0f };
         v34.kind = spr::SPR_KIND_LINE;
@@ -273,8 +273,8 @@ void DtmAet::disp() {
 
         spr::SprArgs v35 = v34;
         v35.rot.z = v34.rot.z + (float_t)(M_PI / 2.0f);
-        spr::put_sprite(v34, aft_spr_db);
-        spr::put_sprite(v35, aft_spr_db);
+        spr::put(v34, aft_spr_db);
+        spr::put(v35, aft_spr_db);
 
         font.init_font_data(0);
 

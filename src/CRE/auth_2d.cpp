@@ -21,9 +21,9 @@ public:
     float_t start_time;
     float_t end_time;
     AetFlags flags;
-    spr::SprTarget starget;
-    spr::SprLayer slayer;
-    spr::SprPrio prio;
+    spr::SPR_TARGET starget;
+    spr::SPR_LAYER slayer;
+    spr::SPR_PRIO prio;
     SCREEN_MODE src_mode;
     vec3 trans;
     vec3 rotate;
@@ -48,7 +48,7 @@ public:
     bool sound_voice;
     bool use_float;
 
-    const sprite_database* spr_db;
+    const SprDb* spr_db;
 
     AetObj();
     virtual ~AetObj();
@@ -71,7 +71,7 @@ public:
     virtual void SetEndTime(float_t value);
     virtual void SetFrame(float_t value);
     virtual void SetFrameRateControl(FrameRateControl* value);
-    virtual void SetPrio(spr::SprPrio value);
+    virtual void SetPrio(spr::SPR_PRIO value);
     virtual aet_info GetInfo();
     virtual bool GetPlay();
     virtual bool GetVisible();
@@ -79,16 +79,16 @@ public:
     virtual bool GetEnd();
     virtual void CtrlComp(const aet_comp* comp, float_t frame);
     virtual void DispComp(const mat4& mat, const aet_comp* comp,
-        float_t frame, float_t opacity, const sprite_database* spr_db);
+        float_t frame, float_t opacity, const SprDb* spr_db);
     virtual void CtrlLayer(const aet_layer* layer, float_t frame);
     virtual void DispLayer(const mat4& mat, const aet_layer* layer,
-        float_t frame, float_t opacity, const sprite_database* spr_db);
+        float_t frame, float_t opacity, const SprDb* spr_db);
     virtual void DispVideo(const mat4& mat, const aet_layer* layer,
-        float_t frame, float_t opacity, const sprite_database* spr_db);
+        float_t frame, float_t opacity, const SprDb* spr_db);
     virtual void DispSprite(const mat4& mat, const aet_layer* layer,
-        float_t opacity, const sprite_database* spr_db);
+        float_t opacity, const SprDb* spr_db);
     virtual void DispSpriteSource(const mat4& mat, const aet_layer* layer,
-        uint32_t source_index, float_t opacity, const sprite_database* spr_db);
+        uint32_t source_index, float_t opacity, const SprDb* spr_db);
     virtual void CalcMat(mat4& mat, const aet_layer* layer, float_t frame);
 };
 
@@ -101,7 +101,7 @@ public:
 
     virtual void CtrlLayer(const aet_layer* layer, float_t frame) override;
     virtual void DispLayer(const mat4& mat, const aet_layer* layer,
-        float_t frame, float_t opacity, const sprite_database* spr_db) override;
+        float_t frame, float_t opacity, const SprDb* spr_db) override;
 };
 
 class AetMgr : public app::Task {
@@ -157,7 +157,7 @@ public:
     void SetObjFrameRateControl(uint32_t id, FrameRateControl* value);
     void SetObjPlay(uint32_t id, bool value);
     void SetObjPosition(uint32_t id, const vec3& value);
-    void SetObjPrio(uint32_t id, spr::SprPrio value);
+    void SetObjPrio(uint32_t id, spr::SPR_PRIO value);
     void SetObjRotation(uint32_t id, const vec3& value);
     void SetObjScale(uint32_t id, const vec3& value);
     void SetObjSpriteDiscard(uint32_t id, std::map<uint32_t, uint32_t>& value);
@@ -225,19 +225,19 @@ aet_layout_data::aet_layout_data() : width(), height() {
     mode = SCREEN_MODE_HD;
 }
 
-void aet_layout_data::put_sprite(int32_t spr_id, spr::SprAttr attr, spr::SprPrio prio,
-    const vec2* pos, const aet_layout_data* layout, const sprite_database* spr_db) {
+void aet_layout_data::put_sprite(int32_t spr_id, spr::SPR_ATTR attr, spr::SPR_PRIO prio,
+    const vec2* pos, const aet_layout_data* layout, const SprDb* spr_db) {
     if (!layout)
         return;
 
     spr::SprArgs args;
     aet_layout_data::set_args(layout, &args);
-    args.id.id = spr_id;
+    args.id = spr_id;
     args.attr = attr;
     args.prio = prio;
     if (pos)
         *(vec2*)&args.trans.x += *pos;
-    spr::put_sprite(args, spr_db);
+    spr::put(args, spr_db);
 }
 
 void aet_layout_data::set_args(const aet_layout_data* layout, spr::SprArgs* args) {
@@ -275,8 +275,8 @@ const aet_layout_data* AetComp::Find(const char* name) {
 }
 
 void AetComp::put_number_sprite(int32_t value, int32_t max_digits,
-    AetComp* comp, const char** names, const int32_t* spr_ids, spr::SprPrio prio,
-    const vec2* pos, bool all_digits, const sprite_database* spr_db) {
+    AetComp* comp, const char** names, const int32_t* spr_ids, spr::SPR_PRIO prio,
+    const vec2* pos, bool all_digits, const SprDb* spr_db) {
     if (!comp || !names || !spr_ids)
         return;
 
@@ -287,7 +287,7 @@ void AetComp::put_number_sprite(int32_t value, int32_t max_digits,
         const aet_layout_data* layout = comp->Find(names[i]);
         if (layout)
             aet_layout_data::put_sprite(spr_ids[digit],
-                spr::SPR_ATTR_CTR_CC, prio, pos, layout, spr_db);
+                spr::M_SPR_ATTR_CTR_CC, prio, pos, layout, spr_db);
 
         if (!all_digits && !value)
             break;
@@ -665,7 +665,7 @@ void aet_manager_init_aet_layout(AetComp* comp, AetArgs args, const aet_database
 
 void aet_manager_init_aet_layout(AetComp* comp, uint32_t aet_id, const char* layer_name,
     AetFlags flags, SCREEN_MODE mode, const char* start_marker, float_t start_time,
-    const aet_database* aet_db, const sprite_database* spr_db) {
+    const aet_database* aet_db, const SprDb* spr_db) {
     AetArgs args;
     args.id.info = aet_db->get_aet_by_id(aet_id)->info;
     args.layer_name = layer_name;
@@ -683,8 +683,8 @@ uint32_t aet_manager_init_aet_object(AetArgs args, const aet_database* aet_db) {
 }
 
 uint32_t aet_manager_init_aet_object(uint32_t id, const char* layer_name,
-    spr::SprPrio prio, AetFlags flags, const char* start_marker, const char* end_marker,
-    const aet_database* aet_db, const sprite_database* spr_db) {
+    spr::SPR_PRIO prio, AetFlags flags, const char* start_marker, const char* end_marker,
+    const aet_database* aet_db, const SprDb* spr_db) {
     AetArgs args;
     args.id.info = aet_db->get_aet_by_id(id)->info;
     args.layer_name = layer_name;
@@ -696,10 +696,10 @@ uint32_t aet_manager_init_aet_object(uint32_t id, const char* layer_name,
     return aet_manager->InitAetObject(args);
 }
 
-uint32_t aet_manager_init_aet_object(uint32_t aet_id, spr::SprPrio prio, AetFlags flags,
-    const char* layer_name, const vec2* trans, spr::SprTarget  target, const char* start_marker, const char* end_marker,
+uint32_t aet_manager_init_aet_object(uint32_t aet_id, spr::SPR_PRIO prio, AetFlags flags,
+    const char* layer_name, const vec2* trans, spr::SPR_TARGET  target, const char* start_marker, const char* end_marker,
     float_t start_time, float_t end_time, const vec2* scale, FrameRateControl* frame_rate_control,
-    const aet_database* aet_db, const sprite_database* spr_db) {
+    const aet_database* aet_db, const SprDb* spr_db) {
     AetArgs args;
     args.id.id = aet_id;
     args.prio = prio;
@@ -791,7 +791,7 @@ void aet_manager_set_obj_position(uint32_t id, const vec3& value) {
     aet_manager->SetObjPosition(id, value);
 }
 
-void aet_manager_set_obj_prio(uint32_t id, spr::SprPrio value) {
+void aet_manager_set_obj_prio(uint32_t id, spr::SPR_PRIO value) {
     aet_manager->SetObjPrio(id, value);
 }
 
@@ -1082,7 +1082,7 @@ void AetObj::SetFrameRateControl(FrameRateControl* value) {
     frame_rate_control = value;
 }
 
-void AetObj::SetPrio(spr::SprPrio value) {
+void AetObj::SetPrio(spr::SPR_PRIO value) {
     prio = value;
 }
 
@@ -1116,7 +1116,7 @@ void AetObj::CtrlComp(const aet_comp* comp, float_t frame) {
 }
 
 void AetObj::DispComp(const mat4& mat, const aet_comp* comp,
-    float_t frame, float_t opacity, const sprite_database* spr_db) {
+    float_t frame, float_t opacity, const SprDb* spr_db) {
     if (!comp->layers_count)
         return;
 
@@ -1189,7 +1189,7 @@ void AetObj::CtrlLayer(const aet_layer* layer, float_t frame) {
 }
 
 void AetObj::DispLayer(const mat4& mat, const aet_layer* layer,
-    float_t frame, float_t opacity, const sprite_database* spr_db) {
+    float_t frame, float_t opacity, const SprDb* spr_db) {
     if (frame < layer->start_time
         || frame >= layer->end_time
         || layer->item_type == AET_ITEM_TYPE_AUDIO
@@ -1211,7 +1211,7 @@ void AetObj::DispLayer(const mat4& mat, const aet_layer* layer,
 }
 
 void AetObj::DispVideo(const mat4& mat, const aet_layer* layer,
-    float_t frame, float_t opacity, const sprite_database* spr_db) {
+    float_t frame, float_t opacity, const SprDb* spr_db) {
     const aet_video* video = layer->item.video;
     if (video->sources_count <= 1) {
         if (video->sources_count == 1)
@@ -1246,7 +1246,7 @@ void AetObj::DispVideo(const mat4& mat, const aet_layer* layer,
 }
 
 void AetObj::DispSprite(const mat4& mat, const aet_layer* layer,
-    float_t opacity, const sprite_database* spr_db) {
+    float_t opacity, const SprDb* spr_db) {
     auto elem = list.find(layer->name);
     if (elem == list.end())
         return;
@@ -1255,7 +1255,7 @@ void AetObj::DispSprite(const mat4& mat, const aet_layer* layer,
     color.w *= opacity;
 
     spr::SprArgs args;
-    args.id.id = elem->second;
+    args.id = elem->second;
     args.matrix = mat;
     args.target = starget;
     args.layer = slayer;
@@ -1264,16 +1264,16 @@ void AetObj::DispSprite(const mat4& mat, const aet_layer* layer,
     args.screen_trans = dst_mode;
     args.screen_scale = dst_mode;
     if (flags & AET_FLIP_H)
-        enum_or(args.attr, spr::SPR_ATTR_FLIP_H);
+        enum_or(args.attr, spr::M_SPR_ATTR_FLIP_H);
     if (flags & AET_FLIP_V)
-        enum_or(args.attr, spr::SPR_ATTR_FLIP_V);
+        enum_or(args.attr, spr::M_SPR_ATTR_FLIP_V);
     if (flags & AET_100000)
-        enum_or(args.attr, spr::SPR_ATTR_EDGELINE);
-    spr::put_sprite(args, spr_db);
+        enum_or(args.attr, spr::M_SPR_ATTR_EDGELINE);
+    spr::put(args, spr_db);
 }
 
 void AetObj::DispSpriteSource(const mat4& mat, const aet_layer* layer,
-    uint32_t source_index, float_t opacity, const sprite_database* spr_db) {
+    uint32_t source_index, float_t opacity, const SprDb* spr_db) {
     int32_t spr_id = layer->item.video->sources[source_index].sprite_index;
 
     auto elem_discard = sprite_discard.find(spr_id);
@@ -1281,21 +1281,21 @@ void AetObj::DispSpriteSource(const mat4& mat, const aet_layer* layer,
         return;
 
     spr::SprArgs args;
-    args.id.id = spr_id;
+    args.id = spr_id;
 
     auto elem_texture = sprite_texture.find(spr_id);
     if (elem_texture != sprite_texture.end()) {
         args.tex = elem_texture->second;
-        args.id.id = -1;
+        args.id = -1;
     }
     else if (spr_id != -1) {
         auto elem_replace = sprite_replace.find(spr_id);
         if (elem_replace != sprite_replace.end() && elem_replace->second != -1) {
-            const spr_db_spr* spr = spr_db->get_spr_by_id(elem_replace->second);
-            //const spr_db_spr_set* spr_set = spr_db->get_spr_set_by_index(spr->info.set_index & 0x0FFF);
-            const spr_db_spr_set* spr_set = spr_db->get_spr_set_by_index(spr->info.set_index & 0x3FFF);
-            if (sprite_manager_get_set_ready(spr_set->id, spr_db))
-                args.id.id = elem_replace->second;
+            const SprId spr_id = spr_db->getSprIdFromUid(elem_replace->second);
+            //const uint32_t set_uid = spr_db->getSetUidFromIdx(spr_id.m.set_idx & 0x0FFF);
+            const uint32_t set_uid = spr_db->getSetUidFromIdx(spr_id.m.set_idx & 0x3FFF);
+            if (spr::getReady(set_uid, spr_db))
+                args.id = elem_replace->second;
         }
     }
 
@@ -1310,11 +1310,11 @@ void AetObj::DispSpriteSource(const mat4& mat, const aet_layer* layer,
     args.screen_trans = dst_mode;
     args.screen_scale = dst_mode;
     if (flags & AET_FLIP_H)
-        enum_or(args.attr, spr::SPR_ATTR_FLIP_H);
+        enum_or(args.attr, spr::M_SPR_ATTR_FLIP_H);
     if (flags & AET_FLIP_V)
-        enum_or(args.attr, spr::SPR_ATTR_FLIP_V);
+        enum_or(args.attr, spr::M_SPR_ATTR_FLIP_V);
     if (flags & AET_100000)
-        enum_or(args.attr, spr::SPR_ATTR_EDGELINE);
+        enum_or(args.attr, spr::M_SPR_ATTR_EDGELINE);
 
     switch (layer->video->transfer_mode.mode) {
     case AET_BLEND_MODE_SCREEN:
@@ -1335,11 +1335,11 @@ void AetObj::DispSpriteSource(const mat4& mat, const aet_layer* layer,
         if (layer->video->transfer_mode.matte) {
             this->opacity = opacity;
             matte = true;
-            spr_args.Reset();
+            spr_args.init();
             spr_args = args;
         }
         else if (fabsf(mat4_determinant(&args.matrix)) > 0.000001f)
-            spr::put_sprite(args, spr_db);
+            spr::put(args, spr_db);
     }
     else {
         matte = false;
@@ -1349,10 +1349,10 @@ void AetObj::DispSpriteSource(const mat4& mat, const aet_layer* layer,
 
            spr_args.color = _color;
 
-            spr::SprArgs* v52 = spr::put_sprite(spr_args, spr_db);
-            spr::SprArgs* v53 = spr::put_sprite(args, spr_db);
+            spr::SprArgs* v52 = spr::put(spr_args, spr_db);
+            spr::SprArgs* v53 = spr::put(args, spr_db);
             if (v53 && v52)
-                spr::SprArgs::SetChild(v53, v52);
+                v53->setChild(v52);
         }
     }
 }
@@ -1452,7 +1452,7 @@ void AetLyo::CtrlLayer(const aet_layer* layer, float_t frame) {
 }
 
 void AetLyo::DispLayer(const mat4& mat, const aet_layer* layer,
-    float_t frame, float_t opacity, const sprite_database* spr_db) {
+    float_t frame, float_t opacity, const SprDb* spr_db) {
     if (frame < layer->start_time
         || frame >= layer->end_time
         || layer->item_type == AET_ITEM_TYPE_AUDIO)
@@ -1824,7 +1824,7 @@ void AetMgr::SetObjPosition(uint32_t id, const vec3& value) {
         obj->SetPosition(value);
 }
 
-void AetMgr::SetObjPrio(uint32_t id, spr::SprPrio value) {
+void AetMgr::SetObjPrio(uint32_t id, spr::SPR_PRIO value) {
     AetObj* obj = GetObj(id);
     if (obj)
         obj->SetPrio(value);

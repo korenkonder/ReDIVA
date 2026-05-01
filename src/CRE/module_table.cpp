@@ -340,7 +340,7 @@ void module_data_handler::add_modules() {
     modules.clear();
 
     data_struct* aft_data = &data_list[DATA_AFT];
-    sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
+    SprDb* aft_spr_db = &aft_data->data_ft.spr_db;
 
     char buf[0x80];
 
@@ -356,16 +356,16 @@ void module_data_handler::add_modules() {
         rob_sleeve_handler_data_get_sleeve_data(mdl.chara_num, mdl.cos, mdl.sleeve_l, mdl.sleeve_r);
 
         sprintf_s(buf, sizeof(buf), "SPR_SEL_MD%03d", mdl.id);
-        mdl.spr_sel_md_id_spr_set_id = aft_spr_db->get_spr_set_by_name(buf)->id;
+        mdl.spr_sel_md_id_spr_set_id = aft_spr_db->getSetUidFromName(buf);
 
         sprintf_s(buf, sizeof(buf), "SPR_SEL_MD%03dCMN", mdl.id);
-        mdl.spr_sel_md_id_cmn_spr_set_id = aft_spr_db->get_spr_set_by_name(buf)->id;
+        mdl.spr_sel_md_id_cmn_spr_set_id = aft_spr_db->getSetUidFromName(buf);
 
         sprintf_s(buf, sizeof(buf), "SPR_SEL_MD%03d_MD_IMG_%03d", mdl.id, mdl.id);
-        mdl.spr_sel_md_id_md_img_id_spr_id = aft_spr_db->get_spr_by_name(buf)->id;
+        mdl.spr_sel_md_id_md_img_id_spr_id = aft_spr_db->getSprUidFromName(buf);
 
         sprintf_s(buf, sizeof(buf), "SPR_SEL_MD%03dCMN_MD_IMG", mdl.id);
-        mdl.spr_sel_md_id_cmn_md_img_spr_id = aft_spr_db->get_spr_by_name(buf)->id;
+        mdl.spr_sel_md_id_cmn_md_img_spr_id = aft_spr_db->getSprUidFromName(buf);
 
         /*struc_684 v17;
         if (sub_1402B7880()->sub_1402B7550(i.second.id, v17)) {

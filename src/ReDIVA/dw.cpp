@@ -4518,7 +4518,7 @@ void dw_gui_detail::Input::Draw() {
     }
     else if (field_20 < 300) {
         spr::SprArgs args;
-        args.id.index = 3343;
+        args.id = 3343;
         args.prio = spr::SPR_PRIO_29;
         args.trans.x = mouse_pos.x;
         args.trans.y = mouse_pos.y;
@@ -4526,8 +4526,8 @@ void dw_gui_detail::Input::Draw() {
         args.screen_scale = SCREEN_MODE_MAX;
 
         data_struct* aft_data = &data_list[DATA_AFT];
-        sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
-        spr::put_sprite(args, aft_spr_db);
+        SprDb* aft_spr_db = &aft_data->data_ft.spr_db;
+        spr::put(args, aft_spr_db);
     }
 }
 

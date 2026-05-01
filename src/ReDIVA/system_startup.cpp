@@ -233,7 +233,7 @@ namespace system_startup_detail {
 
     void TaskSystemStartup::disp() {
         ScreenParam& screen_param = get_screen_param();
-        spr::put_sprite_rect({ 0.0f, 0.0f, (float_t)screen_param.width, (float_t)screen_param.height },
+        spr::putRect({ 0.0f, 0.0f, (float_t)screen_param.width, (float_t)screen_param.height },
             screen_param.mode, spr::SPR_PRIO_25, color_black);
 
         system_startup.print_work.set_prio(spr::SPR_PRIO_25);

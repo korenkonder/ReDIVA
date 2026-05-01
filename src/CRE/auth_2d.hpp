@@ -46,9 +46,9 @@ struct AetArgs {
     float_t start_time;
     float_t end_time;
     AetFlags flags;
-    spr::SprTarget target;
-    spr::SprLayer layer;
-    spr::SprPrio prio;
+    spr::SPR_TARGET target;
+    spr::SPR_LAYER layer;
+    spr::SPR_PRIO prio;
     SCREEN_MODE screen;
     vec3 trans;
     vec3 rotate;
@@ -66,7 +66,7 @@ struct AetArgs {
     FrameRateControl* frame_rate_control;
     bool sound_voice;
 
-    const sprite_database* spr_db;
+    const SprDb* spr_db;
 
     AetArgs();
     ~AetArgs();
@@ -86,8 +86,8 @@ struct aet_layout_data {
 
     aet_layout_data();
 
-    static void put_sprite(int32_t spr_id, spr::SprAttr attr, spr::SprPrio prio,
-        const vec2* pos, const aet_layout_data* layout, const sprite_database* spr_db);
+    static void put_sprite(int32_t spr_id, spr::SPR_ATTR attr, spr::SPR_PRIO prio,
+        const vec2* pos, const aet_layout_data* layout, const SprDb* spr_db);
     static void set_args(const aet_layout_data* layout, spr::SprArgs* args);
 };
 
@@ -102,8 +102,8 @@ struct AetComp {
     const aet_layout_data* Find(const char* name);
 
     static void put_number_sprite(int32_t value, int32_t max_digits,
-        AetComp* comp, const char** names, const int32_t* spr_ids, spr::SprPrio prio,
-        const vec2* pos, bool all_digits, const sprite_database* spr_db);
+        AetComp* comp, const char** names, const int32_t* spr_ids, spr::SPR_PRIO prio,
+        const vec2* pos, bool all_digits, const SprDb* spr_db);
 };
 
 class AetSet {
@@ -176,15 +176,15 @@ extern void aet_manager_init_aet_layout(AetComp* composition,
     AetArgs args, const aet_database* aet_db);
 extern void aet_manager_init_aet_layout(AetComp* composition, uint32_t aet_id, const char* layer_name,
     AetFlags flags, SCREEN_MODE mode, const char* start_marker, float_t start_time,
-    const aet_database* aet_db, const sprite_database* spr_db);
+    const aet_database* aet_db, const SprDb* spr_db);
 extern uint32_t aet_manager_init_aet_object(AetArgs args, const aet_database* aet_db);
 extern uint32_t aet_manager_init_aet_object(uint32_t id, const char* layer_name,
-    spr::SprPrio prio, AetFlags flags, const char* start_marker, const char* end_marker,
-    const aet_database* aet_db, const sprite_database* spr_db);
-extern uint32_t aet_manager_init_aet_object(uint32_t aet_id, spr::SprPrio prio, AetFlags flags,
-    const char* layer_name, const vec2* trans, spr::SprTarget target, const char* start_marker, const char* end_marker,
+    spr::SPR_PRIO prio, AetFlags flags, const char* start_marker, const char* end_marker,
+    const aet_database* aet_db, const SprDb* spr_db);
+extern uint32_t aet_manager_init_aet_object(uint32_t aet_id, spr::SPR_PRIO prio, AetFlags flags,
+    const char* layer_name, const vec2* trans, spr::SPR_TARGET target, const char* start_marker, const char* end_marker,
     float_t start_time, float_t end_time, const vec2* scale, FrameRateControl* frame_rate_control,
-    const aet_database* aet_db, const sprite_database* spr_db);
+    const aet_database* aet_db, const SprDb* spr_db);
 extern bool aet_manager_load_file(uint32_t set_id, const aet_database* aet_db);
 extern bool aet_manager_load_file_modern(uint32_t set_hash, aet_database* aet_db);
 extern void aet_manager_read_file(uint32_t set_id,
@@ -200,7 +200,7 @@ extern void aet_manager_set_obj_frame(uint32_t id, float_t value);
 extern void aet_manager_set_obj_frame_rate_control(uint32_t id, FrameRateControl* value);
 extern void aet_manager_set_obj_play(uint32_t id, bool value);
 extern void aet_manager_set_obj_position(uint32_t id, const vec3& value);
-extern void aet_manager_set_obj_prio(uint32_t id, spr::SprPrio value);
+extern void aet_manager_set_obj_prio(uint32_t id, spr::SPR_PRIO value);
 extern void aet_manager_set_obj_rotation(uint32_t id, const vec3& value);
 extern void aet_manager_set_obj_scale(uint32_t id, const vec3& value);
 extern void aet_manager_set_obj_sprite_discard(uint32_t id, std::map<uint32_t, uint32_t>& value);

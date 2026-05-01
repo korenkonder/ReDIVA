@@ -485,9 +485,9 @@ bool dest_photo_mode_demo() {
 static bool adv_load() {
     data_struct* aft_data = &data_list[DATA_AFT];
     aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
-    sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
+    SprDb* aft_spr_db = &aft_data->data_ft.spr_db;
 
-    if (sprite_manager_load_file(37, aft_spr_db) || aet_manager_load_file(30, aft_aet_db))
+    if (spr::wait(37, aft_spr_db) || aet_manager_load_file(30, aft_aet_db))
         return true;
     return sound_work_load_farc("rom/sound/se_adv.farc");
 }
@@ -495,9 +495,9 @@ static bool adv_load() {
 static void adv_read() {
     data_struct* aft_data = &data_list[DATA_AFT];
     aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
-    sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
+    SprDb* aft_spr_db = &aft_data->data_ft.spr_db;
 
-    sprite_manager_read_file(37, "", aft_data, aft_spr_db);
+    spr::request(37, "", aft_data, aft_spr_db);
     aet_manager_read_file(30, "", aft_data, aft_aet_db);
     sound_work_read_farc("rom/sound/se_adv.farc");
 }
@@ -505,9 +505,9 @@ static void adv_read() {
 static void adv_unload() {
     data_struct* aft_data = &data_list[DATA_AFT];
     aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
-    sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
+    SprDb* aft_spr_db = &aft_data->data_ft.spr_db;
 
-    sprite_manager_unload_set(37, aft_spr_db);
+    spr::free(37, aft_spr_db);
     aet_manager_unload_set(30, aft_aet_db);
     sound_work_unload_farc("rom/sound/se_adv.farc");
 }

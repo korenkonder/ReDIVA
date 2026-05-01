@@ -42,7 +42,7 @@ Game2dEnergyUnit::~Game2dEnergyUnit() {
 void Game2dEnergyUnit::init() {
     data_struct* aft_data = &data_list[DATA_AFT];
     aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
-    sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
+    SprDb* aft_spr_db = &aft_data->data_ft.spr_db;
 
     for (int32_t i = 0; i < 5; i++) {
         field_1B8[i] = 0;
@@ -72,7 +72,9 @@ void Game2dEnergyUnit::init() {
 
     field_1CC[3] = true;
 
-    field_1D8 = sprite_manager_get_spr_rectangle(2569, aft_spr_db).size;
+    spr::SprArgs::Rect rect = spr::getRect(2569, aft_spr_db);
+    field_1D8.x = rect.width;
+    field_1D8.y = rect.height;
     field_1E0.x = field_8[1].position.x - field_8[0].position.x;
     field_1E0.y = field_1D8.y;
 
@@ -126,7 +128,7 @@ void Game2dEnergyUnit::init() {
 void Game2dEnergyUnit::ctrl() {
     data_struct* aft_data = &data_list[DATA_AFT];
     aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
-    sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
+    SprDb* aft_spr_db = &aft_data->data_ft.spr_db;
 
     float_t life_gauge = 0.0f;
     bool life_gauge_safety = false;
@@ -238,7 +240,7 @@ void Game2dEnergyUnit::disp() {
 void Game2dEnergyUnit::disp_inner() {
     data_struct* aft_data = &data_list[DATA_AFT];
     aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
-    sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
+    SprDb* aft_spr_db = &aft_data->data_ft.spr_db;
 
     if (!field_1D1 || !field_1CC[0])
         return;
@@ -250,8 +252,8 @@ void Game2dEnergyUnit::disp_inner() {
         v11.x = v9 * 0.5f;
 
     spr::SprArgs v49;
-    v49.SetSize({ v9, v11.y});
-    v49.id.index = 2570;
+    v49.setSize({ v9, v11.y});
+    v49.id = 2570;
     v49.trans = field_8[0].position;
     v49.trans.y = field_8[0].position.y + (float_t)field_1D4;
     v49.screen_trans = field_8[0].mode;
@@ -259,8 +261,8 @@ void Game2dEnergyUnit::disp_inner() {
     v49.prio = spr::SPR_PRIO_12;
 
     spr::SprArgs v51;
-    v51.SetSize(v11);
-    v51.id.index = 2569;
+    v51.setSize(v11);
+    v51.id = 2569;
     v51.trans = field_8[0].position;
     v51.trans.y = field_8[0].position.y + (float_t)field_1D4;
     v51.screen_trans = field_8[0].mode;
@@ -268,8 +270,8 @@ void Game2dEnergyUnit::disp_inner() {
     v51.prio = spr::SPR_PRIO_12;
 
     spr::SprArgs v43;
-    v43.SetSize(v11);
-    v43.id.index = 2569;
+    v43.setSize(v11);
+    v43.id = 2569;
     v43.trans.x = field_8[0].position.x + v9;
     v43.trans.y = field_8[0].position.y + (float_t)field_1D4;
     v43.trans.z = field_8[0].position.z;
@@ -285,8 +287,8 @@ void Game2dEnergyUnit::disp_inner() {
         v14.x = v12 * 0.5f;
 
     spr::SprArgs v54;
-    v54.SetSize({ v12, v14.y });
-    v54.id.index = 2583;
+    v54.setSize({ v12, v14.y });
+    v54.id = 2583;
     v54.trans = field_8[0].position;
     v54.trans.y = field_8[0].position.y + (float_t)field_1D4;
     v54.screen_trans = field_8[0].mode;
@@ -294,8 +296,8 @@ void Game2dEnergyUnit::disp_inner() {
     v54.prio = spr::SPR_PRIO_12;
 
     spr::SprArgs v52;
-    v52.SetSize(v14);
-    v52.id.index = 2581;
+    v52.setSize(v14);
+    v52.id = 2581;
     v52.trans = field_8[0].position;
     v52.trans.y = field_8[0].position.y + (float_t)field_1D4;
     v52.screen_trans = field_8[0].mode;
@@ -303,8 +305,8 @@ void Game2dEnergyUnit::disp_inner() {
     v52.prio = spr::SPR_PRIO_12;
 
     spr::SprArgs v46;
-    v46.SetSize(v14);
-    v46.id.index = 2581;
+    v46.setSize(v14);
+    v46.id = 2581;
     v46.trans.x = field_8[0].position.x + v12;
     v46.trans.y = field_8[0].position.y + (float_t)field_1D4;
     v46.trans.z = field_8[0].position.z;
@@ -320,8 +322,8 @@ void Game2dEnergyUnit::disp_inner() {
         v17.x = v15 * 0.5f;
 
     spr::SprArgs v50;
-    v50.SetSize({ v15, v17.y });
-    v50.id.index = 2582;
+    v50.setSize({ v15, v17.y });
+    v50.id = 2582;
     v50.trans = field_8[0].position;
     v50.trans.y = field_8[0].position.y + (float_t)field_1D4;
     v50.screen_trans = field_8[0].mode;
@@ -329,8 +331,8 @@ void Game2dEnergyUnit::disp_inner() {
     v50.prio = spr::SPR_PRIO_12;
 
     spr::SprArgs v48;
-    v48.SetSize(v17);
-    v48.id.index = 2580;
+    v48.setSize(v17);
+    v48.id = 2580;
     v48.trans = field_8[0].position;
     v48.trans.y = field_8[0].position.y + (float_t)field_1D4;
     v48.screen_trans = field_8[0].mode;
@@ -338,8 +340,8 @@ void Game2dEnergyUnit::disp_inner() {
     v48.prio = spr::SPR_PRIO_12;
 
     spr::SprArgs v44;
-    v44.SetSize(v17);
-    v44.id.index = 2580;
+    v44.setSize(v17);
+    v44.id = 2580;
     v44.trans.x = field_8[0].position.x + v15;
     v44.trans.y = field_8[0].position.y + (float_t)field_1D4;
     v44.trans.z = field_8[0].position.z;
@@ -355,8 +357,8 @@ void Game2dEnergyUnit::disp_inner() {
         v19.x = v15 * 0.5f;
 
     spr::SprArgs v53;
-    v53.SetSize({ v18, v19.y });
-    v53.id.index = 2866;
+    v53.setSize({ v18, v19.y });
+    v53.id = 2866;
     v53.trans = field_8[0].position;
     v53.trans.y = field_8[0].position.y + (float_t)field_1D4;
     v53.screen_trans = field_8[0].mode;
@@ -364,8 +366,8 @@ void Game2dEnergyUnit::disp_inner() {
     v53.prio = spr::SPR_PRIO_13;
 
     spr::SprArgs v55;
-    v55.SetSize(v19);
-    v55.id.index = 2865;
+    v55.setSize(v19);
+    v55.id = 2865;
     v55.trans = field_8[0].position;
     v55.trans.y = field_8[0].position.y + (float_t)field_1D4;
     v55.screen_trans = field_8[0].mode;
@@ -373,8 +375,8 @@ void Game2dEnergyUnit::disp_inner() {
     v55.prio = spr::SPR_PRIO_13;
 
     spr::SprArgs v45;
-    v45.SetSize(v19);
-    v45.id.index = 2865;
+    v45.setSize(v19);
+    v45.id = 2865;
     v45.trans.z = field_8[0].position.z;
     v45.trans.x = v18 + field_8[0].position.x;
     v45.trans.y = field_8[0].position.y + (float_t)field_1D4;
@@ -384,7 +386,7 @@ void Game2dEnergyUnit::disp_inner() {
     v45.prio = spr::SPR_PRIO_13;
 
     spr::SprArgs v47;
-    v47.SetSize({ (life_gauge_prev - life_gauge_stable) * field_1E0.x * (1.0f / max_value), field_1D8.y });
+    v47.setSize({ (life_gauge_prev - life_gauge_stable) * field_1E0.x * (1.0f / max_value), field_1D8.y });
     v47.kind = spr::SPR_KIND_RECT;
     v47.trans.z = field_8[0].position.z;
     v47.trans.x = field_8[0].position.x + field_1E0.x * life_gauge_stable * (1.0f / max_value);
@@ -394,24 +396,24 @@ void Game2dEnergyUnit::disp_inner() {
     v47.prio = spr::SPR_PRIO_12;
     v47.color = { 0xFF, 0xFF, 0xFF, (uint8_t)(int32_t)(life_gauge_delay * 0.05f * 255.0f) };
 
-    spr::put_sprite(v50, aft_spr_db);
-    spr::put_sprite(v48, aft_spr_db);
+    spr::put(v50, aft_spr_db);
+    spr::put(v48, aft_spr_db);
     if (life_gauge_stable != life_gauge_increase)
-        spr::put_sprite(v44, aft_spr_db);
-    spr::put_sprite(v54, aft_spr_db);
-    spr::put_sprite(v52, aft_spr_db);
+        spr::put(v44, aft_spr_db);
+    spr::put(v54, aft_spr_db);
+    spr::put(v52, aft_spr_db);
     if (life_gauge_stable != life_gauge_decrease)
-        spr::put_sprite(v46, aft_spr_db);
-    spr::put_sprite(v49, aft_spr_db);
-    spr::put_sprite(v51, aft_spr_db);
+        spr::put(v46, aft_spr_db);
+    spr::put(v49, aft_spr_db);
+    spr::put(v51, aft_spr_db);
     if (life_gauge_stable == life_gauge_decrease)
-        spr::put_sprite(v43, aft_spr_db);
-    spr::put_sprite(v47, aft_spr_db);
+        spr::put(v43, aft_spr_db);
+    spr::put(v47, aft_spr_db);
 
     if (life_gauge_safety) {
-        spr::put_sprite(v53, aft_spr_db);
-        spr::put_sprite(v55, aft_spr_db);
-        spr::put_sprite(v45, aft_spr_db);
+        spr::put(v53, aft_spr_db);
+        spr::put(v55, aft_spr_db);
+        spr::put(v45, aft_spr_db);
     }
 
     if (life_gauge_safety) {
@@ -420,13 +422,13 @@ void Game2dEnergyUnit::disp_inner() {
             int32_t v23 = life_gauge_safety_time / 10;
             int32_t v24 = life_gauge_safety_time % 10;
             if (v23 > 0) {
-                aet_layout_data::put_sprite(spr_p_life_safe_num_spr[v23], spr::SPR_ATTR_CTR_CC,
+                aet_layout_data::put_sprite(spr_p_life_safe_num_spr[v23], spr::M_SPR_ATTR_CTR_CC,
                     spr::SPR_PRIO_13, &field_1F0, &field_8[3], aft_spr_db);
-                aet_layout_data::put_sprite(spr_p_life_safe_num_spr[v24], spr::SPR_ATTR_CTR_CC,
+                aet_layout_data::put_sprite(spr_p_life_safe_num_spr[v24], spr::M_SPR_ATTR_CTR_CC,
                     spr::SPR_PRIO_13, &field_1F0, &field_8[2], aft_spr_db);
             }
             else
-                aet_layout_data::put_sprite(spr_p_life_safe_num_spr[v24], spr::SPR_ATTR_CTR_CC,
+                aet_layout_data::put_sprite(spr_p_life_safe_num_spr[v24], spr::M_SPR_ATTR_CTR_CC,
                     spr::SPR_PRIO_13, &field_1F0, &field_8[3], aft_spr_db);
         }
     }

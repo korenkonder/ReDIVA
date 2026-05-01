@@ -330,14 +330,14 @@ void TaskMovie::disp() {
     }
 
     data_struct* aft_data = &data_list[DATA_AFT];
-    sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
+    SprDb* aft_spr_db = &aft_data->data_ft.spr_db;
 
     spr::SprArgs args;
-    args.Reset();
+    args.init();
     args.tex = tex;
-    args.SetSize(sprite_size);
-    args.SetRect(tex_x, tex_y, tex_width, tex_height);
-    args.attr = (spr::SprAttr)(spr::SPR_ATTR_CTR_CC | spr::SPR_ATTR_FLIP_V);
+    args.setSize(sprite_size);
+    args.setRect(tex_x, tex_y, tex_width, tex_height);
+    args.attr = (spr::SPR_ATTR)(spr::M_SPR_ATTR_CTR_CC | spr::M_SPR_ATTR_FLIP_V);
     args.target = spr_params.disp.target;
     args.prio = spr_params.prio;
     args.screen_trans = spr_params.disp.screen_mode;
@@ -348,7 +348,7 @@ void TaskMovie::disp() {
     args.scale.x = scale;
     args.scale.y = scale;
     args.scale.z = 1.0f;
-    spr::put_sprite(args, aft_spr_db);
+    spr::put(args, aft_spr_db);
 }
 
 bool TaskMovie::CheckDisp() {

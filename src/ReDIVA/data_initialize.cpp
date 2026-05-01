@@ -50,22 +50,22 @@ bool TaskDataInit::ctrl() {
     data_struct* aft_data = &data_list[DATA_AFT];
     aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
     object_database* aft_obj_db = &aft_data->data_ft.obj_db;
-    sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
+    SprDb* aft_spr_db = &aft_data->data_ft.spr_db;
 
     switch (state) {
     case 0: {
         // Fucks up scaling
-        //sprite_manager_reset_res_data();
-        sprite_manager_read_file(spr_fnt_24_set_id, "", aft_data, aft_spr_db);
-        sprite_manager_read_file(spr_fnt_bold24_set_id, "", aft_data, aft_spr_db);
-        sprite_manager_read_file(spr_fnt_cmn_set_id, "", aft_data, aft_spr_db);
+        //spr::init();
+        spr::request(spr_fnt_24_set_id, "", aft_data, aft_spr_db);
+        spr::request(spr_fnt_bold24_set_id, "", aft_data, aft_spr_db);
+        spr::request(spr_fnt_cmn_set_id, "", aft_data, aft_spr_db);
         fontmap_data_read_file();
         state = 1;
     } break;
     case 1:
-        if (!sprite_manager_load_file(spr_fnt_24_set_id, aft_spr_db)
-            && !sprite_manager_load_file(spr_fnt_bold24_set_id, aft_spr_db)
-            && !sprite_manager_load_file(spr_fnt_cmn_set_id, aft_spr_db)
+        if (!spr::wait(spr_fnt_24_set_id, aft_spr_db)
+            && !spr::wait(spr_fnt_bold24_set_id, aft_spr_db)
+            && !spr::wait(spr_fnt_cmn_set_id, aft_spr_db)
             && !fontmap_data_load_file())
             state = field_6C ? 2 : 4;
         break;
@@ -78,16 +78,16 @@ bool TaskDataInit::ctrl() {
             state = 4;
         break;
     case 4: {
-        sprite_manager_read_file(spr_gam_loadsc_set_id, "", aft_data, aft_spr_db);
+        spr::request(spr_gam_loadsc_set_id, "", aft_data, aft_spr_db);
         aet_manager_read_file(aet_gam_loadsc_set_id, "", aft_data, aft_aet_db);
-        sprite_manager_read_file(spr_cmn_all_set_id, "", aft_data, aft_spr_db);
+        spr::request(spr_cmn_all_set_id, "", aft_data, aft_spr_db);
         aet_manager_read_file(aet_cmn_all_set_id, "", aft_data, aft_aet_db);
         state = 5;
     } break;
     case 5:
-        if (sprite_manager_load_file(spr_gam_loadsc_set_id, aft_spr_db)
+        if (spr::wait(spr_gam_loadsc_set_id, aft_spr_db)
             || aet_manager_load_file(aet_gam_loadsc_set_id, aft_aet_db)
-            || sprite_manager_load_file(spr_cmn_all_set_id, aft_spr_db)
+            || spr::wait(spr_cmn_all_set_id, aft_spr_db)
             || aet_manager_load_file(aet_cmn_all_set_id, aft_aet_db))
             break;
 

@@ -389,7 +389,7 @@ const char* spr_white_fade[] = {
 extern uint32_t aet_gam_cmn_set_id;
 extern uint32_t spr_gam_cmn_set_id;
 
-static void sub_14013AAE0(float_t pos_x, float_t pos_y, spr::SprPrio prio,
+static void sub_14013AAE0(float_t pos_x, float_t pos_y, spr::SPR_PRIO prio,
     const char* str, bool h_center, color4u8 color, rectangle* clip_rect = 0);
 
 pv_disp2d::pv_disp2d() : pv_id(), title_start_2d_field(), title_end_2d_field(),
@@ -564,7 +564,7 @@ void pv_game_play_data::disp_chance_point() {
 
     data_struct* aft_data = &data_list[DATA_AFT];
     aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
-    sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
+    SprDb* aft_spr_db = &aft_data->data_ft.spr_db;
 
     int32_t digits = get_digit_count(chance_points, 6);
 
@@ -587,7 +587,7 @@ void pv_game_play_data::disp_chance_point() {
 
     const aet_layout_data* layout = comp.Find((&spr_p_chance_point_num[v5 / 2])[digits]);
     if (layout)
-        aet_layout_data::put_sprite(392, spr::SPR_ATTR_CTR_CC, spr::SPR_PRIO_16, &pos, layout, aft_spr_db);
+        aet_layout_data::put_sprite(392, spr::M_SPR_ATTR_CTR_CC, spr::SPR_PRIO_16, &pos, layout, aft_spr_db);
 
     AetComp::put_number_sprite(chance_points, 7, &comp, &spr_p_chance_point_num[v5 / 2],
         spr_p_chance_point_num_spr, spr::SPR_PRIO_16, &pos, 0, aft_spr_db);
@@ -629,7 +629,7 @@ void pv_game_play_data::disp_chance_txt() {
 
     data_struct* aft_data = &data_list[DATA_AFT];
     aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
-    sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
+    SprDb* aft_spr_db = &aft_data->data_ft.spr_db;
 
     vec2 pos = { ((float_t)(6 - digits) * field_350) * -0.5f, 0.0f };
     aet_manager_init_aet_layout(&comp, 3, spr_chance_txt[1], (AetFlags)0, SCREEN_MODE_HD,
@@ -644,7 +644,7 @@ void pv_game_play_data::disp_combo() {
 
     data_struct* aft_data = &data_list[DATA_AFT];
     aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
-    sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
+    SprDb* aft_spr_db = &aft_data->data_ft.spr_db;
 
     const char* name;
     if (value_text_time_offset < -(float_t)(1.0 / 120.0))
@@ -675,7 +675,7 @@ void pv_game_play_data::disp_max_slide_point() {
 
     data_struct* aft_data = &data_list[DATA_AFT];
     aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
-    sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
+    SprDb* aft_spr_db = &aft_data->data_ft.spr_db;
 
     int32_t digits = get_digit_count(max_slide_points, 6);
 
@@ -731,7 +731,7 @@ void pv_game_play_data::disp_score() {
         return;
 
     data_struct* aft_data = &data_list[DATA_AFT];
-    sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
+    SprDb* aft_spr_db = &aft_data->data_ft.spr_db;
 
     vec2 pos = { 0.0f, frame_btm_pos[0] };
     AetComp::put_number_sprite(score, 7, &comp, spr_p_score,
@@ -744,7 +744,7 @@ void pv_game_play_data::disp_slide_point() {
 
     data_struct* aft_data = &data_list[DATA_AFT];
     aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
-    sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
+    SprDb* aft_spr_db = &aft_data->data_ft.spr_db;
 
     int32_t digits = get_digit_count(slide_points, 6);
 
@@ -766,7 +766,7 @@ void pv_game_play_data::disp_slide_point() {
     target_pos_scale_offset_apply(&slide_points_pos, &pos);
     const aet_layout_data* layout = comp.Find((&spr_p_chance_point_num[v5 / 2])[digits]);
     if (layout)
-        aet_layout_data::put_sprite(34086, spr::SPR_ATTR_CTR_CC, spr::SPR_PRIO_16, &pos, layout, aft_spr_db);
+        aet_layout_data::put_sprite(34086, spr::M_SPR_ATTR_CTR_CC, spr::SPR_PRIO_16, &pos, layout, aft_spr_db);
     AetComp::put_number_sprite(slide_points, 7, &comp, &spr_p_chance_point_num[v5 / 2],
         spr_p_slide_point_num_spr, spr::SPR_PRIO_16, &pos, 0, aft_spr_db);
 }
@@ -793,7 +793,7 @@ void pv_game_play_data::disp_song_energy() {
         return;
 
     data_struct* aft_data = &data_list[DATA_AFT];
-    sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
+    SprDb* aft_spr_db = &aft_data->data_ft.spr_db;
 
     pv_game* pv_game = pv_game_get();
     const int32_t* spr;
@@ -811,12 +811,12 @@ void pv_game_play_data::disp_song_energy() {
 
     const aet_layout_data* spr_p_energy_num_3_layout = comp.Find(spr_p_energy_num[3]);
     if (spr_p_energy_num_3_layout)
-        aet_layout_data::put_sprite(spr[11], spr::SPR_ATTR_CTR_CC,
+        aet_layout_data::put_sprite(spr[11], spr::M_SPR_ATTR_CTR_CC,
             spr::SPR_PRIO_16, &pos, spr_p_energy_num_3_layout, aft_spr_db);
 
     const aet_layout_data* spr_p_energy_num_0_layout = comp.Find(spr_p_energy_num[0]);
     if (spr_p_energy_num_0_layout)
-        aet_layout_data::put_sprite(spr[10], spr::SPR_ATTR_CTR_CC,
+        aet_layout_data::put_sprite(spr[10], spr::M_SPR_ATTR_CTR_CC,
             spr::SPR_PRIO_16, &pos, spr_p_energy_num_0_layout, aft_spr_db);
 }
 
@@ -846,13 +846,13 @@ void pv_game_play_data::disp_spr_set_back() {
         return;
 
     data_struct* aft_data = &data_list[DATA_AFT];
-    sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
+    SprDb* aft_spr_db = &aft_data->data_ft.spr_db;
 
     spr::SprArgs args;
-    args.id.id = spr_set_back_id;
+    args.id = spr_set_back_id;
     args.prio = spr::SPR_PRIO_01;
     args.target = spr::SPR_TARGET_BACK;
-    spr::put_sprite(args, aft_spr_db);
+    spr::put(args, aft_spr_db);
 }
 
 void pv_game_play_data::fade_begin_ctrl() {
@@ -1091,9 +1091,9 @@ void pv_game_play_data::init_aet(pv_aet aet, int32_t index, std::string&& layer_
         aet_id = aft_aet_db->get_aet_by_name(aet_name.c_str())->id;
     }
 
-    spr::SprTarget target;
+    spr::SPR_TARGET target;
     pv_game_aet aet_index;
-    spr::SprPrio prio;
+    spr::SPR_PRIO prio;
     switch (aet) {
     case PV_AET_FRONT:
         target = spr::SPR_TARGET_FRONT;
@@ -1203,7 +1203,7 @@ void pv_game_play_data::init_aet_combo(int32_t target_display_index,
 void pv_game_play_data::init_aet_demo_font() {
     data_struct* aft_data = &data_list[DATA_AFT];
     aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
-    sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
+    SprDb* aft_spr_db = &aft_data->data_ft.spr_db;
 
     aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_DEMO_FONT]);
     aet_ids[PV_GAME_AET_DEMO_FONT] = aet_manager_init_aet_object(33, spr::SPR_PRIO_16, AET_PLAY_ONCE,
@@ -1213,7 +1213,7 @@ void pv_game_play_data::init_aet_demo_font() {
 void pv_game_play_data::init_aet_demo_logo() {
     data_struct* aft_data = &data_list[DATA_AFT];
     aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
-    sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
+    SprDb* aft_spr_db = &aft_data->data_ft.spr_db;
 
     aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_DEMO_LOGO]);
     aet_ids[PV_GAME_AET_DEMO_LOGO] = aet_manager_init_aet_object(33, spr::SPR_PRIO_16, AET_LOOP,
@@ -1228,7 +1228,7 @@ float_t pv_game_play_data::init_aet_edit_effect(int32_t aet_id, const char* name
 
     data_struct* aft_data = &data_list[DATA_AFT];
     aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
-    sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
+    SprDb* aft_spr_db = &aft_data->data_ft.spr_db;
 
     std::vector<std::string> vec;
     aet_manager_get_scene_comp_layer_names(vec, aet_id, aft_aet_db);
@@ -1294,11 +1294,11 @@ void pv_game_play_data::init_aet_frame(bool danger) {
     }
 }
 
-uint32_t pv_game_play_data::init_aet_gam_cmn(pv_game_aet aet_index, spr::SprPrio prio,
+uint32_t pv_game_play_data::init_aet_gam_cmn(pv_game_aet aet_index, spr::SPR_PRIO prio,
     AetFlags flags, const char* layer_name, const vec2* pos, const vec2* scale) {
     data_struct* aft_data = &data_list[DATA_AFT];
     aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
-    sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
+    SprDb* aft_spr_db = &aft_data->data_ft.spr_db;
 
     uint32_t aet_id = aet_manager_init_aet_object(3, prio, flags, layer_name, pos,
         spr::SPR_TARGET_FRONT, 0, 0, -1.0f, -1.0f, scale, 0, aft_aet_db, aft_spr_db);
@@ -1307,7 +1307,7 @@ uint32_t pv_game_play_data::init_aet_gam_cmn(pv_game_aet aet_index, spr::SprPrio
 }
 
 void pv_game_play_data::init_aet_id(int32_t aet_id, const char* layer_name,
-    spr::SprTarget target, pv_game_aet aet_index, spr::SprPrio prio, bool* not_init,
+    spr::SPR_TARGET target, pv_game_aet aet_index, spr::SPR_PRIO prio, bool* not_init,
     float_t start_time, float_t end_time, FrameRateControl* frame_rate_control) {
     aet_manager_free_aet_object_reset(&aet_ids[aet_index]);
     if (!pv_set || !layer_name || !*layer_name)
@@ -1315,7 +1315,7 @@ void pv_game_play_data::init_aet_id(int32_t aet_id, const char* layer_name,
 
     data_struct* aft_data = &data_list[DATA_AFT];
     aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
-    sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
+    SprDb* aft_spr_db = &aft_data->data_ft.spr_db;
 
     aet_ids[aet_index] = aet_manager_init_aet_object(aet_id, prio, AET_PLAY_ONCE, layer_name, 0,
         target, 0, 0, start_time, end_time, 0, frame_rate_control, aft_aet_db, aft_spr_db);
@@ -1411,7 +1411,7 @@ void pv_game_play_data::init_aet_slide_max(int32_t slide_point, float_t pos_x, f
 
     data_struct* aft_data = &data_list[DATA_AFT];
     aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
-    sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
+    SprDb* aft_spr_db = &aft_data->data_ft.spr_db;
 
     AetComp comp;
     aet_manager_init_aet_layout(&comp, 3, spr_max_slide_point[v10], (AetFlags)0, SCREEN_MODE_HD,
@@ -1525,7 +1525,7 @@ void pv_game_play_data::init_aet_success_info() {
 void pv_game_play_data::init_aet_title_image(const char* name) {
     data_struct* aft_data = &data_list[DATA_AFT];
     aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
-    sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
+    SprDb* aft_spr_db = &aft_data->data_ft.spr_db;
 
 #if PV_DEBUG
     FrameRateControl* frame_rate_control = get_sys_frame_rate();
@@ -1565,16 +1565,16 @@ bool pv_game_play_data::load_auth_2d(int32_t stage_index, pv_disp2d* disp2d) {
 bool pv_game_play_data::load_auth_2d_data() {
     data_struct* aft_data = &data_list[DATA_AFT];
     aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
-    sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
+    SprDb* aft_spr_db = &aft_data->data_ft.spr_db;
 
     if (pv_set) {
-        if (pv_spr_set_id != -1 && sprite_manager_load_file(pv_spr_set_id, aft_spr_db))
+        if (pv_spr_set_id != -1 && spr::wait(pv_spr_set_id, aft_spr_db))
             return true;
         if (pv_aet_set_id != -1 && aet_manager_load_file(pv_aet_set_id, aft_aet_db))
             return true;
     }
 
-    if (sprite_manager_load_file(9, aft_spr_db) || aet_manager_load_file(3, aft_aet_db))
+    if (spr::wait(9, aft_spr_db) || aet_manager_load_file(3, aft_aet_db))
         return true;
 
     return false;//game_skin_get()->load_file();
@@ -1583,9 +1583,9 @@ bool pv_game_play_data::load_auth_2d_data() {
 void pv_game_play_data::read_auth_2d_data() {
     data_struct* aft_data = &data_list[DATA_AFT];
     aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
-    sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
+    SprDb* aft_spr_db = &aft_data->data_ft.spr_db;
 
-    sprite_manager_read_file(spr_gam_cmn_set_id, "", aft_data, aft_spr_db);
+    spr::request(spr_gam_cmn_set_id, "", aft_data, aft_spr_db);
     aet_manager_read_file(aet_gam_cmn_set_id, "", aft_data, aft_aet_db);
 
     if (pv_set) {
@@ -1594,7 +1594,7 @@ void pv_game_play_data::read_auth_2d_data() {
             mdata_dir.assign(pv_game_get()->data.pv->mdata.dir);
 
         if (pv_spr_set_id != -1)
-            sprite_manager_read_file(pv_spr_set_id, mdata_dir, aft_data, aft_spr_db);
+            spr::request(pv_spr_set_id, mdata_dir, aft_data, aft_spr_db);
 
         if (pv_aet_set_id != -1)
             aet_manager_read_file(pv_aet_set_id, mdata_dir, aft_data, aft_aet_db);
@@ -1949,18 +1949,18 @@ void pv_game_play_data::unload_aet() {
 void pv_game_play_data::unload_auth_2d() {
     data_struct* aft_data = &data_list[DATA_AFT];
     aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
-    sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
+    SprDb* aft_spr_db = &aft_data->data_ft.spr_db;
 
     unload_auth_2d_data();
 
     if (pv_set) {
         if (pv_spr_set_id != -1)
-            sprite_manager_unload_set(pv_spr_set_id, aft_spr_db);
+            spr::free(pv_spr_set_id, aft_spr_db);
         if (pv_aet_set_id != -1)
             aet_manager_unload_set(pv_aet_set_id, aft_aet_db);
     }
 
-    sprite_manager_unload_set(spr_gam_cmn_set_id, aft_spr_db);
+    spr::free(spr_gam_cmn_set_id, aft_spr_db);
     aet_manager_unload_set(aet_gam_cmn_set_id, aft_aet_db);
 
     //game_skin_get()->unload_skin();
@@ -2003,32 +2003,31 @@ void pv_game_play_data::sub_1401349B0() {
 
 void pv_game_play_data::sub_1401349C0(uint32_t set_id) {
     data_struct* aft_data = &data_list[DATA_AFT];
-    sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
+    SprDb* aft_spr_db = &aft_data->data_ft.spr_db;
 
-    if (!sprite_manager_get_set_ready(aft_spr_db->get_spr_set_by_id(set_id)->index, aft_spr_db))
+    if (!spr::getReady(set_id, aft_spr_db))
         return;
 
-    uint32_t count = sprite_manager_get_set_texture_num(set_id, aft_spr_db);
+    uint32_t count = spr::getTexNum(set_id, aft_spr_db);
     for (uint32_t i = 0; i < count; i++) {
-        texture* tex = sprite_manager_get_spr_texture(
-            aft_spr_db->get_tex_by_set_id_index(set_id, i)->id, aft_spr_db);
+        const texture* tex = spr::getTexture(aft_spr_db->getTexFromIdx(set_id, i).uid, aft_spr_db);
         if (!tex)
             continue;
 
         spr::SprArgs args;
-        args.id.id = -1;
+        args.id = -1;
         args.prio = spr::SPR_PRIO_04;
         args.tex = tex;
-        args.SetSize({ (float_t)tex->width, (float_t)tex->height });
-        args.SetRect(0.0f, 0.0f, (float_t)tex->width, (float_t)tex->height);
-        spr::put_sprite(args, aft_spr_db);
+        args.setSize({ (float_t)tex->width, (float_t)tex->height });
+        args.setRect(0.0f, 0.0f, (float_t)tex->width, (float_t)tex->height);
+        spr::put(args, aft_spr_db);
     }
 }
 
 void pv_game_play_data::sub_140135ED0() {
     data_struct* aft_data = &data_list[DATA_AFT];
     aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
-    sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
+    SprDb* aft_spr_db = &aft_data->data_ft.spr_db;
 
     AetArgs args;
     args.id.id = 3;
@@ -2217,7 +2216,7 @@ float_t get_percentage_clear_great() {
     return percentage_clear_great[sub_14013C8C0()->difficulty];
 }
 
-static void sub_14013AAE0(float_t pos_x, float_t pos_y, spr::SprPrio prio,
+static void sub_14013AAE0(float_t pos_x, float_t pos_y, spr::SPR_PRIO prio,
     const char* str, bool h_center, color4u8 color, rectangle* clip_rect) {
     if (!str)
         return;

@@ -389,11 +389,11 @@ void effchrpv_auth_3d_to_mot::disp() {
         mat4 mat;
         mat = oh->node[a2m.j_mune_wj].model_transform.mat;
         mat4_scale_rot(&mat, 0.1f, &mat);
-        spr::put_rgb_cross(mat);
+        debug_put_line_axis(mat);
 
         mat = oh->node[a2m.j_kao_wj].model_transform.mat;
         mat4_scale_rot(&mat, 0.1f, &mat);
-        spr::put_rgb_cross(mat);
+        debug_put_line_axis(mat);
     }*/
 }
 

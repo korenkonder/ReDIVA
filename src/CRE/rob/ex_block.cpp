@@ -8,8 +8,8 @@
 #include "../../KKdLib/str_utils.hpp"
 #include "../app_system_detail.hpp"
 #include "../data.hpp"
+#include "../debug_print.hpp"
 #include "../gl_state.hpp"
-#include "../sprite.hpp"
 #include "skin_param.hpp"
 
 struct ExpFuncUnaryTbl {
@@ -1177,7 +1177,7 @@ void CLOTH::disp_debug() {
 
     const CLOTH_VERTEX* vtx = vtxarg.data();
     for (const auto& i : spring)
-        spr::put_sprite_3d_line(vtx[i.index0].pos, vtx[i.index1].pos, color_spring);
+        dx_draw_line(vtx[i.index0].pos, vtx[i.index1].pos, color_spring);
 }
 
 void CLOTH::dest() {
@@ -1199,22 +1199,17 @@ void RobCloth::disp_debug() {
     if (!dbg_osage_line_disp_flag)
         return;
 
-    const color4u8 color_spring = color_red;
-
     const color4u8 color_tangent = color_green;
     const color4u8 color_binormal = color_cyan;
     const color4u8 color_normal = color_white;
 
     const CLOTH_VERTEX* vtx = vtxarg.data();
-    for (const auto& i : spring)
-        spr::put_sprite_3d_line(vtx[i.index0].pos, vtx[i.index1].pos, color_spring);
-
     vtx += width;
     for (size_t i = 1; i < height; i++) {
         for (size_t j = 0; j < width; j++, vtx++) {
-            spr::put_sprite_3d_line(vtx->pos, vtx->tangent * 0.05f + vtx->pos, color_tangent);
-            spr::put_sprite_3d_line(vtx->pos, vtx->binormal * 0.05f + vtx->pos, color_binormal);
-            spr::put_sprite_3d_line(vtx->pos, vtx->normal * 0.05f + vtx->pos, color_normal);
+            dx_draw_line(vtx->pos, vtx->tangent * 0.05f + vtx->pos, color_tangent);
+            dx_draw_line(vtx->pos, vtx->binormal * 0.05f + vtx->pos, color_binormal);
+            dx_draw_line(vtx->pos, vtx->normal * 0.05f + vtx->pos, color_normal);
         }
     }
 }

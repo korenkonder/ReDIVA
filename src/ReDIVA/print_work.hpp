@@ -53,8 +53,8 @@ struct PrintWork {
     color4u8 fill_color;
     bool clip;
     rectangle clip_data;
-    spr::SprPrio prio;
-    spr::SprLayer layer;
+    spr::SPR_PRIO prio;
+    spr::SPR_LAYER layer;
     SCREEN_MODE screen_mode;
     uint32_t field_28;
     vec2 text_current_loc;
@@ -127,7 +127,7 @@ struct PrintWork {
         text_current_loc = line_origin_loc;
     }
 
-    inline void set_prio(const spr::SprPrio value) {
+    inline void set_prio(const spr::SPR_PRIO value) {
         prio = value;
     }
 

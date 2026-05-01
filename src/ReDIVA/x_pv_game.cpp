@@ -502,7 +502,7 @@ static void x_pv_game_read_object_reflect(const char* path, const char* set_name
 static void x_pv_game_update_object_set(ObjsetInfo* info);
 static void x_pv_game_write_aet(uint32_t aet_set_id,
     const aet_database* aet_db, aet_database_file* x_pack_aet_db,
-    const sprite_database_file* x_pack_spr_db, const char* out_dir);
+    const SprDbFile* x_pack_spr_db, const char* out_dir);
 static bool x_pv_game_write_auth_3d(farc* f, auth_3d* auth, auth_3d_database_file* auth_3d_db,
     const char* category, std::vector<uint64_t>& avail_uids, const char* out_dir);
 static void x_pv_game_write_auth_3d_camera(auth_3d* auth, int32_t pv_id,
@@ -530,7 +530,7 @@ static void x_pv_game_write_stage_data(int32_t stage_id, const auth_3d_database*
 static void x_pv_game_write_stage_data_reflect(stream& s, stage_database_file* stg_db);
 static void x_pv_game_write_str_array(stream& s);
 static void x_pv_game_write_spr(uint32_t spr_set_id,
-    const sprite_database* spr_db, sprite_database_file* x_pack_spr_db, const char* out_dir);
+    const SprDb* spr_db, SprDbFile* x_pack_spr_db, const char* out_dir);
 #endif
 
 static void print_dsc_command(dsc& dsc, dsc_data* dsc_data_ptr, int64_t time);
@@ -2289,7 +2289,7 @@ const aet_layout_data* aet_obj_data_comp::find_layout(const char* name) {
 }
 
 bool aet_obj_data_comp::init_comp(uint32_t aet_id, const std::string&& layer_name,
-    float_t frame, const aet_database* aet_db, const sprite_database* spr_db) {
+    float_t frame, const aet_database* aet_db, const SprDb* spr_db) {
     if (aet_id == hash_murmurhash_empty || aet_id == -1)
         return false;
 
@@ -2325,7 +2325,7 @@ bool aet_obj_data::check_disp() {
 }
 
 const aet_layout_data* aet_obj_data::find_aet_layout(const char* name,
-    const aet_database* aet_db, const sprite_database* spr_db) {
+    const aet_database* aet_db, const SprDb* spr_db) {
     if (!name)
         return 0;
 
@@ -2388,7 +2388,7 @@ x_pv_aet_disp_string::~x_pv_aet_disp_string() {
 
 }
 
-void x_pv_aet_disp_string::ctrl(const char* name, aet_obj_data* aet, const aet_database* aet_db, const sprite_database* spr_db) {
+void x_pv_aet_disp_string::ctrl(const char* name, aet_obj_data* aet, const aet_database* aet_db, const SprDb* spr_db) {
     if (!aet) {
         data.disp = false;
         return;
@@ -2475,7 +2475,7 @@ void x_pv_game_title::ctrl() {
     switch (state) {
     case 2:
         if (!aet_manager_load_file_modern(aet_set_id, &aet_db)
-            && !sprite_manager_load_file_modern(spr_set_id, &spr_db)) {
+            && !spr::waitModern(spr_set_id, &spr_db)) {
             spr_set* set = sprite_manager_get_set(spr_set_id, &spr_db);
             if (set) {
                 SpriteData* sprdata = set->sprdata;
@@ -2651,7 +2651,7 @@ void x_pv_game_title::load_data() {
     if (!state || state != 1)
         return;
 
-    sprite_manager_read_file_modern(spr_set_id, &data_list[DATA_X], &spr_db);
+    spr::requestModern(spr_set_id, &data_list[DATA_X], &spr_db);
     aet_manager_read_file_modern(aet_set_id, &data_list[DATA_X], &aet_db);
     state = 2;
 }
@@ -2732,7 +2732,7 @@ void x_pv_game_title::unload() {
 void x_pv_game_title::unload_data() {
     if (state && state != 2 && state != 1) {
         reset();
-        sprite_manager_unload_set_modern(spr_set_id, &spr_db);
+        spr::freeModern(spr_set_id, &spr_db);
         aet_manager_unload_set_modern(aet_set_id, &aet_db);
         state = 1;
     }
@@ -4679,7 +4679,7 @@ void x_pv_game_stage_env::ctrl(float_t delta_time) {
         if ((aet_gam_stgpv_id_hash == hash_murmurhash_empty
             || !aet_manager_load_file_modern(aet_gam_stgpv_id_hash, &aet_db))
             && (spr_gam_stgpv_id_hash == hash_murmurhash_empty
-                || !sprite_manager_load_file_modern(spr_gam_stgpv_id_hash, &spr_db))) {
+                || !spr::waitModern(spr_gam_stgpv_id_hash, &spr_db))) {
             spr_set* set = sprite_manager_get_set(spr_gam_stgpv_id_hash, &spr_db);
             if (set) {
                 SpriteData* sprdata = set->sprdata;
@@ -4751,7 +4751,7 @@ void x_pv_game_stage_env::load(int32_t stage_id, pvsr* stage_resource) {
         spr_gam_stgpv_id_hash = hash_utf8_murmurhash(buf);
 
         aet_manager_read_file_modern(aet_gam_stgpv_id_hash, &data_list[DATA_X], &aet_db);
-        sprite_manager_read_file_modern(spr_gam_stgpv_id_hash, &data_list[DATA_X], &spr_db);
+        spr::requestModern(spr_gam_stgpv_id_hash, &data_list[DATA_X], &spr_db);
 
         sprintf_s(buf, sizeof(buf), "AET_GAM_STGPV%03d_MAIN", stage_id);
         aet_gam_stgpv_id_main_hash = hash_utf8_murmurhash(buf);
@@ -4902,7 +4902,7 @@ void x_pv_game_stage_env::unload() {
     }
 
     if (spr_gam_stgpv_id_hash != hash_murmurhash_empty) {
-        sprite_manager_unload_set_modern(spr_gam_stgpv_id_hash, &spr_db);
+        spr::freeModern(spr_gam_stgpv_id_hash, &spr_db);
         spr_gam_stgpv_id_hash = hash_murmurhash_empty;
     }
 
@@ -6548,7 +6548,7 @@ bool x_pv_game::ctrl() {
         baker->pv_tit_aet_ids[4] = hash_utf8_murmurhash("AET_PV_TIT05_MAIN");
 
         for (int32_t i = 0; i < 5; i++) {
-            sprite_manager_read_file_modern(baker->pv_tit_spr_set_ids[i],
+            spr::requestModern(baker->pv_tit_spr_set_ids[i],
                 &data_list[DATA_X], &baker->pv_tit_spr_db);
             aet_manager_read_file_modern(baker->pv_tit_aet_set_ids[i],
                 &data_list[DATA_X], &baker->pv_tit_aet_db);
@@ -6560,7 +6560,7 @@ bool x_pv_game::ctrl() {
         bool wait_load = false;
         for (int32_t i = 0; i < 5; i++) {
             if (!aet_manager_load_file_modern(baker->pv_tit_aet_set_ids[i], &baker->pv_tit_aet_db)
-                && !sprite_manager_load_file_modern(baker->pv_tit_spr_set_ids[i], &baker->pv_tit_spr_db)) {
+                && !spr::waitModern(baker->pv_tit_spr_set_ids[i], &baker->pv_tit_spr_db)) {
                 spr_set* set = sprite_manager_get_set(baker->pv_tit_spr_set_ids[i], &baker->pv_tit_spr_db);
                 if (set) {
                     SpriteData* sprdata = set->sprdata;
@@ -8434,7 +8434,7 @@ void XPVGameBaker::AFTData::Read() {
     obj_db.modern = false;
     aft_data->load_file(&obj_db, "rom/objset/", "mdata_obj_db.bin", object_database_file::load_file);
     spr_db.modern = false;
-    aft_data->load_file(&spr_db, "rom/2d/", "mdata_spr_db.bin", sprite_database_file::load_file);
+    aft_data->load_file(&spr_db, "rom/2d/", "mdata_spr_db.bin", SprDbFile::load_file);
     aft_data->load_file(&stage_data, "rom/", "mdata_stage_data.bin", stage_database_file::load_file);
     {
         texture_database_file tex_db_base;
@@ -9413,7 +9413,7 @@ bool XPVGameBaker::dest() {
     }
 
     for (int32_t i = 0; i < 5; i++) {
-        sprite_manager_unload_set_modern(pv_tit_aet_set_ids[i], &pv_tit_spr_db);
+        spr::freeModern(pv_tit_aet_set_ids[i], &pv_tit_spr_db);
         aet_manager_unload_set_modern(pv_tit_spr_set_ids[i], &pv_tit_aet_db);
     }
 
@@ -11385,7 +11385,7 @@ static void x_pv_game_update_object_set(ObjsetInfo* info) {
 
 static void x_pv_game_write_aet(uint32_t aet_set_id,
     const aet_database* aet_db, aet_database_file* x_pack_aet_db,
-    const sprite_database_file* x_pack_spr_db, const char* out_dir) {
+    const SprDbFile* x_pack_spr_db, const char* out_dir) {
     const aet_db_aet_set* aet_set_db = aet_db->get_aet_set_by_id(aet_set_id);
 
     ::aet_set* aet_set = aet_manager_get_set(aet_set_id, aet_db);
@@ -11446,9 +11446,9 @@ static void x_pv_game_write_aet(uint32_t aet_set_id,
     sprite_set_name.append(aet_db_aet_set->name, 4);
 
     const uint64_t sprite_set_hash = hash_string_xxh3_64bits(sprite_set_name);
-    for (const spr_db_spr_set_file& i : x_pack_spr_db->sprite_set)
+    for (const SprDbFile::SprSet& i : x_pack_spr_db->set)
         if (hash_string_xxh3_64bits(i.name) == sprite_set_hash) {
-            aet_db_aet_set->sprite_set_id = i.id;
+            aet_db_aet_set->sprite_set_id = i.uid;
             break;
         }
 
@@ -11519,10 +11519,10 @@ static void x_pv_game_write_aet(uint32_t aet_set_id,
                 name.append(source->sprite_name);
 
                 const uint64_t name_hash = hash_string_xxh3_64bits(name);
-                for (const spr_db_spr_set_file& l : x_pack_spr_db->sprite_set)
-                    for (const spr_db_spr_file& m : l.sprite)
+                for (const SprDbFile::SprSet& l : x_pack_spr_db->set)
+                    for (const SprDbFile::Spr& m : l.sprite)
                         if (hash_string_xxh3_64bits(m.name) == name_hash)
-                            *(uint32_t*)&source->sprite_index = m.id;
+                            *(uint32_t*)&source->sprite_index = m.uid;
             }
         }
 
@@ -13687,8 +13687,8 @@ static void x_pv_game_write_str_array(stream& s) {
 }
 
 static void x_pv_game_write_spr(uint32_t spr_set_id,
-    const sprite_database* spr_db, sprite_database_file* x_pack_spr_db, const char* out_dir) {
-    const spr_db_spr_set* spr_set_db = spr_db->get_spr_set_by_id(spr_set_id);
+    const SprDb* spr_db, SprDbFile* x_pack_spr_db, const char* out_dir) {
+    const SprDb::SprSet& spr_db_set = spr_db->getSetFromUid(spr_set_id);
 
     ::spr_set* spr_set = sprite_manager_get_set(spr_set_id, spr_db);
 
@@ -13696,73 +13696,73 @@ static void x_pv_game_write_spr(uint32_t spr_set_id,
     ::spr_set* set = alloc->allocate<::spr_set>();
     set->move_data(spr_set, alloc);
 
-    std::string name(spr_set_db->name);
-    std::string file_name(spr_set_db->file_name);
+    std::string name(spr_db_set.name);
+    std::string file(spr_db_set.file);
 
     replace_stgpv_pv(name);
-    replace_stgpv_pv(file_name);
+    replace_stgpv_pv(file);
 
-    size_t pos = file_name.rfind(".spr");
+    size_t pos = file.rfind(".spr");
     if (pos != -1)
-        file_name.replace(pos, 4, ".bin");
+        file.replace(pos, 4, ".bin");
 
     const uint64_t name_hash = hash_string_xxh3_64bits(name);
 
     size_t set_index = -1;
-    uint32_t id = -1;
-    for (spr_db_spr_set_file& i : x_pack_spr_db->sprite_set) {
+    uint32_t uid = -1;
+    for (SprDbFile::SprSet& i : x_pack_spr_db->set) {
         if (hash_string_xxh3_64bits(i.name) == name_hash)
-            set_index = &i - x_pack_spr_db->sprite_set.data();
+            set_index = &i - x_pack_spr_db->set.data();
 
-        id = (uint32_t)max_def((int32_t)id, (int32_t)i.id);
+        uid = (uint32_t)max_def((int32_t)uid, (int32_t)i.uid);
     }
 
-    spr_db_spr_set_file* spr_db_spr_set = &x_pack_spr_db->sprite_set.back();
+    SprDbFile::SprSet* spr_db_spr_set = &x_pack_spr_db->set.back();
     if (set_index != -1) {
-        spr_db_spr_set = &x_pack_spr_db->sprite_set.data()[set_index];
+        spr_db_spr_set = &x_pack_spr_db->set.data()[set_index];
 
-        spr_db_spr_set->file_name.assign(file_name);
+        spr_db_spr_set->file.assign(file);
         spr_db_spr_set->sprite.clear();
     }
     else {
-        uint32_t index = x_pack_spr_db->sprite_set.back().index + 1;
+        uint32_t id = x_pack_spr_db->set.back().id + 1;
 
-        x_pack_spr_db->sprite_set.push_back({});
-        spr_db_spr_set = &x_pack_spr_db->sprite_set.back();
+        x_pack_spr_db->set.push_back({});
+        spr_db_spr_set = &x_pack_spr_db->set.back();
 
-        spr_db_spr_set->id = ++id;
+        spr_db_spr_set->uid = ++uid;
         spr_db_spr_set->name.assign(name);
-        spr_db_spr_set->file_name.assign(file_name);
-        spr_db_spr_set->index = index;
+        spr_db_spr_set->file.assign(file);
+        spr_db_spr_set->id = id;
 
-        x_pv_game_baker_ptr->print_log(out_dir, "New Sprite Set ID: %d; Name: %s", id, name.c_str());
+        x_pv_game_baker_ptr->print_log(out_dir, "New Sprite Set UID: %d; Name: %s", uid, name.c_str());
     }
 
     spr_db_spr_set->sprite.reserve((size_t)set->num_of_sprite + set->num_of_texture);
 
     uint32_t num_of_sprite = set->num_of_sprite;
     for (uint32_t i = 0; i < num_of_sprite; i++) {
-        const spr_db_spr* spr = spr_db->get_spr_by_set_id_index(spr_set_id, i);
+        const SprDb::Spr& spr = spr_db->getSprFromIdx(spr_set_id, i);
 
         spr_db_spr_set->sprite.push_back({});
-        spr_db_spr_file& spr_file = spr_db_spr_set->sprite.back();
-        spr_file.name.assign(spr->name);
+        SprDbFile::Spr& spr_file = spr_db_spr_set->sprite.back();
+        spr_file.name.assign(spr.name);
         replace_stgpv_pv(spr_file.name);
-        spr_file.id = hash_string_murmurhash(spr_file.name);
-        spr_file.index = i;
+        spr_file.uid = hash_string_murmurhash(spr_file.name);
+        spr_file.id = i;
         spr_file.texture = false;
     }
 
     uint32_t num_of_texture = set->num_of_texture;
     for (uint32_t i = 0; i < num_of_texture; i++) {
-        const spr_db_spr* spr = spr_db->get_tex_by_set_id_index(spr_set_id, i);
+        const SprDb::Spr& spr = spr_db->getTexFromIdx(spr_set_id, i);
 
         spr_db_spr_set->sprite.push_back({});
-        spr_db_spr_file& spr_file = spr_db_spr_set->sprite.back();
-        spr_file.name.assign(spr->name);
+        SprDbFile::Spr& spr_file = spr_db_spr_set->sprite.back();
+        spr_file.name.assign(spr.name);
         replace_stgpv_pv(spr_file.name);
-        spr_file.id = hash_string_murmurhash(spr_file.name);
-        spr_file.index = i;
+        spr_file.uid = hash_string_murmurhash(spr_file.name);
+        spr_file.id = i;
         spr_file.texture = true;
     }
 
@@ -13784,17 +13784,17 @@ static void x_pv_game_write_spr(uint32_t spr_set_id,
         f->header_padding = 0x01 + (rand() % 0x20);
     }
 
-    farc_file* ff_bin = f->add_file(spr_db_spr_set->file_name.c_str());
+    farc_file* ff_bin = f->add_file(spr_db_spr_set->file.c_str());
     set->pack_file(&ff_bin->data, &ff_bin->size);
     ff_bin->compressed = true;
     ff_bin->encrypted = true;
 
-    file_name.assign(spr_db_spr_set->file_name);
-    pos = file_name.rfind(".bin");
+    file.assign(spr_db_spr_set->file);
+    pos = file.rfind(".bin");
     if (pos != -1)
-        file_name.erase(pos);
+        file.erase(pos);
 
-    farc_compress_ptr->AddFarc(f, sprintf_s_string("%s\\2d\\%s", out_dir, file_name.c_str()));
+    farc_compress_ptr->AddFarc(f, sprintf_s_string("%s\\2d\\%s", out_dir, file.c_str()));
 
     if (set->txp) {
         delete set->txp;

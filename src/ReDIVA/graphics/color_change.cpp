@@ -377,24 +377,24 @@ void ColorChangeDw::Draw() {
 
     if (show) {
         data_struct* aft_data = &data_list[DATA_AFT];
-        sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
+        SprDb* aft_spr_db = &aft_data->data_ft.spr_db;
 
         if (org_tex) {
             spr::SprArgs args;
             args.tex = org_tex;
             if (auto_resize)
-                args.SetSize(256.0f);
-            spr::put_sprite(args, aft_spr_db);
+                args.setSize(256.0f);
+            spr::put(args, aft_spr_db);
         }
         if (chg_tex) {
             spr::SprArgs args;
             args.tex = chg_tex;
             args.trans.x = (float_t)chg_tex->width;
             if (auto_resize) {
-                args.SetSize(256.0f);
-                args.trans.x = 266.0;
+                args.setSize(256.0f);
+                args.trans.x = 266.0f;
             }
-            spr::put_sprite(args, aft_spr_db);
+            spr::put(args, aft_spr_db);
         }
     }
 

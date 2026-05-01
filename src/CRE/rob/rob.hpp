@@ -9,6 +9,7 @@
 #include "../../KKdLib/database/bone.hpp"
 #include "../../KKdLib/database/motion.hpp"
 #include "../../KKdLib/prj/bit_array.hpp"
+#include "../../KKdLib/prj/primitive_type.hpp"
 #include "../../KKdLib/prj/vector_pair.hpp"
 #include "../../KKdLib/mat.hpp"
 #include "../../KKdLib/mot.hpp"
@@ -4957,13 +4958,6 @@ struct RobAdjust {
 };
 
 namespace prj {
-    struct Sphere3f {
-        vec3 c;
-        float_t r;
-
-        Sphere3f();
-    };
-
     struct BallCollision {
         vec3 old_c;
         Sphere3f ball;
