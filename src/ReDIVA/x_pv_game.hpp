@@ -391,7 +391,7 @@ struct aet_obj_data_comp {
 
     const aet_layout_data* find_layout(const char* name);
     bool init_comp(uint32_t aet_id, const std::string&& layer_name,
-        float_t frame, const aet_database* aet_db, const sprite_database* spr_db);
+        float_t frame, const aet_database* aet_db, const SprDb* spr_db);
 };
 
 struct aet_obj_data {
@@ -409,7 +409,7 @@ struct aet_obj_data {
 
     bool check_disp();
     const aet_layout_data* find_aet_layout(const char* name,
-        const aet_database* aet_db, const sprite_database* spr_db);
+        const aet_database* aet_db, const SprDb* spr_db);
     uint32_t init(AetArgs& args, const aet_database* aet_db);
     void reset();
 };
@@ -430,7 +430,7 @@ struct x_pv_aet_disp_string {
     ~x_pv_aet_disp_string();
 
     void ctrl(const char* name, aet_obj_data* aet,
-        const aet_database* aet_db, const sprite_database* spr_db);
+        const aet_database* aet_db, const SprDb* spr_db);
 };
 
 struct x_pv_str_array_pv {
@@ -455,7 +455,7 @@ struct x_pv_game_title {
     int32_t txt_layer_index;
 
     aet_database aet_db;
-    sprite_database spr_db;
+    SprDb spr_db;
 
     x_pv_game_title();
     ~x_pv_game_title();
@@ -600,7 +600,7 @@ struct x_pv_game_stage_env {
     x_pv_game_stage_env_aet aet;
 
     aet_database aet_db;
-    sprite_database spr_db;
+    SprDb spr_db;
 
     x_pv_game_stage_env();
     ~x_pv_game_stage_env();
@@ -802,7 +802,7 @@ public:
         auth_3d_database_file auth_3d_db;
         std::vector<size_t> avail_auth_3d_uids;
         object_database_file obj_db;
-        sprite_database_file spr_db;
+        SprDbFile spr_db;
         stage_database_file stage_data;
         texture_database tex_db_base;
         texture_database_file tex_db;
@@ -822,7 +822,7 @@ public:
         std::vector<size_t> avail_auth_3d_uids;
         object_database obj_db_base;
         object_database_file obj_db;
-        sprite_database_file spr_db;
+        SprDbFile spr_db;
         stage_database stage_data_base;
         stage_database_file stage_data;
         texture_database tex_db_base;
@@ -855,7 +855,7 @@ public:
     bool farc;
 
     aet_database pv_tit_aet_db;
-    sprite_database pv_tit_spr_db;
+    SprDb pv_tit_spr_db;
 
     AFTData aft;
     MMPData mmp;

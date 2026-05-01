@@ -11,104 +11,102 @@
 #include "../default.hpp"
 #include "../prj/vector_pair_combine.hpp"
 
-struct spr_info {
-    uint16_t index;
-    uint16_t set_index;
+struct SprIdMember {
+    uint16_t idx;
+    uint16_t set_idx;
 
-    inline spr_info() {
-        this->index = (uint16_t)-1;
-        this->set_index = (uint16_t)-1;
+    inline SprIdMember() {
+        idx = (uint16_t)-1;
+        set_idx = (uint16_t)-1;
     }
 
-    inline spr_info(uint16_t index, uint16_t set_index) {
-        this->index = index;
-        this->set_index = set_index;
+    inline SprIdMember(uint16_t in_idx, uint16_t in_set_idx) {
+        idx = in_idx;
+        set_idx = in_set_idx;
+    }
+};
+
+union SprId {
+    SprIdMember m;
+    uint32_t w;
+
+    inline SprId() {
+        w = (uint32_t)-1;
+    }
+
+    inline SprId(uint32_t in_id) {
+        w = in_id;
+    }
+
+    inline SprId(uint16_t in_idx, uint16_t in_set_idx) {
+        m.idx = in_idx;
+        m.set_idx = in_set_idx;
     }
 
     inline bool is_null() const {
-        return index == (uint16_t)-1 && set_index == (uint16_t)-1;
+        return w == (uint32_t)-1;
     }
 
     inline bool not_null() const {
-        return index != (uint16_t)-1 || set_index != (uint16_t)-1;
+        return w != (uint32_t)-1;
     }
 };
 
-constexpr bool operator==(const spr_info& left, const spr_info& right) {
-    return *(uint32_t*)&left == *(uint32_t*)&right;
+constexpr bool operator==(const SprId& left, const SprId& right) {
+    return left.w == right.w;
 }
 
-constexpr bool operator!=(const spr_info& left, const spr_info& right) {
+constexpr bool operator!=(const SprId& left, const SprId& right) {
     return !(left == right);
 }
 
-constexpr bool operator<(const spr_info& left, const spr_info& right) {
-    return *(uint32_t*)&left < *(uint32_t*)&right;
+constexpr bool operator<(const SprId& left, const SprId& right) {
+    return left.w < right.w;
 }
 
-constexpr bool operator>(const spr_info& left, const spr_info& right) {
+constexpr bool operator>(const SprId& left, const SprId& right) {
     return right < left;
 }
 
-constexpr bool operator<=(const spr_info& left, const spr_info& right) {
+constexpr bool operator<=(const SprId& left, const SprId& right) {
     return !(right < left);
 }
 
-constexpr bool operator>=(const spr_info& left, const spr_info& right) {
+constexpr bool operator>=(const SprId& left, const SprId& right) {
     return !(left < right);
 }
 
-struct spr_db_spr_file {
-    uint32_t id;
-    std::string name;
-    uint16_t index;
-    bool texture;
+struct SprDbFile {
+    struct Spr {
+        uint32_t uid;
+        std::string name;
+        uint16_t id;
+        bool texture;
 
-    spr_db_spr_file();
-    ~spr_db_spr_file();
-};
+        Spr();
+        ~Spr();
+    };
 
-struct spr_db_spr {
-    uint32_t id;
-    std::string name;
-    spr_info info;
-    int32_t load_count;
+    struct SprSet {
+        uint32_t uid;
+        std::string name;
+        std::string file;
+        std::vector<Spr> sprite;
+        uint32_t id;
 
-    spr_db_spr();
-    ~spr_db_spr();
-};
+        SprSet();
+        ~SprSet();
+    };
 
-struct spr_db_spr_set_file {
-    uint32_t id;
-    std::string name;
-    std::string file_name;
-    std::vector<spr_db_spr_file> sprite;
-    uint32_t index;
-
-    spr_db_spr_set_file();
-    ~spr_db_spr_set_file();
-};
-
-struct spr_db_spr_set {
-    uint32_t id;
-    std::string name;
-    std::string file_name;
-    uint32_t index;
-
-    spr_db_spr_set();
-    ~spr_db_spr_set();
-};
-
-struct sprite_database_file {
     bool ready;
     bool modern;
     bool big_endian;
     bool is_x;
 
-    std::vector<spr_db_spr_set_file> sprite_set;
+    std::vector<SprSet> set;
 
-    sprite_database_file();
-    ~sprite_database_file();
+    SprDbFile();
+    ~SprDbFile();
 
     void read(const char* path, bool modern);
     void read(const wchar_t* path, bool modern);
@@ -120,38 +118,75 @@ struct sprite_database_file {
     static bool load_file(void* data, const char* dir, const char* file, uint32_t hash);
 };
 
-struct sprite_database {
-    std::list<spr_db_spr_set> spr_sets;
-    prj::vector_pair_combine<uint32_t, spr_db_spr_set*> spr_set_ids;
-    prj::vector_pair_combine<uint32_t, spr_db_spr_set*> spr_set_indices;
-    prj::vector_pair_combine<std::string, spr_db_spr_set*> spr_set_names;
-    std::list<spr_db_spr> sprs;
-    prj::vector_pair_combine<uint32_t, spr_db_spr*> spr_ids;
-    prj::vector_pair_combine<std::string, spr_db_spr*> spr_names;
-    prj::vector_pair_combine<spr_info, spr_db_spr*> spr_indices;
+struct SprDb {
+    struct Spr {
+        uint32_t uid;
+        std::string name;
+        SprId id;
+        int32_t reference;
 
-    sprite_database();
-    ~sprite_database();
+        Spr();
+        ~Spr();
+    };
 
-    void add(sprite_database_file* spr_db_file);
+    struct SprSet {
+        uint32_t uid;
+        std::string name;
+        std::string file;
+        uint32_t id;
+
+        SprSet();
+        ~SprSet();
+    };
+
+    std::list<SprSet> set;
+    prj::vector_pair_combine<uint32_t, SprSet*> set_uid;
+    prj::vector_pair_combine<uint32_t, SprSet*> set_idx;
+    prj::vector_pair_combine<std::string, SprSet*> set_name;
+    std::list<Spr> spr;
+    prj::vector_pair_combine<uint32_t, Spr*> spr_uid;
+    prj::vector_pair_combine<std::string, Spr*> spr_name;
+    prj::vector_pair_combine<SprId, Spr*> spr_idx;
+
+    static const SprSet s_err_set;
+    static const Spr s_err_spr;
+
+    SprDb();
+    ~SprDb();
+
+    void add(SprDbFile* spr_db_file);
     void clear();
 
-    void add_spr_set(uint32_t set_id, uint32_t index);
-    void parse(const spr_db_spr_set_file* set_file,
-        std::string& set_name, std::vector<uint32_t>& sprite_ids);
-    void remove_spr_set(uint32_t set_id, uint32_t index,
+    void addSet(uint32_t set_uid, uint32_t idx);
+    void freeSet(uint32_t set_uid, uint32_t idx,
         const char* set_name, std::vector<uint32_t>& sprite_ids);
+    void parse(const SprDbFile::SprSet* set_file, std::vector<uint32_t>& sprite_ids);
 
-    const spr_db_spr_set* get_spr_set_by_name(const char* name) const;
-    const spr_db_spr_set* get_spr_set_by_id(uint32_t set_id) const;
-    const spr_db_spr_set* get_spr_set_by_index(uint32_t index) const;
-    const spr_db_spr* get_spr_by_name(const char* name) const;
-    const spr_db_spr* get_spr_by_id(uint32_t id) const;
-    const spr_db_spr* get_spr_by_set_id_index(uint32_t set_id, uint32_t index) const;
-    const spr_db_spr* get_tex_by_set_id_index(uint32_t set_id, uint32_t index) const;
-    uint32_t get_spr_id_by_name(const char* name) const;
-    const char* get_spr_set_file_name(uint32_t set_id) const;
-    uint32_t get_spr_set_id_by_name(const char* name) const;
-    uint32_t get_spr_set_id_by_name_index(uint32_t index) const;
-    const char* get_spr_set_name(uint32_t set_id) const;
+    uint32_t getSetSize() const;
+
+    const char* getSetNameFromUid(uint32_t uid) const;
+    const char* getSetFileFromUid(uint32_t uid) const;
+    uint32_t getSetIdFromUid(uint32_t uid) const;
+    uint32_t getSetUidFromIdx(uint32_t idx) const;
+    const char* getSetNameFromIdx(uint32_t idx) const;
+    const char* getSetFileFromIdx(uint32_t idx) const;
+    uint32_t getSetUidFromName(const std::string& name) const;
+    uint32_t getSetIdFromName(const std::string& name) const;
+    uint32_t getSetIdFromIdx(uint32_t idx) const;
+
+    uint32_t getSprIdFromUid(uint32_t uid) const;
+    uint32_t getSprUidFromName(const std::string& name) const;
+    uint32_t getSprIdFromName(const std::string& name) const;
+    uint32_t getSprUidFromIdx(uint32_t set_uid, uint32_t idx) const;
+    uint32_t getSprIdFromIdx(uint32_t set_uid, uint32_t idx) const;
+    uint32_t getTexUidFromIdx(uint32_t set_uid, uint32_t idx) const;
+    uint32_t getTexIdFromIdx(uint32_t set_uid, uint32_t idx) const;
+
+    const SprDb::SprSet& getSetFromUid(uint32_t uid) const;
+    const SprDb::SprSet& getSetFromIdx(uint32_t idx) const;
+    const SprDb::SprSet& getSetFromName(const std::string& name) const;
+    const SprDb::Spr& getSprFromUid(uint32_t uid) const;
+    const SprDb::Spr& getSprFromName(const std::string& name) const;
+    const SprDb::Spr& getSprFromIdx(uint32_t set_uid, uint32_t idx) const;
+    const SprDb::Spr& getTexFromIdx(uint32_t set_uid, uint32_t idx) const;
 };

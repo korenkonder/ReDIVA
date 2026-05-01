@@ -18,12 +18,12 @@
 #include "app_system_detail.hpp"
 #include "clear_color.hpp"
 #include "data.hpp"
+#include "debug_print.hpp"
 #include "effect.hpp"
 #include "object.hpp"
 #include "pv_db.hpp"
 #include "task.hpp"
 #include "sound.hpp"
-#include "sprite.hpp"
 #include "stage.hpp"
 
 namespace auth_3d_detail {
@@ -431,7 +431,7 @@ void auth_3d::disp(render_context* rctx) {
         return;
 
     if (pos)
-        spr::put_rgb_cross(mat);
+        debug_put_line_axis(mat);
 
     auth_3d_set_material_list(this, rctx);
     extern bool reflect_full;
@@ -4406,7 +4406,7 @@ static void auth_3d_chara_disp(auth_3d_chara* c, auth_3d* auth, render_context* 
 
     if (auth->pos) {
         c->model_transform.set_mat(&auth->mat);
-        spr::put_rgb_cross(c->model_transform.mat);
+        debug_put_line_axis(c->model_transform.mat);
     }
 }
 
@@ -6531,7 +6531,7 @@ static void auth_3d_object_disp(auth_3d_object* o, auth_3d* auth, render_context
 
     if (!auth->visible) {
         if (auth->pos)
-            spr::put_rgb_cross(o->model_transform.mat);
+            debug_put_line_axis(o->model_transform.mat);
 
         for (auth_3d_object*& i : o->children_object)
             auth_3d_object_disp(i, auth, rctx);
@@ -6656,7 +6656,7 @@ static void auth_3d_object_disp(auth_3d_object* o, auth_3d* auth, render_context
     disp_manager.set_obj_flags();
 
     if (auth->pos)
-        spr::put_rgb_cross(o->model_transform.mat);
+        debug_put_line_axis(o->model_transform.mat);
 
     for (auth_3d_object*& i : o->children_object)
         auth_3d_object_disp(i, auth, rctx);
@@ -7268,7 +7268,7 @@ static void auth_3d_play_control_store(auth_3d* auth, auth_3d_play_control_file*
 static void auth_3d_point_disp(auth_3d_point* p, auth_3d* auth, render_context* rctx) {
     if (auth->pos) {
         p->model_transform.set_mat(&auth->mat);
-        spr::put_rgb_cross(p->model_transform.mat);
+        debug_put_line_axis(p->model_transform.mat);
     }
 }
 

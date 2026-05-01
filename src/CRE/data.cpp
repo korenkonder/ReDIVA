@@ -112,10 +112,10 @@ void data_struct_load_db() {
             std::string file(i);
             file.append("spr_db.bin");
 
-            sprite_database_file spr_db_file;
+            SprDbFile spr_db_file;
             spr_db_file.modern = false;
             ds->load_file(&spr_db_file, "rom/2d/", file.c_str(),
-                sprite_database_file::load_file);
+                SprDbFile::load_file);
             d->spr_db.add(&spr_db_file);
         }
 

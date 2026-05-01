@@ -112,7 +112,7 @@ bool TaskMaskScreen::ctrl_inner() {
 
             data_struct* aft_data = &data_list[DATA_AFT];
             aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
-            sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
+            SprDb* aft_spr_db = &aft_data->data_ft.spr_db;
 
             aet_obj_id = aet_manager_init_aet_object(43, layer_names[index],
                 spr::SPR_PRIO_21, AET_PLAY_ONCE, 0, 0, aft_aet_db, aft_spr_db);

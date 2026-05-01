@@ -16,7 +16,6 @@
 #include "../KKdLib/database/sprite.hpp"
 #include "../KKdLib/database/stage.hpp"
 #include "../KKdLib/database/texture.hpp"
-#include "../KKdLib/vec.hpp"
 
 enum data_type {
     DATA_AFT = 0,
@@ -67,7 +66,7 @@ struct data_ft {
     bone_database bone_data;
     motion_database mot_db;
     object_database obj_db;
-    sprite_database spr_db;
+    SprDb spr_db;
     stage_database stage_data;
     texture_database tex_db;
 

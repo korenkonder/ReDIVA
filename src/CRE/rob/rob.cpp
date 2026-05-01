@@ -17058,10 +17058,6 @@ void RobAdjust::reset() {
     item_scale = 1.0f; // X
 }
 
-prj::Sphere3f::Sphere3f() : r() {
-
-}
-
 prj::BallCollision::BallCollision() : sink(), colli_ball_mask(), org_rad() {
 
 }

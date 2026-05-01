@@ -239,10 +239,10 @@ void pv_game_edit_effect::reset() {
 void pv_game_edit_effect::unload() {
     data_struct* aft_data = &data_list[DATA_AFT];
     aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
-    sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
+    SprDb* aft_spr_db = &aft_data->data_ft.spr_db;
 
     for (uint32_t& i : spr_set_ids)
-        sprite_manager_unload_set(i, aft_spr_db);
+        spr::free(i, aft_spr_db);
 
     for (uint32_t& i : aet_set_ids)
         aet_manager_unload_set(i, aft_aet_db);
@@ -2474,7 +2474,7 @@ bool pv_game::load() {
     bone_database* aft_bone_data = &aft_data->data_ft.bone_data;
     motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
     object_database* aft_obj_db = &aft_data->data_ft.obj_db;
-    sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
+    SprDb* aft_spr_db = &aft_data->data_ft.spr_db;
     texture_database* aft_tex_db = &aft_data->data_ft.tex_db;
     stage_database* aft_stage_data = &aft_data->data_ft.stage_data;
 
@@ -2527,7 +2527,7 @@ bool pv_game::load() {
                     std::string aet_name(aet_set_name);
                     aet_name.append("_MAIN");
 
-                    pv_disp2d_data.pv_spr_set_id = aft_spr_db->get_spr_set_id_by_name(spr_set_name.c_str());
+                    pv_disp2d_data.pv_spr_set_id = aft_spr_db->getSetUidFromName(spr_set_name.c_str());
                     pv_disp2d_data.pv_aet_set_id = aft_aet_db->get_aet_set_id_by_name(aet_set_name.c_str());
                     pv_disp2d_data.pv_aet_id = aft_aet_db->get_aet_id_by_name(aet_name.c_str());
                 }
@@ -3084,12 +3084,12 @@ bool pv_game::load() {
 
                 field.spr_set_back_id = -1;
                 if (i.spr_set_back.size()) {
-                    uint32_t spr_set_id = aft_spr_db->get_spr_set_id_by_name(i.spr_set_back.c_str());
+                    uint32_t spr_set_id = aft_spr_db->getSetUidFromName(i.spr_set_back.c_str());
                     if (spr_set_id != -1) {
                         std::string spr_set_back_image(i.spr_set_back);
                         spr_set_back_image.append("_IMAGE");
 
-                        uint32_t spr_id = aft_spr_db->get_spr_id_by_name(spr_set_back_image.c_str());
+                        uint32_t spr_id = aft_spr_db->getSprUidFromName(spr_set_back_image.c_str());
                         if (spr_id != -1) {
                             data.spr_set_back_ids.push_back(spr_set_id);
                             field.spr_set_back_id = spr_id;
@@ -3273,7 +3273,7 @@ bool pv_game::load() {
     case 8: {
         prj::sort_unique(data.spr_set_back_ids);
         for (uint32_t& i : data.spr_set_back_ids)
-            sprite_manager_read_file(i, std::string(data.pv->mdata.dir), aft_data, aft_spr_db);
+            spr::request(i, std::string(data.pv->mdata.dir), aft_data, aft_spr_db);
         data.field_2D7E8 = true;
 
         prj::sort_unique(data.auth_3d_categories);
@@ -3407,7 +3407,7 @@ bool pv_game::load() {
                 spr_set_name.append(i.name);
 
                 uint32_t aet_set_id = aft_aet_db->get_aet_set_id_by_name(aet_set_name.c_str());
-                uint32_t spr_set_id = aft_spr_db->get_spr_set_id_by_name(spr_set_name.c_str());
+                uint32_t spr_set_id = aft_spr_db->getSetUidFromName(spr_set_name.c_str());
                 if (aet_set_id != -1 && spr_set_id != -1) {
                     std::string aet_name(aet_set_name);
                     aet_name.append("_MAIN");
@@ -3422,7 +3422,7 @@ bool pv_game::load() {
             }
 
             for (uint32_t& i : data.edit_effect.spr_set_ids)
-                sprite_manager_read_file(i, "", aft_data, aft_spr_db);
+                spr::request(i, "", aft_data, aft_spr_db);
 
             for (uint32_t& i : data.edit_effect.aet_set_ids)
                 aet_manager_read_file(i, "", aft_data, aft_aet_db);
@@ -3480,7 +3480,7 @@ bool pv_game::load() {
         bool wait_load = task_stage_check_not_loaded();
 
         for (uint32_t& i : data.spr_set_back_ids)
-            if (sprite_manager_load_file(i, aft_spr_db))
+            if (spr::wait(i, aft_spr_db))
                 wait_load |= true;
 
         for (std::string& i : data.auth_3d_categories)
@@ -3492,7 +3492,7 @@ bool pv_game::load() {
                 wait_load |= true;
 
         for (uint32_t& i : data.edit_effect.spr_set_ids)
-            if (sprite_manager_load_file(i, aft_spr_db))
+            if (spr::wait(i, aft_spr_db))
                 wait_load |= true;
 
         for (uint32_t& i : data.obj_set_itmpv)
@@ -4659,7 +4659,7 @@ void pv_game::title_image_ctrl(bool dont_wait) {
 bool pv_game::unload() {
     data_struct* aft_data = &data_list[DATA_AFT];
     aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
-    sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
+    SprDb* aft_spr_db = &aft_data->data_ft.spr_db;
     texture_database* aft_tex_db = &aft_data->data_ft.tex_db;
 
     switch (data.field_2D09C) {
@@ -4754,7 +4754,7 @@ bool pv_game::unload() {
 
     if (data.field_2D7E8)
         for (uint32_t& i : data.spr_set_back_ids)
-            sprite_manager_unload_set(i, aft_spr_db);
+            spr::free(i, aft_spr_db);
 
     data.field_2D7E8 = false;
     data.spr_set_back_ids.clear();

@@ -347,7 +347,7 @@ void customize_item_data_handler::add_customize_items() {
     customize_items.clear();
 
     data_struct* aft_data = &data_list[DATA_AFT];
-    sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
+    SprDb* aft_spr_db = &aft_data->data_ft.spr_db;
 
     char buf[0x80];
 
@@ -376,10 +376,10 @@ void customize_item_data_handler::add_customize_items() {
             cstm_itm.field_3D = true;*/
 
         sprintf_s(buf, sizeof(buf), "SPR_CMNITM_THMB%03d", cstm_itm.id);
-        cstm_itm.spr_cmnitm_thmb_id_spr_set_id = aft_spr_db->get_spr_set_by_name(buf)->id;
+        cstm_itm.spr_cmnitm_thmb_id_spr_set_id = aft_spr_db->getSetUidFromName(buf);
 
         sprintf_s(buf, sizeof(buf), "SPR_CMNITM_THMB%03d_ITM_IMG", cstm_itm.id);
-        cstm_itm.spr_cmnitm_thmb_id_itm_img_spr_id = aft_spr_db->get_spr_by_name(buf)->id;
+        cstm_itm.spr_cmnitm_thmb_id_itm_img_spr_id = aft_spr_db->getSprUidFromName(buf);
 
         customize_items.push_back(cstm_itm);
     }

@@ -7,8 +7,8 @@
 #include "../../CRE/Glitter/glitter.hpp"
 #include "../../CRE/rob/rob.hpp"
 #include "../../CRE/data.hpp"
+#include "../../CRE/debug_print.hpp"
 #include "../../CRE/render_context.hpp"
-#include "../../CRE/screen_param.hpp"
 #include "../../CRE/sprite.hpp"
 #include "../../KKdLib/io/file_stream.hpp"
 #include "../../KKdLib/io/path.hpp"
@@ -1156,9 +1156,9 @@ void RobOsageTest::disp_line() {
         mat4 mat;
         mat4_scale_rot(i->osage_work.joint_node_vec.data()[0].dst_node_mat, 0.05f, &mat);
         if (i == ex_node)
-            spr::put_cross(mat, color_red, color_green, color_blue);
+            debug_put_line_axis(mat, color_red, color_green, color_blue);
         else
-            spr::put_cross(mat, color_dark_red, color_dark_green, color_dark_blue);
+            debug_put_line_axis(mat, color_dark_red, color_dark_green, color_dark_blue);
 
         const color4u8 line_color = i == ex_node ? color_white : color_dark_cyan;
         const color4u8 rect_color = i == ex_node ? color_red : color_dark_red;
@@ -1166,14 +1166,14 @@ void RobOsageTest::disp_line() {
         const RobJointNode* j_begin = i->osage_work.joint_node_vec.data() + 1;
         const RobJointNode* j_end = i->osage_work.joint_node_vec.data() + i->osage_work.joint_node_vec.size();
         for (const RobJointNode* j = j_begin; j != j_end; j++)
-            spr::put_sprite_3d_line(j[-1].pos, j[0].pos, line_color);
+            dx_draw_line(j[-1].pos, j[0].pos, line_color);
 
         for (const RobJointNode* j = j_begin; j != j_end; j++)
-            spr::put_sprite_rect({ spr::proj_sprite_3d_line(j->pos, true) - 2.0f, 4.0f },
+            spr::putRect({ project_screen(j->pos, true) - 2.0f, 4.0f },
                 SCREEN_MODE_MAX, spr::SPR_PRIO_DW, rect_color);
 
         mat4_scale_rot(i->osage_work.effector.dst_node_mat, 0.05f, &mat);
-        spr::put_cross(mat, color_dark_red, color_dark_green, color_dark_blue);
+        debug_put_line_axis(mat, color_dark_red, color_dark_green, color_dark_blue);
     }
 
     for (ExClothBlock*& i : skin_disp->cloth) {
@@ -1188,14 +1188,14 @@ void RobOsageTest::disp_line() {
 
         const CLOTH_VERTEX* vtxarg = i->cloth_work.vtxarg.data();
         for (const CLOTH_SPRING& j : i->cloth_work.spring)
-            spr::put_sprite_3d_line(vtxarg[j.index0].pos, vtxarg[j.index1].pos, color_spring);
+            dx_draw_line(vtxarg[j.index0].pos, vtxarg[j.index1].pos, color_spring);
 
         const CLOTH_VERTEX* j_begin = i->cloth_work.vtxarg.data() + i->cloth_work.width;
         const CLOTH_VERTEX* j_end = i->cloth_work.vtxarg.data() + i->cloth_work.vtxarg.size();
         for (const CLOTH_VERTEX* j = j_begin; j != j_end; j++) {
-            spr::put_sprite_3d_line(j->pos, j->tangent * 0.05f + j->pos, color_tangent);
-            spr::put_sprite_3d_line(j->pos, j->binormal * 0.05f + j->pos, color_binormal);
-            spr::put_sprite_3d_line(j->pos, j->normal * 0.05f + j->pos, color_normal);
+            dx_draw_line(j->pos, j->tangent * 0.05f + j->pos, color_tangent);
+            dx_draw_line(j->pos, j->binormal * 0.05f + j->pos, color_binormal);
+            dx_draw_line(j->pos, j->normal * 0.05f + j->pos, color_normal);
         }
     }
 
@@ -1244,16 +1244,16 @@ void RobOsageTest::disp_line() {
 void RobOsageTest::disp_line_cls_param(const mat4& motion_matrix, const vec3& pos) {
     mat4 mat;
     mat4_scale_rot(&motion_matrix, 0.1f, &mat);
-    spr::put_cross(mat, color_red, color_green, color_blue);
+    debug_put_line_axis(mat, color_red, color_green, color_blue);
 
     vec3 p;
     mat4_transform_point(&motion_matrix, &pos, &p);
 
     vec3 p_node;
     mat4_get_translation(&motion_matrix, &p_node);
-    spr::put_sprite_3d_line(p, p_node, color_grey);
+    dx_draw_line(p, p_node, color_grey);
 
-    spr::put_sprite_rect({ spr::proj_sprite_3d_line(p, true) - 1.0f, 2.0f },
+    spr::putRect({ project_screen(p, true) - 1.0f, 2.0f },
         SCREEN_MODE_MAX, spr::SPR_PRIO_DW, color_yellow);
 }
 

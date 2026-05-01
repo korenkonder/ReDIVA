@@ -159,15 +159,15 @@ PrintWork::PrintWork() : clip(), layer(), field_28(), line_length() {
 }
 
 void PrintWork::DrawLine(vec2 pos[2]) {
-    spr::put_sprite_line(pos[0], pos[1], screen_mode, prio, color, layer);
+    spr::putLine(pos[0], pos[1], screen_mode, prio, color, layer);
 }
 
 void PrintWork::DrawPolyLine(vec2* points, size_t count) {
-    spr::put_sprite_poly_line(points, count, screen_mode, prio, color, layer);
+    spr::putPolyLine(points, count, screen_mode, prio, color, layer);
 }
 
 void PrintWork::DrawRectangle(rectangle rect) {
-    spr::put_sprite_line_box(rect, screen_mode, prio, color, layer);
+    spr::putLineBox(rect, screen_mode, prio, color, layer);
 }
 
 void PrintWork::DrawTextMesh(app::text_flags flags, sprite_text_mesh& mesh) {
@@ -175,7 +175,7 @@ void PrintWork::DrawTextMesh(app::text_flags flags, sprite_text_mesh& mesh) {
         return;
 
     data_struct* aft_data = &data_list[DATA_AFT];
-    sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
+    SprDb* aft_spr_db = &aft_data->data_ft.spr_db;
 
     spr::SprArgs args;
     args.blend = (field_28 >> 3) == 0x02 ? spr::SPR_BLEND_ADD : spr::SPR_BLEND_DEFAULT;
@@ -193,9 +193,9 @@ void PrintWork::DrawTextMesh(app::text_flags flags, sprite_text_mesh& mesh) {
             i.pos.x += 2.0f;
             i.pos.y += 2.0f;
         }
-        args.SetQuadArgs(mesh.quads.data(), mesh.quads.size());
-        args.id.index = mesh.sprite_id;
-        spr::put_sprite(args, aft_spr_db);
+        args.setQuadArgs(mesh.quads.data(), mesh.quads.size());
+        args.id = mesh.sprite_id;
+        spr::put(args, aft_spr_db);
 
         for (spr::SprArgs::Quad& i : mesh.quads) {
             i.color.r = color.r;
@@ -206,11 +206,11 @@ void PrintWork::DrawTextMesh(app::text_flags flags, sprite_text_mesh& mesh) {
         }
     }
 
-    args.SetQuadArgs(mesh.quads.data(), mesh.quads.size());
+    args.setQuadArgs(mesh.quads.data(), mesh.quads.size());
     if (flags & app::TEXT_FLAG_FONT)
         args.shader_name = SHADER_FT_FONT;
-    args.id.index = mesh.sprite_id;
-    spr::put_sprite(args, aft_spr_db);
+    args.id = mesh.sprite_id;
+    spr::put(args, aft_spr_db);
 }
 
 void PrintWork::FillRectangle(rectangle rect) {
@@ -226,7 +226,7 @@ void PrintWork::FillRectangle(rectangle rect) {
         rect.size.y = clip_max_pos_y - rect.pos.y;
     }
 
-    spr::put_sprite_rect(rect, screen_mode, prio, fill_color, layer);
+    spr::putRect(rect, screen_mode, prio, fill_color, layer);
 }
 
 font_char PrintWork::GetCharData(wchar_t c) {

@@ -44,14 +44,14 @@ public:
         SCREEN_MODE screen_mode;
         float_t scale;
         uint32_t field_18;
-        spr::SprTarget target;
+        spr::SPR_TARGET target;
 
         DispParams();
     };
 
     struct SprParams {
         DispParams disp;
-        spr::SprPrio prio;
+        spr::SPR_PRIO prio;
 
         SprParams();
     };

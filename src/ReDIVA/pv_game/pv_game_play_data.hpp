@@ -265,10 +265,10 @@ struct pv_game_play_data {
     void init_aet_demo_logo();
     float_t init_aet_edit_effect(int32_t aet_id, const char* name, bool loop, bool low_field);
     void init_aet_frame(bool danger);
-    uint32_t init_aet_gam_cmn(pv_game_aet aet_index, spr::SprPrio prio,
+    uint32_t init_aet_gam_cmn(pv_game_aet aet_index, spr::SPR_PRIO prio,
         AetFlags flags, const char* layer_name, const vec2* pos = 0, const vec2* scale = 0);
     void init_aet_id(int32_t aet_id, const char* layer_name,
-        spr::SprTarget target, pv_game_aet aet_index, spr::SprPrio prio, bool* not_init,
+        spr::SPR_TARGET target, pv_game_aet aet_index, spr::SPR_PRIO prio, bool* not_init,
         float_t start_time, float_t end_time, FrameRateControl* frame_rate_control);
     void init_aet_level_info();
     void init_aet_next_info();
@@ -322,7 +322,7 @@ struct pv_game_play_data {
     void sub_140137DD0(int32_t a2, float_t delta_time, vec2& pos, int32_t combo_count);
     void sub_140137F80(bool update, float_t duration);
 
-    inline void reinit_aet_gam_cmn(pv_game_aet aet_index, spr::SprPrio prio,
+    inline void reinit_aet_gam_cmn(pv_game_aet aet_index, spr::SPR_PRIO prio,
         AetFlags flags, const char* layer_name, const vec2* pos = 0, const vec2* scale = 0) {
         aet_manager_free_aet_object_reset(&aet_ids[aet_index]);
         aet_ids[aet_index] = init_aet_gam_cmn(aet_index, prio, flags, layer_name, pos, scale);

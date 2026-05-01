@@ -10,6 +10,7 @@
 #include "../../CRE/app_system_detail.hpp"
 #include "../../CRE/clear_color.hpp"
 #include "../../CRE/data.hpp"
+#include "../../CRE/debug_print.hpp"
 #include "../../CRE/render_context.hpp"
 #include "../../CRE/hand_item.hpp"
 #include "../../CRE/module_table.hpp"

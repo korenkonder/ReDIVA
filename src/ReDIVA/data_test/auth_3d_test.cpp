@@ -9,6 +9,7 @@
 #include "../../CRE/app_system_detail.hpp"
 #include "../../CRE/clear_color.hpp"
 #include "../../CRE/data.hpp"
+#include "../../CRE/debug_print.hpp"
 #include "../../CRE/effect.hpp"
 #include "../../CRE/render_context.hpp"
 #include "../../CRE/stage.hpp"
@@ -729,15 +730,8 @@ bool Auth3dTestTask::dest() {
 }
 
 void Auth3dTestTask::disp() {
-    if (plane_above_floor) {
-        mat4 mat;
-        mat4_translate_y(0.25f, &mat);
-        mdl::EtcObj etc(mdl::ETC_OBJ_PLANE);
-        etc.color = 0xFFFFFFFF;
-        etc.data.plane.w = 20;
-        etc.data.plane.h = 20;
-        rctx_ptr->disp_manager->entry_obj_etc(mat, etc);
-    }
+    if (plane_above_floor)
+        debug_put_plane_zx(vec3(0.0f, 0.25f, 0.0f), 20.0f, 20.0f);
 }
 
 void Auth3dTestTask::DispAuth3dChara(::auth_3d_id& id) {
