@@ -575,7 +575,7 @@ PROCESS_TARGET:
             if ((unsigned int)(v44 - 8) > 1)
                 continue;
 
-            int32_t v45 = rand_state_array_get_int(0, v42, 0);
+            int32_t v45 = Random(0, v42, RANDOM_TYPE_0);
             int32_t v46 = 1;
             int32_t v47 = 0;
             int32_t v48 = 0;
@@ -1186,7 +1186,7 @@ void pv_game::change_field(size_t field, ssize_t dsc_time, ssize_t curr_time) {
     aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
 
     if (!data.task_effect_init && (dsc_time > -1 || curr_time > -1)) {
-        rand_state_array_4_set_seed_1393939();
+        pv_init_random_state();
         effect_manager_reset();
         data.task_effect_init = true;
     }
@@ -2918,7 +2918,7 @@ bool pv_game::load() {
         state = 8;
     } return false;
     case 6: {
-        rand_state_array_4_set_seed_1393939();
+        pv_init_random_state();
         if (task_stage_open("PV_STAGE"))
             return false;
 
@@ -3919,7 +3919,7 @@ bool pv_game::load() {
     } break;
     case 25: {
         //sub_14013C8F0->sub_14012BDA0();
-        rand_state_array_4_set_seed_1393939();
+        pv_init_random_state();
         reset_field();
         data.edit_effect.data.reset();
         data.play_data.init_aet_edit_effect(-1, "eff", false, false);
@@ -5774,6 +5774,10 @@ bool pv_game_free() {
 
     pv_game_music_free();
     return true;
+}
+
+void pv_init_random_state() {
+    InitRandomState(1393939, RANDOM_TYPE_GLOBAL);
 }
 
 bool task_pv_game_open(TaskPvGame::Args& args) {

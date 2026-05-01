@@ -7508,7 +7508,7 @@ LABEL_8:
         return;
 
     if (v23.size() > 1) {
-        uint32_t v15 = rand_state_array_get_int(1) % v8;
+        uint32_t v15 = Random(RANDOM_TYPE_1) % v8;
         for (const std::pair<const void*, uint32_t>& i : v23)
             if (v15 < i.second) {
                 mhadr = i.first;
@@ -8554,7 +8554,7 @@ static void sub_140555F70(rob_chara* rob_chr, const motion_database* mot_db) {
 
     sub_1405500F0(rob_chr);
     if (!(rob_chr->rob_base.robmot.flag.u32 & 0x020000) && rob_chr->rob_base.robmot.flag.bit.ext_frame_req) {
-        rob_chr->rob_base.robmot.field_150.time += rand_state_array_get_float(1)
+        rob_chr->rob_base.robmot.field_150.time += RandomF(RANDOM_TYPE_1)
             * rob_chr->frame_speed * 2.0f * (float_t)(1.0 / 60.0);
         if (rob_chr->rob_base.robmot.field_150.time >= 5.0f) {
             rob_chr->set_eyelid_mottbl_motion_from_face(1, 3.0f, -1.0f, 1.0f, mot_db);

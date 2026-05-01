@@ -816,7 +816,7 @@ static render_context* render_context_load(const wchar_t* config_path) {
     stage_param_data_init();
     pv_expression_file_storage_init();
     item_table_handler_array_init();
-    rand_state_array_init();
+    InitRandom();
 
     rob_init();
     task_wind_init();
@@ -1449,7 +1449,7 @@ static void render_context_dispose(render_context* rctx) {
     task_wind_free();
     rob_free();
 
-    rand_state_array_free();
+    DestRandom();
     item_table_handler_array_free();
     pv_expression_file_storage_free();
     stage_param_data_free();
