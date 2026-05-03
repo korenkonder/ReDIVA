@@ -88,7 +88,13 @@ RobItemHeader::~RobItemHeader() {
 
 }
 
-const RobItemTable* RobItemHeader::get_item(uint32_t item_no) {
+// 0x14052BAF0
+bool RobItemHeader::check_item(uint32_t item_no) const {
+    auto elem = table.find(item_no);
+    return elem != table.end();
+}
+
+const RobItemTable* RobItemHeader::get_item(uint32_t item_no) const {
     auto elem = table.find(item_no);
     if (elem != table.end() && elem->second.type != ROB_ITEM_TYPE_NONE)
         return &elem->second;

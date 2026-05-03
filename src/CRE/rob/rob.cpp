@@ -1423,642 +1423,6 @@ const SmdFunc RobMhSmd::functbl[] = {
     &RobMhSmd::func_68,
 };
 
-static const RobCollisionData MIKU_cb_tbl[] = {
-    { { 0.02f , -0.005f,  0.0f   }, 0.09f , BONE_ID_KL_KOSI_ETC_WJ, 0 },
-    { { 0.17f , -0.02f ,  0.03f  }, 0.09f , BONE_ID_CL_MUNE       , 1 },
-    { { 0.17f , -0.02f , -0.03f  }, 0.09f , BONE_ID_CL_MUNE       , 1 },
-    { { 0.0f  ,  0.02f ,  0.0f   }, 0.04f , BONE_ID_KL_KUBI       , 0 },
-    { { 0.005f,  0.0f  ,  0.08f  }, 0.12f , BONE_ID_CL_KAO        , 1 },
-    { { 0.03f ,  0.0f  ,  0.015f }, 0.055f, BONE_ID_KATA_R_WJ_CU  , 1 },
-    { { 0.15f ,  0.0f  ,  0.01f  }, 0.05f , BONE_ID_KATA_R_WJ_CU  , 0 },
-    { { 0.05f ,  0.0f  ,  0.01f  }, 0.05f , BONE_ID_UDE_R_WJ      , 0 },
-    { { 0.17f ,  0.0f  ,  0.015f }, 0.06f , BONE_ID_UDE_R_WJ      , 0 },
-    { { 0.08f ,  0.0f  ,  0.0f   }, 0.07f , BONE_ID_KL_TE_R_WJ    , 1 },
-    { { 0.03f ,  0.0f  , -0.015f }, 0.055f, BONE_ID_KATA_L_WJ_CU  , 1 },
-    { { 0.15f ,  0.0f  , -0.01f  }, 0.05f , BONE_ID_KATA_L_WJ_CU  , 0 },
-    { { 0.05f ,  0.0f  , -0.01f  }, 0.05f , BONE_ID_UDE_L_WJ      , 0 },
-    { { 0.17f ,  0.0f  , -0.015f }, 0.06f , BONE_ID_UDE_L_WJ      , 0 },
-    { { 0.08f ,  0.0f  ,  0.0f   }, 0.07f , BONE_ID_KL_TE_L_WJ    , 1 },
-    { { 0.04f , -0.02f , -0.02f  }, 0.13f , BONE_ID_J_MOMO_R_WJ   , 1 },
-    { { 0.26f , -0.02f , -0.025f }, 0.09f , BONE_ID_J_MOMO_R_WJ   , 0 },
-    { { 0.08f ,  0.0f  , -0.02f  }, 0.09f , BONE_ID_J_SUNE_R_WJ   , 0 },
-    { { 0.28f ,  0.0f  , -0.02f  }, 0.09f , BONE_ID_J_SUNE_R_WJ   , 0 },
-    { { 0.03f , -0.02f , -0.01f  }, 0.07f , BONE_ID_KL_ASI_R_WJ_CO, 0 },
-    { { 0.02f , -0.02f , -0.02f  }, 0.035f, BONE_ID_KL_TOE_R_WJ   , 0 },
-    { { 0.04f , -0.02f ,  0.02f  }, 0.13f , BONE_ID_J_MOMO_L_WJ   , 1 },
-    { { 0.26f , -0.02f ,  0.025f }, 0.09f , BONE_ID_J_MOMO_L_WJ   , 0 },
-    { { 0.09f ,  0.0f  ,  0.02f  }, 0.09f , BONE_ID_J_SUNE_L_WJ   , 0 },
-    { { 0.28f ,  0.0f  ,  0.02f  }, 0.09f , BONE_ID_J_SUNE_L_WJ   , 0 },
-    { { 0.03f , -0.02f ,  0.01f  }, 0.07f , BONE_ID_KL_ASI_L_WJ_CO, 0 },
-    { { 0.02f , -0.02f ,  0.02f  }, 0.035f, BONE_ID_KL_TOE_L_WJ   , 0 },
-};
-
-static const RobCollisionData MIKU_cb_push_tbl[] = {
-    { { -0.00391f, -0.08831f,  0.0f     }, 0.09f , BONE_ID_KL_KOSI_ETC_WJ, 0 },
-    { {  0.17f   , -0.02f   ,  0.03f    }, 0.09f , BONE_ID_CL_MUNE       , 1 },
-    { {  0.17f   , -0.02f   , -0.03f    }, 0.09f , BONE_ID_CL_MUNE       , 1 },
-    { {  0.0f    ,  0.02f   ,  0.0f     }, 0.04f , BONE_ID_KL_KUBI       , 0 },
-    { {  0.05025f,  0.0f    , -0.00181f }, 0.12f , BONE_ID_CL_KAO        , 1 },
-    { {  0.03f   ,  0.0f    ,  0.015f   }, 0.055f, BONE_ID_KATA_R_WJ_CU  , 1 },
-    { {  0.15f   ,  0.0f    ,  0.01f    }, 0.05f , BONE_ID_KATA_R_WJ_CU  , 0 },
-    { {  0.05f   ,  0.0f    ,  0.01f    }, 0.05f , BONE_ID_UDE_R_WJ      , 0 },
-    { {  0.17f   ,  0.0f    ,  0.015f   }, 0.06f , BONE_ID_UDE_R_WJ      , 0 },
-    { {  0.08f   ,  0.0f    ,  0.0f     }, 0.07f , BONE_ID_KL_TE_R_WJ    , 1 },
-    { {  0.03f   ,  0.0f    , -0.015f   }, 0.055f, BONE_ID_KATA_L_WJ_CU  , 1 },
-    { {  0.15f   ,  0.0f    , -0.01f    }, 0.05f , BONE_ID_KATA_L_WJ_CU  , 0 },
-    { {  0.05f   ,  0.0f    , -0.01f    }, 0.05f , BONE_ID_UDE_L_WJ      , 0 },
-    { {  0.17f   ,  0.0f    , -0.015f   }, 0.06f , BONE_ID_UDE_L_WJ      , 0 },
-    { {  0.08f   ,  0.0f    ,  0.0f     }, 0.07f , BONE_ID_KL_TE_L_WJ    , 1 },
-    { {  0.04f   , -0.02f   , -0.02f    }, 0.13f , BONE_ID_J_MOMO_R_WJ   , 1 },
-    { {  0.26f   , -0.02f   , -0.025f   }, 0.09f , BONE_ID_J_MOMO_R_WJ   , 0 },
-    { {  0.08f   ,  0.0f    , -0.02f    }, 0.09f , BONE_ID_J_SUNE_R_WJ   , 0 },
-    { {  0.28f   ,  0.0f    , -0.02f    }, 0.09f , BONE_ID_J_SUNE_R_WJ   , 0 },
-    { {  0.03f   , -0.02f   , -0.01f    }, 0.07f , BONE_ID_KL_ASI_R_WJ_CO, 0 },
-    { {  0.02f   , -0.02f   , -0.02f    }, 0.035f, BONE_ID_KL_TOE_R_WJ   , 0 },
-    { {  0.04f   , -0.02f   ,  0.02f    }, 0.13f , BONE_ID_J_MOMO_L_WJ   , 1 },
-    { {  0.26f   , -0.02f   ,  0.025f   }, 0.09f , BONE_ID_J_MOMO_L_WJ   , 0 },
-    { {  0.08f   ,  0.0f    ,  0.02f    }, 0.09f , BONE_ID_J_SUNE_L_WJ   , 0 },
-    { {  0.28f   ,  0.0f    ,  0.02f    }, 0.09f , BONE_ID_J_SUNE_L_WJ   , 0 },
-    { {  0.03f   , -0.02f   ,  0.01f    }, 0.07f , BONE_ID_KL_ASI_L_WJ_CO, 0 },
-    { {  0.02f   , -0.02f   ,  0.02f    }, 0.035f, BONE_ID_KL_TOE_L_WJ   , 0 },
-};
-
-static const RobCollisionData LUK_cb_tbl[] = {
-    { { 0.02f    , -0.005f,  0.0f   }, 0.09f , BONE_ID_KL_KOSI_ETC_WJ, 0 },
-    { { 0.165f   , -0.02f ,  0.015f }, 0.105f, BONE_ID_CL_MUNE       , 1 },
-    { { 0.165f   , -0.02f , -0.015f }, 0.105f, BONE_ID_CL_MUNE       , 1 },
-    { { 0.0f     ,  0.02f ,  0.0f   }, 0.04f , BONE_ID_KL_KUBI       , 0 },
-    { { 0.005f   ,  0.0f  ,  0.08f  }, 0.12f , BONE_ID_CL_KAO        , 1 },
-    { { 0.03f    ,  0.0f  ,  0.015f }, 0.055f, BONE_ID_KATA_R_WJ_CU  , 1 },
-    { { 0.15f    ,  0.0f  ,  0.01f  }, 0.05f , BONE_ID_KATA_R_WJ_CU  , 0 },
-    { { 0.05f    ,  0.0f  ,  0.01f  }, 0.05f , BONE_ID_UDE_R_WJ      , 0 },
-    { { 0.17f    ,  0.0f  ,  0.015f }, 0.06f , BONE_ID_UDE_R_WJ      , 0 },
-    { { 0.08f    ,  0.0f  ,  0.0f   }, 0.07f , BONE_ID_KL_TE_R_WJ    , 1 },
-    { { 0.03f    ,  0.0f  , -0.015f }, 0.055f, BONE_ID_KATA_L_WJ_CU  , 1 },
-    { { 0.15f    ,  0.0f  , -0.01f  }, 0.05f , BONE_ID_KATA_L_WJ_CU  , 0 },
-    { { 0.05f    ,  0.0f  , -0.01f  }, 0.05f , BONE_ID_UDE_L_WJ      , 0 },
-    { { 0.17f    ,  0.0f  , -0.015f }, 0.06f , BONE_ID_UDE_L_WJ      , 0 },
-    { { 0.08f    ,  0.0f  ,  0.0f   }, 0.07f , BONE_ID_KL_TE_L_WJ    , 1 },
-    { { 0.04f    , -0.02f , -0.02f  }, 0.13f , BONE_ID_J_MOMO_R_WJ   , 1 },
-    { { 0.26f    , -0.02f , -0.025f }, 0.09f , BONE_ID_J_MOMO_R_WJ   , 0 },
-    { { 0.08f    ,  0.0f  , -0.02f  }, 0.09f , BONE_ID_J_SUNE_R_WJ   , 0 },
-    { { 0.28f    ,  0.0f  , -0.02f  }, 0.09f , BONE_ID_J_SUNE_R_WJ   , 0 },
-    { { 0.03f    , -0.02f , -0.01f  }, 0.07f , BONE_ID_KL_ASI_R_WJ_CO, 0 },
-    { { 0.02f    , -0.02f , -0.02f  }, 0.035f, BONE_ID_KL_TOE_R_WJ   , 0 },
-    { { 0.04f    , -0.02f ,  0.02f  }, 0.13f , BONE_ID_J_MOMO_L_WJ   , 1 },
-    { { 0.26f    , -0.02f ,  0.025f }, 0.09f , BONE_ID_J_MOMO_L_WJ   , 0 },
-    { { 0.08f    ,  0.0f  ,  0.02f  }, 0.09f , BONE_ID_J_SUNE_L_WJ   , 0 },
-    { { 0.28f    ,  0.0f  ,  0.02f  }, 0.09f , BONE_ID_J_SUNE_L_WJ   , 0 },
-    { { 0.03f    , -0.02f ,  0.01f  }, 0.07f , BONE_ID_KL_ASI_L_WJ_CO, 0 },
-    { { 0.02f    , -0.02f ,  0.02f  }, 0.035f, BONE_ID_KL_TOE_L_WJ   , 0 },
-};
-
-static const RobCollisionData LUK_cb_push_tbl[] = {
-    { { -0.00391f, -0.08831f,  0.0f     }, 0.09f , BONE_ID_KL_KOSI_ETC_WJ, 0 },
-    { {  0.165f  , -0.02f   ,  0.015f   }, 0.105f, BONE_ID_CL_MUNE       , 1 },
-    { {  0.165f  , -0.02f   , -0.015f   }, 0.105f, BONE_ID_CL_MUNE       , 1 },
-    { {  0.0f    ,  0.02f   ,  0.0f     }, 0.04f , BONE_ID_KL_KUBI       , 0 },
-    { {  0.05025f,  0.0f    , -0.00181f }, 0.12f , BONE_ID_CL_KAO        , 1 },
-    { {  0.03f   ,  0.0f    ,  0.015f   }, 0.055f, BONE_ID_KATA_R_WJ_CU  , 1 },
-    { {  0.15f   ,  0.0f    ,  0.01f    }, 0.05f , BONE_ID_KATA_R_WJ_CU  , 0 },
-    { {  0.05f   ,  0.0f    ,  0.01f    }, 0.05f , BONE_ID_UDE_R_WJ      , 0 },
-    { {  0.17f   ,  0.0f    ,  0.015f   }, 0.06f , BONE_ID_UDE_R_WJ      , 0 },
-    { {  0.08f   ,  0.0f    ,  0.0f     }, 0.07f , BONE_ID_KL_TE_R_WJ    , 1 },
-    { {  0.03f   ,  0.0f    , -0.015f   }, 0.055f, BONE_ID_KATA_L_WJ_CU  , 1 },
-    { {  0.15f   ,  0.0f    , -0.01f    }, 0.05f , BONE_ID_KATA_L_WJ_CU  , 0 },
-    { {  0.05f   ,  0.0f    , -0.01f    }, 0.05f , BONE_ID_UDE_L_WJ      , 0 },
-    { {  0.17f   ,  0.0f    , -0.015f   }, 0.06f , BONE_ID_UDE_L_WJ      , 0 },
-    { {  0.08f   ,  0.0f    ,  0.0f     }, 0.07f , BONE_ID_KL_TE_L_WJ    , 1 },
-    { {  0.04f   , -0.02f   , -0.02f    }, 0.13f , BONE_ID_J_MOMO_R_WJ   , 1 },
-    { {  0.26f   , -0.02f   , -0.025f   }, 0.09f , BONE_ID_J_MOMO_R_WJ   , 0 },
-    { {  0.08f   ,  0.0f    , -0.02f    }, 0.09f , BONE_ID_J_SUNE_R_WJ   , 0 },
-    { {  0.28f   ,  0.0f    , -0.02f    }, 0.09f , BONE_ID_J_SUNE_R_WJ   , 0 },
-    { {  0.03f   , -0.02f   , -0.01f    }, 0.07f , BONE_ID_KL_ASI_R_WJ_CO, 0 },
-    { {  0.02f   , -0.02f   , -0.02f    }, 0.035f, BONE_ID_KL_TOE_R_WJ   , 0 },
-    { {  0.04f   , -0.02f   ,  0.02f    }, 0.13f , BONE_ID_J_MOMO_L_WJ   , 1 },
-    { {  0.26f   , -0.02f   ,  0.025f   }, 0.09f , BONE_ID_J_MOMO_L_WJ   , 0 },
-    { {  0.08f   ,  0.0f    ,  0.02f    }, 0.09f , BONE_ID_J_SUNE_L_WJ   , 0 },
-    { {  0.28f   ,  0.0f    ,  0.02f    }, 0.09f , BONE_ID_J_SUNE_L_WJ   , 0 },
-    { {  0.03f   , -0.02f   ,  0.01f    }, 0.07f , BONE_ID_KL_ASI_L_WJ_CO, 0 },
-    { {  0.02f   , -0.02f   ,  0.02f    }, 0.035f, BONE_ID_KL_TOE_L_WJ   , 0 },
-};
-
-static const RobKamae kamae_data_tbl = {
-    "COMMON_KAMAE",
-    1,
-    1,
-    1,
-    4,
-    0,
-};
-
-static const RobKamae* kamae_tbl_miku[] = {
-    &kamae_data_tbl,
-};
-
-static const RobData rob_data[] = {
-    {
-        0x0000, BONE_KIND_MIK,
-        {
-            object_info(0x0000, 0x0000),
-            object_info(0x00F7, 0x0000),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-        },
-        1, 0, MIKU_cb_tbl, MIKU_cb_push_tbl, kamae_tbl_miku,
-        1, 0, { 0x01, 0x01, 0x1E, 0x1D },
-        {
-            object_info(0x00F7, 0x0000),
-            object_info(0x011D, 0x0000),
-            object_info(0x011E, 0x0000),
-            object_info(0x011F, 0x0000),
-            object_info(0x0120, 0x0000),
-            object_info(0x0121, 0x0000),
-            object_info(0x0122, 0x0000),
-            object_info(0x020F, 0x0000),
-            object_info(0x0251, 0x0000),
-        },
-        {
-            object_info(),
-            object_info(0x0124, 0x0000),
-            object_info(0x0123, 0x0000),
-            object_info(0x0125, 0x0000),
-            object_info(0x0126, 0x0000),
-            object_info(0x0127, 0x0000),
-            object_info(0x0128, 0x0000),
-            object_info(0x0259, 0x0000),
-            object_info(0x0254, 0x0000),
-            object_info(0x0252, 0x0000),
-            object_info(0x0253, 0x0000),
-            object_info(0x0255, 0x0000),
-            object_info(0x0256, 0x0000),
-            object_info(0x0258, 0x0000),
-            object_info(0x0257, 0x0000),
-        },
-    },
-    {
-        0x0107, BONE_KIND_RIN,
-        {
-            object_info(0x0000, 0x0000),
-            object_info(0x004A, 0x0107),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-        },
-        9, 0, MIKU_cb_tbl, MIKU_cb_push_tbl, kamae_tbl_miku,
-        1, 0, { 0x02, 0x02, 0x01, 0x01 },
-        {
-            object_info(0x004A, 0x0107),
-            object_info(0x004E, 0x0107),
-            object_info(0x004F, 0x0107),
-            object_info(0x0050, 0x0107),
-            object_info(0x0051, 0x0107),
-            object_info(0x0052, 0x0107),
-            object_info(0x0053, 0x0107),
-            object_info(0x00A6, 0x0107),
-            object_info(0x00C3, 0x0107),
-        },
-        {
-            object_info(),
-            object_info(0x0055, 0x0107),
-            object_info(0x0054, 0x0107),
-            object_info(0x0056, 0x0107),
-            object_info(0x0057, 0x0107),
-            object_info(0x0058, 0x0107),
-            object_info(0x0059, 0x0107),
-            object_info(0x00CB, 0x0107),
-            object_info(0x00C6, 0x0107),
-            object_info(0x00C4, 0x0107),
-            object_info(0x00C5, 0x0107),
-            object_info(0x00C7, 0x0107),
-            object_info(0x00C8, 0x0107),
-            object_info(0x00CA, 0x0107),
-            object_info(0x00C9, 0x0107),
-        },
-    },
-    {
-        0x0105, BONE_KIND_LEN,
-        {
-            object_info(0x0000, 0x0000),
-            object_info(0x0040, 0x0105),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-        },
-        5, 0, MIKU_cb_tbl, MIKU_cb_push_tbl, kamae_tbl_miku,
-        0, 0, { 0x02, 0x03, 0x01, 0x01 },
-        {
-            object_info(0x0040, 0x0105),
-            object_info(0x0041, 0x0105),
-            object_info(0x0042, 0x0105),
-            object_info(0x0043, 0x0105),
-            object_info(0x0044, 0x0105),
-            object_info(0x0045, 0x0105),
-            object_info(0x0046, 0x0105),
-            object_info(0x007F, 0x0105),
-            object_info(0x0098, 0x0105),
-        },
-        {
-            object_info(),
-            object_info(0x0048, 0x0105),
-            object_info(0x0047, 0x0105),
-            object_info(0x0049, 0x0105),
-            object_info(0x004A, 0x0105),
-            object_info(0x004B, 0x0105),
-            object_info(0x004C, 0x0105),
-            object_info(0x00A0, 0x0105),
-            object_info(0x009B, 0x0105),
-            object_info(0x0099, 0x0105),
-            object_info(0x009A, 0x0105),
-            object_info(0x009C, 0x0105),
-            object_info(0x009D, 0x0105),
-            object_info(0x009F, 0x0105),
-            object_info(0x009E, 0x0105),
-        },
-    },
-    {
-        0x0106, BONE_KIND_LUK,
-        {
-            object_info(0x0000, 0x0000),
-            object_info(0x004C, 0x0106),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-        },
-        6, 0, LUK_cb_tbl, LUK_cb_push_tbl, kamae_tbl_miku,
-        0, 0, { 0x01, 0x04, 0x01, 0x01 },
-        {
-            object_info(0x004C, 0x0106),
-            object_info(0x004D, 0x0106),
-            object_info(0x004E, 0x0106),
-            object_info(0x004F, 0x0106),
-            object_info(0x0050, 0x0106),
-            object_info(0x0051, 0x0106),
-            object_info(0x0052, 0x0106),
-            object_info(0x008C, 0x0106),
-            object_info(0x00A1, 0x0106),
-        },
-        {
-            object_info(),
-            object_info(0x0054, 0x0106),
-            object_info(0x0053, 0x0106),
-            object_info(0x0055, 0x0106),
-            object_info(0x0056, 0x0106),
-            object_info(0x0057, 0x0106),
-            object_info(0x0058, 0x0106),
-            object_info(0x00A9, 0x0106),
-            object_info(0x00A4, 0x0106),
-            object_info(0x00A2, 0x0106),
-            object_info(0x00A3, 0x0106),
-            object_info(0x00A5, 0x0106),
-            object_info(0x00A6, 0x0106),
-            object_info(0x00A8, 0x0106),
-            object_info(0x00A7, 0x0106),
-        },
-    },
-    {
-        0x0108, BONE_KIND_NER,
-        {
-            object_info(0x0000, 0x0000),
-            object_info(0x0019, 0x0108),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-        },
-        8, 0, MIKU_cb_tbl, MIKU_cb_push_tbl, kamae_tbl_miku,
-        0, 0, { 0x02, 0x02, 0x02, 0x02 },
-        {
-            object_info(0x0019, 0x0108),
-            object_info(0x001A, 0x0108),
-            object_info(0x001B, 0x0108),
-            object_info(0x001C, 0x0108),
-            object_info(0x001D, 0x0108),
-            object_info(0x001E, 0x0108),
-            object_info(0x001F, 0x0108),
-            object_info(0x002A, 0x0108),
-            object_info(0x002B, 0x0108),
-        },
-        {
-            object_info(),
-            object_info(0x0021, 0x0108),
-            object_info(0x0020, 0x0108),
-            object_info(0x0022, 0x0108),
-            object_info(0x0023, 0x0108),
-            object_info(0x0024, 0x0108),
-            object_info(0x0025, 0x0108),
-            object_info(0x0033, 0x0108),
-            object_info(0x002E, 0x0108),
-            object_info(0x002C, 0x0108),
-            object_info(0x002D, 0x0108),
-            object_info(0x002F, 0x0108),
-            object_info(0x0030, 0x0108),
-            object_info(0x0032, 0x0108),
-            object_info(0x0031, 0x0108),
-        },
-    },
-    {
-        0x0109, BONE_KIND_HAK,
-        {
-            object_info(0x0000, 0x0000),
-            object_info(0x001F, 0x0109),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-        },
-        3, 0, LUK_cb_tbl, LUK_cb_push_tbl, kamae_tbl_miku,
-        1, 0, { 0x01, 0x01, 0x02, 0x02 },
-        {
-            object_info(0x001F, 0x0109),
-            object_info(0x0020, 0x0109),
-            object_info(0x0021, 0x0109),
-            object_info(0x0022, 0x0109),
-            object_info(0x0023, 0x0109),
-            object_info(0x0024, 0x0109),
-            object_info(0x0025, 0x0109),
-            object_info(0x0032, 0x0109),
-            object_info(0x0033, 0x0109),
-        },
-        {
-            object_info(),
-            object_info(0x0027, 0x0109),
-            object_info(0x0026, 0x0109),
-            object_info(0x0028, 0x0109),
-            object_info(0x0029, 0x0109),
-            object_info(0x002A, 0x0109),
-            object_info(0x002B, 0x0109),
-            object_info(0x003B, 0x0109),
-            object_info(0x0036, 0x0109),
-            object_info(0x0034, 0x0109),
-            object_info(0x0035, 0x0109),
-            object_info(0x0037, 0x0109),
-            object_info(0x0038, 0x0109),
-            object_info(0x003A, 0x0109),
-            object_info(0x0039, 0x0109),
-        },
-    },
-    {
-        0x010D, BONE_KIND_KAI,
-        {
-            object_info(0x0000, 0x0000),
-            object_info(0x003C, 0x010D),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-        },
-        4, 0, MIKU_cb_tbl, MIKU_cb_push_tbl, kamae_tbl_miku,
-        0, 0, { 0x00, 0x00, 0x01, 0x01 },
-        {
-            object_info(0x003C, 0x010D),
-            object_info(0x0050, 0x010D),
-            object_info(0x003D, 0x010D),
-            object_info(0x003E, 0x010D),
-            object_info(0x003F, 0x010D),
-            object_info(0x0040, 0x010D),
-            object_info(0x0041, 0x010D),
-            object_info(0x006D, 0x010D),
-            object_info(0x0077, 0x010D),
-        },
-        {
-            object_info(),
-            object_info(0x0044, 0x010D),
-            object_info(0x0043, 0x010D),
-            object_info(0x0045, 0x010D),
-            object_info(0x0046, 0x010D),
-            object_info(0x0047, 0x010D),
-            object_info(0x0048, 0x010D),
-            object_info(0x007F, 0x010D),
-            object_info(0x007A, 0x010D),
-            object_info(0x0078, 0x010D),
-            object_info(0x0079, 0x010D),
-            object_info(0x007B, 0x010D),
-            object_info(0x007C, 0x010D),
-            object_info(0x007E, 0x010D),
-            object_info(0x007D, 0x010D),
-        },
-    },
-    {
-        0x010E, BONE_KIND_MEI,
-        {
-            object_info(0x0000, 0x0000),
-            object_info(0x0040, 0x010E),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-        },
-        7, 0, LUK_cb_tbl, LUK_cb_push_tbl, kamae_tbl_miku,
-        1, 0, { 0x00, 0x00, 0x01, 0x01 },
-        {
-            object_info(0x0040, 0x010E),
-            object_info(0x0041, 0x010E),
-            object_info(0x0042, 0x010E),
-            object_info(0x0043, 0x010E),
-            object_info(0x0044, 0x010E),
-            object_info(0x0045, 0x010E),
-            object_info(0x0046, 0x010E),
-            object_info(0x007B, 0x010E),
-            object_info(0x0085, 0x010E),
-        },
-        {
-            object_info(),
-            object_info(0x0048, 0x010E),
-            object_info(0x0047, 0x010E),
-            object_info(0x0049, 0x010E),
-            object_info(0x004A, 0x010E),
-            object_info(0x004B, 0x010E),
-            object_info(0x004C, 0x010E),
-            object_info(0x008D, 0x010E),
-            object_info(0x0088, 0x010E),
-            object_info(0x0086, 0x010E),
-            object_info(0x0087, 0x010E),
-            object_info(0x0089, 0x010E),
-            object_info(0x008A, 0x010E),
-            object_info(0x008C, 0x010E),
-            object_info(0x008B, 0x010E),
-        },
-    },
-    {
-        0x010F, BONE_KIND_SAK,
-        {
-            object_info(0x0000, 0x0000),
-            object_info(0x001A, 0x010F),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-        },
-        10, 0, LUK_cb_tbl, LUK_cb_push_tbl, kamae_tbl_miku,
-        1, 0, { 0x01, 0x01, 0x02, 0x02 },
-        {
-            object_info(0x001A, 0x010F),
-            object_info(0x001B, 0x010F),
-            object_info(0x001C, 0x010F),
-            object_info(0x001D, 0x010F),
-            object_info(0x001E, 0x010F),
-            object_info(0x001F, 0x010F),
-            object_info(0x0020, 0x010F),
-            object_info(0x0031, 0x010F),
-            object_info(0x0033, 0x010F),
-        },
-        {
-            object_info(),
-            object_info(0x0022, 0x010F),
-            object_info(0x0021, 0x010F),
-            object_info(0x0023, 0x010F),
-            object_info(0x0024, 0x010F),
-            object_info(0x0025, 0x010F),
-            object_info(0x0026, 0x010F),
-            object_info(0x003B, 0x010F),
-            object_info(0x0036, 0x010F),
-            object_info(0x0034, 0x010F),
-            object_info(0x0035, 0x010F),
-            object_info(0x0037, 0x010F),
-            object_info(0x0038, 0x010F),
-            object_info(0x003A, 0x010F),
-            object_info(0x0039, 0x010F),
-        },
-    },
-    {
-        0x063D, BONE_KIND_TET,
-        {
-            object_info(0x0000, 0x0000),
-            object_info(0x0000, 0x063D),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-            object_info(),
-        },
-        467, 0, MIKU_cb_tbl, MIKU_cb_push_tbl, kamae_tbl_miku,
-        1, 0, { 0x01, 0x01, 0x02, 0x02 },
-        {
-            object_info(0x0000, 0x063D),
-            object_info(0x0001, 0x063D),
-            object_info(0x0002, 0x063D),
-            object_info(0x0003, 0x063D),
-            object_info(0x0004, 0x063D),
-            object_info(0x0005, 0x063D),
-            object_info(0x0006, 0x063D),
-            object_info(0x0012, 0x063D),
-            object_info(0x0013, 0x063D),
-        },
-        {
-            object_info(),
-            object_info(0x0008, 0x063D),
-            object_info(0x0007, 0x063D),
-            object_info(0x0009, 0x063D),
-            object_info(0x000A, 0x063D),
-            object_info(0x000B, 0x063D),
-            object_info(0x000C, 0x063D),
-            object_info(0x001B, 0x063D),
-            object_info(0x0016, 0x063D),
-            object_info(0x0014, 0x063D),
-            object_info(0x0015, 0x063D),
-            object_info(0x0017, 0x063D),
-            object_info(0x0018, 0x063D),
-            object_info(0x001A, 0x063D),
-            object_info(0x0019, 0x063D),
-        },
-    }
-};
-
 static const BONE_BLK lc_part_block_tbl[] = {
     BLK_C_KATA_R, BLK_C_KATA_L,
     BLK_CL_MOMO_R, BLK_CL_MOMO_L,
@@ -2418,46 +1782,6 @@ const bool leaf_ctrl_tagofs_mirror_flip_tbl[][3] = {
     { 0, 1, 0 },
     { 1, 0, 0 },
     { 0, 0, 0 },
-};
-
-const ROB_ITEM_EQUIP_SUB_ID equip_sub_id_phase2[] = {
-    ROB_ITEM_EQUIP_SUB_ID_ZUJO, ROB_ITEM_EQUIP_SUB_ID_KAMI, ROB_ITEM_EQUIP_SUB_ID_HITAI,
-    ROB_ITEM_EQUIP_SUB_ID_ME, ROB_ITEM_EQUIP_SUB_ID_MEGANE, ROB_ITEM_EQUIP_SUB_ID_MIMI,
-    ROB_ITEM_EQUIP_SUB_ID_KUCHI, ROB_ITEM_EQUIP_SUB_ID_MAKI, ROB_ITEM_EQUIP_SUB_ID_KUBI,
-    ROB_ITEM_EQUIP_SUB_ID_INNER, ROB_ITEM_EQUIP_SUB_ID_KATA, ROB_ITEM_EQUIP_SUB_ID_U_UDE,
-    ROB_ITEM_EQUIP_SUB_ID_L_UDE, ROB_ITEM_EQUIP_SUB_ID_JOHA_MAE, ROB_ITEM_EQUIP_SUB_ID_JOHA_USHIRO,
-    ROB_ITEM_EQUIP_SUB_ID_BELT, ROB_ITEM_EQUIP_SUB_ID_KOSI, ROB_ITEM_EQUIP_SUB_ID_SUNE,
-    ROB_ITEM_EQUIP_SUB_ID_KUTSU, ROB_ITEM_EQUIP_SUB_ID_HEAD, ROB_ITEM_EQUIP_SUB_ID_MAX,
-};
-
-const ROB_ITEM_EQUIP_SUB_ID equip_sub_id_phase3[] = {
-    ROB_ITEM_EQUIP_SUB_ID_TE, ROB_ITEM_EQUIP_SUB_ID_ASI, ROB_ITEM_EQUIP_SUB_ID_MAX,
-};
-
-const ROB_ITEM_EQUIP_SUB_ID equip_sub_id_phase4[] = {
-    ROB_ITEM_EQUIP_SUB_ID_PANTS, ROB_ITEM_EQUIP_SUB_ID_OUTER, ROB_ITEM_EQUIP_SUB_ID_MAX,
-};
-
-const ROB_PARTS_KIND rpk_item[] = {
-    RPK_ZUJO, RPK_KAMI, RPK_NONE, RPK_NONE,
-    RPK_MEGANE, RPK_NONE, RPK_KUCHI, RPK_NONE,
-    RPK_KUBI, RPK_NONE, RPK_OUTER, RPK_NONE,
-    RPK_NONE, RPK_NONE, RPK_NONE, RPK_NONE,
-    RPK_JOHA_USHIRO, RPK_NONE, RPK_NONE, RPK_PANTS,
-    RPK_NONE, RPK_NONE, RPK_NONE, RPK_NONE,
-    RPK_NONE,
-};
-
-static const ROB_ITEM_EQUIP_ID equip_id_conv_table[] = {
-    ROB_ITEM_EQUIP_ID_ATAM, ROB_ITEM_EQUIP_ID_ATAM, ROB_ITEM_EQUIP_ID_ATAM,
-    ROB_ITEM_EQUIP_ID_KAO, ROB_ITEM_EQUIP_ID_KAO, ROB_ITEM_EQUIP_ID_KAO,
-    ROB_ITEM_EQUIP_ID_KAO, ROB_ITEM_EQUIP_ID_KAO, ROB_ITEM_EQUIP_ID_JOHA,
-    ROB_ITEM_EQUIP_ID_JOHA, ROB_ITEM_EQUIP_ID_JOHA, ROB_ITEM_EQUIP_ID_UDE,
-    ROB_ITEM_EQUIP_ID_UDE, ROB_ITEM_EQUIP_ID_UDE, ROB_ITEM_EQUIP_ID_UDE,
-    ROB_ITEM_EQUIP_ID_JOHA, ROB_ITEM_EQUIP_ID_JOHA, ROB_ITEM_EQUIP_ID_KAHA,
-    ROB_ITEM_EQUIP_ID_KAHA, ROB_ITEM_EQUIP_ID_KAHA, ROB_ITEM_EQUIP_ID_KAHA,
-    ROB_ITEM_EQUIP_ID_KAHA, ROB_ITEM_EQUIP_ID_KAHA, ROB_ITEM_EQUIP_ID_JOHA,
-    ROB_ITEM_EQUIP_ID_KAO,
 };
 
 extern render_context* rctx_ptr;
@@ -3506,7 +2830,7 @@ static void RobSkinDisp_ctrl(RobSkinDisp* skin_disp) {
 }
 
 static void RobDisp_ctrl(RobDisp* disp) {
-    if (!osage_test_no_pause && !disp->disable_update)
+    if (!osage_test_no_pause && !disp->freeze_flag)
         for (int32_t i = disp->disp_begin; i < disp->disp_max; i++)
             RobSkinDisp_ctrl(&disp->skin_disp[i]);
 }
@@ -3753,6 +3077,10 @@ const vec3* rob_chara::get_gpos() const  {
     return &rob_base.position.gpos;
 }
 
+int32_t rob_chara::get_costume() const {
+    return costume;
+}
+
 float_t rob_chara::get_frame() const {
     return bone_data->get_frame();
 }
@@ -3767,6 +3095,7 @@ object_info rob_chara::get_rob_data_face_object(int32_t index) {
     return {};
 }
 
+// 0x140516510
 float_t rob_chara::get_face_depth() const {
     return item.get_face_depth();
 }
@@ -3779,8 +3108,118 @@ float_t rob_chara::get_pos_scale(ROB_COLLI_ID colli_id, vec3& center) {
     return rob_base.collision.cb_hit[colli_id].ball.r;
 }
 
+// 0x140532090
+const RobData* rob_chara::get_rob_data() const {
+    return rob_data;
+}
+
 const RobInit* rob_chara::get_rob_init() const {
     return &rob_init;
+}
+
+// 0x14050F4D0
+void rob_chara::init_colli_every_frame() {
+    RobCollision& collision = rob_base.collision;
+
+    collision.touch_count = 0;
+    collision.wall_touch_cnt = 0;
+    collision.touch_mask = 0;
+    collision.attack_mask = 0;
+    collision.hit_mask = 0;
+    collision.damage_mask = 0;
+    collision.wall_hit_num = 0;
+    collision.wall_hit_mask = 0;
+    collision.handrail_hit_num = 0;
+    collision.handrail_hit_mask = 0;
+    collision.dummy_wall_hit_num = 0;
+    collision.dummy_wall_hit_mask = 0;
+    collision.dummy_ringout_num = 0;
+    collision.dummy_ringout_mask = 0;
+    collision.sink_wall = 0.0f;
+    collision.wall_idx = -1;
+    collision.wall_hit_pos = 0.0f;
+    collision.sink = 0.0f;
+    collision.moveF = 0.0f;
+    collision.moveR = 0.0f;
+    collision.moveRT = 0.0f;
+    collision.moveM = 0.0f;
+    collision.moveD = 0.0f;
+    collision.moveW[0] = 0.0f;
+    collision.moveW[1] = 0.0f;
+    collision.moveWd[0] = 0.0f;
+    collision.moveWd[1] = 0.0f;
+    collision.moveWr[0] = 0.0f;
+    collision.moveWr[1] = 0.0f;
+    collision.moveT[0] = 0.0f;
+    collision.moveT[1] = 0.0f;
+
+    collision.rep_hit_pos = 0.0f;
+    collision.enable_dummy_collision = true;
+    collision.calc_rob_colli = false;
+    collision.colli_attack_hit = false;
+    collision.floor_ringout_disable = false;
+
+    if (rob_base.motdata.motkind[MK_NAGE] || rob_base.motdata.motkind[MK_NAGERARE]) {
+        if (rob_base.action.nage.enemy && !enemy->rob_base.motdata.motkind[MK_NAGE]
+            && !enemy->rob_base.motdata.motkind[MK_NAGERARE])
+            collision.calc_rob_colli = true;
+    }
+    else if (!rob_base.motdata.motkind[MK_OIDASANAI]) {
+        if (enemy && !enemy->rob_base.motdata.motkind[MK_OIDASANAI]
+            && !rob_base.flag.bit.bound_wall
+            && enemy->rob_base.flag.bit.bound_wall)
+            collision.calc_rob_colli = true;
+    }
+
+    float_t max_ypos = -999.0f;
+    float_t min_ypos = 999.0f;
+    int32_t max_idx = -1;
+    int32_t min_idx = -1;
+    float_t top_ypos = -999.0f;
+    float_t bot_ypos = 999.0f;
+    int32_t top_idx = -1;
+    int32_t bot_idx = -1;
+
+    prj::BallCollision* cb_hit = collision.cb_hit;
+    prj::BallCollision* cb_rob = collision.cb_rob;
+    prj::BallCollision* cb_stg = collision.cb_stg;
+
+    for (int32_t i = 0; i < ROB_COLLI_ID_MAX; i++, cb_hit++, cb_rob++, cb_stg++) {
+        if (max_ypos < cb_hit->ball.c.y) {
+            max_ypos = cb_hit->ball.c.y;
+            max_idx = i;
+        }
+        else if (min_ypos > cb_hit->ball.c.y) {
+            min_ypos = cb_hit->ball.c.y;
+            min_idx = i;
+        }
+
+        if (top_ypos < cb_hit->ball.c.y + cb_hit->ball.r) {
+            top_ypos = cb_hit->ball.c.y + cb_hit->ball.r;
+            top_idx = i;
+        }
+
+        if (bot_ypos > cb_hit->ball.c.y - cb_hit->ball.r) {
+            bot_ypos = cb_hit->ball.c.y - cb_hit->ball.r;
+            bot_idx = i;
+        }
+
+        cb_hit->sink = 0.0f;
+        cb_hit->colli_ball_mask = 0;
+        cb_rob->sink = 0.0f;
+        cb_rob->colli_ball_mask = 0;
+        cb_stg->sink = 0.0f;
+        cb_stg->colli_ball_mask = 0;
+    }
+
+    collision.max_ypos = max_ypos;
+    collision.min_ypos = min_ypos;
+    collision.max_idx = max_idx;
+    collision.min_idx = min_idx;
+    collision.top_ypos = top_ypos;
+    collision.bot_ypos = bot_ypos;
+    collision.top_idx = top_idx;
+    collision.bot_idx = bot_idx;
 }
 
 static void sub_14041B9D0(rob_chara_bone_data* rob_bone_data) {
@@ -4128,6 +3567,12 @@ static void rob_chara_bone_data_set_right_hand_scale(rob_chara_bone_data* rob_bo
     }
 }
 
+// 0x140516770
+void rob_chara::overwrite_disp_left(bool set_flag) {
+    rob_base.robinfo.flag.bit.disp_left = set_flag;
+    rob_base.robinfo.flag.bit.calculated_disp_left = true;
+}
+
 // 0x140550400
 void rob_chara::pos_reset() {
     disp->pos_reset(0);
@@ -4136,7 +3581,7 @@ void rob_chara::pos_reset() {
 void rob_chara::rob_info_ctrl() {
     rob_base.robinfo.old_en_flag = rob_base.robinfo.en_flag;
     if (rob_base.collision.fld_on > 0.01f)
-        rob_base.flag.bit.wall_moved_mot = 1;
+        rob_base.flag.bit.wall_moved_mot = true;
 
     //sub_140517CC0(this);
     //sub_140517B80(this);
@@ -4390,6 +3835,11 @@ void rob_chara::reset_rob(const RobInit& robinit,
     set_parts_disp(RPK_MAX, true);
 }
 
+// 0x140532E50
+inline void rob_chara::reset_rob_zero_disp() {
+    rob_base.flag.bit.zero_disp = false;
+}
+
 void rob_chara::reset_osage() {
     for (rob_chara_data_adjust& i : rob_base.robmot.parts_adjust)
         i.reset();
@@ -4427,14 +3877,14 @@ void rob_chara::set_bone_data_frame(float_t frame) {
 }
 
 // 0x140506D20
-void rob_chara::set_chara(ROB_ID id, CHARA_NUM cn, int32_t cos_id, const RobInit& ri) {
+void rob_chara::set_chara(ROB_ID id, CHARA_NUM cn, int32_t cos, const RobInit& ri) {
     idnm = (int8_t)id;
     chara_num = cn;
-    this->cos_id = cos_id;
+    costume = cos;
     rob_init = ri;
-    rob_data = get_rob_data(cn);
-    if (!check_cos_id_is_501(cos_id)) {
-        const RobItemEquip* item_set = get_default_costume_data(cn, cos_id);
+    rob_data = ::get_rob_data(cn);
+    if (!RobDisp::check_one_skin(cos)) {
+        const RobItemEquip* item_set = get_default_costume_data(cn, cos);
         if (item_set)
             RobItem::s_regist_item_all(cn, item_set, &item);
     }
@@ -4460,6 +3910,11 @@ void rob_chara::set_chara_pos_adjust_y(float_t value) {
 void rob_chara::set_chara_size(float_t value) {
     rob_base.adjust.scale = value;
     rob_base.adjust.item_scale = value; // X
+}
+
+// 0x1405167B0
+void rob_chara::set_costume(int32_t cos) {
+    costume = cos;
 }
 
 static void rob_chara_set_eyelid_motion(rob_chara* rob_chr,
@@ -4649,7 +4104,7 @@ static void sub_1405500F0(rob_chara* rob_chr) {
     case MTP_FACE_NAYAMI:
     case MTP_FACE_SUPSERIOUS:
     case MTP_FACE_TSUYOKIWARAI:
-        rob_chr->rob_base.robmot.flag.bit.suspend = 1;
+        rob_chr->rob_base.robmot.flag.bit.suspend = true;
         break;
     }
 }
@@ -4725,20 +4180,20 @@ void rob_chara::set_disable_collision(rob_osage_parts parts, bool disable) {
     disp->set_disable_collision(parts, disable);
 }
 
-void rob_chara::set_disp_flag(bool flag) {
-    if (flag) {
-        rob_base.flag.bit.disp = 1;
-        rob_base.flag.bit.yoketa = 1;
-    }
-    else {
-        rob_base.flag.bit.disp = 0;
-        rob_base.flag.bit.yoketa = 0;
-    }
+// 0x140517060
+void rob_chara::set_disp_flag(bool fl) {
+    rob_base.flag.bit.disp = fl;
+    rob_base.flag.bit.yoketa = fl;
 
     if (check_for_ageageagain_module()) {
-        rob_chara_age_age_array_set_disp(idnm, 1, flag);
-        rob_chara_age_age_array_set_disp(idnm, 2, flag);
+        rob_chara_age_age_array_set_disp(idnm, 1, fl);
+        rob_chara_age_age_array_set_disp(idnm, 2, fl);
     }
+}
+
+// 0x1405167C0
+void rob_chara::set_disp_freeze(bool fl) {
+    disp->freeze_flag = fl;
 }
 
 void rob_chara::set_eyelid_mottbl_motion(int32_t type, MOTTABLE_TYPE mottbl_type,
@@ -5203,7 +4658,7 @@ void rob_chara::set_look_camera(bool update_view_point, bool rotation_enable, fl
     bone_data->set_look_anim(update_view_point, rotation_enable, head_rot_strength,
         eyes_rot_strength, blend_duration, eyes_rot_step, a8, ft);
     if (fabsf(blend_duration) <= 0.000001f)
-        rob_base.flag.bit.dmy_yokerare = 1;
+        rob_base.flag.bit.dmy_yokerare = true;
 }
 
 void rob_chara::set_look_camera_new(bool rotation_enable, float_t head_rot_strength,
@@ -5416,7 +4871,7 @@ void rob_chara::set_rob_motion(uint32_t motnum, bool mirror, float_t frame,
 
 // 0x140516890
 void rob_chara::set_rob_motion_external(uint32_t motnum) {
-    if (rob_base.flag.bit.disp)
+    if (check_disp())
         set_rob_sys_command(ROB_ACT_MOTION, motnum, 0, false);
 }
 
@@ -5444,6 +4899,11 @@ void rob_chara::set_rob_sys_command(ACT_NAME name, int32_t motion_id, const ActP
 // 0x1405168E0
 void rob_chara::set_rob_yang(const RobAngle& ang) {
     rob_base.position.yang = ang;
+}
+
+// 0x1405331E0
+void rob_chara::set_rob_zero_disp() {
+    rob_base.flag.bit.zero_disp = false;
 }
 
 void rob_chara::set_shadow_cast(bool value) {
@@ -5486,6 +4946,11 @@ void rob_chara::set_step_motion_step(float_t value) {
     if (osage_step < 0.0f)
         osage_step = rob_base.robmot.step.f;
     disp->set_osage_step(osage_step);
+}
+
+// 0x1405168F0
+void rob_chara::set_time_up(bool flag) {
+    rob_base.flag.bit.time_up = flag;
 }
 
 void rob_chara::set_use_opd(bool value) {
@@ -5550,7 +5015,7 @@ static void sub_140505310(rob_chara* rob_chr, const bone_database* bone_data, co
                         enemy->rob_base.action.nage.kaeshi_damage = motdata.nage_damage;
                 }
                 else if (rob_chr->rob_base.motdata.motkind[MK_NAGERARE])
-                    rob_chr->rob_base.action.step = 1;
+                    rob_chr->rob_base.action.step = true;
             }
         }
 
@@ -5726,33 +5191,8 @@ void rob_chara::calc_mot_adjust_scale() {
     rob_base.robmot.mot_adjust_base_pos = { 0.0f, v8, 0.0f };
 }
 
-// 0x14054FE90
-RobAngle rob_chara::calc_mot_yang(bool compel_flag) const  {
-    RobAngle ang = rob_base.position.yang;
-    if (!compel_flag || !rob_base.flag.bit.compel) {
-        RobAngle yarare_yang = rob_base.action.yarare.yarare_yang;
-        if (yarare_yang.value)
-            return ang + yarare_yang;
-    }
-
-    if (rob_base.motdata.motkind[MK_TURN])
-        return ang + rob_base.motdata.mov_yang;
-    return ang;
-}
-
-bool rob_chara::check_disp_left() const  {
-    return rob_base.robinfo.flag.bit.disp_left;
-}
-
-void rob_chara::sub_1405070E0(const bone_database* bone_data, const motion_database* mot_db) {
-    if (sub_140419E90(this->bone_data) || this->bone_data->get_motion_has_looped())
-        sub_140505310(this, bone_data, mot_db);
-    sub_140505980(this);
-    rob_base.motdata.mhd_pp_exec(this, rob_base.robmot.frame.f, mot_db);
-    calc_mot_adjust_scale();
-}
-
-void rob_chara::sub_140509D30() {
+// 0x140509D30
+void rob_chara::calc_rob_colli_matrix() {
     prj::BallCollision* cb_hit = rob_base.collision.cb_hit;
     prj::BallCollision* cb_rob = rob_base.collision.cb_rob;
     prj::BallCollision* cb_stg = rob_base.collision.cb_stg;
@@ -5808,6 +5248,47 @@ void rob_chara::sub_140509D30() {
     }
 }
 
+// 0x14054FE90
+RobAngle rob_chara::calc_mot_yang(bool compel_flag) const  {
+    RobAngle ang = rob_base.position.yang;
+    if (!compel_flag || !rob_base.flag.bit.compel) {
+        RobAngle yarare_yang = rob_base.action.yarare.yarare_yang;
+        if (yarare_yang.value)
+            return ang + yarare_yang;
+    }
+
+    if (rob_base.motdata.motkind[MK_TURN])
+        return ang + rob_base.motdata.mov_yang;
+    return ang;
+}
+
+// 0x140516380
+bool rob_chara::check_disp_left() const  {
+    return rob_base.robinfo.flag.bit.disp_left;
+}
+
+void rob_chara::check_rob_dummy_collision_ringout() {
+    rob_base.collision.enable_dummy_collision = false;
+}
+
+// 0x1405163B0
+void rob_chara::disble_disp_pos_reset() {
+    disp_pos_reset_forbidden = false;
+}
+
+// 0x1405163A0
+void rob_chara::enable_disp_pos_reset() {
+    disp_pos_reset_forbidden = true;
+}
+
+void rob_chara::sub_1405070E0(const bone_database* bone_data, const motion_database* mot_db) {
+    if (sub_140419E90(this->bone_data) || this->bone_data->get_motion_has_looped())
+        sub_140505310(this, bone_data, mot_db);
+    sub_140505980(this);
+    rob_base.motdata.mhd_pp_exec(this, rob_base.robmot.frame.f, mot_db);
+    calc_mot_adjust_scale();
+}
+
 void rob_chara::sub_1405163C0(int32_t index, mat4& mat) {
     if (index >= 0 && index <= 26)
         mat = rob_base.collision.mat[index];
@@ -5854,7 +5335,7 @@ bool RobManagement::check_ringout_transit_rob(ROB_ID id) {
 
 // 0x140531670
 ROB_ID RobManagement::create_rob(CHARA_NUM cn,
-    const RobInit& ri, int32_t cos_id, bool can_set_default) {
+    const RobInit& ri, int32_t cos, bool can_set_default) {
     if (!task_rob_manager->check_alive()
         || ri.rob_type < 0 || ri.rob_type >= ROB_TYPE_MAX)
         return ROB_ID_NULL;
@@ -5867,11 +5348,11 @@ ROB_ID RobManagement::create_rob(CHARA_NUM cn,
     }
 
     ROB_ID id = (ROB_ID)free_id;
-    if (can_set_default && (cos_id < 0 || cos_id > 498))
-        cos_id = 0;
+    if (can_set_default && (cos < 0 || cos > 498))
+        cos = 0;
     rob_init[id] = ri;
     chara_num[id] = cn;
-    rob_impl[id].set_chara(id, cn, cos_id, ri);
+    rob_impl[id].set_chara(id, cn, cos, ri);
     task_rob_manager->AppendInitCharaList(&rob_impl[id]);
     return id;
 }
@@ -5894,6 +5375,17 @@ void RobManagement::dest_rob(ROB_ID id) {
     rob_init[id].rob_type = ROB_TYPE_NULL;
 }
 
+// 0x140531D50
+void RobManagement::disable_osage_reset(ROB_ID id) {
+    rob_impl[id].disble_disp_pos_reset();
+}
+
+
+// 0x140531D24
+void RobManagement::enable_osage_reset(ROB_ID id) {
+    rob_impl[id].enable_disp_pos_reset();
+}
+
 float_t RobManagement::get_adjust_scale(ROB_ID id) const {
     if (is_init(id))
         return rob_impl[id].rob_base.adjust.scale;
@@ -5912,7 +5404,7 @@ bool RobManagement::get_colli_check_on() const {
 // 0x140531F50 
 bool RobManagement::get_disp_on(ROB_ID id) const  {
     if (is_init(id))
-        return rob_impl[id].rob_base.flag.bit.disp;
+        return rob_impl[id].check_disp();
     return false;
 }
 
@@ -5930,7 +5422,7 @@ rob_chara* RobManagement::get_rob(ROB_ID id) {
 
 // 0x1405320A0
 const RobData* RobManagement::get_rob_data(ROB_ID id) const {
-    return rob_impl[id].rob_data;
+    return rob_impl[id].get_rob_data();
 }
 
 // 0x1405320C0
@@ -5970,6 +5462,16 @@ bool RobManagement::is_init(ROB_ID id) const  {
     return rob_init[id].rob_type != ROB_TYPE_NULL;
 }
 
+// 0x140532960
+void RobManagement::overwrite_disp_left(ROB_ID id, bool fl) {
+    rob_impl[id].overwrite_disp_left(fl);
+}
+
+// 0x140532980
+void RobManagement::play_auth3d_sound(ROB_ID id, const char* in_name) {
+
+}
+
 // 0x140532D40
 void RobManagement::reset_osage_pos(ROB_ID id) {
     rob_impl[id].reset_osage_pos();
@@ -5996,18 +5498,49 @@ void RobManagement::reset_rob(ROB_ID id, const RobInit& ri,
         set_colli_check_on(true);
 }
 
-void RobManagement::set_colli_check_on(bool value) {
-    colli_check_on = value;
+// 0x140532E10
+void RobManagement::reset_rob_time_up() {
+    rob_impl[ROB_ID_1P].set_time_up(false);
+    rob_impl[ROB_ID_2P].set_time_up(false);
+}
+
+// 0x140532E60
+void RobManagement::reset_rob_zero_disp(ROB_ID id) {
+    if (id >= 0 && id < ROB_ID_MAX)
+        rob_impl[id].reset_rob_zero_disp();
+}
+
+// 0x140532E80
+void RobManagement::rob_disp_init(ROB_ID id) {
+    RobDisp* disp = RobManagement::rob_impl[id].disp;
+    disp->init(rob_chara_bone_data_get_node(
+        RobManagement::rob_impl[id].bone_data, BONE_NODE_N_HARA_CP));
+    disp->set_shadow_group(id);
+    disp->shadow_flag = 0x05;
+}
+
+void RobManagement::set_colli_check_on(bool fl) {
+    colli_check_on = fl;
+}
+
+// 0x140532EE0
+void RobManagement::set_costume(ROB_ID id, int32_t cos) {
+    rob_impl[id].set_costume(cos);
+}
+
+// 0x140532F60
+void RobManagement::set_disp_freeze(ROB_ID id, bool fl) {
+    rob_impl[id].set_disp_freeze(fl);
 }
 
 // 0x140532F80
-void RobManagement::set_disp_on(ROB_ID id, bool value) {
-    rob_impl[id].set_disp_flag(value);
+void RobManagement::set_disp_on(ROB_ID id, bool fl) {
+    rob_impl[id].set_disp_flag(fl);
 }
 
 // 0x140533130
 void RobManagement::set_mot_frame(ROB_ID id, float_t frame) {
-    rob_impl[id]. req_frame_change(frame);
+    rob_impl[id].req_frame_change(frame);
 }
 
 // 0x140533150
@@ -6015,20 +5548,26 @@ void RobManagement::set_motion(ROB_ID id, int32_t motnum) {
     rob_impl[id].set_rob_motion_external(motnum);
 }
 
-// 0x1405331F0
-void RobManagement::set_no_ctrl(ROB_ID id) {
-    if (id >= 0 && id < ROB_ID_MAX)
-        rob_impl[id].rob_base.flag.bit.no_ctrl = true;
-}
-
 // 0x140533170
 void RobManagement::set_rob_pos(ROB_ID id, const vec3& pos) {
     rob_impl[id].set_rob_pos(pos);
 }
 
+// 0x140533190
+void RobManagement::set_rob_time_up() {
+    rob_impl[ROB_ID_1P].set_time_up(true);
+    rob_impl[ROB_ID_2P].set_time_up(true);
+}
+
 // 0x1405331C0
 void RobManagement::set_rob_yang(ROB_ID id, const RobAngle& ang) {
     rob_impl[id].set_rob_yang(ang);
+}
+
+// 0x1405331F0
+void RobManagement::set_rob_zero_disp(ROB_ID id) {
+    if (id >= 0 && id < ROB_ID_MAX)
+        rob_impl[id].set_rob_zero_disp();
 }
 
 // 0x140531430
@@ -6490,7 +6029,7 @@ void RobMhPp::func_6(
 static void sub_140551AF0(rob_chara* rob_chr) {
     if (!rob_chr->rob_base.flag.bit.fix_hara) {
         rob_chr->rob_base.position.pos.y = rob_chr->rob_base.position.gpos.y;
-        rob_chr->rob_base.flag.bit.fix_hara = 1;
+        rob_chr->rob_base.flag.bit.fix_hara = true;
         if (!rob_chr->rob_base.motdata.air_kind[AK_CENTER_MOVE]) {
             rob_chr->rob_base.position.pos.x = rob_chr->rob_base.position.gpos.x;
             rob_chr->rob_base.position.pos.z = rob_chr->rob_base.position.gpos.z;
@@ -6811,7 +6350,7 @@ void RobMhPp::func_29(
     const void* ppadr, MhpList* list, int32_t frame, const motion_database* mot_db) {
     prj::BitArrayExt<10> flag(&((uint32_t*)ppadr)[13]);
     uint16_t v8 = ((uint16_t*)ppadr)[24];
-    if (!flag.count() || (v8 != 0 || flag[impl->cos_id]) && (v8 != 1 || !flag[impl->cos_id])) {
+    if (!flag.count() || (v8 != 0 || flag[impl->costume]) && (v8 != 1 || !flag[impl->costume])) {
         int16_t end_frame = ((int16_t*)ppadr)[0];
         uint16_t part = ((uint16_t*)ppadr)[1];
         int16_t mode = ((int16_t*)ppadr)[2];
@@ -6940,12 +6479,12 @@ void RobMhPp::func_32(
 void RobMhPp::func_33(
     const void* ppadr, MhpList* list, int32_t frame, const motion_database* mot_db) {
     prj::BitArrayExt<10> flag(&((uint32_t*)ppadr)[4]);
-    if (flag.count() && !flag[impl->cos_id])
+    if (flag.count() && !flag[impl->costume])
         return;
 
     prj::BitArrayExt<10> flag_enemy(&((uint32_t*)ppadr)[5]);
     rob_chara* enemy = impl->enemy;
-    if (flag_enemy.count() && !(enemy && flag_enemy[impl->cos_id]))
+    if (flag_enemy.count() && !(enemy && flag_enemy[impl->costume]))
         return;
 
     RobMotData& motdata = base->motdata;
@@ -8179,9 +7718,9 @@ static void sub_140505B20(rob_chara* rob_chr) {
         rob_chr->rob_base.position.act_yang = rob_chr->rob_base.position.yang;
 
     if (rob_chr->rob_base.flag.bit.fix_hara && rob_chr->rob_base.position.spd.y > -0.000001f)
-        rob_chr->rob_base.flag.bit.jump_rise = 1;
+        rob_chr->rob_base.flag.bit.jump_rise = true;
     else
-        rob_chr->rob_base.flag.bit.jump_rise = 0;
+        rob_chr->rob_base.flag.bit.jump_rise = false;
 }
 
 static void rob_base_rob_chara_ctrl(rob_chara* rob_chr) {
@@ -8217,7 +7756,7 @@ static void sub_1405145F0(rob_chara* rob_chr, const bone_database* bone_data, co
         rob_chr->rob_base.action.action.mirror, frame, MOTION_BLEND, bone_data, mot_db);
     rob_chr->bone_data->set_motion_blend_duration(0.0f, 1.0f, 1.0f);
     rob_chr->set_motion_reset_data(rob_chr->rob_base.action.action.motnum, 0.0f);
-    rob_chr->rob_base.action.step = 1;
+    rob_chr->rob_base.action.step = true;
 }
 
 static void sub_1405144C0(rob_chara* rob_chr, const bone_database* bone_data, const motion_database* mot_db) {
@@ -8863,8 +8402,8 @@ static void rob_disp_rob_chara_init(rob_chara* rob_chr,
     RobDisp* disp = rob_chr->disp;
     const RobData* rob_data = rob_chr->rob_data;
     RobNode* v3 = rob_chara_bone_data_get_node(rob_chr->bone_data, BONE_NODE_N_HARA_CP);
-    disp->reset_init_data(v3);
-    disp->set_one_skin(rob_chr->cos_id == 501);
+    disp->init(v3);
+    disp->set_one_skin(RobDisp::check_one_skin(rob_chr->costume));
     disp->set_skin({}, RPK_BODY, false, bone_data, data, obj_db);
     for (int32_t i = RPK_BASE_BEGIN; i <= RPK_BASE_END; i++)
         disp->set_base((ROB_PARTS_KIND)i, rob_data->body_obj_uid[i], false,
@@ -8872,7 +8411,7 @@ static void rob_disp_rob_chara_init(rob_chara* rob_chr,
     disp->set_shadow_group(rob_chr->idnm);
     rob_chr->disp->shadow_flag = 0x05;
     rob_chr->item.equip(rob_chr->idnm, bone_data, data, obj_db);
-    if (rob_chr->item.check_for_npr_flag())
+    if (rob_chr->item.check_npr_flag())
         rob_chr->disp->npr_flag = true;
 
     if (rob_chr->check_for_ageageagain_module()) {
@@ -8920,7 +8459,31 @@ static void rob_disp_rob_chara_ctrl_thread_main(rob_chara* rob_chr) {
     }
 }
 
+extern void rob_block_disp(int32_t rob_id, RobBlock* block, BONE_BLK blk, int32_t motion_body_type);
+
 static void rob_disp_rob_chara_disp(rob_chara* rob_chr) {
+    rob_chara_bone_data* rob_bone_data = rob_chr->bone_data;
+    motion_blend_mot* mot = rob_bone_data->motion_loaded.front();
+    RobBlock* block_top = mot->bone_data.block_vec.data();
+    rob_block_disp(rob_chr->idnm,
+        &block_top[BLK_N_HARA_CP], BLK_N_HARA_CP, mot->mot_key_data.motion_body_type);
+    rob_block_disp(rob_chr->idnm,
+        &block_top[BLK_CL_MUNE], BLK_CL_MUNE, mot->mot_key_data.motion_body_type);
+    rob_block_disp(rob_chr->idnm,
+        &block_top[BLK_CL_KAO], BLK_CL_KAO, mot->mot_key_data.motion_body_type);
+    rob_block_disp(rob_chr->idnm,
+        &block_top[BLK_TL_UP_KATA_L], BLK_TL_UP_KATA_L, mot->mot_key_data.motion_body_type);
+    rob_block_disp(rob_chr->idnm,
+        &block_top[BLK_C_KATA_L], BLK_C_KATA_L, mot->mot_key_data.motion_body_type);
+    rob_block_disp(rob_chr->idnm,
+        &block_top[BLK_TL_UP_KATA_R], BLK_TL_UP_KATA_R, mot->mot_key_data.motion_body_type);
+    rob_block_disp(rob_chr->idnm,
+        &block_top[BLK_C_KATA_R], BLK_C_KATA_R, mot->mot_key_data.motion_body_type);
+    rob_block_disp(rob_chr->idnm,
+        &block_top[BLK_CL_MOMO_L], BLK_CL_MOMO_L, mot->mot_key_data.motion_body_type);
+    rob_block_disp(rob_chr->idnm,
+        &block_top[BLK_CL_MOMO_R], BLK_CL_MOMO_R, mot->mot_key_data.motion_body_type);
+
     rob_chr->disp->skin_color = 1.0f;
     rob_chr->disp->mat = rob_chr->rob_base.adjust.mat;
     rob_chr->disp->disp(rob_chr->idnm, rctx_ptr);
@@ -8928,7 +8491,7 @@ static void rob_disp_rob_chara_disp(rob_chara* rob_chr) {
 
 static void rob_disp_rob_chara_free(rob_chara* rob_chr) {
     rob_chara_age_age_array_reset(rob_chr->idnm);
-    rob_chr->disp->reset();
+    rob_chr->disp->dest();
 }
 
 static void sub_140409B70(rob_chara_look_anim* look_anim,
@@ -11242,7 +10805,7 @@ static void rob_chara_load_default_motion_sub(rob_chara* rob_chr, int32_t motion
     sub_14041D310(rob_chr->bone_data, 0.0f, 0.0f, 2);
     rob_chr->bone_data->interpolate();
     rob_chr->bone_data->update(0);
-    rob_chr->sub_140509D30();
+    rob_chr->calc_rob_colli_matrix();
     sub_140419820(rob_chr->bone_data, motion_body_type);
 }
 
@@ -11354,33 +10917,6 @@ RobManagement* get_rob_management() {
     return &s_rob_management;
 }
 
-const RobData* get_rob_data(CHARA_NUM cn) {
-    if (cn >= 0 && cn < CN_MAX)
-        return &rob_data[cn];
-    return 0;
-}
-
-int32_t rob_data_get_chara_size_index(CHARA_NUM cn) {
-    const RobData* rob_data = get_rob_data(cn);
-    if (rob_data)
-        return rob_data->field_848.chara_size_index;
-    return 1;
-}
-
-int32_t rob_data_get_swim_costume(CHARA_NUM cn) {
-    const RobData* RobData = get_rob_data(cn);
-    if (rob_data)
-        return rob_data->field_848.swim_costume;
-    return 0;
-}
-
-int32_t rob_data_get_swim_s_costume(CHARA_NUM cn) {
-    const RobData* RobData = get_rob_data(cn);
-    if (rob_data)
-        return rob_data->field_848.swim_s_costume;
-    return 0;
-}
-
 float_t chara_size_table_get_value(uint32_t index) {
     static const float_t chara_size_table[] = {
         1.07f, 1.0f, 0.96f, 0.987f, 1.025f, 1.045f
@@ -11399,12 +10935,6 @@ float_t chara_pos_adjust_y_table_get_value(uint32_t index) {
     if (index >= 0 && index < 5)
         return chara_pos_adjust_y_table[index];
     return 0.0f;
-}
-
-bool check_cos_id_is_501(int32_t cos_id) {
-    if (cos_id == -1 || cos_id >= 502)
-        return false;
-    return cos_id == 501;
 }
 
 const char* get_dev_ram_opdi_dir() {
@@ -11761,14 +11291,6 @@ void rob_chara_array_reset_pv_data(ROB_ID rob_id) {
     RobManagement::rob_init[rob_id].rob_type = ROB_TYPE_NULL;
 }
 
-void rob_chara_array_reset_bone_data_item_equip(ROB_ID rob_id) {
-    RobDisp* disp = RobManagement::rob_impl[rob_id].disp;
-    disp->reset_init_data(rob_chara_bone_data_get_node(
-        RobManagement::rob_impl[rob_id].bone_data, BONE_NODE_N_HARA_CP));
-    disp->set_shadow_group(rob_id);
-    disp->shadow_flag = 0x05;
-}
-
 void rob_chara_array_set_alpha_obj_flags(ROB_ID rob_id, float_t alpha, mdl::ObjFlags flags) {
     rob_chara* rob_chr = rob_chara_array_get(rob_id);
     if (!rob_chr)
@@ -11815,8 +11337,8 @@ void pv_osage_manager_array_set_pv_set_motion(
     pv_osage_manager_array_get(rob_id)->SetPvSetMotion(set_motion);
 }
 
-bool rob_chara_check_for_ageageagain_module(CHARA_NUM cn, int32_t cos_id) {
-    return cn == CN_MIKU && cos_id == 148;
+bool rob_chara_check_for_ageageagain_module(CHARA_NUM cn, int32_t cos) {
+    return cn == CN_MIKU && cos == 148;
 }
 
 void rob_sleeve_handler_data_get_sleeve_data(
@@ -13629,11 +13151,11 @@ RobSkinDisp::RobSkinDisp() : index(), motion_matrix(),
 obj_uid(), obj_uid_sub(), alpha(), obj_flags(), can_disp(), bone_kind(),
 mat(), init_cnt(), motion_node(), field_138(), osage_depends_on_others(),
 osage_nodes_count(), use_opd(), skin_ex_data(), skin(), rob_disp() {
-    init_members(0x12345678);
+    init(0x12345678);
 }
 
 RobSkinDisp::~RobSkinDisp() {
-    init_members(0xDDDDDDDD);
+    init(0xDDDDDDDD);
 }
 
 void RobSkinDisp::add_motion_reset_data(const uint32_t& motnum, const float_t& frame, int32_t init_cnt) {
@@ -13661,6 +13183,11 @@ void RobSkinDisp::check_no_opd(std::vector<opd_blend_data>& opd_blend_data) {
             break;
         }
     }
+}
+
+// 0x1405F2690
+void RobSkinDisp::dest() {
+    init();
 }
 
 void RobSkinDisp::dest_ex_node() {
@@ -13774,8 +13301,9 @@ RobJointNode* RobSkinDisp::get_normal_ref_osage_node(const std::string& str, siz
     return node;
 }
 
-void RobSkinDisp::init_members(size_t index) {
-    this->index = index;
+// 0x1405F36F0
+void RobSkinDisp::init(size_t idx) {
+    index = idx;
     obj_uid = {};
     obj_uid_sub = {};
     motion_matrix = 0;
@@ -14311,7 +13839,7 @@ bool RobSkinDisp::skp_load_normal_ref(
 
 RobDisp::RobDisp() : motion_node(), motion_matrix(), skin_disp(), parts_attr(), one_skin(),
 disp_begin(), disp_max(), shadow_flag(), shadow_group(), position(), hyoutan_rpk(),
-disable_update(), hyoutan_status(), skin_color(), wet_cloth(), wind_strength(), chara_color(),
+freeze_flag(), hyoutan_status(), skin_color(), wet_cloth(), wind_strength(), chara_color(),
 npr_flag(), shadow_skin(), use_opd(), parts_short(), parts_append(), parts_white_one_l() {
     skin_disp = new RobSkinDisp[RPK_MAX];
     wind_strength = 1.0f;
@@ -14323,7 +13851,7 @@ npr_flag(), shadow_skin(), use_opd(), parts_short(), parts_append(), parts_white
 }
 
 RobDisp::~RobDisp() {
-    reset();
+    dest();
 
     if (skin_disp) {
         delete[] skin_disp;
@@ -14485,24 +14013,19 @@ ROB_PARTS_KIND RobDisp::get_free_item(ROB_PARTS_KIND rpk) const {
     return (ROB_PARTS_KIND)_rpk;
 }
 
-// 0x1405135E0
-void RobDisp::pos_reset(uint8_t init_cnt) {
-    for (int32_t i = 0; i < RPK_MAX; i++)
-        skin_disp[i].pos_reset(init_cnt);
-}
-
-void RobDisp::reset() {
+// 0x140512880
+void RobDisp::dest() {
     motion_node = 0;
     motion_matrix = 0;
     for (int32_t i = 0; i < RPK_MAX; i++)
-        skin_disp[i].init_members();
+        skin_disp[i].dest();
     one_skin = false;
     shadow_group = (SHADOW_GROUP)-1;
     shadow_flag = 0x05;
     hyoutan_texchg_list.clear();
     hyoutan_obj = {};
     hyoutan_rpk = RPK_NONE;
-    disable_update = false;
+    freeze_flag = false;
     parts_short = false;
     parts_append = false;
     parts_white_one_l = false;
@@ -14512,20 +14035,16 @@ void RobDisp::reset() {
     disp_max = RPK_DISP_END;
 }
 
-void RobDisp::reset_ex_force() {
-    for (int32_t i = disp_begin; i < disp_max; i++)
-        skin_disp[i].reset_ex_force();
-}
-
-void RobDisp::reset_init_data(RobNode* mot_node) {
-    reset();
-    motion_node = mot_node;
-    motion_matrix = mot_node->mat_ptr;
+// 0x140513240
+void RobDisp::init(const RobNode* rob_node) {
+    dest();
+    motion_node = rob_node;
+    motion_matrix = rob_node->mat_ptr;
 
     mat4* v7 = parts_matrix;
     int32_t* v8 = parts_attr;
     for (int32_t i = 0; i < RPK_MAX; i++) {
-        skin_disp[i].init_members(i);
+        skin_disp[i].init(i);
         *v8++ = 0;
         *v7++ = mat4_identity;
     }
@@ -14536,6 +14055,17 @@ void RobDisp::reset_init_data(RobNode* mot_node) {
     chara_color = true;
     npr_flag = false;
     mat = mat4_identity;
+}
+
+// 0x1405135E0
+void RobDisp::pos_reset(uint8_t init_cnt) {
+    for (int32_t i = 0; i < RPK_MAX; i++)
+        skin_disp[i].pos_reset(init_cnt);
+}
+
+void RobDisp::reset_ex_force() {
+    for (int32_t i = disp_begin; i < disp_max; i++)
+        skin_disp[i].reset_ex_force();
 }
 
 void RobDisp::reset_nodes_ex_force(rob_osage_parts parts) {
@@ -14650,6 +14180,7 @@ void RobDisp::set_ofs(ROB_PARTS_KIND rpk, const vec3& pos, const vec3& rot, cons
     skin_disp[rpk].set_ofs(pos, rot, scale);
 }
 
+// 0x140513E40
 void RobDisp::set_one_skin(bool value) {
     one_skin = value;
     if (value) {
@@ -14745,11 +14276,11 @@ void RobDisp::set_shadow(ROB_PARTS_KIND rpk, bool flag) {
         parts_attr[rpk] |= 0x01;
 }
 
-void RobDisp::set_shadow_group(int32_t rob_id) {
-    if (rob_id == ROB_ID_1P)
-        shadow_group = SHADOW_GROUP_CHARA;
-    else
-        shadow_group = SHADOW_GROUP_STAGE;
+// 0x140514170
+void RobDisp::set_shadow_group(int32_t group) {
+    if (group != SHADOW_GROUP_CHARA)
+        group = SHADOW_GROUP_STAGE;
+    shadow_group = (SHADOW_GROUP)group;
 }
 
 // 0x1405141B0
@@ -14773,1137 +14304,11 @@ void RobDisp::skp_load(ROB_PARTS_KIND rpk, const skin_param_osage_root& skp_root
         skin_disp[rpk].skp_load(skp_root, vec, skp_file_data, bone_data);
 }
 
-RobItemTXHD::RobItemTXHD() : src(), dst(), dst_copy() {
-
-}
-
-RobItemTXHD::~RobItemTXHD() {
-
-}
-
-// 0x140522990
-void RobItem::equip_phase0(RobItemEquip* item_set) {
-    if (!get_rob_item_header(m_cn))
-        return;
-
-    free_copy_texture_all();
-    clear_texchg_list();
-
-    for (int32_t sub_id = 0; sub_id < ROB_ITEM_EQUIP_SUB_ID_MAX; sub_id++) {
-        uint32_t item_no = item_set->item_no[sub_id];
-        if (!item_no || sub_id == ROB_ITEM_EQUIP_SUB_ID_HADA)
-            continue;
-
-        const RobItemTable* tbl = get_rob_item_table(m_cn, item_no);
-        if (!tbl)
-            continue;
-
-        make_chg_tex(item_no, tbl);
-        make_nude_attr_map(item_no, tbl);
-    }
-}
-// 0x140522A30
-void RobItem::equip_phase1(RobDisp* rdp,
-    const bone_database* bone_data, void* data, const object_database* obj_db) {
-    const RobData* rob_data = get_rob_data(m_cn);
-    for (int32_t i = RPK_BASE_BEGIN; i <= RPK_BASE_END; i++) {
-        ROB_PARTS_KIND rpk = (ROB_PARTS_KIND)i;
-        rdp->set_base(rpk, rob_data->body_obj_uid[i], false, bone_data, data, obj_db);
-        auto elem = m_nude_attr_map.find(rpk);
-        if (elem != m_nude_attr_map.end())
-            set_texture(rdp, elem->second, rpk);
-        else
-            reset_texture(rdp, rpk);
-    }
-
-    for (int32_t i = RPK_ITEM_BEGIN; i <= RPK_ITEM_END; i++) {
-        ROB_PARTS_KIND rpk = (ROB_PARTS_KIND)i;
-        rdp->set_item(rpk, {}, bone_data, data, obj_db);
-        reset_texture(rdp, rpk);
-    }
-    reset_texture(rdp, RPK_NONE, true);
-
-    m_rpk_map.clear();
-    m_rpk_sp_map.clear();
-    m_head_map.clear();
-}
-
-// 0x140522C60
-void RobItem::equip_phase2(RobDisp* rdp, RobItemEquip* item_set,
-    const bone_database* bone_data, void* data, const object_database* obj_db) {
-    if (!get_rob_item_header(m_cn))
-        return;
-
-    const ROB_ITEM_EQUIP_SUB_ID* id = equip_sub_id_phase2;
-    while (*id != ROB_ITEM_EQUIP_SUB_ID_MAX) {
-        uint32_t item_no = item_set->item_no[*id];
-        if (item_no) {
-            const RobItemTable* tbl = get_rob_item_table(m_cn, item_no);
-            if (tbl && tbl->type != ROB_ITEM_TYPE_REM && (tbl->attr & ROB_ITEM_ATTR_OBJ))
-                set_obj_phase2(rdp, item_no, tbl, *id, bone_data, data, obj_db);
-        }
-        id++;
-    }
-}
-
-// 0x140522D00
-void RobItem::equip_phase3(RobDisp* rdp, RobItemEquip* item_set,
-    const bone_database* bone_data, void* data, const object_database* obj_db) {
-    if (!get_rob_item_header(m_cn))
-        return;
-
-    const ROB_ITEM_EQUIP_SUB_ID* id = equip_sub_id_phase3;
-    while (*id != ROB_ITEM_EQUIP_SUB_ID_MAX) {
-        uint32_t item_no = item_set->item_no[*id];
-        if (item_no) {
-            const RobItemTable* tbl = get_rob_item_table(m_cn, item_no);
-            if (tbl && tbl->type != ROB_ITEM_TYPE_REM && (tbl->attr & ROB_ITEM_ATTR_OBJ))
-                set_obj_phase3(rdp, item_no, tbl, bone_data, data, obj_db);
-        }
-        id++;
-    }
-}
-
-// 0x140522D90
-void RobItem::equip_phase4(RobDisp* rdp, RobItemEquip* item_set,
-    const bone_database* bone_data, void* data, const object_database* obj_db) {
-    if (!get_rob_item_header(m_cn))
-        return;
-
-    const ROB_ITEM_EQUIP_SUB_ID* id = equip_sub_id_phase4;
-    while (*id != ROB_ITEM_EQUIP_SUB_ID_MAX) {
-        uint32_t item_no = item_set->item_no[*id];
-        if (!item_no) {
-            id++;
-            continue;
-        }
-
-        const RobItemTable* tbl = get_rob_item_table(m_cn, item_no);
-        if (!tbl || tbl->type != ROB_ITEM_TYPE_REPLACE)
-            continue;
-
-        for (const RobItemDataObj& i : tbl->data.obj) {
-            if (i.uid.is_null())
-                continue;
-
-            ROB_PARTS_KIND rpk = get_rpk_item(*id);
-            rdp->set_item(rpk, i.uid, bone_data, data, obj_db);
-            m_rpk_map.insert({ i.uid, rpk });
-            if (tbl->attr & (ROB_ITEM_ATTR_COL | ROB_ITEM_ATTR_TEX))
-                set_texture(rdp, item_no, rpk);
-
-            if (i.replace_id == RPK_NONE)
-                continue;
-
-            rdp->set_base(i.replace_id, {}, false, bone_data, data, obj_db);
-            switch (i.replace_id) {
-            case RPK_UDE_R:
-                hide_rpk_sp(rdp, RPK_SP_UDE_R, bone_data, data, obj_db);
-                break;
-            case RPK_UDE_L:
-                hide_rpk_sp(rdp, RPK_SP_UDE_L, bone_data, data, obj_db);
-                break;
-            case RPK_TE_R:
-                hide_rpk_sp(rdp, RPK_SP_TE_R, bone_data, data, obj_db);
-                break;
-            case RPK_TE_L:
-                hide_rpk_sp(rdp, RPK_SP_TE_L, bone_data, data, obj_db);
-                break;
-            case RPK_SUNE:
-                hide_rpk_sp(rdp, RPK_SP_SUNE, bone_data, data, obj_db);
-                break;
-            case RPK_ASI:
-                hide_rpk_sp(rdp, RPK_SP_ASI, bone_data, data, obj_db);
-                break;
-            }
-        }
-        id++;
-    }
-}
-
-// 0x140522F90
-void RobItem::equip_phase5(RobDisp* rdp, RobItemEquip* item_set) {
-    if (!get_rob_item_header(m_cn))
-        return;
-
-    uint32_t item_no = item_set->item_no[ROB_ITEM_EQUIP_SUB_ID_HADA];
-    if (!item_no)
-        return;
-
-    const RobItemTable* tbl = get_rob_item_table(m_cn, item_no);
-    if (!tbl || tbl->data.col.size())
-        return;
-
-    vec3 blend_color = tbl->data.col[0].color.blend_color;
-    vec3 offset_color = tbl->data.col[0].color.offset_color;
-    vec3 blend_specular = 1.0f;
-    vec3 offset_specular = 0.0f;
-    if (tbl->data.col.size() > 1) {
-        blend_specular = tbl->data.col[1].color.blend_color;
-        offset_specular = tbl->data.col[1].color.offset_color;
-    }
-
-    for (int32_t i = RPK_DISP_BEGIN; i <= RPK_DISP_END; i++) {
-        ROB_PARTS_KIND rpk = (ROB_PARTS_KIND)i;
-        if (rdp->get_objid(rpk).is_null())
-            continue;
-
-        rdp->set_col_type(rpk, 0);
-        rdp->set_col_color(rpk, blend_color, offset_color);
-        rdp->set_col_specular(rpk, blend_specular, offset_specular);
-    }
-}
-
-// 0x1405231D0
-void RobItem::equip_phase6(RobDisp* rdp, RobItemEquip* item_set) {
-    if (!get_rob_item_header(m_cn))
-        return;
-
-    for (int32_t i = 0; i < ROB_ITEM_EQUIP_SUB_ID_MAX; i++)
-        equip_phase6(rdp, &m_equip, item_set->item_no[i]);
-}
-
-// 0x140523230
-void RobItem::equip_phase6(RobDisp* rdp, RobItemEquip* item_set, uint32_t item_no) {
-    if (!item_no)
-        return;
-
-    const RobItemTable* tbl = get_rob_item_table(m_cn, item_no);
-    if (!tbl || tbl->type == ROB_ITEM_TYPE_NONE || tbl->type == ROB_ITEM_TYPE_REM)
-        return;
-
-    if (tbl->attr & ROB_ITEM_ATTR_OFS)
-        for (const RobItemDataOfs& i : tbl->data.ofs) {
-            if (item_set->item_no[i.equip_sub_id] != i.item_no)
-                continue;
-
-            for (const RobItemDataObj& j : tbl->data.obj) {
-                if (j.uid.is_null())
-                    break;
-
-                auto elem = m_rpk_map.find(j.uid);
-                if (elem != m_rpk_map.end())
-                    rdp->set_ofs(elem->second, i.trans, i.rot, i.scale);
-            }
-            break;
-        }
-
-    for (const RobItemDataObj& i : tbl->data.obj) {
-        if (i.uid.is_null())
-            break;
-
-        auto elem = m_rpk_map.find(i.uid);
-        if (elem != m_rpk_map.end()) {
-            ROB_PARTS_KIND rpk = elem->second;
-            rdp->set_shadow(rpk, !(tbl->attr & ROB_ITEM_ATTR_NO_SDW));
-            rdp->set_reflect(rpk, !(tbl->attr & ROB_ITEM_ATTR_NO_REF));
-            rdp->set_merge(rpk, !(tbl->attr & ROB_ITEM_ATTR_NO_MRG));
-        }
-    }
-}
-
-// 0x1405234E0
-void RobItem::equip_phase7() {
-    init_nude_attr_map();
-    m_rpk_map.clear();
-    m_rpk_sp_map.clear();
-}
-
-// 0x140525B90
-ROB_PARTS_KIND RobItem::get_rpk_item(ROB_ITEM_EQUIP_SUB_ID id) const {
-    return rpk_item[id];
-}
-
-// 0x140525D90
-void RobItem::hide_rpk_sp(RobDisp* disp, int32_t rpk_sp,
-    const bone_database* bone_data, void* data, const object_database* obj_db) {
-    auto elem = m_rpk_sp_map.find(rpk_sp);
-    if (elem != m_rpk_sp_map.end())
-        disp->set_item(elem->second, {}, bone_data, data, obj_db);
-}
-
-// 0x140526FD0
-void RobItem::make_chg_tex(uint32_t item_no, const RobItemTable* tbl) {
-    if (!(tbl->attr & (ROB_ITEM_ATTR_COL | ROB_ITEM_ATTR_TEX)))
-        return;
-
-    if (!(tbl->attr & ROB_ITEM_ATTR_COL)) {
-        std::vector<RobItemTXHD> tex_chg_vec;
-        for (const RobItemDataTex& i : tbl->data.tex) {
-            RobItemTXHD txhd;
-            txhd.src = texture_manager_get_texture(i.org_uid);
-            txhd.dst = texture_manager_get_texture(i.chg_uid);
-            txhd.dst_copy = false;
-            tex_chg_vec.push_back(txhd);
-        }
-        m_txhd_map.insert({ item_no, tex_chg_vec });
-        return;
-    }
-    else if (tbl->data.col.size() <= 0)
-        return;
-
-    std::vector<int32_t> chg_tex_ids;
-    if (tbl->attr & ROB_ITEM_ATTR_TEX)
-        for (const RobItemDataTex& i : tbl->data.tex)
-            chg_tex_ids.push_back(i.chg_uid);
-    else
-        for (const RobItemDataCol& i : tbl->data.col)
-            chg_tex_ids.push_back(i.tex_uid);
-
-    std::vector<RobItemTXHD> tex_chg_vec;
-    size_t index = 0;
-    for (int32_t& i : chg_tex_ids) {
-        size_t j = &i - chg_tex_ids.data();
-        texture* tex = texture_manager_get_texture(i);
-        if (!tex) {
-            index++;
-            continue;
-        }
-
-        bool dst_copy = false;
-        if (tbl->data.col[j].flag.m.is_available) {
-            tex = texture_create_copy_texture_apply_color_tone(
-                texture_manager_get_copy_id(0x30), tex, &tbl->data.col[j].color);
-            dst_copy = true;
-        }
-
-        RobItemTXHD txhd;
-        txhd.src = texture_manager_get_texture(tbl->data.col[j].tex_uid);
-        txhd.dst = tex;
-        txhd.dst_copy = dst_copy;
-        tex_chg_vec.push_back(txhd);
-    }
-    m_txhd_map.insert({ item_no, tex_chg_vec });
-}
-
-// 0x140525200
-void RobItem::free_copy_texture_all() {
-    for (auto i = m_txhd_map.begin(); i != m_txhd_map.end(); i++)
-        free_copy_texture(i);
-    m_txhd_map.clear();
-}
-
-// 0x1405267E0
-void RobItem::init_nude_attr_map() {
-    m_nude_attr_map.clear();
-}
-
-// 0x140527280
-void RobItem::make_nude_attr_map(uint32_t item_no, const RobItemTable* tbl) {
-    if (!(tbl->attr & ROB_ITEM_ATTR_NUDE) || !(tbl->attr & (ROB_ITEM_ATTR_COL | ROB_ITEM_ATTR_TEX)))
-        return;
-
-    for (const RobItemDataObj& i : tbl->data.obj) {
-        if (i.replace_id == RPK_NONE)
-            continue;
-
-        auto elem = m_nude_attr_map.find(i.replace_id);
-        if (elem == m_nude_attr_map.end()) {
-            std::vector<uint32_t> vec;
-            vec.push_back(item_no);
-            m_nude_attr_map.insert({ i.replace_id, vec });
-        }
-        else {
-            std::vector<uint32_t> vec = elem->second;
-            vec.push_back(item_no);
-            m_nude_attr_map.insert_or_assign(i.replace_id, vec);
-        }
-    }
-}
-
-// 0x14052C560
-void RobItem::set_obj_phase2(RobDisp* rdp, uint32_t item_no, const RobItemTable* tbl, ROB_ITEM_EQUIP_SUB_ID id,
-    const bone_database* bone_data, void* data, const object_database* obj_db) {
-    for (const RobItemDataObj& i : tbl->data.obj) {
-        if (i.uid.is_null())
-            break;
-
-        if (tbl->type == ROB_ITEM_TYPE_REPLACE) {
-            if (i.replace_id != RPK_NONE) {
-                rdp->set_base(i.replace_id, i.uid, false, bone_data, data, obj_db);
-                if (tbl->attr & (ROB_ITEM_ATTR_COL | ROB_ITEM_ATTR_TEX))
-                    set_texture(rdp, item_no, i.replace_id);
-            }
-            continue;
-        }
-
-        else if (tbl->type)
-            continue;
-
-        ROB_PARTS_KIND rpk = get_rpk_item(id);
-        if (rpk != RPK_NONE) {
-            rdp->set_item(rpk, i.uid, bone_data, data, obj_db);
-            m_rpk_map.insert({ i.uid, rpk });
-            if (tbl->attr & (ROB_ITEM_ATTR_COL | ROB_ITEM_ATTR_TEX))
-                set_texture(rdp, item_no, rpk);
-        }
-        else {
-            ROB_PARTS_KIND rpk = rdp->get_free_item(RPK_ITEM_ETC_BEGIN);
-            if (rpk != RPK_NONE && (!(tbl->attr & ROB_ITEM_ATTR_HYOUTAN) || &i - tbl->data.obj.data())) {
-                bool is_hyoutan = false;
-                if ((tbl->attr & ROB_ITEM_ATTR_HYOUTAN) && &i - tbl->data.obj.data() == 1) {
-                    rdp->set_hyoutan(rpk, tbl->data.obj[1].uid,
-                        tbl->data.obj[0].uid, bone_data, data, obj_db);
-                    is_hyoutan = true;
-                }
-                else
-                    rdp->set_item(rpk, i.uid, bone_data, data, obj_db);
-                m_rpk_map.insert({ i.uid, rpk });
-                if (tbl->attr & (ROB_ITEM_ATTR_COL | ROB_ITEM_ATTR_TEX))
-                    set_texture(rdp, item_no, rpk, is_hyoutan);
-            }
-        }
-    }
-
-    m_head_map.clear();
-    if (!(tbl->attr & ROB_ITEM_ATTR_HEAD))
-        return;
-
-    const char* chara_name = get_chara_name(m_cn);
-    for (int32_t i = 0; i < 9; i++) {
-        std::string buf = sprintf_s_string("%sITM%03d_ATAM_HEAD_%02d_SP__DIVSKN", chara_name, item_no, i);
-        object_info obj_info = obj_db->get_object_info(buf.c_str());
-        if (obj_info.not_null())
-            m_head_map.insert({ i, obj_info });
-    }
-}
-
-// 0x14052C8C0
-void RobItem::set_obj_phase3(RobDisp* rdp, uint32_t item_no, const RobItemTable* tbl,
-    const bone_database* bone_data, void* data, const object_database* obj_db) {
-    for (const RobItemDataObj& i : tbl->data.obj) {
-        object_info uid = i.uid;
-        ROB_PARTS_KIND replace_id = i.replace_id;
-        if (tbl->type == ROB_ITEM_TYPE_REPLACE) {
-            if (uid.is_null()) {
-                if (replace_id == RPK_NONE)
-                    continue;
-            }
-            else if (replace_id == RPK_NONE);
-            else if (i.replace_id >= RPK_SP_UDE_L && i.replace_id <= RPK_SP_ASI) {
-                ROB_PARTS_KIND rpk = rdp->get_free_item(RPK_ITEM_BEGIN);
-                if (rpk == RPK_NONE)
-                    continue;
-
-                rdp->set_item(rpk, uid, bone_data, data, obj_db);
-                m_rpk_map.insert({ uid, rpk });
-                m_rpk_sp_map.insert({ replace_id, rpk });
-                replace_id = rpk;
-            }
-            else {
-                rdp->set_base(replace_id, uid, false, bone_data, data, obj_db);
-            }
-        }
-        else if (!tbl->type) {
-            replace_id = rdp->get_free_item(RPK_ITEM_ETC_BEGIN);
-            if (replace_id != RPK_NONE) {
-                rdp->set_item(replace_id, uid, bone_data, data, obj_db);
-                m_rpk_map.insert({ uid, replace_id });
-                continue;
-            }
-        }
-        else
-            continue;
-
-        if (tbl->attr & (ROB_ITEM_ATTR_COL | ROB_ITEM_ATTR_TEX))
-            set_texture(rdp, item_no, replace_id);
-    }
-}
-
-// 0x14052CCC0
-void RobItem::set_texture(RobDisp* rdp,
-    const std::vector<uint32_t>& item_nos, ROB_PARTS_KIND rpk, bool is_hyoutan) {
-    if (rpk < 0 || rpk >= RPK_MAX)
-        return;
-
-    for (const uint32_t& i : item_nos) {
-        auto elem = m_txhd_map.find(i);
-        if (elem == m_txhd_map.end())
-            continue;
-
-        for (RobItemTXHD& j : elem->second)
-            if (j.src && j.dst)
-                m_texchg_list[rpk].push_back({ j.src->id, j.dst->id });
-    }
-
-    if (is_hyoutan)
-        rdp->set_hyoutan_tex_change(m_texchg_list[rpk].data(), (int32_t)m_texchg_list[rpk].size());
-    else
-        rdp->set_tex_change(rpk, m_texchg_list[rpk].data(), (int32_t)m_texchg_list[rpk].size());
-}
-
-// 0x14052CB70
-void RobItem::set_texture(RobDisp* rdp, uint32_t item_no, ROB_PARTS_KIND rpk, bool is_hyoutan) {
-    if (rpk < 0 || rpk >= RPK_MAX)
-        return;
-
-    auto elem = m_txhd_map.find(item_no);
-    if (elem == m_txhd_map.end())
-        return;
-
-    for (RobItemTXHD& i : elem->second)
-        if (i.src && i.dst)
-            m_texchg_list[rpk].push_back({ i.src->id, i.dst->id });
-
-    if (is_hyoutan)
-        rdp->set_hyoutan_tex_change(m_texchg_list[rpk].data(), (int32_t)m_texchg_list[rpk].size());
-    else
-        rdp->set_tex_change(rpk, m_texchg_list[rpk].data(), (int32_t)m_texchg_list[rpk].size());
-}
-
-// 0x14052B4C0
-void RobItem::reset_texture(RobDisp* rdp, ROB_PARTS_KIND rpk, bool is_hyoutan) {
-    if (is_hyoutan)
-        rdp->set_hyoutan_tex_change(0, 0);
-    else
-        rdp->set_tex_change(rpk, 0, 0);
-}
-
-// 0x140521A30
-void RobItem::clear_texchg_list() {
-    for (std::vector<TexChange>& i : m_texchg_list)
-        i.clear();
-}
-
-// 0x140522480
-void RobItem::disp_obj_internal(object_info obj_uid, mat4& mat, uint32_t item_no, render_context* rctx) {
-    static mat4 env_mtx[MATRIX_BUFFER_COUNT];
-
-    TexChange* texchg = 0;
-    size_t num_texchg = 0;
-
-    obj_skin* skin = objset_info_storage_get_obj_skin(obj_uid);
-
-    auto elem = m_txhd_map.find(item_no);
-    if (elem != m_txhd_map.end()) {
-        std::vector<RobItemTXHD> tex_chg_vec = elem->second;
-        num_texchg = tex_chg_vec.size();
-        if (num_texchg) {
-            texchg = new TexChange[num_texchg];
-            const RobItemTXHD* item_txhd = tex_chg_vec.data();
-            for (size_t i = 0; i < num_texchg; i++) {
-                texchg[i].org_texid = item_txhd[i].src->id;
-                texchg[i].change_texid = item_txhd[i].dst->id;
-            }
-        }
-    }
-
-    if (!skin)
-        rctx->disp_manager->entry_obj_by_object_info(mat4_identity, obj_uid);
-    else if (skin->num_bone <= MATRIX_BUFFER_COUNT) {
-        for (int32_t i = 0; i < skin->num_bone; i++)
-            env_mtx[i] = mat;
-        rctx->disp_manager->entry_obj_by_object_info(mat4_identity, obj_uid, env_mtx);
-    }
-
-    if (num_texchg) {
-        rctx->disp_manager->set_texture_pattern(0, 0);
-        delete[] texchg;
-    }
-}
-
-// 0x14052C430
-bool RobItem::s_repair_equip(CHARA_NUM cn, uint32_t item_no, int32_t id, RobItemEquip* rep_item_set) {
-    const RobItemEquip* item_set = get_default_costume_data(cn, item_no);
-    if (item_set) {
-        rep_item_set->item_no[id] = item_set->item_no[id];
-        return true;
-    }
-    return false;
-}
-
-RobItem::RobItem() : m_cn(), m_cn_load(), m_equip(), m_equip_load() {
-
-}
-
-RobItem::~RobItem() {
-    free_copy_texture_all();
-    init_nude_attr_map();
-    clear_texchg_list();
-    m_rpk_map.clear();
-    m_rpk_sp_map.clear();
-    m_head_map.clear();
-}
-
-// 0x14052C530
-void RobItem::set_chara_num(CHARA_NUM cn) {
-    m_cn = cn;
-}
-
-// 0x14052AE30
-void RobItem::req_obj(uint32_t item_no, void* data, const object_database* obj_db) {
-    if (!item_no)
-        return;
-
-    m_cn_load = m_cn;
-    const std::vector<uint32_t>* item_objset = get_rob_item_table_objset(m_cn, item_no);
-    if (!item_objset)
-        return;
-
-    for (uint32_t i : *item_objset)
-        objset_info_storage_load_set(data, obj_db, i);
-}
-
-// 0x14052D3D0
-bool RobItem::wait_obj(uint32_t item_no) {
-    if (!item_no)
+// 0x140512720
+bool RobDisp::check_one_skin(int32_t costume) {
+    if (costume == -1 || costume >= 502)
         return false;
-
-    const std::vector<uint32_t>* item_objset = get_rob_item_table_objset(m_cn_load, item_no);
-    if (!item_objset || !item_objset->size())
-        return false;
-
-    for (uint32_t i : *item_objset)
-        if (i != (uint32_t)-1 && objset_info_storage_load_obj_set_check_not_read(i))
-            return true;
-    return false;
-}
-
-// 0x1405253A0
-void RobItem::free_obj(uint32_t item_no) {
-    if (!item_no)
-        return;
-
-    const std::vector<uint32_t>* item_objset = get_rob_item_table_objset(m_cn_load, item_no);
-    if (!item_objset)
-        return;
-
-    for (uint32_t i : *item_objset)
-        objset_info_storage_unload_set(i);
-
-    free_copy_texture(item_no);
-}
-
-// 0x14052AEA0
-void RobItem::req_obj_all(void* data, const object_database* obj_db) {
-    for (int32_t i = 0; i < ROB_ITEM_EQUIP_SUB_ID_MAX; i++) {
-        uint32_t item_no = m_equip.item_no[i];
-        if (item_no && m_equip_load.item_no[i] != item_no) {
-            req_obj(item_no, data, obj_db);
-            m_equip_load.item_no[i] = item_no;
-        }
-    }
-}
-
-// 0x14052D460
-bool RobItem::wait_obj_all() {
-    bool ret = false;
-    for (int32_t i = 0; i < ROB_ITEM_EQUIP_SUB_ID_MAX; i++)
-        if (m_equip_load.item_no[i])
-            ret |= wait_obj(m_equip_load.item_no[i]);
-    return ret;
-}
-
-// 0x1405254B0
-void RobItem::free_obj_all() {
-    for (int32_t i = 0; i < ROB_ITEM_EQUIP_SUB_ID_MAX; i++)
-        if (m_equip_load.item_no[i])
-            free_obj(m_equip_load.item_no[i]);
-}
-
-// 0x140525500
-void RobItem::free_obj_diff() {
-    for (int32_t i = 0; i < ROB_ITEM_EQUIP_SUB_ID_MAX; i++) {
-        uint32_t item_no = m_equip_load.item_no[i];
-        if (item_no && m_equip.item_no[i] != item_no) {
-            free_obj(item_no);
-            m_equip_load.item_no[i] = 0;
-        }
-    }
-}
-
-// 0x14052AD90
-void RobItem::regist_item(ROB_ITEM_EQUIP_SUB_ID id, uint32_t item_no) {
-    m_equip.item_no[id] = item_no;
-}
-
-// 0x14052ADF0
-void RobItem::regist_item_one(uint32_t item_no) {
-    if (!item_no)
-        return;
-
-    const RobItemTable* tbl = get_rob_item_table(m_cn, item_no);
-    if (tbl)
-        regist_item(tbl->equip_sub_id, item_no);
-}
-
-// 0x14052ADA0
-void RobItem::regist_item_all(const RobItemEquip* item_set) {
-    for (int32_t i = 0; i < ROB_ITEM_EQUIP_SUB_ID_MAX; i++)
-        regist_item((ROB_ITEM_EQUIP_SUB_ID)i, item_set->item_no[i]);
-}
-
-// 0x140521FA0
-void RobItem::delete_item(uint32_t item_no) {
-    const RobItemTable* tbl = get_rob_item_table(m_cn, item_no);
-    if (tbl)
-        m_equip.item_no[tbl->equip_sub_id] = 0;
-}
-
-void RobItem::equip(int32_t rc, const bone_database* bone_data,
-    void* data, const object_database* obj_db) {
-    RobDisp* disp = get_rob_management()->get_rob_robdisp_work((ROB_ID)rc);
-    equip_phase0(&m_equip);
-    equip_phase1(disp, bone_data, data, obj_db);
-    equip_phase2(disp, &m_equip, bone_data, data, obj_db);
-    equip_phase3(disp, &m_equip, bone_data, data, obj_db);
-    equip_phase4(disp, &m_equip, bone_data, data, obj_db);
-    equip_phase5(disp, &m_equip);
-    equip_phase6(disp, &m_equip);
-    equip_phase7();
-}
-
-// 0x140525730
-ROB_ITEM_EQUIP_ID RobItem::get_equip_id(uint32_t item_no) const {
-    if (!get_rob_item_header(m_cn))
-        return ROB_ITEM_EQUIP_ID_NONE;
-
-    ROB_ITEM_EQUIP_SUB_ID id = s_get_equip_sub_id(m_cn, item_no);
-    if (id != ROB_ITEM_EQUIP_SUB_ID_NONE)
-        return equip_id_conv_table[id];
-    return ROB_ITEM_EQUIP_ID_NONE;
-}
-
-// 0x140525780
-ROB_ITEM_EQUIP_SUB_ID RobItem::get_equip_sub_id(uint32_t item_no) const {
-    const RobItemTable* tbl = get_rob_item_table(m_cn, item_no);
-    if (tbl)
-        return tbl->equip_sub_id;
-    return ROB_ITEM_EQUIP_SUB_ID_NONE;
-}
-
-// Missing
-uint32_t RobItem::check_exclusive_item(uint32_t item_no) const {
-    const RobItemTable* tbl = get_rob_item_table(m_cn, item_no);
-    if (tbl && tbl->equip_sub_id != -1)
-        return m_equip.item_no[tbl->equip_sub_id];
-    return 0;
-}
-
-// 0x140525AA0
-RobItemEquip* RobItem::get_equip() {
-    return (RobItemEquip*)((const RobItem*)this)->get_equip();
-}
-
-// 0x140525720
-const RobItemEquip* RobItem::get_equip() const {
-    return &m_equip;
-}
-
-// Missing
-bool RobItem::is_equipped_item(uint32_t item_no) const {
-    for (int32_t i = 0; i < ROB_ITEM_EQUIP_SUB_ID_MAX; i++)
-        if (m_equip.item_no[i] == item_no)
-            return true;
-    return false;
-}
-
-// 0x140525F80
-void RobItem::init_disp_obj(uint32_t item_no) {
-    if (!item_no)
-        return;
-
-    const RobItemTable* tbl = get_rob_item_table(m_cn, item_no);
-    if (!tbl)
-        return;
-
-    make_chg_tex(item_no, tbl);
-}
-
-// 0x1405223C0
-void RobItem::disp_obj(uint32_t item_no, render_context* rctx, const mat4& global_mat) {
-    if (!item_no)
-        return;
-
-    const RobItemTable* tbl = get_rob_item_table(m_cn, item_no);
-    if (!tbl)
-        return;
-
-    mat4 mat = global_mat;
-    for (const RobItemDataObj& i : tbl->data.obj)
-        if (i.uid.not_null())
-            disp_obj_internal(i.uid, mat, item_no, rctx);
-}
-
-void RobItem::get_item_texchange_list(uint32_t item_no, std::vector<TexChange>& tex_chg_list) {
-    auto elem = m_txhd_map.find(item_no);
-    if (elem != m_txhd_map.end()) {
-        std::vector<RobItemTXHD> tex_chg_vec = elem->second;
-        for (RobItemTXHD& i : tex_chg_vec)
-            tex_chg_list.push_back({ i.src->id, i.dst->id });
-    }
-}
-
-// Missing
-RobItemEquip* RobItem::get_equip_load() {
-    return (RobItemEquip*)((const RobItem*)this)->get_equip_load();
-}
-
-// Missing
-const RobItemEquip* RobItem::get_equip_load() const {
-    return &m_equip_load;
-}
-
-bool RobItem::check_for_npr_flag() const {
-    for (int32_t i = 0; i < ROB_ITEM_EQUIP_SUB_ID_MAX; i++) {
-        const RobItemTable* tbl = get_rob_item_table(m_cn, m_equip.item_no[i]);
-        if (tbl && tbl->npr_flag)
-            return true;
-    }
-    return false;
-}
-
-object_info RobItem::get_head_object_replace(int32_t head_object_id) const {
-    auto elem = m_head_map.find(head_object_id);
-    if (elem != m_head_map.end())
-        return elem->second;
-    return {};
-}
-
-float_t RobItem::get_face_depth() const {
-    float_t face_depth = 0.0f;
-    for (int32_t i = 0; i < ROB_ITEM_EQUIP_SUB_ID_MAX; i++) {
-        const RobItemTable* tbl = get_rob_item_table(m_cn, m_equip.item_no[i]);
-        if (tbl)
-            face_depth = max_def(tbl->face_depth, face_depth);
-    }
-    return face_depth;
-}
-
-const char* RobItem::s_get_equip_sub_id_str(ROB_ITEM_EQUIP_SUB_ID id) {
-    if (id >= 0 && id < ROB_ITEM_EQUIP_SUB_ID_MAX)
-        return rob_item_equip_sub_id_str[id];
-    return 0;
-}
-
-// 0x140525A40
-const char* RobItem::s_get_name(const CHARA_NUM& cn, uint32_t item_no) {
-    const RobItemTable* tbl = get_rob_item_table(cn, item_no);
-    if (tbl)
-        return tbl->name.c_str();
-    return 0;
-}
-
-// 0x14052BDC0
-ROB_ITEM_EQUIP_ID RobItem::s_get_equip_id(CHARA_NUM cn, uint32_t item_no) {
-    if (!get_rob_item_header(cn))
-        return ROB_ITEM_EQUIP_ID_NONE;
-
-    ROB_ITEM_EQUIP_SUB_ID id = s_get_equip_sub_id(cn, item_no);
-    if (id != ROB_ITEM_EQUIP_SUB_ID_NONE)
-        return equip_id_conv_table[id];
-    return ROB_ITEM_EQUIP_ID_NONE;
-}
-
-// 0x14052BF00
-ROB_ITEM_EQUIP_SUB_ID RobItem::s_get_equip_sub_id(CHARA_NUM cn, uint32_t item_no) {
-    const RobItemTable* tbl = get_rob_item_table(cn, item_no);
-    if (tbl)
-        return tbl->equip_sub_id;
-    return ROB_ITEM_EQUIP_SUB_ID_NONE;
-}
-
-// Missing
-void RobItem::s_get_equip_sub_group(int32_t id, std::vector<int32_t>* sub_group) {
-    if (!sub_group)
-        return;
-
-    for (int32_t i = 0; i < ROB_ITEM_EQUIP_SUB_ID_MAX; i++)
-        if (id != equip_id_conv_table[i])
-            sub_group->push_back(i);
-}
-
-// 0x14052CAC0
-void RobItem::regist_item_all(const RobItemEquipInit* item_set) {
-    for (int32_t i = 0; i < 4; i++)
-        regist_item_one(item_set->item_no[i]);
-}
-
-// 0x140525160
-void RobItem::free_copy_texture(uint32_t item_no) {
-    auto elem = m_txhd_map.find(item_no);
-    if (elem != m_txhd_map.end()) {
-        free_copy_texture(elem);
-        m_txhd_map.erase(elem);
-    }
-}
-
-// 0x140525340
-void RobItem::free_copy_texture(std::map<uint32_t, std::vector<RobItemTXHD>>::iterator elem) {
-    for (RobItemTXHD& i : elem->second)
-        if (i.dst_copy)
-            texture_release(i.dst);
-    elem->second.clear();
-}
-
-// 0x14052BB30
-bool RobItem::s_is_replace_part(CHARA_NUM cn, uint32_t item_no, ROB_ITEM_EQUIP_SUB_ID id) {
-    const RobItemTable* tbl = get_rob_item_table(cn, item_no);
-    if (tbl) {
-        if (id == ROB_ITEM_EQUIP_SUB_ID_HADA || tbl->type == ROB_ITEM_TYPE_REM)
-            return true;
-        return get_rob_item_table_objset(cn, item_no);
-    }
-    return false;
-}
-
-// 0x14052BBA0
-bool RobItem::s_equip_ok(CHARA_NUM cn, uint32_t item_no, ROB_ITEM_EQUIP_SUB_ID id) {
-    const RobItemTable* tbl = get_rob_item_table(cn, item_no);
-    if (tbl)
-        return id == tbl->equip_sub_id;
-    return false;
-}
-
-// 0x14052BF40
-uint32_t RobItem::s_get_exclusion(CHARA_NUM cn, uint32_t item_no) {
-    const RobItemTable* tbl = get_rob_item_table(cn, item_no);
-    if (tbl)
-        return tbl->exclusion;
-    return 0;
-}
-
-// 0x14052C370
-uint32_t RobItem::s_get_point(CHARA_NUM cn, uint32_t item_no) {
-    const RobItemTable* tbl = get_rob_item_table(cn, item_no);
-    if (tbl) {
-        int32_t ret = s_check_ng_item_point(cn, item_no);
-        if (ret < 0)
-            ret = tbl->point;
-        return ret;
-    }
-    return 0;
-}
-
-// 0x14052C2A0
-void RobItem::s_get_offset_list(CHARA_NUM cn, uint32_t item_no, std::vector<RobItemDataOfs>& ofs_list, bool clear) {
-    if (clear)
-        ofs_list.clear();
-
-    const RobItemTable* tbl = get_rob_item_table(cn, item_no);
-    if (tbl)
-        ofs_list.insert(ofs_list.end(), tbl->data.ofs.begin(), tbl->data.ofs.end());
-}
-
-// 0x14052C410
-ROB_ITEM_TYPE RobItem::s_get_type(CHARA_NUM cn, uint32_t item_no) {
-    const RobItemTable* tbl = get_rob_item_table(cn, item_no);
-    if (tbl)
-        return tbl->type;
-    return ROB_ITEM_TYPE_NONE;
-}
-
-// 0x14052C410
-bool RobItem::s_is_texorg(CHARA_NUM cn, uint32_t item_no) {
-    const RobItemTable* tbl = get_rob_item_table(cn, item_no);
-    if (tbl)
-        return tbl->flag.m.is_texorg;
-    return 0;
-}
-
-// 0x14052C3F0
-bool RobItem::s_is_objorg(CHARA_NUM cn, uint32_t item_no) {
-    const RobItemTable* tbl = get_rob_item_table(cn, item_no);
-    if (tbl)
-        return tbl->flag.m.is_objorg;
-    return 0;
-}
-
-// 0x14052BC80
-std::string RobItem::s_check_ng_item_name(CHARA_NUM cn, uint32_t item_no) {
-    // NOT IMPL!
-    return "";
-}
-
-// 0x14052BD40
-int32_t RobItem::s_check_ng_item_point(CHARA_NUM cn, uint32_t item_no) {
-    // NOT IMPL!
-    return -1;
-}
-
-// 0x1405256C0
-uint32_t RobItem::get_dbgset_num(CHARA_NUM cn) {
-    const RobItemHeader* tbl = get_rob_item_header(cn);
-    if (tbl)
-        return (uint32_t)tbl->dbgset.size();
-    return 0;
-}
-
-// 0x1405256A0
-const RobItemDbgSet* RobItem::get_dbgset(CHARA_NUM cn) {
-    const RobItemHeader* tbl = get_rob_item_header(cn);
-    if (tbl)
-        return &tbl->dbgset;
-    return 0;
-}
-
-// 0x140525FC0
-void RobItem::init_have_dbg() {
-    if (s_have_dbg_ref)
-        s_have_dbg_ref++;
-    else {
-        for (int32_t i = 0; i < CN_MAX; i++) {
-            CHARA_NUM cn = (CHARA_NUM)i;
-            const RobItemHeader* tbl = get_rob_item_header(cn);
-            if (!tbl)
-                continue;
-
-            bool found = false;
-            for (int32_t j = 0; j < ROB_ITEM_EQUIP_ID_MAX; j++)
-                if (s_have_dbg[i].part[j].item_no.size()) {
-                    found = true;
-                    break;
-                }
-
-            if (found)
-                break;
-
-            for (auto& j : tbl->table) {
-                ROB_ITEM_EQUIP_ID equip = s_get_equip_id(cn, j.first);
-                if (equip != ROB_ITEM_EQUIP_ID_NONE)
-                    s_have_dbg[cn].part[equip].item_no.push_back(j.first);
-            }
-        }
-        s_have_dbg_ref = 1;
-    }
-}
-
-// 0x140522000
-void RobItem::dest_have_dbg() {
-    if (--s_have_dbg_ref < 0)
-        s_have_dbg_ref = 0;
-    else if (!s_have_dbg_ref)
-        for (int32_t i = 0; i < CN_MAX; i++)
-            for (int32_t j = 0; j < ROB_ITEM_EQUIP_ID_MAX; j++) {
-                RobItemHavePart& part = s_have_dbg[i].part[j];
-                part.item_no.clear();
-                part.item_no.shrink_to_fit();
-            }
-}
-
-// 0x140526230
-void RobItem::init_have_sub_dbg() {
-    if (s_have_sub_dbg_ref)
-        s_have_sub_dbg_ref++;
-    else {
-        for (int32_t i = 0; i < CN_MAX; i++) {
-            CHARA_NUM cn = (CHARA_NUM)i;
-            const RobItemHeader* tbl = get_rob_item_header(cn);
-            if (!tbl)
-                continue;
-
-            for (auto& j : tbl->table) {
-                const RobItemTable* tbl = get_rob_item_table(cn, j.first);
-                if (tbl && tbl->equip_sub_id != ROB_ITEM_EQUIP_SUB_ID_NONE)
-                    s_have_sub_dbg[cn].part[tbl->equip_sub_id].item_no.push_back(j.first);
-            }
-        }
-        s_have_sub_dbg_ref = 1;
-    }
-}
-
-// 0x140522070
-void RobItem::dest_have_sub_dbg() {
-    if (--s_have_sub_dbg_ref < 0)
-        s_have_sub_dbg_ref = 0;
-    else if (!s_have_sub_dbg_ref)
-        for (int32_t i = 0; i < CN_MAX; i++)
-            for (int32_t j = 0; j < ROB_ITEM_EQUIP_ID_MAX; j++) {
-                RobItemHavePart& part = s_have_sub_dbg[i].part[j];
-                part.item_no.clear();
-                part.item_no.shrink_to_fit();
-            }
-}
-
-// Missing
-RobItemHave* RobItem::get_have_dbg(CHARA_NUM cn) {
-    return &s_have_dbg[cn];
-}
-
-// 0x140525830
-RobItemHaveSub* RobItem::get_have_sub_dbg(CHARA_NUM cn) {
-    return &s_have_sub_dbg[cn];
-}
-
-// 0x14052B0F0
-void RobItem::s_req_obj(CHARA_NUM cn, uint32_t item_no, void* data, const object_database* obj_db) {
-    if (!item_no)
-        return;
-
-    const std::vector<uint32_t>* item_objset = get_rob_item_table_objset(cn, item_no);
-    if (!item_objset)
-        return;
-
-    for (uint32_t i : *item_objset)
-        if (i != (uint32_t)-1)
-            objset_info_storage_load_set(data, obj_db, i);
-}
-
-// 0x14052D4C0
-bool RobItem::s_wait_obj(CHARA_NUM cn, uint32_t item_no) {
-    if (!item_no)
-        return false;
-
-    const std::vector<uint32_t>* item_objset = get_rob_item_table_objset(cn, item_no);
-    if (!item_objset)
-        return true;
-
-    for (uint32_t i : *item_objset)
-        if (i != (uint32_t)-1 && objset_info_storage_load_obj_set_check_not_read(i))
-            return true;
-    return false;
-}
-
-// 0x140525560
-void RobItem::s_free_obj(CHARA_NUM cn, uint32_t item_no) {
-    if (!item_no)
-        return;
-
-    const std::vector<uint32_t>* item_objset = get_rob_item_table_objset(cn, item_no);
-    if (!item_objset)
-        return;
-
-    for (uint32_t i : *item_objset)
-        if (i != (uint32_t)-1)
-            objset_info_storage_unload_set(i);
-}
-
-// 0x14052B160
-void RobItem::s_req_obj_all(CHARA_NUM cn, const RobItemEquip* item_set, void* data, const object_database* obj_db) {
-    for (int32_t i = 0; i < ROB_ITEM_EQUIP_SUB_ID_MAX; i++)
-        s_req_obj(cn, item_set->item_no[i], data, obj_db);
-}
-
-// 0x14052D550
-bool RobItem::s_wait_obj_all(CHARA_NUM cn, const RobItemEquip* item_set) {
-    for (int32_t i = 0; i < ROB_ITEM_EQUIP_SUB_ID_MAX; i++)
-        if (s_wait_obj(cn, item_set->item_no[i]))
-            return true;
-    return false;
-}
-
-// 0x1405255D0
-void RobItem::s_free_obj_all(CHARA_NUM cn, const RobItemEquip* item_set) {
-    for (int32_t i = 0; i < ROB_ITEM_EQUIP_SUB_ID_MAX; i++)
-        s_free_obj(cn, item_set->item_no[i]);
-}
-
-// 0x140521F70
-void RobItem::s_delete_item(CHARA_NUM cn, uint32_t item_no, RobItem* rob_item) {
-    rob_item->set_chara_num(cn);
-    rob_item->delete_item(item_no);
-}
-
-// 0x14052CB40
-void RobItem::s_regist_item_one(CHARA_NUM cn, uint32_t item_no, RobItem* rob_item) {
-    rob_item->set_chara_num(cn);
-    rob_item->regist_item_one(item_no);
-}
-
-// 0x14052CB10
-void RobItem::s_regist_item_all(CHARA_NUM cn, const RobItemEquip* item_set, RobItem* rob_item) {
-    rob_item->set_chara_num(cn);
-    rob_item->regist_item_all(item_set);
+    return costume == 501;
 }
 
 RobJump::RobJump() : frame(), zvec(), next_land_frame(), land_time() {
@@ -17313,7 +15718,7 @@ void RobBase::init() {
 }
 
 rob_chara::rob_chara() : idnm(), type(), energy(), disp_pos_reset(),
-disp_pos_reset_forbidden(), chara_num(), cos_id(), rob_data(), enemy() {
+disp_pos_reset_forbidden(), chara_num(), costume(), rob_data(), enemy() {
     frame_speed = 1.0f;
     bone_data = new rob_chara_bone_data();
     disp = new RobDisp();
@@ -17685,7 +16090,8 @@ bool OpdMakeWorker::ctrl() {
     bone_database* aft_bone_data = &aft_data->data_ft.bone_data;
     object_database* aft_obj_db = &aft_data->data_ft.obj_db;
 
-    rob_chara* rob_chr = rob_chara_array_get(rob_id);
+    RobManagement* rob_man = get_rob_management();
+    rob_chara* rob_chr = rob_man->get_rob(rob_id);
     CHARA_NUM chara_num = rob_chr->chara_num;
     const RobData* rob_data = get_rob_data(chara_num);
     switch (state) {
@@ -17695,10 +16101,7 @@ bool OpdMakeWorker::ctrl() {
         for (int32_t i = 0; i < ROB_ITEM_EQUIP_SUB_ID_MAX; i++)
             RobItem::s_regist_item_one(chara_num, items[i], &rob_chr->item);
 
-        rob_chr->disp->reset_init_data(rob_chara_bone_data_get_node(
-            RobManagement::rob_impl[rob_id].bone_data, BONE_NODE_N_HARA_CP));
-        rob_chr->disp->set_shadow_group(rob_id);
-        rob_chr->disp->shadow_flag = 0x05;
+        rob_man->rob_disp_init(rob_id);
         state = 2;
     }
     case 2: {
@@ -20993,7 +19396,7 @@ bool TaskRobBase::ctrl() {
     rob_thread_handler->sub_14054E3F0();
 
     for (rob_chara*& i : ctrl_chara)
-        if (i && !i->rob_base.flag.bit.no_ctrl)
+        if (i && !i->check_zero_disp())
             rob_base_rob_chara_ctrl(i);
 
     for (rob_chara*& i : free_chara)
@@ -21048,15 +19451,15 @@ bool TaskRobCollision::ctrl() {
         AppendCtrlCharaList(i);
     init_chara.clear();
 
-    /*if (sub_140227DD0())*/ {
+    /*if (stage_coli_get_loaded())*/ {
         for (rob_chara*& i : ctrl_chara) {
-            i->sub_140509D30();
-            //sub_14050F4D0(i);
-            //sub_14050E930(i);
+            i->calc_rob_colli_matrix();
+            i->init_colli_every_frame();
+            i->check_rob_dummy_collision_ringout();
         }
 
         /*for (rob_chara*& i : ctrl_chara)
-            if (i && !i->rob_base.flag.bit.no_ctrl)
+            if (i && !i->check_zero_disp())
                 sub_14050EA90(v13);*/
     }
 
@@ -21103,11 +19506,11 @@ bool TaskRobDisp::ctrl() {
     init_chara.clear();
 
     for (rob_chara*& i : ctrl_chara)
-        if (i && !i->rob_base.flag.bit.no_ctrl)
+        if (i && !i->check_zero_disp())
             rob_disp_rob_chara_ctrl(i);
 
     for (rob_chara*& i : ctrl_chara)
-        if (i && !i->rob_base.flag.bit.no_ctrl)
+        if (i && !i->check_zero_disp())
             rob_thread_handler->AppendRobCharaFunc((ROB_ID)i->idnm, i,
                 rob_disp_rob_chara_ctrl_thread_main);
 
@@ -21148,7 +19551,7 @@ void TaskRobDisp::disp() {
         if (!i || pv_osage_manager_array_get_disp((ROB_ID)i->idnm))
             continue;
 
-        if (i->get_disp_flag() && !i->rob_base.flag.bit.no_ctrl)
+        if (i->check_disp() && !i->check_zero_disp())
             rob_disp_rob_chara_disp(i);
     }
 }
@@ -21179,7 +19582,7 @@ bool TaskRobInfo::ctrl() {
     init_chara.clear();
 
     for (rob_chara*& i : ctrl_chara)
-        if (i && !i->rob_base.flag.bit.no_ctrl)
+        if (i && !i->check_zero_disp())
             i->rob_info_ctrl();
 
     free_chara.clear();
@@ -22048,9 +20451,9 @@ static void sub_140548660(rob_chara* rob_chr) {
 static void sub_140548460(rob_chara* rob_chr) {
     rob_chr->rob_base.flag.bit.old_not_normal = rob_chr->rob_base.flag.bit.not_normal;
     if (rob_chr->rob_base.motdata.motkind[MK_CHANGE])
-        rob_chr->rob_base.flag.bit.not_normal = 1;
+        rob_chr->rob_base.flag.bit.not_normal = true;
     else
-        rob_chr->rob_base.flag.bit.not_normal = 0;
+        rob_chr->rob_base.flag.bit.not_normal = false;
 }
 
 bool TaskRobPrepareControl::ctrl() {

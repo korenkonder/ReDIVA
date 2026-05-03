@@ -1314,18 +1314,14 @@ namespace auth_3d_detail {
 
     void EventFilterTimeStop::Begin(auth_3d* auth, int32_t flags, render_context* rctx) {
         for (auth_3d_chara& i : auth->chara) {
-            rob_chara* rob_chr = get_rob_management()->get_rob((ROB_ID)i.rob_id);
-            if (rob_chr)
-                rob_chr->disp->disable_update = true;
+            get_rob_management()->set_disp_freeze((ROB_ID)i.rob_id, true);
         }
         effect_manager_set_frame_rate_control(&frame_rate_time_stop);
     }
 
     void EventFilterTimeStop::End(auth_3d* auth, int32_t flags, render_context* rctx) {
         for (auth_3d_chara& i : auth->chara) {
-            rob_chara* rob_chr = get_rob_management()->get_rob((ROB_ID)i.rob_id);
-            if (rob_chr)
-                rob_chr->disp->disable_update = true;
+            get_rob_management()->set_disp_freeze((ROB_ID)i.rob_id, false);
         }
         effect_manager_set_frame_rate_control(get_sys_frame_rate());
     }
@@ -1379,10 +1375,6 @@ namespace auth_3d_detail {
 
     }
 
-    static void sub_140532980(ROB_ID rob_id, const char* name) {
-
-    }
-
     void EventSnd::Begin(auth_3d* auth, int32_t flags, render_context* rctx) {
         float_t frame = auth->frame;
         if (begin > frame || frame >= end || ((flags & 0x02) && fabsf(frame - begin) > 0.1f))
@@ -1393,7 +1385,7 @@ namespace auth_3d_detail {
             rob_id = (ROB_ID)auth->chara.front().rob_id;
 
         if (rob_id >= 0 && rob_id < ROB_ID_MAX)
-            sub_140532980(rob_id, param1.c_str());
+            get_rob_management()->play_auth3d_sound(rob_id, param1.c_str());
         else if (sound_work_has_property(param1.c_str()))
             sound_work_play_se(1, param1.c_str());
     }

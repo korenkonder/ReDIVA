@@ -428,7 +428,7 @@ osage_index(), collision_index(), collision_update() {
     rob_id = ROB_ID_NULL;
     rob_id_load = ROB_ID_1P;
     chara_num = CN_NONE;
-    cos_id = -1;
+    costume = -1;
     rpk = RPK_NONE;
     osage_index = -1;
     collision_index = -1;
@@ -454,7 +454,7 @@ bool RobOsageTest::ctrl() {
         if (!rob_chr)
             return false;
 
-        if (chara_num != rob_chr->chara_num || cos_id != rob_chr->cos_id)
+        if (chara_num != rob_chr->chara_num || costume != rob_chr->costume)
             load = true;
     }
 
@@ -463,7 +463,7 @@ bool RobOsageTest::ctrl() {
 
         rob_id = rob_id_load;
         chara_num = CN_NONE;
-        cos_id = -1;
+        costume = -1;
 
         objects.clear();
         bocs.clear();
@@ -478,7 +478,7 @@ bool RobOsageTest::ctrl() {
             return false;
 
         chara_num = rob_chr->chara_num;
-        cos_id = rob_chr->cos_id;
+        costume = rob_chr->costume;
 
         RobDisp* rob_disp = rob_chr->disp;
         if (!rob_disp)
@@ -888,7 +888,7 @@ void RobOsageTest::disp() {
 
     rob_chara* rob_chr = get_rob_management()->get_rob(rob_id);
     if (rob_chr && !pv_osage_manager_array_get_disp(rob_id)
-        && rob_chr->get_disp_flag() && !rob_chr->rob_base.flag.bit.no_ctrl) {
+        && rob_chr->check_disp() && !rob_chr->check_zero_disp()) {
         disp_coli();
         disp_line();
     }

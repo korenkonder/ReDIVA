@@ -5,6 +5,7 @@
 
 #include "motion_test.hpp"
 #include "../../KKdLib/prj/algorithm.hpp"
+#include "../../CRE/rob/rob.hpp"
 #include "../../CRE/rob/motion.hpp"
 #include "../../CRE/rob/skin_param.hpp"
 #include "../../CRE/app_system_detail.hpp"
@@ -1247,7 +1248,7 @@ bool DtmMot::ctrl() {
         rob_chr->adjust_ctrl();
         rob_chr->set_data_adjust_mat(&rob_chr->rob_base.adjust);
         rob_chr->rob_motion_modifier_ctrl();
-        rob_chr->sub_140509D30();
+        rob_chr->calc_rob_colli_matrix();
 
         if (data_test_mot_dw_array_get(rctrl)) {
             data_test_mot_dw_array_get(rctrl)->SetFrameSlider(GetFrame(),
@@ -1309,6 +1310,290 @@ bool DtmMot::dest() {
     motion = 0;
     state = 1;
     return true;
+}
+
+inline void print_string(PrintWork& print_work, vec2 position, vec2 offset, const char* fmt, const char* str) {
+    position += offset;
+    print_work.set_position(position.x, position.y + 8.0f);
+    print_work.printf_align_left(fmt, str);
+}
+
+inline void print_vector(PrintWork& print_work, vec2 position, vec2 offset, const char* fmt, const vec3 vec) {
+    position += offset;
+    print_work.set_position(position.x, position.y + 8.0f);
+    print_work.printf_align_left(fmt, vec.x, vec.y, vec.z);
+}
+
+void rob_block_disp(int32_t rctrl, RobBlock* block, BONE_BLK blk, int32_t motion_body_type) {
+    return;
+    static bool none = false;
+
+    font_info font;
+    font.init_font_data(0);
+    font.set_glyph_size(font.glyph.x * 0.75f, font.glyph.y * 0.75f);
+
+    PrintWork print_work;
+    print_work.set_font(&font);
+    print_work.set_prio(spr::SPR_PRIO_DW);
+    print_work.set_screen_mode(SCREEN_MODE_MAX);
+    print_work.set_color(none ? 0 : color_red);
+
+    switch (block->ik_type) {
+    case IKT_0:
+    case IKT_0N:
+    case IKT_0T: {
+        mat4 v92 = *block->node[0].mat_ptr;
+        mat4_scale_rot(&v92, 0.1f, &v92);
+        debug_put_line_axis(v92);
+
+        vec3 v93;
+        vec3 v91;
+        mat4_get_translation(&v92, &v93);
+        mat4_get_translation(&v92, &v91);
+
+        vec2 v80 = project_screen(v91, true);
+        print_string(print_work, v80, vec2(0.0f, 16.0f * 0), "%s", block->node[0].name);
+        print_vector(print_work, v80, vec2(0.0f, 16.0f * 1),
+            "gbl:%.3f %.3f %.3f", v91);
+        //print_vector(print_work, v80, vec2(0.0f, 16.0f * 2),
+        //    "lcl:%.4f %.4f %.4f", block->chain_pos[0]);
+        print_vector(print_work, v80, vec2(0.0f, 16.0f * 2),
+            "rot:%.3f %.3f %.3f", block->node[0].transform.rot * RAD_TO_DEG_FLOAT);
+
+        if (blk == BLK_TL_UP_KATA_L || blk == BLK_TL_UP_KATA_R) {
+            vec3 v87;
+            mat4_get_translation(block[BLK_C_KATA_L - BLK_TL_UP_KATA_L].node[2].mat_ptr, &v87);
+
+            vec2 v76 = project_screen(v87, true);
+            vec2 v75 = project_screen(v93, true);
+            spr::putLine(v76, v75, SCREEN_MODE_MAX, spr::SPR_PRIO_DW, color_cyan);
+        }
+    } break;
+    case IKT_1: {
+        mat4 v92 = *block->node[1].mat_ptr;
+
+        mat4 v84 = *block->node[0].mat_ptr;
+        mat4 v84a;
+        mat4_scale_rot(&v84, 0.15f, &v84a);
+        debug_put_line_axis(v84a, color_dark_red, color_dark_green, color_dark_blue);
+
+        vec3 v30;
+        mat4_inverse_transform_point(&v84, &block->leaf_pos[0], &v30);
+        mat4_clear_rot(&v84, &v84);
+        mat4_translate(&v30, &v84);
+        mat4_scale_rot(&v84, 0.1f, &v84);
+        debug_put_line_axis(v84, color_green, color_cyan, color_white);
+
+        vec2 v76a = project_screen(0.0f, true);
+        vec2 v75a = project_screen(v30, true);
+        spr::putLine(v76a, v75a, SCREEN_MODE_MAX, spr::SPR_PRIO_DW, color_yellow);
+
+        mat4 v88;
+        mat4_mul_translate_x(&v92, block->len[0][motion_body_type], &v88);
+
+        vec3 v91;
+        vec3 v90;
+        vec3 v93;
+        mat4_get_translation(&v88, &v91);
+        mat4_get_translation(&v92, &v90);
+        mat4_get_translation(&v88, &v93);
+
+        vec2 v79 = project_screen(v90, true);
+        vec2 v78 = project_screen(v91, true);
+        spr::putRect({ v78 - 2.0f, 4.0f }, SCREEN_MODE_MAX, spr::SPR_PRIO_DW, color_red);
+        spr::putLine(v79, v78, SCREEN_MODE_MAX, spr::SPR_PRIO_DW, color_white);
+
+        mat4_scale_rot(&v92, 0.1f, &v92);
+        debug_put_line_axis(v92);
+
+        vec2 v77 = project_screen(v90, true);
+
+        print_work.set_color(color_yellow);
+        print_string(print_work, v77, vec2(0.0f, 16.0f * 0), "%s", block->node[0].name);
+        print_vector(print_work, v77, vec2(0.0f, 16.0f * 1),
+            "gbl:%.4f %.4f %.4f", v90);
+        //print_vector(print_work, v77, vec2(0.0f, 16.0f * 2),
+        //    "lcl:%.4f %.4f %.4f", block->chain_pos[0]);
+        print_vector(print_work, v77, vec2(0.0f, 16.0f * 2),
+            "rot:%.3f %.3f %.3f", block->node[0].transform.rot * RAD_TO_DEG_FLOAT);
+        print_work.set_color(none ? 0 : color_red);
+
+        v77 = project_screen((v91 + v90) * 0.5f, true);
+        print_string(print_work, v77, vec2(0.0f, 16.0f * 0), "%s", block->node[1].name);
+        print_vector(print_work, v77, vec2(0.0f, 16.0f * 1),
+            "rot:%.3f %.3f %.3f", block->node[1].transform.rot * RAD_TO_DEG_FLOAT);
+
+        v93 = block->leaf_pos[0];
+        v77 = project_screen(v93, true);
+        print_string(print_work, v77, vec2(0.0f, 16.0f * 0), "%s", block->node[2].name);
+        print_vector(print_work, v77, vec2(0.0f, 16.0f * 1), "gbl:%.3f %.3f %.3f", v93);
+        spr::putRect({ v77 - 2.0f, 4.0f }, SCREEN_MODE_MAX, spr::SPR_PRIO_DW, color_blue);
+    } break;
+    case IKT_2:
+    case IKT_2R: {
+        mat4 v84 = *block->node[0].mat_ptr;
+        vec3 v30;
+        mat4_inverse_transform_point(&v84, &block->leaf_pos[0], &v30);
+
+        mat4 v84a;
+        mat4_scale_rot(&v84, 0.15f, &v84a);
+        debug_put_line_axis(v84a, color_dark_red, color_dark_green, color_dark_blue);
+
+        mat4_clear_rot(&v84, &v84);
+        mat4_translate(&v30, &v84);
+        mat4_scale_rot(&v84, 0.1f, &v84);
+        debug_put_line_axis(v84, color_green, color_cyan, color_white);
+
+        vec2 v76a = project_screen(0.0f, true);
+        vec2 v75a = project_screen(v30, true);
+        spr::putLine(v76a, v75a, SCREEN_MODE_MAX, spr::SPR_PRIO_DW,
+            block->ik_type == IKT_2 ? color_cyan : color_magenta);
+
+        mat4 v92 = *block->inherit_mat_ptr;
+        mat4 v88 = *block->node[1].mat_ptr;
+        mat4 v82 = *block->node[2].mat_ptr;
+        mat4 v81;
+        mat4_mul_translate_x(&v82, block->len[1][motion_body_type], &v81);
+
+        vec3 v87;
+        vec3 v90;
+        vec3 v93;
+        mat4_get_translation(&v88, &v87);
+        mat4_get_translation(&v82, &v90);
+        mat4_get_translation(&v81, &v93);
+
+        vec2 v74 = project_screen(v87, true);
+
+        print_work.set_color(color_green);
+        print_string(print_work, v74, vec2(0.0f, 16.0f * 0), "%s", block->node[0].name);
+        print_vector(print_work, v74, vec2(0.0f, 16.0f * 1),
+            "gbl:%.4f %.4f %.4f", v87);
+        //print_vector(print_work, v74, vec2(0.0f, 16.0f * 2),
+        //    "lcl:%.4f %.4f %.4f", block->chain_pos[0]);
+        print_vector(print_work, v74, vec2(0.0f, 16.0f * 2),
+            "lcl:%.4f %.4f %.4f", v30);
+        print_vector(print_work, v74, vec2(0.0f, 16.0f * 3),
+            "rot:%.3f %.3f %.3f", block->node[0].transform.rot * RAD_TO_DEG_FLOAT);
+        print_work.set_color(none ? 0 : color_red);
+
+        v74 = project_screen((v90 + v87) * 0.5f, true);
+
+        print_string(print_work, v74, vec2(0.0f, 16.0f * 0), "%s", block->node[1].name);
+        print_vector(print_work, v74, vec2(0.0f, 16.0f * 1),
+            "rot:%.3f %.3f %.3f", block->node[1].transform.rot * RAD_TO_DEG_FLOAT);
+
+        v74 = project_screen((v93 + v90) * 0.5f, true);
+        print_string(print_work, v74, vec2(0.0f, 16.0f * 0), "%s", block->node[2].name);
+        print_vector(print_work, v74, vec2(0.0f, 16.0f * 1),
+            "rot:%.3f %.3f %.3f", block->node[2].transform.rot * RAD_TO_DEG_FLOAT);
+
+        vec2 v76 = project_screen(v87, true);
+        vec2 v75 = project_screen(v90, true);
+        spr::putLine(v76, v75, SCREEN_MODE_MAX, spr::SPR_PRIO_DW, color_white);
+
+        mat4_get_translation(&v81, &v87);
+
+        v76 = project_screen(v87, true);
+        spr::putLine(v76, v75, SCREEN_MODE_MAX, spr::SPR_PRIO_DW, color_white);
+        spr::putRect({ v76 - 2.0f, 4.0f }, SCREEN_MODE_MAX, spr::SPR_PRIO_DW, color_red);
+
+        mat4_scale_rot(&v88, 0.1f, &v88);
+        debug_put_line_axis(v88);
+
+        mat4_scale_rot(&v82, 0.1f, &v82);
+        debug_put_line_axis(v82);
+
+        v93 = block->leaf_pos[0];
+        v74 = project_screen(v93, true);
+        print_string(print_work, v74, vec2(0.0f, 16.0f * 0), "%s", block->node[3].name);
+        print_vector(print_work, v74, vec2(0.0f, 16.0f * 1), "gbl:%.4f %.4f %.4f", v93);
+        spr::putRect({ v74 - 2.0f, 4.0f }, SCREEN_MODE_MAX, spr::SPR_PRIO_DW, color_blue);
+    } break;
+    }
+
+    font = font_info(16);
+    font.set_glyph_size(font.glyph.x * 0.7f, font.glyph.y * 0.7f);
+    print_work.set_font(&font);
+    print_work.set_position({ 0.0f, 720.0f - (rctrl + 1) * font.glyph.y * 4 });
+    print_work.set_color(color_white);
+    if (blk == BLK_CL_MUNE) {
+        vec3 leaf_pos;
+        mat4_inverse_transform_point(block->node[0].mat_ptr, &block->leaf_pos[0], &leaf_pos);
+        print_work.printf_align_left("%dP %.5f\n", rctrl + 1, vec3::length(leaf_pos));
+    }
+    else if (blk == BLK_CL_KAO) {
+        vec3 leaf_pos;
+        mat4_inverse_transform_point(block->node[0].mat_ptr, &block->leaf_pos[0], &leaf_pos);
+        print_work.printf_align_left("           %.5f\n", vec3::length(leaf_pos));
+    }
+    else if (blk == BLK_C_KATA_L || blk == BLK_C_KATA_R) {
+        vec3 tl_up_kata_pos;
+        mat4_get_translation(block[-1].node[0].mat_ptr, &tl_up_kata_pos);
+
+        vec3 leaf_pos;
+        mat4_inverse_transform_point(block->node[0].mat_ptr, &block->leaf_pos[0], &leaf_pos);
+
+        vec3 pos_j_kata_wj;
+        vec3 pos_j_ude_wj;
+        vec3 pos_j_te_wj;
+        mat4_get_translation(block->node[1].mat_ptr, &pos_j_kata_wj);
+        mat4_get_translation(block->node[2].mat_ptr, &pos_j_ude_wj);
+        mat4_get_translation(block->node[3].mat_ptr, &pos_j_te_wj);
+
+        float_t arm_length = block->len[0][1] + block->len[1][1];
+        vec3 pos_j_ude_wj_mid = vec3::lerp(pos_j_kata_wj, pos_j_te_wj,
+            block->len[0][1] / arm_length);
+
+        float_t len1 = vec3::distance(pos_j_ude_wj, tl_up_kata_pos);
+        float_t len2 = vec3::distance(pos_j_ude_wj_mid, tl_up_kata_pos);
+        float_t len3 = vec3::distance(pos_j_ude_wj, pos_j_ude_wj_mid);
+        float_t len4 = vec3::distance(pos_j_kata_wj, pos_j_te_wj);
+        float_t len5 = vec3::length(leaf_pos);
+
+        if (blk == BLK_C_KATA_L) {
+            print_work.printf_align_left("\nL: %.5f %.5f %.5f %.5f", len1, len2, len3, len4);
+            if (len5 >= arm_length)
+                print_work.set_color(color_red);
+            print_work.printf_align_left(" %.5f\n\n", len5);
+        }
+        else {
+            print_work.printf_align_left("\n\nR: %.5f %.5f %.5f %.5f", len1, len2, len3, len4);
+            if (len5 >= arm_length)
+                print_work.set_color(color_red);
+            print_work.printf_align_left(" %.5f\n", len5);
+        }
+        print_work.set_color(color_white);
+    }
+    else if (blk == BLK_CL_MOMO_L || blk == BLK_CL_MOMO_R) {
+        vec3 pos_j_momo_wj;
+        vec3 pos_j_sune_l_wj;
+        vec3 pos_e_sune_l_cp;
+        mat4_get_translation(block->node[1].mat_ptr, &pos_j_momo_wj);
+        mat4_get_translation(block->node[2].mat_ptr, &pos_j_sune_l_wj);
+        mat4_get_translation(block->node[3].mat_ptr, &pos_e_sune_l_cp);
+
+        float_t leg_length = block->len[0][1] + block->len[1][1];
+        vec3 pos_j_sune_l_wj_mid = vec3::lerp(pos_j_momo_wj, pos_e_sune_l_cp,
+            block->len[0][1] / leg_length);
+
+        float_t len1 = vec3::distance(pos_j_sune_l_wj, pos_j_sune_l_wj_mid);
+        float_t len2 = vec3::distance(pos_j_momo_wj, pos_e_sune_l_cp);
+        float_t len3 = vec3::distance(pos_j_momo_wj, block->leaf_pos[0]);
+
+        if (blk == BLK_CL_MOMO_L) {
+            print_work.printf_align_left("\n\n\nL: %.5f %.5f", len1, len2);
+            if (len3 >= leg_length)
+                print_work.set_color(color_red);
+            print_work.printf_align_left(" %.5f\n\n", len3);
+        }
+        else {
+            print_work.printf_align_left("\n\n\n                           R: %.5f %.5f", len1, len2);
+            if (len3 >= leg_length)
+                print_work.set_color(color_red);
+            print_work.printf_align_left(" %.5f\n", len3);
+        }
+        print_work.set_color(color_white);
+    }
 }
 
 void DtmMot::post() {

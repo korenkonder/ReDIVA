@@ -20,6 +20,7 @@
 #include "../render_context.hpp"
 #include "../object.hpp"
 #include "../static_var.hpp"
+#include "rob_item.hpp"
 
 enum ACT_NAME {
     ROB_ACT_NONE = 0,
@@ -2679,7 +2680,7 @@ struct eyes_adjust {
     eyes_adjust();
 };
 
-struct RobItemEquipInit {
+struct RobInitItem {
     uint32_t item_no[4];
 };
 
@@ -2697,7 +2698,7 @@ struct RobInit {
     uint32_t face_mot_slot[10];
     int32_t chara_size_index;
     bool height_adjust;
-    RobItemEquipInit item;
+    RobInitItem item;
     eyes_adjust eyes_adjust;
 
     RobInit();
@@ -3599,6 +3600,7 @@ public:
 
     void add_motion_reset_data(const uint32_t& motnum, const float_t& frame, int32_t init_cnt);
     void check_no_opd(std::vector<opd_blend_data>& opd_blend_data);
+    void dest();
     void dest_ex_node();
     void disp(const mat4& mat, render_context* rctx);
     const RobNode* get_node(int32_t index) const;
@@ -3606,7 +3608,7 @@ public:
     int32_t get_node_index(const char* name, const bone_database* bone_data) const;
     const mat4* get_ex_data_bone_node_mat(const char* name);
     RobJointNode* get_normal_ref_osage_node(const std::string& str, size_t* index);
-    void init_members(size_t index = 0xDEADBEEF);
+    void init(size_t idx = 0xDEADBEEF);
     void pos_reset(int32_t init_cnt);
     void reset_ex_force();
     void reset_nodes_ex_force(rob_osage_parts_bit parts_bits);
@@ -3653,7 +3655,7 @@ public:
     std::vector<TexChange> hyoutan_texchg_list;
     object_info hyoutan_obj;
     int32_t hyoutan_rpk;
-    bool disable_update;
+    bool freeze_flag;
     HyoutanStat hyoutan_status;
     vec4 skin_color;
     float_t wet_cloth;
@@ -3682,10 +3684,10 @@ public:
     const RobSkinDisp* get_skin_work(ROB_PARTS_KIND rpk) const;
     const mat4* get_ex_data_bone_node_mat(ROB_PARTS_KIND rpk, const char* name);
     ROB_PARTS_KIND get_free_item(ROB_PARTS_KIND rpk) const;
+    void dest();
+    void init(const RobNode* rob_node);
     void pos_reset(uint8_t init_cnt);
-    void reset();
     void reset_ex_force();
-    void reset_init_data(RobNode* mot_node);
     void reset_nodes_ex_force(rob_osage_parts parts);
     void set_alpha_obj_flags(float_t alpha, mdl::ObjFlags flags);
     void set_base(ROB_PARTS_KIND rpk, object_info obj_uid, bool osage_reset,
@@ -3715,192 +3717,14 @@ public:
     void set_osage_move_cancel(uint8_t id, const float_t& mv_ccl);
     void set_reflect(ROB_PARTS_KIND rpk, bool flag);
     void set_shadow(ROB_PARTS_KIND rpk, bool flag);
-    void set_shadow_group(int32_t rob_id);
+    void set_shadow_group(int32_t group);
     void set_skin(object_info obj_uid, ROB_PARTS_KIND kind, bool osage_reset,
         const bone_database* bone_data, void* data, const object_database* obj_db);
     void set_tex_change(ROB_PARTS_KIND rpk, const TexChange* texchg, int32_t tex_num);
     void skp_load(ROB_PARTS_KIND rpk, const skin_param_osage_root& skp_root, std::vector<skin_param_osage_node>& vec,
         skin_param_file_data* skp_file_data, const bone_database* bone_data);
-};
 
-struct RobItemTXHD {
-    texture* src;
-    texture* dst;
-    bool dst_copy;
-
-    RobItemTXHD();
-    ~RobItemTXHD();
-};
-
-struct RobItemHavePart {
-    std::vector<uint32_t> item_no;
-
-    RobItemHavePart() = default;
-    ~RobItemHavePart() = default;
-};
-
-struct RobItemHave {
-    RobItemHavePart part[ROB_ITEM_EQUIP_ID_MAX];
-
-    RobItemHave() = default;
-    ~RobItemHave() = default;
-};
-
-struct RobItemHaveSub {
-    RobItemHavePart part[ROB_ITEM_EQUIP_SUB_ID_MAX];
-
-    RobItemHaveSub() = default;
-    ~RobItemHaveSub() = default;
-};
-
-typedef prj::vector_pair_combine<std::string, RobItemEquip> RobItemDbgSet;
-
-class RobItem {
-private:
-    CHARA_NUM m_cn;
-    CHARA_NUM m_cn_load;
-    RobItemEquip m_equip;
-    RobItemEquip m_equip_load;
-    std::map<uint32_t, std::vector<RobItemTXHD>> m_txhd_map;
-    std::map<ROB_PARTS_KIND, std::vector<uint32_t>> m_nude_attr_map;
-    std::map<object_info, ROB_PARTS_KIND> m_rpk_map;
-    std::map<int32_t, ROB_PARTS_KIND> m_rpk_sp_map;
-    std::vector<TexChange> m_texchg_list[RPK_MAX];
-    std::map<int32_t, object_info> m_head_map;
-
-private:
-    void equip_phase0(RobItemEquip* item_set);
-    void equip_phase1(RobDisp* rdp,
-        const bone_database* bone_data, void* data, const object_database* obj_db);
-    void equip_phase2(RobDisp* rdp, RobItemEquip* item_set,
-        const bone_database* bone_data, void* data, const object_database* obj_db);
-    void equip_phase3(RobDisp* rdp, RobItemEquip* item_set,
-        const bone_database* bone_data, void* data, const object_database* obj_db);
-    void equip_phase4(RobDisp* rdp, RobItemEquip* item_set,
-        const bone_database* bone_data, void* data, const object_database* obj_db);
-    void equip_phase5(RobDisp* rdp, RobItemEquip* item_set);
-    void equip_phase6(RobDisp* rdp, RobItemEquip* item_set);
-    void equip_phase6(RobDisp* rdp, RobItemEquip* item_set, uint32_t item_no);
-    void equip_phase7();
-    ROB_PARTS_KIND get_rpk_item(ROB_ITEM_EQUIP_SUB_ID id) const;
-    void hide_rpk_sp(RobDisp* rdp, int32_t rpk_sp,
-        const bone_database* bone_data, void* data, const object_database* obj_db);
-    void make_chg_tex(uint32_t item_no, const RobItemTable* tbl);
-    void free_copy_texture_all();
-    void init_nude_attr_map();
-    void make_nude_attr_map(uint32_t item_no, const RobItemTable* tbl);
-    void set_obj_phase2(RobDisp* rdp, uint32_t item_no, const RobItemTable* tbl, ROB_ITEM_EQUIP_SUB_ID id,
-        const bone_database* bone_data, void* data, const object_database* obj_db);
-    void set_obj_phase3(RobDisp* rdp, uint32_t item_no, const RobItemTable* tbl,
-        const bone_database* bone_data, void* data, const object_database* obj_db);
-    void set_texture(RobDisp* rdp,
-        const std::vector<uint32_t>& item_nos, ROB_PARTS_KIND rpk, bool is_hyoutan = false);
-    void set_texture(RobDisp* rdp, uint32_t item_no, ROB_PARTS_KIND rpk, bool is_hyoutan = false);
-    void reset_texture(RobDisp* rdp, ROB_PARTS_KIND rpk, bool is_hyoutan = false);
-    void clear_texchg_list();
-    void disp_obj_internal(object_info obj_uid, mat4& mat, uint32_t item_no, render_context* rctx);
-    //static bool s_check_equip_exclusion(CHARA_NUM cn, RobItemEquip*);
-    //static bool s_check_equip_sub(CHARA_NUM cn, int32_t, const RobItemHeader*, RobItemEquip*, const PlayerInformation*);
-    //static bool s_check_equip_sub_phase0(uint32_t, const RobItemHeader*);
-    //static bool s_check_equip_sub_phase1(CHARA_NUM cn, uint32_t);
-    //static bool s_check_equip_sub_phase2(CHARA_NUM cn, uint32_t, int32_t);
-    //static bool s_check_equip_sub_phase3(CHARA_NUM cn, uint32_t, const pd::PlayerBitfield<2000>&);
-    //static bool s_check_equip_sub_phase4(CHARA_NUM cn, uint32_t, int32_t);
-    //static bool s_check_equip_sub_phase5(CHARA_NUM cn, int32_t, uint32_t);
-    //static bool s_check_equip_chara(CHARA_NUM, int32_t, RobItemEquip*);
-    //static bool s_check_equip_point(CHARA_NUM, const RobItemHeader*, const RobItemEquip*);
-    static bool s_repair_equip(CHARA_NUM, uint32_t, int32_t, RobItemEquip* item_set);
-
-    static int32_t s_have_dbg_ref;
-    static RobItemHave s_have_dbg[];
-    static int32_t s_have_sub_dbg_ref;
-    static RobItemHaveSub s_have_sub_dbg[];
-
-public:
-    RobItem();
-    ~RobItem();
-    void set_chara_num(CHARA_NUM cn);
-    void req_obj(uint32_t item_no, void* data, const object_database* obj_db);
-    bool wait_obj(uint32_t item_no);
-    void free_obj(uint32_t item_no);
-    void req_obj_all(void* data, const object_database* obj_db);
-    bool wait_obj_all();
-    void free_obj_all();
-    void free_obj_diff();
-
-private:
-    void regist_item(ROB_ITEM_EQUIP_SUB_ID id, uint32_t item_no);
-
-public:
-    void regist_item_one(uint32_t item_no);
-    void regist_item_all(const RobItemEquip* item_set);
-    void delete_item(uint32_t item_no);
-    void equip(int32_t rc, const bone_database* bone_data,
-        void* data, const object_database* obj_db);
-    ROB_ITEM_EQUIP_ID get_equip_id(uint32_t item_no) const;
-    ROB_ITEM_EQUIP_SUB_ID get_equip_sub_id(uint32_t item_no) const;
-    uint32_t check_exclusive_item(uint32_t item_no) const;
-    RobItemEquip* get_equip();
-    const RobItemEquip* get_equip() const;
-    bool is_equipped_item(uint32_t item_no) const;
-    //const char* get_name(uint32_t item_no) const;
-    //const char* get_name_asc(uint32_t item_no) const;
-    void init_disp_obj(uint32_t item_no);
-    void disp_obj(uint32_t item_no, render_context* rctx, const mat4& mat);
-    void get_item_texchange_list(uint32_t item_no, std::vector<TexChange>& tex_chg_list);
-    RobItemEquip* get_equip_load();
-    const RobItemEquip* get_equip_load() const;
-
-    void regist_item_all(const RobItemEquipInit* item_set);
-    void free_copy_texture(uint32_t item_no);
-    void free_copy_texture(std::map<uint32_t, std::vector<RobItemTXHD>>::iterator elem);
-
-    bool check_for_npr_flag() const;
-    object_info get_head_object_replace(int32_t head_object_id) const;
-    float_t get_face_depth() const;
-
-    static const char* s_get_equip_sub_id_str(ROB_ITEM_EQUIP_SUB_ID id);
-    //static bool s_check_equip(CHARA_NUM cn, int32_t, RobItemEquip*, const void*);
-    //static void s_get_objset(CHARA_NUM cn, uint32_t, int32_t*, size_t);
-    static const char* s_get_name(const CHARA_NUM& cn, uint32_t item_no);
-    static ROB_ITEM_EQUIP_ID s_get_equip_id(CHARA_NUM cn, uint32_t item_no);
-    static ROB_ITEM_EQUIP_SUB_ID s_get_equip_sub_id(CHARA_NUM cn, uint32_t item_no);
-    static void s_get_equip_sub_group(int32_t id, std::vector<int32_t>* sub_group);
-    static bool s_is_replace_part(CHARA_NUM cn, uint32_t item_no, ROB_ITEM_EQUIP_SUB_ID id);
-    static bool s_equip_ok(CHARA_NUM cn, uint32_t item_no, ROB_ITEM_EQUIP_SUB_ID id);
-    //static bool s_have_costume(CHARA_NUM cn, int32_t, const void*);
-    static uint32_t s_get_exclusion(CHARA_NUM cn, uint32_t item_no);
-    //static uint32_t s_get_set_item_no(CHARA_NUM cn, uint32_t item_no);
-    static uint32_t s_get_point(CHARA_NUM cn, uint32_t item_no);
-    static void s_get_offset_list(CHARA_NUM cn, uint32_t item_no, std::vector<RobItemDataOfs>& ofs_list, bool clear);
-    static ROB_ITEM_TYPE s_get_type(CHARA_NUM cn, uint32_t item_no);
-    static bool s_is_texorg(CHARA_NUM cn, uint32_t item_no);
-    static bool s_is_objorg(CHARA_NUM cn, uint32_t item_no);
-    //static void s_get_ng_item();
-    //static void s_get_ng_item_name();
-    //static void s_get_ng_item_point();
-    //static bool s_check_ng_item(CHARA_NUM cn, uint32_t item_no);
-    static std::string s_check_ng_item_name(CHARA_NUM cn, uint32_t item_no);
-    static int32_t s_check_ng_item_point(CHARA_NUM cn, uint32_t item_no);
-    static uint32_t get_dbgset_num(CHARA_NUM cn);
-    static const RobItemDbgSet* get_dbgset(CHARA_NUM cn);
-    static void init_have_dbg();
-    static void dest_have_dbg();
-    static void init_have_sub_dbg();
-    static void dest_have_sub_dbg();
-    static RobItemHave* get_have_dbg(CHARA_NUM cn);
-    static RobItemHaveSub* get_have_sub_dbg(CHARA_NUM cn);
-
-    static void s_req_obj(CHARA_NUM cn, uint32_t item_no, void* data, const object_database* obj_db);
-    static bool s_wait_obj(CHARA_NUM cn, uint32_t item_no);
-    static void s_free_obj(CHARA_NUM cn, uint32_t item_no);
-    static void s_req_obj_all(CHARA_NUM cn, const RobItemEquip* item_set, void* data, const object_database* obj_db);
-    static bool s_wait_obj_all(CHARA_NUM cn, const RobItemEquip* item_set);
-    static void s_free_obj_all(CHARA_NUM cn, const RobItemEquip* item_set);
-
-    static void s_regist_item_one(CHARA_NUM cn, uint32_t item_no, RobItem* rob_item);
-    static void s_regist_item_all(CHARA_NUM cn, const RobItemEquip* item_set, RobItem* rob_item);
-    static void s_delete_item(CHARA_NUM cn, uint32_t item_no, RobItem* rob_item);
+    static bool check_one_skin(int32_t costume);
 };
 
 union RobFlag {
@@ -3937,7 +3761,7 @@ union RobFlag {
         int8_t rf_28 : 1;
         int8_t rf_29 : 1;
         int8_t rf_30 : 1;
-        int8_t no_ctrl : 1;
+        int8_t zero_disp : 1;
     } bit;
 };
 
@@ -5181,7 +5005,7 @@ public:
     bool disp_pos_reset;
     bool disp_pos_reset_forbidden;
     CHARA_NUM chara_num;
-    int32_t cos_id;
+    int32_t costume;
     float_t frame_speed;
     rob_chara* enemy;
     rob_chara_bone_data* bone_data;
@@ -5200,20 +5024,28 @@ public:
     void autoblink_disable();
     void autoblink_enable();
     void calc_mot_adjust_scale();
+    void calc_rob_colli_matrix();
     RobAngle calc_mot_yang(bool compel_flag) const;
     bool check_disp_left() const;
     bool check_for_ageageagain_module();
+    void check_rob_dummy_collision_ringout();
+    void disble_disp_pos_reset();
+    void enable_disp_pos_reset();
     mat4* get_bone_data_mat(size_t index);
     uint32_t get_common_mot(MOTTABLE_TYPE mottbl_type) const;
+    int32_t get_costume() const;
     float_t get_frame() const;
     float_t get_frame_max() const;
     const vec3* get_gpos() const;
     object_info get_rob_data_face_object(int32_t index);
     float_t get_face_depth() const;
     float_t get_pos_scale(ROB_COLLI_ID colli_id, vec3& center);
+    const RobData* get_rob_data() const;
     const RobInit* get_rob_init() const;
+    void init_colli_every_frame();
     void set_item(ROB_PARTS_KIND kind, object_info obj_uid,
         const bone_database* bone_data, void* data, const object_database* obj_db);
+    void overwrite_disp_left(bool set_flag);
     void pos_reset();
     void rob_info_ctrl();
     void rob_motion_modifier_ctrl();
@@ -5223,20 +5055,23 @@ public:
     void req_frame_change(float_t frame);
     void reset_rob(const RobInit& robinit,
         const bone_database* bone_data, const motion_database* mot_db);
+    void reset_rob_zero_disp();
     void reset_osage();
     void reset_osage_pos();
     void set_base(ROB_PARTS_KIND kind, object_info obj_uid, bool osage_reset,
         const bone_database* bone_data, void* data, const object_database* obj_db);
     void set_bone_data_frame(float_t frame);
-    void set_chara(ROB_ID id, CHARA_NUM cn, int32_t cos_id, const RobInit& ri);
+    void set_chara(ROB_ID id, CHARA_NUM cn, int32_t cos, const RobInit& ri);
     void set_chara_color(bool value);
     void set_chara_height_adjust(bool value);
     void set_chara_pos_adjust(const vec3& value);
     void set_chara_pos_adjust_y(float_t value);
     void set_chara_size(float_t value);
+    void set_costume(int32_t cos);
     void set_data_adjust_mat(RobAdjust* rob_chr_adj, bool pos_adjust = true);
     void set_disable_collision(rob_osage_parts parts, bool disable);
-    void set_disp_flag(bool flag);
+    void set_disp_flag(bool fl);
+    void set_disp_freeze(bool fl);
     void set_eyelid_mottbl_motion(int32_t type, MOTTABLE_TYPE mottbl_type,
         float_t value, rob_partial_motion_playback_state playback_state, float_t blend_duration,
         float_t play_duration, float_t step, rob_partial_motion_loop_state loop_state,
@@ -5291,18 +5126,23 @@ public:
     void set_rob_pos(const vec3& pos);
     void set_rob_sys_command(ACT_NAME name, int32_t motion_id, const ActParam* param, bool mirror);
     void set_rob_yang(const RobAngle& ang);
+    void set_rob_zero_disp();
     void set_shadow_cast(bool value);
     void set_stage_data_ring(const int32_t& stage_index);
     void set_step_motion_step(float_t value);
+    void set_time_up(bool flag);
     void set_use_opd(bool value);
     void set_wind_strength(float_t value);
 
-    inline bool get_disp_flag() {
-        return !!rob_base.flag.bit.disp;
+    inline bool check_disp() {
+        return rob_base.flag.bit.disp;
+    }
+
+    inline bool check_zero_disp() {
+        return rob_base.flag.bit.zero_disp;
     }
 
     void sub_1405070E0(const bone_database* bone_data, const motion_database* mot_db);
-    void sub_140509D30();
     void sub_1405163C0(int32_t index, mat4& mat);
     void sub_140551000();
 };
@@ -5322,9 +5162,11 @@ public:
     bool check_disp_left(ROB_ID id);
     bool check_ringout_only_rob(ROB_ID id);
     bool check_ringout_transit_rob(ROB_ID id);
-    ROB_ID create_rob(CHARA_NUM cn, const RobInit& ri, int32_t cos_id, bool can_set_default);
+    ROB_ID create_rob(CHARA_NUM cn, const RobInit& ri, int32_t cos, bool can_set_default);
     void dest_all();
     void dest_rob(ROB_ID id);
+    void disable_osage_reset(ROB_ID id);
+    void enable_osage_reset(ROB_ID id);
     float_t get_adjust_scale(ROB_ID id) const;
     CHARA_NUM get_chara(ROB_ID id) const;
     bool get_colli_check_on() const;
@@ -5339,18 +5181,26 @@ public:
     RobItem* get_rob_robitem_work(ROB_ID id);
     const RobInit* get_rob_init(ROB_ID id) const;
     bool is_init(ROB_ID id) const;
+    void overwrite_disp_left(ROB_ID id, bool fl);
+    void play_auth3d_sound(ROB_ID id, const char* in_name);
     void reset_osage_pos(ROB_ID id);
     void reset_rob(const RobInit& rob0, const RobInit& rob1,
         const bone_database* bone_data, const motion_database* mot_db);
     void reset_rob(ROB_ID id, const RobInit& ri,
         const bone_database* bone_data, const motion_database* mot_db);
-    void set_colli_check_on(bool value);
-    void set_disp_on(ROB_ID id, bool value);
+    void reset_rob_time_up();
+    void reset_rob_zero_disp(ROB_ID id);
+    void rob_disp_init(ROB_ID id);
+    void set_colli_check_on(bool fl);
+    void set_costume(ROB_ID id, int32_t cos);
+    void set_disp_freeze(ROB_ID id, bool fl);
+    void set_disp_on(ROB_ID id, bool fl);
     void set_mot_frame(ROB_ID id, float_t frame);
     void set_motion(ROB_ID id, int32_t motnum);
-    void set_no_ctrl(ROB_ID id);
     void set_rob_pos(ROB_ID id, const vec3& pos);
+    void set_rob_time_up();
     void set_rob_yang(ROB_ID id, const RobAngle& ang);
+    void set_rob_zero_disp(ROB_ID id);
 
     static void init();
 };
@@ -5445,14 +5295,12 @@ struct OpdChecker {
 extern RobManagement* get_rob_management();
 
 extern const RobData* get_rob_data(CHARA_NUM cn);
-extern int32_t rob_data_get_chara_size_index(CHARA_NUM cn);
-extern int32_t rob_data_get_swim_costume(CHARA_NUM cn);
-extern int32_t rob_data_get_swim_s_costume(CHARA_NUM cn);
+extern int32_t get_rob_data_chara_size_index(CHARA_NUM cn);
+extern int32_t get_rob_data_swim_costume(CHARA_NUM cn);
+extern int32_t get_rob_data_swim_s_costume(CHARA_NUM cn);
 
 extern float_t chara_pos_adjust_y_table_get_value(uint32_t index);
 extern float_t chara_size_table_get_value(uint32_t index);
-
-extern bool check_cos_id_is_501(int32_t cos_id);
 
 const char* get_dev_ram_opdi_dir();
 
@@ -5514,10 +5362,9 @@ extern void rob_chara_age_age_array_set_step(int32_t rob_id, int32_t part, float
 extern void rob_chara_age_age_array_set_step_full(int32_t rob_id, int32_t part);
 
 extern void rob_chara_array_reset_pv_data(ROB_ID id);
-extern void rob_chara_array_reset_bone_data_item_equip(ROB_ID id);
 extern void rob_chara_array_set_alpha_obj_flags(ROB_ID id, float_t alpha, mdl::ObjFlags flags);
 
-extern bool rob_chara_check_for_ageageagain_module(CHARA_NUM cn, int32_t cos_id);
+extern bool rob_chara_check_for_ageageagain_module(CHARA_NUM cn, int32_t cos);
 
 extern void rob_sleeve_handler_data_get_sleeve_data(
     CHARA_NUM cn, int32_t cos, rob_sleeve_data& l, rob_sleeve_data& r);
@@ -5535,9 +5382,9 @@ extern void pv_osage_manager_array_set_pv_set_motion(
 
 extern bool task_rob_load_open();
 extern bool task_rob_load_append_free_req_data(CHARA_NUM cn);
-extern bool task_rob_load_append_free_req_data_obj(CHARA_NUM cn, const RobItemEquip* equip);
+extern bool task_rob_load_append_free_req_data_obj(CHARA_NUM cn, const RobItemEquip* item_set);
 extern bool task_rob_load_append_load_req_data(CHARA_NUM cn);
-extern bool task_rob_load_append_load_req_data_obj(CHARA_NUM cn, const RobItemEquip* equip);
+extern bool task_rob_load_append_load_req_data_obj(CHARA_NUM cn, const RobItemEquip* item_set);
 extern bool task_rob_load_check_load_req_data();
 extern bool task_rob_load_close();
 
@@ -5556,5 +5403,5 @@ extern MOTTABLE_TYPE look_anim_id_to_mottbl_type(int32_t id);
 extern MOTTABLE_TYPE mouth_anim_id_to_mottbl_type(int32_t id);
 
 inline bool rob_chara::check_for_ageageagain_module() {
-    return rob_chara_check_for_ageageagain_module(chara_num, cos_id);
+    return rob_chara_check_for_ageageagain_module(chara_num, costume);
 }

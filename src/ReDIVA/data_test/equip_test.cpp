@@ -188,7 +188,7 @@ bool DtmEqVs::ctrl() {
             if (reload) {
                 if (rob_chr)
                     task_rob_load_append_free_req_data_obj(rob_chr->chara_num, &temp_equip);
-                rob_chara_array_reset_bone_data_item_equip((ROB_ID)m_rc);
+                get_rob_management()->rob_disp_init((ROB_ID)m_rc);
                 task_rob_manager_suspend();
                 m_mode = 1;
             }
@@ -252,7 +252,7 @@ void DtmEqVs::CtrlChara() {
     m_cn_pre = m_cn_cur;
     m_cs_pre = m_cs_cur;
     const RobItemEquip* item_set = get_default_costume_data((CHARA_NUM)m_cn_cur, m_cs_cur);
-    if (!check_cos_id_is_501(m_cs_pre) || !item_set) {
+    if (!RobDisp::check_one_skin(m_cs_pre) || !item_set) {
         data_test_equip_dw_sub_140261520(m_rc);
         data_test_equip_dw_set_chara_item_equip(m_rc, item_set);
     }

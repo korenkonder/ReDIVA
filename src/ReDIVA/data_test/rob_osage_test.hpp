@@ -73,7 +73,7 @@ public:
     ROB_ID rob_id;
     ROB_ID rob_id_load;
     CHARA_NUM chara_num;
-    int32_t cos_id;
+    int32_t costume;
     ROB_PARTS_KIND rpk;
     object_info obj_info;
     size_t osage_index;

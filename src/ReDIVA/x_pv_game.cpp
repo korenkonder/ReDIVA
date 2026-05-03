@@ -3462,7 +3462,7 @@ bool x_pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
 
         int32_t chara_size_index;
         if (chara_size == 0)
-            chara_size_index = rob_data_get_chara_size_index(rob_chr->chara_num);
+            chara_size_index = get_rob_data_chara_size_index(rob_chr->chara_num);
         else if (chara_size == 1) {
             CHARA_NUM chara_num = CN_MIKU;
             if (rob_id < pv_game->get_data().play_param->chara.size())
@@ -3471,7 +3471,7 @@ bool x_pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
             else if (pv_game->get_data().pv_id == 826 && false)
                 chara_num = get_rob_management()->get_rob(rob_id)->chara_num;
 
-            chara_size_index = rob_data_get_chara_size_index(chara_num);
+            chara_size_index = get_rob_data_chara_size_index(chara_num);
         }
         else if (chara_size == 2)
             chara_size_index = 1;
@@ -6474,7 +6474,7 @@ bool x_pv_game::ctrl() {
             for (pvpp_chara& i : pv_data.play_param->chara) {
                 if (i.motion.size() && rob_ids[chara] == ROB_ID_NULL) {
                     RobInit rob_init;
-                    rob_init.chara_size_index = rob_data_get_chara_size_index(charas[chara]);
+                    rob_init.chara_size_index = get_rob_data_chara_size_index(charas[chara]);
                     rob_sleeve_handler_data_get_sleeve_data(
                         charas[chara], modules[chara], rob_init.sleeve_l, rob_init.sleeve_r);
 
