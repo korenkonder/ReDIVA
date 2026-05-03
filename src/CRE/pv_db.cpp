@@ -6,6 +6,7 @@
 #include "pv_db.hpp"
 #include "../KKdLib/hash.hpp"
 #include "../KKdLib/str_utils.hpp"
+#include "rob/rob.hpp"
 #include "data.hpp"
 #include "hand_item.hpp"
 #include "mdata_manager.hpp"
@@ -761,9 +762,9 @@ int32_t pv_db_pv::get_pseudo_costume(pv_performer_type type, CHARA_NUM chara_num
     case PV_PERFORMER_PSEUDO_SAME:
         return costume;
     case PV_PERFORMER_PSEUDO_SWIM:
-        return rob_data_get_swim_costume(chara_num);
+        return get_rob_data_swim_costume(chara_num);
     case PV_PERFORMER_PSEUDO_SWIM_S:
-        return rob_data_get_swim_s_costume(chara_num);
+        return get_rob_data_swim_s_costume(chara_num);
     case PV_PERFORMER_PSEUDO_MYCHARA:
         return -1;
     default:

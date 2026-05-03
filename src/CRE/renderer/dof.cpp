@@ -79,7 +79,7 @@ namespace renderer {
                         size_t rob_num = rob_man->get_rob_num();
                         for (int32_t i = 0; i < rob_num; i++) {
                             rob_chara* rob_chr = rob_man->get_rob((ROB_ID)i);
-                            if (!rob_chr || !rob_chr->get_disp_flag())
+                            if (!rob_chr || !rob_chr->check_disp())
                                 continue;
 
                             mat4 mat = mat4_identity;

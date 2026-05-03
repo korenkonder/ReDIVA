@@ -5,6 +5,7 @@
 
 #include "motion_test.hpp"
 #include "../../KKdLib/prj/algorithm.hpp"
+#include "../../CRE/rob/rob.hpp"
 #include "../../CRE/rob/motion.hpp"
 #include "../../CRE/rob/skin_param.hpp"
 #include "../../CRE/app_system_detail.hpp"
@@ -1247,7 +1248,7 @@ bool DtmMot::ctrl() {
         rob_chr->adjust_ctrl();
         rob_chr->set_data_adjust_mat(&rob_chr->rob_base.adjust);
         rob_chr->rob_motion_modifier_ctrl();
-        rob_chr->sub_140509D30();
+        rob_chr->calc_rob_colli_matrix();
 
         if (data_test_mot_dw_array_get(rctrl)) {
             data_test_mot_dw_array_get(rctrl)->SetFrameSlider(GetFrame(),

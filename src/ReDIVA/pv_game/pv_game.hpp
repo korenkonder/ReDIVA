@@ -346,7 +346,7 @@ struct pv_game {
     int32_t pv_id;
     bool field_14;
     int32_t modules[ROB_ID_MAX];
-    RobItemEquipInit items[ROB_ID_MAX];
+    RobInitItem items[ROB_ID_MAX];
     pv_game_item_mask items_mask[ROB_ID_MAX];
     pv_game_data data;
 
@@ -442,7 +442,7 @@ struct pv_game {
     void set_data_itmpv_visibility(int32_t rob_id, int32_t index, bool value);
     void set_edit_instrument(int32_t rob_id, bool disp, int32_t index, float_t frame, float_t frame_speed);
     void set_eyes_adjust(pv_game_chara* chr);
-    void set_item(size_t performer, RobItemEquipInit& value);
+    void set_item(size_t performer, RobInitItem& value);
     void set_item_mask(size_t performer, size_t item, bool value);
     void set_lyric(int32_t lyric_index, color4u8 lyric_color);
     void set_module(size_t performer, int32_t module);
@@ -470,8 +470,8 @@ struct pv_game {
 
     static void chara_item_alpha_callback(void* data, ROB_ID rob_id, int32_t type, float_t alpha);
     static void get_item_mask(pv_performer_type type,
-        RobItemEquipInit* src_item, pv_game_item_mask* src_mask,
-        RobItemEquipInit* dst_item, pv_game_item_mask* dst_mask);
+        RobInitItem* src_item, pv_game_item_mask* src_mask,
+        RobInitItem* dst_item, pv_game_item_mask* dst_mask);
 };
 
 struct pv_game_init_data {
@@ -483,7 +483,7 @@ struct pv_game_init_data {
     int32_t life_gauge_border;
     int32_t stage_index;
     int32_t modules[ROB_ID_MAX];
-    RobItemEquipInit items[ROB_ID_MAX];
+    RobInitItem items[ROB_ID_MAX];
     pv_game_item_mask items_mask[ROB_ID_MAX];
 
     pv_game_init_data();

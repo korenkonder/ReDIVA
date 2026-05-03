@@ -115,7 +115,8 @@ struct RobItemHeader {
     RobItemHeader();
     ~RobItemHeader();
 
-    const RobItemTable* get_item(uint32_t item_no);
+    bool check_item(uint32_t item_no) const;
+    const RobItemTable* get_item(uint32_t item_no) const;
 };
 
 extern void item_table_handler_array_init();

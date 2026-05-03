@@ -1609,9 +1609,9 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
 
         int32_t chara_size_index;
         if (chara_size == 0)
-            chara_size_index = rob_data_get_chara_size_index(rob_chr->chara_num);
+            chara_size_index = get_rob_data_chara_size_index(rob_chr->chara_num);
         else if (chara_size == 1)
-            chara_size_index = rob_data_get_chara_size_index(pv_game->data.pv->get_performer_chara(rob_id));
+            chara_size_index = get_rob_data_chara_size_index(pv_game->data.pv->get_performer_chara(rob_id));
         else if (chara_size == 2)
             chara_size_index = 1;
         else if (chara_size == 3) {

@@ -118,7 +118,7 @@ struct pv_game_se_data {
 struct struc_674 {
     size_t performer;
     int32_t module;
-    RobItemEquipInit item;
+    RobInitItem item;
     bool field_1C;
     const pv_db_pv* pv;
 
@@ -2626,10 +2626,10 @@ bool pv_game::load() {
                 j.rob_init.chara_size_index = 1;
                 break;
             case PV_PERFORMER_PLAY_CHARA:
-                j.rob_init.chara_size_index = rob_data_get_chara_size_index(j.chara_num);
+                j.rob_init.chara_size_index = get_rob_data_chara_size_index(j.chara_num);
                 break;
             case PV_PERFORMER_PV_CHARA:
-                j.rob_init.chara_size_index = rob_data_get_chara_size_index(data.pv->get_performer_chara(i));
+                j.rob_init.chara_size_index = get_rob_data_chara_size_index(data.pv->get_performer_chara(i));
                 break;
             case PV_PERFORMER_SHORT:
                 j.rob_init.chara_size_index = 2;
@@ -4493,7 +4493,7 @@ void pv_game::set_eyes_adjust(pv_game_chara* chr) {
     }
 }
 
-void pv_game::set_item(size_t performer, RobItemEquipInit& value) {
+void pv_game::set_item(size_t performer, RobInitItem& value) {
     items[performer] = value;
 }
 
@@ -5049,8 +5049,8 @@ void pv_game::chara_item_alpha_callback(void* data, ROB_ID rob_id, int32_t type,
 }
 
 void pv_game::get_item_mask(pv_performer_type type,
-    RobItemEquipInit* src_item, pv_game_item_mask* src_mask,
-    RobItemEquipInit* dst_item, pv_game_item_mask* dst_mask) {
+    RobInitItem* src_item, pv_game_item_mask* src_mask,
+    RobInitItem* dst_item, pv_game_item_mask* dst_mask) {
     if (!src_item || !src_mask || !dst_item || !dst_mask)
         return;
 
@@ -5081,7 +5081,7 @@ void pv_game_init_data::reset() {
     for (int32_t& i : modules)
         i = 0;
 
-    for (RobItemEquipInit& i : items)
+    for (RobInitItem& i : items)
         i = {};
 
     for (pv_game_item_mask& i : items_mask)
