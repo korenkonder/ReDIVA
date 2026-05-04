@@ -1788,7 +1788,6 @@ namespace spr {
     SprMgr::~SprMgr() {
         refresh();
         dest();
-        render_data->Clear();
     }
 
     // 0x14063BA60
