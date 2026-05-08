@@ -5047,12 +5047,25 @@ public:
         const bone_database* bone_data, void* data, const object_database* obj_db);
     void overwrite_disp_left(bool set_flag);
     void pos_reset();
-    void rob_info_ctrl();
+    void init_rob_base_main();
+    void ctrl_rob_base_main();
+    static void s_ctrl_rob_base_main(rob_chara* rob_chr);
+    void ctrl_rob_base_after();
+    void dest_rob_base_main();
+    void ctrl_rob_info_main();
+    void init_rob_disp_main(const bone_database* bone_data,
+        void* data, const object_database* obj_db);
+    void ctrl_rob_disp_before();
+    void ctrl_rob_disp_main();
+    void dest_rob_disp_main();
+    void disp_rob_disp_main();
+    static void s_ctrl_rob_disp_main(rob_chara* rob_chr);
     void rob_motion_modifier_ctrl();
     bool replace_rob_motion(uint32_t motnum, float_t frame, float_t blend_duration,
         bool blend, bool set_motion_reset_data, MotionBlendType blend_type,
         const bone_database* bone_data, const motion_database* mot_db);
     void req_frame_change(float_t frame);
+    void reset_rob(const bone_database* bone_data, const motion_database* mot_db);
     void reset_rob(const RobInit& robinit,
         const bone_database* bone_data, const motion_database* mot_db);
     void reset_rob_zero_disp();
@@ -5133,6 +5146,10 @@ public:
     void set_time_up(bool flag);
     void set_use_opd(bool value);
     void set_wind_strength(float_t value);
+
+    void CalcNotNormal();
+    void ControlMotionFrameStep();
+    void UpdateMotionFrame();
 
     inline bool check_disp() {
         return rob_base.flag.bit.disp;
