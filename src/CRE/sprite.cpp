@@ -1001,7 +1001,7 @@ namespace spr {
             if (fabsf(rot.z) > 0.000001f)
                 mat4_mul_rotate_z(&m, rot.z, &m);
             mat4_scale_rot(&m, &scale, &m);
-            const vec3 anchor = -anchor;
+            const vec3 anchor = -this->anchor;
             mat4_mul_translate(&m, &anchor, &m);
         }
         else {
