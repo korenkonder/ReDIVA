@@ -66,10 +66,10 @@ namespace Input {
         input_roll = 0.0;
 
         const InputState* input_state = input_state_get(0);
-        if (input_state->CheckTapped(INPUT_BUTTON_F3))
-            disable_dw_input_update ^= 0x01;
-        else if (input_state->CheckTapped(INPUT_BUTTON_F3) && input_state->CheckDown(INPUT_BUTTON_CONTROL))
+        if (input_state->CheckTapped(INPUT_BUTTON_F3) && input_state->CheckDown(INPUT_BUTTON_CONTROL))
             disable_cursor ^= true;
+        else if (input_state->CheckTapped(INPUT_BUTTON_F3))
+            disable_dw_input_update ^= 0x01;
 
         if (input_locked)
             disable_dw_input_update |= 0x02;
