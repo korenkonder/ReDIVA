@@ -31,13 +31,13 @@ struct RobSkinCol {
 struct material_list_struct {
     uint32_t hash;
     vec4 blend_color;
-    vec4u8 has_blend_color;
+    bool has_blend_color[4];
     vec4 emission;
-    vec4u8 has_emission;
+    bool has_emission[4];
 
     material_list_struct();
-    material_list_struct(uint32_t hash, vec4& blend_color,
-        vec4u8& has_blend_color, vec4& emission, vec4u8& has_emission);
+    material_list_struct(uint32_t in_hash, const vec4& in_blend_color,
+        const bool in_has_blend_color[4], const vec4& in_emission, const bool in_has_emission[4]);
 };
 
 struct TexChange {

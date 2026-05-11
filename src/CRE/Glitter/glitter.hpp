@@ -515,8 +515,8 @@ namespace Glitter {
                 float_t value;
                 float_t max_value;
             };
-            float_t tangent1;
-            float_t tangent2;
+            float_t l_slope;
+            float_t r_slope;
             union {
                 float_t random_range;
                 float_t min_value;
@@ -525,21 +525,21 @@ namespace Glitter {
             Key();
             Key(KeyType type, int32_t frame, float_t value, float_t random_range);
             Key(KeyType type, int32_t frame, float_t value,
-                float_t tangent1, float_t tangent2, float_t random_range);
+                float_t l_slope, float_t r_slope, float_t random_range);
         };
 
         struct KeyRev {
             KeyType type;
             int32_t frame;
             double_t value;
-            double_t tangent1;
-            double_t tangent2;
+            double_t l_slope;
+            double_t r_slope;
             double_t random_range;
 
             KeyRev();
             KeyRev(KeyType type, int32_t frame, double_t value, double_t random_range);
             KeyRev(KeyType type, int32_t frame, double_t value,
-                double_t tangent1, double_t tangent2, double_t random_range);
+                double_t l_slope, double_t r_slope, double_t random_range);
         };
 
         CurveType type;
@@ -918,7 +918,7 @@ namespace Glitter {
         EffectInstFlag flags;
         size_t id;
         uint32_t random;
-        float_t req_frame;
+        float_t frame_req;
         vec4 ext_color;
         float_t ext_scale;
         vec3 ext_anim_scale;
@@ -953,8 +953,8 @@ namespace Glitter {
                 struct {
                     int32_t object_index;
                     int32_t mesh_index;
-                    int32_t a3da_id;
-                    bool object_is_hrc;
+                    int32_t scene_handle;
+                    bool is_hrc;
                     object_info object;
                     const char* mesh_name;
                 };
@@ -1015,8 +1015,8 @@ namespace Glitter {
                 struct {
                     int32_t object_index;
                     int32_t mesh_index;
-                    int32_t a3da_id;
-                    bool object_is_hrc;
+                    int32_t scene_handle;
+                    bool is_hrc;
                     uint32_t file_name_hash;
                     uint32_t object_hash;
                     int32_t instance_id;
@@ -1662,7 +1662,7 @@ namespace Glitter {
         bool SetExtColorByID(float_t r, float_t g, float_t b, float_t a, bool set, size_t id);
         void SetExtScale(float_t scale, size_t id);
         void SetFrameRate(FrameRateControl* frame_rate);
-        void SetReqFrame(size_t id, float_t req_frame);
+        void SetFrameReq(size_t id, float_t frame_req);
     };
 
     class GltParticleManager : public app::Task {
@@ -1739,7 +1739,7 @@ namespace Glitter {
         void SetSceneEffectExtColor(SceneCounter scene_counter,
             float_t r, float_t g, float_t b, float_t a, bool set, uint64_t effect_hash);
         void SetSceneEffectExtScale(SceneCounter scene_counter, float_t scale);
-        void SetSceneEffectReqFrame(SceneCounter scene_counter, float_t req_frame);
+        void SetSceneEffectFrameReq(SceneCounter scene_counter, float_t frame_req);
         void SetSceneFrameRate(SceneCounter scene_counter, FrameRateControl* frame_rate);
         void SetSceneName(uint64_t hash, const char* name);
         void SetPause(bool value);

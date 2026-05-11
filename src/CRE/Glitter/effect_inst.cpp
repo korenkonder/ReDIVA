@@ -25,7 +25,7 @@ namespace Glitter {
         mat = mat4_identity;
         flags = (EffectInstFlag)0;
         random = 0;
-        req_frame = 0.0f;
+        frame_req = 0.0f;
         ext_color = 0.0f;
         ext_anim_scale = 0.0f;
         ext_scale = -1.0f;
@@ -100,7 +100,7 @@ namespace Glitter {
         return bone_data->get_bone_node_index(BONE_KIND_CMN, bone_names[node]);
     }
 
-    EffectInstF2::ExtAnim::ExtAnim() : object_index(), mesh_index(), a3da_id(), object_is_hrc(), mesh_name() {
+    EffectInstF2::ExtAnim::ExtAnim() : object_index(), mesh_index(), scene_handle(), is_hrc(), mesh_name() {
 
     }
 
@@ -111,8 +111,8 @@ namespace Glitter {
     void EffectInstF2::ExtAnim::Reset() {
         object_index = -1;
         mesh_index = -1;
-        a3da_id = -1;
-        object_is_hrc = false;
+        scene_handle = -1;
+        is_hrc = false;
         mesh_name = 0;
         mat = mat4_identity;
         translation = 0.0f;
@@ -376,8 +376,6 @@ namespace Glitter {
             || (flags & EFFECT_INST_EXT_ANIM_SET_ONCE && flags & EFFECT_INST_EXT_ANIM_TRANS))
             return;
 
-        int32_t chara_id;
-
         if (flags & EFFECT_INST_EXT_ANIM_CHARA) {
             RobManagement* rob_man = get_rob_management();
             if (!rob_man)
@@ -414,25 +412,25 @@ namespace Glitter {
         }
         else if (flags & EFFECT_INST_EXT_ANIM_AUTH) {
             const mat4* obj_mat = 0;
-            if (ext_anim->a3da_id != -1)
-                obj_mat = auth_3d_id(ext_anim->a3da_id).get_auth_3d_object_mat(
-                    ext_anim->object_index, ext_anim->object_is_hrc);
+            if (ext_anim->scene_handle != -1)
+                obj_mat = auth_3d_detail::get_object_matrix(ext_anim->scene_handle,
+                    ext_anim->object_index, ext_anim->is_hrc);
 
             if (!obj_mat) {
-                ext_anim->a3da_id = auth_3d_data_get_auth_3d_id(ext_anim->object,
-                    &ext_anim->object_index, &ext_anim->object_is_hrc);
-                if (ext_anim->a3da_id == -1)
+                ext_anim->scene_handle = auth_3d_detail::get_scene_object_index(ext_anim->object,
+                    &ext_anim->object_index, &ext_anim->is_hrc);
+                if (ext_anim->scene_handle == -1)
                     return;
 
                 ext_anim->mesh_index = -1;
-                obj_mat = auth_3d_id(ext_anim->a3da_id).get_auth_3d_object_mat(
-                    ext_anim->object_index, ext_anim->object_is_hrc);
+                obj_mat = auth_3d_detail::get_object_matrix(ext_anim->scene_handle,
+                    ext_anim->object_index, ext_anim->is_hrc);
                 if (!obj_mat)
                     return;
             }
 
             mat4 mat = mat4_identity;
-            chara_id = auth_3d_id(ext_anim->a3da_id).get_chara_id();
+            int32_t chara_id = auth_3d_detail::get_assign_rob_id(ext_anim->scene_handle);
             if (chara_id >= 0 && chara_id < ROB_ID_MAX) {
                 RobManagement* rob_man = get_rob_management();
                 if (rob_man) {
@@ -659,8 +657,8 @@ namespace Glitter {
         return ret;
     }
 
-    EffectInstX::ExtAnim::ExtAnim() : object_index(), mesh_index(), a3da_id(),
-        object_is_hrc(), file_name_hash(), object_hash(), instance_id(), mesh_name() {
+    EffectInstX::ExtAnim::ExtAnim() : object_index(), mesh_index(), scene_handle(),
+        is_hrc(), file_name_hash(), object_hash(), instance_id(), mesh_name() {
 
     }
 
@@ -671,8 +669,8 @@ namespace Glitter {
     void EffectInstX::ExtAnim::Reset() {
         object_index = -1;
         mesh_index = -1;
-        a3da_id = -1;
-        object_is_hrc = false;
+        scene_handle = -1;
+        is_hrc = false;
         file_name_hash = hash_murmurhash_empty;
         object_hash = hash_murmurhash_empty;
         instance_id = 0;
@@ -1113,27 +1111,26 @@ namespace Glitter {
         }
         else if (flags & EFFECT_INST_EXT_ANIM_AUTH) {
             const mat4* obj_mat = 0;
-            if (ext_anim->a3da_id != -1)
-                obj_mat = auth_3d_id(ext_anim->a3da_id).get_auth_3d_object_mat(
-                    ext_anim->object_index, ext_anim->object_is_hrc);
+            if (ext_anim->scene_handle != -1)
+                obj_mat = auth_3d_detail::get_object_matrix(ext_anim->scene_handle,
+                    ext_anim->object_index, ext_anim->is_hrc);
 
             if (!obj_mat) {
-                ext_anim->a3da_id = auth_3d_data_get_auth_3d_id(
+                ext_anim->scene_handle = auth_3d_detail::get_scene_object_index(
                     ext_anim->file_name_hash, ext_anim->object_hash,
-                    &ext_anim->object_index, &ext_anim->object_is_hrc, ext_anim->instance_id);
-                if (ext_anim->a3da_id == -1)
+                    &ext_anim->object_index, &ext_anim->is_hrc, ext_anim->instance_id);
+                if (ext_anim->scene_handle == -1)
                     return;
 
                 ext_anim->mesh_index = -1;
-                obj_mat = auth_3d_id(ext_anim->a3da_id).get_auth_3d_object_mat(
-                    ext_anim->object_index, ext_anim->object_is_hrc);
+                obj_mat = auth_3d_detail::get_object_matrix(ext_anim->scene_handle,
+                    ext_anim->object_index, ext_anim->is_hrc);
                 if (!obj_mat)
                     return;
             }
 
             mat4 mat = mat4_identity;
-
-            int32_t chara_id = auth_3d_id(ext_anim->a3da_id).get_chara_id();
+            int32_t chara_id = auth_3d_detail::get_assign_rob_id(ext_anim->scene_handle);
             if (chara_id >= 0 && chara_id < ROB_ID_MAX) {
                 RobManagement* rob_man = get_rob_management();
                 if (rob_man) {

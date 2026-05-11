@@ -80,7 +80,7 @@ public:
     int32_t state;
     std::string auth_3d;
     std::vector<std::string> categories;
-    std::vector<auth_3d_id> auth_3d_ids;
+    std::vector<auth_3d_detail::Handle> auth_3d_ids;
     std::vector<uint32_t> obj_sets;
     bool camera;
 

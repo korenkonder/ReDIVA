@@ -48,14 +48,14 @@ namespace prj {
                 });
         }
 
-        void unique() {
+        void erase_non_unique() {
             auto last = std::unique(this->begin(), this->end());
             this->erase(last, this->end());
         }
 
-        inline void sort_unique() {
+        inline void sort_and_erase_non_unique() {
             sort();
-            unique();
+            erase_non_unique();
         }
 
         inline typename auto find(const T& key) {

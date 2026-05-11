@@ -130,7 +130,7 @@ namespace dw_gui_user_detail {
 
         UpdateLayout();
     }
-    
+
     FontListWindow::~FontListWindow() {
 
     }

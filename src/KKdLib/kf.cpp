@@ -29,11 +29,11 @@ void kft_check(void* src_key, kf_type src_type, void* dst_key, kf_type* dst_type
     } break;
     case KEY_FRAME_TYPE_2: {
         kft2* sk = (kft2*)src_key;
-        if (*(uint32_t*)&sk->tangent != 0) {
+        if (*(uint32_t*)&sk->slope != 0) {
             kft2* dk = (kft2*)dst_key;
             dk->frame = sk->frame;
             dk->value = sk->value;
-            dk->tangent = sk->tangent;
+            dk->slope = sk->slope;
             *dst_type = KEY_FRAME_TYPE_2;
         }
         else if (*(uint32_t*)&sk->value != 0) {
@@ -50,19 +50,19 @@ void kft_check(void* src_key, kf_type src_type, void* dst_key, kf_type* dst_type
     } break;
     case KEY_FRAME_TYPE_3: {
         kft3* sk = (kft3*)src_key;
-        if (*(uint32_t*)&sk->tangent1 != *(uint32_t*)&sk->tangent2) {
+        if (*(uint32_t*)&sk->l_slope != *(uint32_t*)&sk->r_slope) {
             kft3* dk = (kft3*)dst_key;
             dk->frame = sk->frame;
             dk->value = sk->value;
-            dk->tangent1 = sk->tangent1;
-            dk->tangent2 = sk->tangent2;
+            dk->l_slope = sk->l_slope;
+            dk->r_slope = sk->r_slope;
             *dst_type = KEY_FRAME_TYPE_3;
         }
-        else if (*(uint32_t*)&sk->tangent1 != 0) {
+        else if (*(uint32_t*)&sk->l_slope != 0) {
             kft2* dk = (kft2*)dst_key;
             dk->frame = sk->frame;
             dk->value = sk->value;
-            dk->tangent = sk->tangent1;
+            dk->slope = sk->l_slope;
             *dst_type = KEY_FRAME_TYPE_2;
         }
         else if (*(uint32_t*)&sk->value != 0) {

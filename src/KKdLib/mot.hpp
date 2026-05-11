@@ -13,10 +13,10 @@
 #include "vec.hpp"
 
 enum mot_key_set_type {
-    MOT_KEY_SET_NONE            = 0x00,
-    MOT_KEY_SET_STATIC          = 0x01,
-    MOT_KEY_SET_HERMITE         = 0x02,
-    MOT_KEY_SET_HERMITE_TANGENT = 0x03,
+    MOT_KEY_SET_NONE          = 0x00,
+    MOT_KEY_SET_STATIC        = 0x01,
+    MOT_KEY_SET_HERMITE       = 0x02,
+    MOT_KEY_SET_HERMITE_SLOPE = 0x03,
 };
 
 enum mot_key_set_data_type {

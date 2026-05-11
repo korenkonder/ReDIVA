@@ -2482,7 +2482,7 @@ static void obj_classic_write_skin(obj_skin* sk, stream& s, int64_t base_offset)
             s.position_pop();
 
             exh.osage_root_offset = obj_skin_strings_get_string_offset(strings,
-                string_offsets, ex->osage_root);           
+                string_offsets, ex->osage_root);
 
             s.position_push(exh.osage_joint_offset, SEEK_SET);
             for (int32_t i = 0; i < ex->nb_jointX; i++) {

@@ -10,29 +10,29 @@
 #include "../default.hpp"
 #include "../prj/vector_pair.hpp"
 
-enum auth_3d_database_uid_flags {
-    AUTH_3D_DATABASE_UID_ORG_UID = 0x01,
-    AUTH_3D_DATABASE_UID_SIZE    = 0x02,
-};
-
 struct auth_3d_database_uid {
     bool enabled;
-    std::string category;
+    std::string category_name;
     uint32_t category_hash;
+    float_t frame_size;
     std::string name;
     uint32_t name_hash;
     int32_t org_uid;
-    float_t size;
 
     auth_3d_database_uid();
     ~auth_3d_database_uid();
 };
 
 struct auth_3d_database_uid_file {
-    auth_3d_database_uid_flags flags;
-    std::string category;
+    enum {
+        FLAG_FRAME_SIZE = 0x01,
+        FLAG_ORG_UID    = 0x02,
+    };
+
+    uint32_t flag;
+    std::string category_name;
+    float_t frame_size;
     int32_t org_uid;
-    float_t size;
     std::string value;
 
     auth_3d_database_uid_file();

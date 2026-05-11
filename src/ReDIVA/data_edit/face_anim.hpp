@@ -19,7 +19,7 @@ public:
         string_hash category;
         string_hash file;
         string_hash object_set;
-        auth_3d_id id;
+        auth_3d_detail::Handle id;
 
         object_database obj_db;
         texture_database tex_db;

@@ -43,8 +43,8 @@ extern render_context* rctx_ptr;
 pv_game_camera pv_game_camera_data;
 
 static float_t pv_game_camera_get_acceleration();
-static bool pv_game_camera_get_edit_camera(cam_struct* cam, float_t delta_time);
-static bool pv_game_camera_get_move_camera(cam_struct* cam, float_t delta_time);
+static bool pv_game_camera_get_edit_camera(CameraParam* cam, float_t delta_time);
+static bool pv_game_camera_get_move_camera(CameraParam* cam, float_t delta_time);
 
 pv_game_camera::pv_game_camera() : enable(), follow_chara(), edit_camera(), duration(), curr_time(),
 start_distance(), end_distance(), fov(), min_dist(), rob_id(), chara_follow_point(),
@@ -86,14 +86,14 @@ void pv_game_camera_ctrl(float_t delta_time) {
         return;
 
     bool in_transition;
-    cam_struct cam;
+    CameraParam cam;
     if (pv_game_camera_data.edit_camera)
         in_transition = pv_game_camera_get_edit_camera(&cam, delta_time);
     else
         in_transition = pv_game_camera_get_move_camera(&cam, delta_time);
 
-    cam.fov = pv_game_camera_data.fov * DEG_TO_RAD_FLOAT;
-    cam.min_distance = pv_game_camera_data.min_dist;
+    cam.v_fov = pv_game_camera_data.fov * DEG_TO_RAD_FLOAT;
+    cam.clip_near = pv_game_camera_data.min_dist;
     cam.set(rctx_ptr->camera);
 
     if (!in_transition)
@@ -212,7 +212,7 @@ static float_t pv_game_camera_get_acceleration() {
     return min_def(acceleration, 1.0f);
 }
 
-static bool pv_game_camera_get_edit_camera(cam_struct* cam, float_t delta_time) {
+static bool pv_game_camera_get_edit_camera(CameraParam* cam, float_t delta_time) {
     if (!cam)
         return false;
 
@@ -248,7 +248,7 @@ static bool pv_game_camera_get_edit_camera(cam_struct* cam, float_t delta_time) 
     return in_transition;
 }
 
-static bool pv_game_camera_get_move_camera(cam_struct* cam, float_t delta_time) {
+static bool pv_game_camera_get_move_camera(CameraParam* cam, float_t delta_time) {
     if (!cam)
         return false;
 

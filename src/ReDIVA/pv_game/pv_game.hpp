@@ -84,10 +84,10 @@ struct pv_game_edit_effect {
 struct pv_game_field {
     int32_t stage_index;
     std::vector<int32_t> auth_3d_uids;
-    std::vector<auth_3d_id> auth_3d_ids;
+    std::vector<auth_3d_detail::Handle> auth_3d_ids;
     std::map<int32_t, int32_t> auth_3d_frame_list;
     int32_t light_auth_3d_uid;
-    auth_3d_id light_auth_3d_id;
+    auth_3d_detail::Handle light_auth_3d_id;
     int32_t light_frame;
     std::vector<std::string> aet_names[4];
     std::vector<std::string> aet_ids[4];
@@ -107,7 +107,7 @@ struct pv_game_field {
 
 struct pv_game_edit_instrument {
     prj::vector_pair<object_info, int32_t> data;
-    std::vector<auth_3d_id> auth_3d_ids;
+    std::vector<auth_3d_detail::Handle> auth_3d_ids;
     int32_t index;
 
     pv_game_edit_instrument();
@@ -277,19 +277,19 @@ struct pv_game_data {
     std::map<std::pair<std::string, std::string>, int64_t> aet_time[4];
     std::string campv_string;
     std::vector<int32_t> campv_auth_3d_uids;
-    std::map<int32_t, auth_3d_id> campv;
+    std::map<int32_t, auth_3d_detail::Handle> campv;
     int32_t campv_index;
     int32_t field_2D954;
     std::string itmpv_string;
     std::vector<int32_t> itmpv_auth_3d_uids;
-    std::map<int32_t, std::pair<auth_3d_id, int64_t>> itmpv[ROB_ID_MAX];
+    std::map<int32_t, std::pair<auth_3d_detail::Handle, int64_t>> itmpv[ROB_ID_MAX];
     std::vector<std::string> itmpv_uids;
     pv_game_edit_instrument edit_instrument[3];
     std::vector<int32_t> loaded_auth_3d_uids;
     bool field_2DAC8;
     int32_t field_2DACC;
     std::vector<std::string> auth_3d_categories;
-    std::map<int32_t, auth_3d_id> auth_3d;
+    std::map<int32_t, auth_3d_detail::Handle> auth_3d;
     std::vector<pv_game_chreff> chreff_auth_3d;
     std::vector<pv_game_chreff> chreff_auth_3d_obj;
     bool height_adjust;
@@ -386,11 +386,11 @@ struct pv_game {
     float_t get_aet_frame_max_frame_change_field(int32_t aet_index,
         std::pair<std::string, std::string>& aet_name_id, int64_t time);
     int64_t get_aet_time(int32_t aet_index, std::pair<std::string, std::string>& aet_name_id);
-    float_t get_auth_3d_frame_max_frame(int32_t auth_3d_frame, int32_t auth_3d_uid,
+    float_t get_scene_frame_max_frame(int32_t auth_3d_frame, int32_t auth_3d_uid,
         int64_t dsc_time, int64_t curr_time, uint8_t type, float_t* max_frame);
-    float_t get_auth_3d_frame_max_frame_change_field(uint32_t auth_3d_uid, int64_t time, uint8_t type);
-    auth_3d_id get_auth_3d_id(int32_t uid);
-    int64_t get_auth_3d_time(int32_t uid, uint8_t type);
+    float_t get_scene_frame_max_frame_change_field(uint32_t auth_3d_uid, int64_t time, uint8_t type);
+    auth_3d_detail::Handle get_scene_id(int32_t uid);
+    int64_t get_scene_time(int32_t uid, uint8_t type);
     uint32_t get_chreff_auth_3d_object_set(int32_t& uid);
     int64_t get_data_itmpv_time(int32_t rob_id, int32_t index);
     float_t get_data_rival_percentage();

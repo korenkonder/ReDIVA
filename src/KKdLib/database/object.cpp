@@ -370,16 +370,16 @@ void object_database::update() {
         }
     }
 
-    obj_set_ids.sort_unique();
-    obj_set_murmurhashes.sort_unique();
-    obj_set_names.sort_unique();
-    obj_infos.sort_unique();
-    obj_fnv1a64m_hashes.sort_unique();
-    obj_fnv1a64m_hashes_upper.sort_unique();
-    obj_murmurhashes.sort_unique();
-    obj_info_fnv1a64m_hashes.sort_unique();
-    obj_info_fnv1a64m_hashes_upper.sort_unique();
-    obj_info_murmurhashes.sort_unique();
+    obj_set_ids.sort_and_erase_non_unique();
+    obj_set_murmurhashes.sort_and_erase_non_unique();
+    obj_set_names.sort_and_erase_non_unique();
+    obj_infos.sort_and_erase_non_unique();
+    obj_fnv1a64m_hashes.sort_and_erase_non_unique();
+    obj_fnv1a64m_hashes_upper.sort_and_erase_non_unique();
+    obj_murmurhashes.sort_and_erase_non_unique();
+    obj_info_fnv1a64m_hashes.sort_and_erase_non_unique();
+    obj_info_fnv1a64m_hashes_upper.sort_and_erase_non_unique();
+    obj_info_murmurhashes.sort_and_erase_non_unique();
 }
 
 const object_set_info* object_database::get_object_set_info(const char* name) const {

@@ -217,7 +217,7 @@ void TaskDataTestOpd::BeginDataCreation() {
 
     opd_make_start_get_motion_ids(motion_ids);
     motion_ids.push_back(195); // CMN_MRA00_13_01
-    prj::sort_unique(motion_ids);
+    prj::sort_and_erase_non_unique(motion_ids);
 
     OpdMakeManagerArgs args;
     args.motion_ids = &motion_ids;
@@ -648,7 +648,7 @@ static void task_data_test_opd_dw_add_module() {
                 data.modules.push_back(i.first);
     } break;
     }
-    prj::sort_unique(data.modules);
+    prj::sort_and_erase_non_unique(data.modules);
 }
 
 static void task_data_test_opd_dw_add_modules() {

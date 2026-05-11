@@ -299,8 +299,8 @@ void texture_database::update() {
         texture_murmurhashes.push_back(i.name_hash, &i);
     }
 
-    texture_ids.sort_unique();
-    texture_murmurhashes.sort_unique();
+    texture_ids.sort_and_erase_non_unique();
+    texture_murmurhashes.sort_and_erase_non_unique();
 }
 
 uint32_t texture_database::get_texture_id(const char* name) const {

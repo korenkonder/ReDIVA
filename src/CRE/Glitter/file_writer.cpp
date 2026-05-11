@@ -159,8 +159,8 @@ namespace Glitter {
                             store_reverse_endianness_int16_t((void*)d, (int16_t)i.type);
                             store_reverse_endianness_int16_t((void*)(d + 2), (int16_t)i.frame);
                             if (i.type == KEY_HERMITE) {
-                                store_reverse_endianness_float_t((void*)(d + 4), i.tangent1);
-                                store_reverse_endianness_float_t((void*)(d + 8), i.tangent2);
+                                store_reverse_endianness_float_t((void*)(d + 4), i.l_slope);
+                                store_reverse_endianness_float_t((void*)(d + 8), i.r_slope);
                                 store_reverse_endianness_float_t((void*)(d + 12), i.min_value);
                                 store_reverse_endianness_float_t((void*)(d + 16), i.max_value);
                                 d += 20;
@@ -176,8 +176,8 @@ namespace Glitter {
                             store_reverse_endianness_int16_t((void*)d, (int16_t)i.type);
                             store_reverse_endianness_int16_t((void*)(d + 2), (int16_t)i.frame);
                             if (i.type == KEY_HERMITE) {
-                                store_reverse_endianness_float_t((void*)(d + 4), i.tangent1);
-                                store_reverse_endianness_float_t((void*)(d + 8), i.tangent2);
+                                store_reverse_endianness_float_t((void*)(d + 4), i.l_slope);
+                                store_reverse_endianness_float_t((void*)(d + 8), i.r_slope);
                                 store_reverse_endianness_float_t((void*)(d + 12), i.value);
                                 d += 16;
                             }
@@ -192,8 +192,8 @@ namespace Glitter {
                             *(int16_t*)d = (int16_t)i.type;
                             *(int16_t*)(d + 2) = (int16_t)i.frame;
                             if (i.type == KEY_HERMITE) {
-                                *(float_t*)(d + 4) = i.tangent1;
-                                *(float_t*)(d + 8) = i.tangent2;
+                                *(float_t*)(d + 4) = i.l_slope;
+                                *(float_t*)(d + 8) = i.r_slope;
                                 *(float_t*)(d + 12) = i.min_value;
                                 *(float_t*)(d + 16) = i.max_value;
                                 d += 20;
@@ -209,8 +209,8 @@ namespace Glitter {
                             *(int16_t*)d = (int16_t)i.type;
                             *(int16_t*)(d + 2) = (int16_t)i.frame;
                             if (i.type == KEY_HERMITE) {
-                                *(float_t*)(d + 4) = i.tangent1;
-                                *(float_t*)(d + 8) = i.tangent2;
+                                *(float_t*)(d + 4) = i.l_slope;
+                                *(float_t*)(d + 8) = i.r_slope;
                                 *(float_t*)(d + 12) = i.value;
                                 d += 16;
                             }
@@ -227,8 +227,8 @@ namespace Glitter {
                             store_reverse_endianness_int16_t((void*)d, (int16_t)i.type);
                             store_reverse_endianness_int16_t((void*)(d + 2), (int16_t)i.frame);
                             if (i.type == KEY_HERMITE) {
-                                store_reverse_endianness_float_t((void*)(d + 16), i.tangent1);
-                                store_reverse_endianness_float_t((void*)(d + 20), i.tangent2);
+                                store_reverse_endianness_float_t((void*)(d + 16), i.l_slope);
+                                store_reverse_endianness_float_t((void*)(d + 20), i.r_slope);
                                 store_reverse_endianness_float_t((void*)(d + 24), i.min_value);
                                 store_reverse_endianness_float_t((void*)(d + 28), i.max_value);
                                 d += 32;
@@ -244,8 +244,8 @@ namespace Glitter {
                             store_reverse_endianness_int16_t((void*)d, (int16_t)i.type);
                             store_reverse_endianness_int16_t((void*)(d + 2), (int16_t)i.frame);
                             if (i.type == KEY_HERMITE) {
-                                store_reverse_endianness_float_t((void*)(d + 4), i.tangent1);
-                                store_reverse_endianness_float_t((void*)(d + 8), i.tangent2);
+                                store_reverse_endianness_float_t((void*)(d + 4), i.l_slope);
+                                store_reverse_endianness_float_t((void*)(d + 8), i.r_slope);
                                 store_reverse_endianness_float_t((void*)(d + 12), i.value);
                                 d += 16;
                             }
@@ -260,8 +260,8 @@ namespace Glitter {
                             *(int16_t*)d = (int16_t)i.type;
                             *(int16_t*)(d + 2) = (int16_t)i.frame;
                             if (i.type == KEY_HERMITE) {
-                                *(float_t*)(d + 16) = i.tangent1;
-                                *(float_t*)(d + 20) = i.tangent2;
+                                *(float_t*)(d + 16) = i.l_slope;
+                                *(float_t*)(d + 20) = i.r_slope;
                                 *(float_t*)(d + 24) = i.min_value;
                                 *(float_t*)(d + 28) = i.max_value;
                                 d += 32;
@@ -277,8 +277,8 @@ namespace Glitter {
                             *(int16_t*)d = (int16_t)i.type;
                             *(int16_t*)(d + 2) = (int16_t)i.frame;
                             if (i.type == KEY_HERMITE) {
-                                *(float_t*)(d + 4) = i.tangent1;
-                                *(float_t*)(d + 8) = i.tangent2;
+                                *(float_t*)(d + 4) = i.l_slope;
+                                *(float_t*)(d + 8) = i.r_slope;
                                 *(float_t*)(d + 12) = i.value;
                                 d += 16;
                             }
@@ -313,8 +313,8 @@ namespace Glitter {
                             store_reverse_endianness_int16_t((void*)d, (int16_t)i.type);
                             store_reverse_endianness_int16_t((void*)(d + 2), (int16_t)i.frame);
                             if (i.type == KEY_HERMITE) {
-                                store_reverse_endianness_float_t((void*)(d + 4), i.tangent1);
-                                store_reverse_endianness_float_t((void*)(d + 8), i.tangent2);
+                                store_reverse_endianness_float_t((void*)(d + 4), i.l_slope);
+                                store_reverse_endianness_float_t((void*)(d + 8), i.r_slope);
                                 store_reverse_endianness_float_t((void*)(d + 12), i.random_range);
                                 store_reverse_endianness_float_t((void*)(d + 16), i.value);
                                 d += 20;
@@ -330,8 +330,8 @@ namespace Glitter {
                             store_reverse_endianness_int16_t((void*)d, (int16_t)i.type);
                             store_reverse_endianness_int16_t((void*)(d + 2), (int16_t)i.frame);
                             if (i.type == KEY_HERMITE) {
-                                store_reverse_endianness_float_t((void*)(d + 4), i.tangent1);
-                                store_reverse_endianness_float_t((void*)(d + 8), i.tangent2);
+                                store_reverse_endianness_float_t((void*)(d + 4), i.l_slope);
+                                store_reverse_endianness_float_t((void*)(d + 8), i.r_slope);
                                 store_reverse_endianness_float_t((void*)(d + 12), i.value);
                                 d += 16;
                             }
@@ -346,8 +346,8 @@ namespace Glitter {
                             *(int16_t*)d = (int16_t)i.type;
                             *(int16_t*)(d + 2) = (int16_t)i.frame;
                             if (i.type == KEY_HERMITE) {
-                                *(float_t*)(d + 4) = i.tangent1;
-                                *(float_t*)(d + 8) = i.tangent2;
+                                *(float_t*)(d + 4) = i.l_slope;
+                                *(float_t*)(d + 8) = i.r_slope;
                                 *(float_t*)(d + 12) = i.random_range;
                                 *(float_t*)(d + 16) = i.value;
                                 d += 20;
@@ -363,8 +363,8 @@ namespace Glitter {
                             *(int16_t*)d = (int16_t)i.type;
                             *(int16_t*)(d + 2) = (int16_t)i.frame;
                             if (i.type == KEY_HERMITE) {
-                                *(float_t*)(d + 4) = i.tangent1;
-                                *(float_t*)(d + 8) = i.tangent2;
+                                *(float_t*)(d + 4) = i.l_slope;
+                                *(float_t*)(d + 8) = i.r_slope;
                                 *(float_t*)(d + 12) = i.value;
                                 d += 16;
                             }
@@ -381,8 +381,8 @@ namespace Glitter {
                             store_reverse_endianness_int16_t((void*)d, (int16_t)i.type);
                             store_reverse_endianness_int16_t((void*)(d + 2), (int16_t)i.frame);
                             if (i.type == KEY_HERMITE) {
-                                store_reverse_endianness_float_t((void*)(d + 4), i.tangent1 * scale);
-                                store_reverse_endianness_float_t((void*)(d + 8), i.tangent2 * scale);
+                                store_reverse_endianness_float_t((void*)(d + 4), i.l_slope * scale);
+                                store_reverse_endianness_float_t((void*)(d + 8), i.r_slope * scale);
                                 store_reverse_endianness_float_t((void*)(d + 12), i.random_range * scale);
                                 store_reverse_endianness_float_t((void*)(d + 16), i.value * scale);
                                 d += 20;
@@ -398,8 +398,8 @@ namespace Glitter {
                             store_reverse_endianness_int16_t((void*)d, (int16_t)i.type);
                             store_reverse_endianness_int16_t((void*)(d + 2), (int16_t)i.frame);
                             if (i.type == KEY_HERMITE) {
-                                store_reverse_endianness_float_t((void*)(d + 4), i.tangent1 * scale);
-                                store_reverse_endianness_float_t((void*)(d + 8), i.tangent2 * scale);
+                                store_reverse_endianness_float_t((void*)(d + 4), i.l_slope * scale);
+                                store_reverse_endianness_float_t((void*)(d + 8), i.r_slope * scale);
                                 store_reverse_endianness_float_t((void*)(d + 12), i.value * scale);
                                 d += 16;
                             }
@@ -414,8 +414,8 @@ namespace Glitter {
                             *(int16_t*)d = (int16_t)i.type;
                             *(int16_t*)(d + 2) = (int16_t)i.frame;
                             if (i.type == KEY_HERMITE) {
-                                *(float_t*)(d + 4) = i.tangent1 * scale;
-                                *(float_t*)(d + 8) = i.tangent2 * scale;
+                                *(float_t*)(d + 4) = i.l_slope * scale;
+                                *(float_t*)(d + 8) = i.r_slope * scale;
                                 *(float_t*)(d + 12) = i.random_range * scale;
                                 *(float_t*)(d + 16) = i.value * scale;
                                 d += 20;
@@ -431,8 +431,8 @@ namespace Glitter {
                             *(int16_t*)d = (int16_t)i.type;
                             *(int16_t*)(d + 2) = (int16_t)i.frame;
                             if (i.type == KEY_HERMITE) {
-                                *(float_t*)(d + 4) = i.tangent1 * scale;
-                                *(float_t*)(d + 8) = i.tangent2 * scale;
+                                *(float_t*)(d + 4) = i.l_slope * scale;
+                                *(float_t*)(d + 8) = i.r_slope * scale;
                                 *(float_t*)(d + 12) = i.value * scale;
                                 d += 16;
                             }

@@ -569,7 +569,7 @@ mot_key_set_type mot_set::fit_keys_into_curve(std::vector<float_t>& values_src,
             break;
 
     if (arr != values.data() + count)
-        return MOT_KEY_SET_HERMITE_TANGENT;
+        return MOT_KEY_SET_HERMITE_SLOPE;
 
     float_t* arr_src = values.data();
     float_t* arr_dst = values.data();
@@ -660,19 +660,19 @@ static void mot_classic_read_inner(mot_set* ms, prj::shared_ptr<prj::stack_alloc
                 key_set->values[0] = s.read_float_t();
             }
             else {
-                bool has_tangents = key_set->type != MOT_KEY_SET_HERMITE;
+                bool has_slopes = key_set->type != MOT_KEY_SET_HERMITE;
                 uint16_t keys_count = s.read_uint16_t();
                 key_set->keys_count = keys_count;
 
                 uint16_t* frames = alloc->allocate<uint16_t>(keys_count);
-                float_t* values = alloc->allocate<float_t>(has_tangents ? keys_count * 2ULL : keys_count);
+                float_t* values = alloc->allocate<float_t>(has_slopes ? keys_count * 2ULL : keys_count);
                 key_set->frames = frames;
                 key_set->values = values;
 
                 s.read(frames, sizeof(uint16_t) * keys_count);
                 s.align_read(0x04);
 
-                if (!has_tangents)
+                if (!has_slopes)
                     s.read(values, sizeof(float_t) * keys_count);
                 else
                     s.read(values, sizeof(float_t) * keys_count * 2ULL);
@@ -730,7 +730,7 @@ static void mot_classic_write_inner(mot_set* ms, stream& s) {
                     s.write_float_t(key_set->values[0]);
             }
             else if (key_set->type != MOT_KEY_SET_NONE) {
-                bool has_tangents = key_set->type != MOT_KEY_SET_HERMITE;
+                bool has_slopes = key_set->type != MOT_KEY_SET_HERMITE;
                 uint16_t keys_count = key_set->keys_count;
                 s.write_uint16_t(keys_count);
 
@@ -739,7 +739,7 @@ static void mot_classic_write_inner(mot_set* ms, stream& s) {
                 s.align_write(0x04);
 
                 float_t* values = key_set->values;
-                if (!has_tangents)
+                if (!has_slopes)
                     s.write(values, sizeof(float_t) * keys_count);
                 else
                     s.write(values, sizeof(float_t) * keys_count * 2ULL);
@@ -872,7 +872,7 @@ static void mot_modern_read_inner(mot_set* ms, prj::shared_ptr<prj::stack_alloca
             key_set->values[0] = s.read_float_t();
         }
         else {
-            bool has_tangents = key_set->type != MOT_KEY_SET_HERMITE;
+            bool has_slopes = key_set->type != MOT_KEY_SET_HERMITE;
             uint16_t keys_count = s_motc.read_uint16_t_reverse_endianness();
             mot_key_set_data_type data_type
                 = (mot_key_set_data_type)s_motc.read_uint16_t_reverse_endianness();
@@ -880,12 +880,12 @@ static void mot_modern_read_inner(mot_set* ms, prj::shared_ptr<prj::stack_alloca
             key_set->data_type = data_type;
 
             int16_t* frames = alloc->allocate<int16_t>(keys_count);
-            float_t* values = alloc->allocate<float_t>(has_tangents ? keys_count * 2ULL : keys_count);
+            float_t* values = alloc->allocate<float_t>(has_slopes ? keys_count * 2ULL : keys_count);
             key_set->frames = (uint16_t*)frames;
             key_set->values = values;
 
-            uint8_t step = has_tangents ? 2 : 1;
-            if (has_tangents) {
+            uint8_t step = has_slopes ? 2 : 1;
+            if (has_slopes) {
                 float_t* values = &key_set->values[1];
                 for (int32_t k = 0; k < keys_count; k++, values += step)
                     *values = s_motc.read_float_t_reverse_endianness();
@@ -977,8 +977,8 @@ static void mot_modern_write_inner(mot_set* ms, stream& s) {
                 }
             }
             else if (key_set->type != MOT_KEY_SET_NONE) {
-                bool has_tangents = key_set->type != MOT_KEY_SET_HERMITE;
-                if (has_tangents)
+                bool has_slopes = key_set->type != MOT_KEY_SET_HERMITE;
+                if (has_slopes)
                     ee = { o, 1, 4, 1 };
                 else
                     ee = { o, 1, 3, 1 };
@@ -986,7 +986,7 @@ static void mot_modern_write_inner(mot_set* ms, stream& s) {
                 uint16_t keys_count = key_set->keys_count;
                 mot_key_set_data_type data_type = key_set->data_type;
                 o = 4;
-                if (has_tangents)
+                if (has_slopes)
                     o += keys_count * 4;
 
                 if (data_type == MOT_KEY_SET_DATA_F16)
@@ -998,7 +998,7 @@ static void mot_modern_write_inner(mot_set* ms, stream& s) {
                 ee.size = o;
 
                 ee.append(0, 2, ENRS_WORD);
-                if (has_tangents)
+                if (has_slopes)
                     ee.append(0, keys_count, ENRS_DWORD);
                 if (data_type == MOT_KEY_SET_DATA_F16) {
                     ee.append(0, keys_count, ENRS_WORD);
@@ -1090,14 +1090,14 @@ static void mot_modern_write_inner(mot_set* ms, stream& s) {
                     s.write_float_t_reverse_endianness(key_set->values[0]);
             }
             else if (key_set->type != MOT_KEY_SET_NONE) {
-                bool has_tangents = key_set->type != MOT_KEY_SET_HERMITE;
+                bool has_slopes = key_set->type != MOT_KEY_SET_HERMITE;
                 uint16_t keys_count = key_set->keys_count;
                 mot_key_set_data_type data_type = key_set->data_type;
                 s_motc.write_uint16_t_reverse_endianness(keys_count);
                 s_motc.write_uint16_t_reverse_endianness((uint16_t)data_type);
 
-                uint8_t step = has_tangents ? 2 : 1;
-                if (has_tangents) {
+                uint8_t step = has_slopes ? 2 : 1;
+                if (has_slopes) {
                     float_t* values = &key_set->values[1];
                     for (int32_t k = 0; k < keys_count; k++, values += step)
                         s_motc.write_float_t_reverse_endianness(*values);
@@ -1263,7 +1263,7 @@ static void mot_data_move_data(mot_data* mot_dst, const mot_data* mot_src,
             key_set_dst->frames = alloc->allocate<uint16_t>(key_set_src->frames, keys_count);
             key_set_dst->values = alloc->allocate<float_t>(key_set_src->values, keys_count);
             break;
-        case MOT_KEY_SET_HERMITE_TANGENT:
+        case MOT_KEY_SET_HERMITE_SLOPE:
             key_set_dst->frames = alloc->allocate<uint16_t>(key_set_src->frames, keys_count);
             key_set_dst->values = alloc->allocate<float_t>(key_set_src->values, keys_count * 2ULL);
             break;

@@ -138,10 +138,10 @@ namespace Glitter {
             if (!just_init)
                 _delta_frame = delta_frame;
 
-            float_t req_frame = eff->req_frame;
-            eff->req_frame = 0.0f;
+            float_t frame_req = eff->frame_req;
+            eff->frame_req = 0.0f;
 
-            float_t remain_frame = req_frame - _delta_frame;
+            float_t remain_frame = frame_req - _delta_frame;
             while (true) {
                 if (step || _delta_frame > 0.0f) {
                     eff->CtrlFlags(_delta_frame);
@@ -437,16 +437,16 @@ namespace Glitter {
         this->frame_rate = frame_rate;
     }
 
-    void Scene::SetReqFrame(size_t id, float_t req_frame) {
+    void Scene::SetFrameReq(size_t id, float_t frame_req) {
         if (!id) {
             for (SceneEffect& i : effects)
                 if (i.disp && i.ptr)
-                    i.ptr->req_frame = req_frame;
+                    i.ptr->frame_req = frame_req;
         }
         else
             for (SceneEffect& i : effects)
                 if (i.disp && i.ptr && i.ptr->id == id) {
-                    i.ptr->req_frame = req_frame;
+                    i.ptr->frame_req = frame_req;
                     break;
                 }
     }

@@ -119,7 +119,7 @@ bool DtmAet::ctrl() {
 
         comp_layers.clear();
         aet_manager_get_scene_comp_layer_names(comp_layers, aet_id, aft_aet_db);
-        prj::sort_unique(comp_layers);
+        prj::sort_and_erase_non_unique(comp_layers);
 
         auto i = comp_layers.begin();
         auto i_end = comp_layers.end();

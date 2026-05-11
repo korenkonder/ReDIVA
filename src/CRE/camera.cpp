@@ -379,30 +379,30 @@ static void camera_calculate_view(camera* c) {
     }
 }
 
-cam_struct::cam_struct() {
-    use_up = false;
-    view_point = { 0.0f, 1.0f, 6.0f };
-    interest = { 0.0f, 1.0f, 0.0f };
-    fov = (float_t)(32.2673416137695 * DEG_TO_RAD);
-    roll = 0.0f;
-    up = { 0.0f, 1.0f, 0.0f };
-    min_distance = 0.05f;
-}
-
-void cam_struct::get(camera* cam) {
+void CameraParam::get(camera* cam) {
     cam->get_view_point(view_point);
     cam->get_interest(interest);
-    fov = (float_t)cam->get_fov() * DEG_TO_RAD_FLOAT;
+    v_fov = (float_t)cam->get_fov() * DEG_TO_RAD_FLOAT;
     roll = (float_t)cam->get_roll() * DEG_TO_RAD_FLOAT;
 }
 
-void cam_struct::set(camera* cam) {
+void CameraParam::init() {
+    use_up = false;
+    view_point = { 0.0f, 1.0f, 6.0f };
+    interest = { 0.0f, 1.0f, 0.0f };
+    v_fov = (float_t)(32.2673416137695 * DEG_TO_RAD);
+    roll = 0.0f;
+    up = { 0.0f, 1.0f, 0.0f };
+    clip_near = 0.05f;
+}
+
+void CameraParam::set(camera* cam) {
     cam->set_view_point(view_point);
     cam->set_interest(interest);
-    cam->set_fov(fov * RAD_TO_DEG_FLOAT);
+    cam->set_fov(v_fov * RAD_TO_DEG_FLOAT);
     cam->set_roll(roll * RAD_TO_DEG_FLOAT);
     cam->set_up(use_up, up);
-    cam->set_min_distance(min_distance);
+    cam->set_min_distance(clip_near);
 }
 
 cam_data::cam_data() : view_point(0.0f, 0.0f, 1.0f), interest(), up(0.0f, 1.0f, 0.0f),

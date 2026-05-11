@@ -191,7 +191,7 @@ namespace prj {
 
             return assign(ptr, npos);
         }
-        
+
         template <bool rhs_fill_null = false>
         __declspec(noinline) PodStringOnArray& assign(const PodStringOnArray<_Elem, _Traits, len, unk, rhs_fill_null>& rhs) {
             if (c_str() == rhs.c_str())

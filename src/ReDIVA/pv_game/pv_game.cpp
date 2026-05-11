@@ -1373,22 +1373,22 @@ void pv_game::change_field(size_t field, ssize_t dsc_time, ssize_t curr_time) {
 
     data.play_data.set_spr_set_back_id(next_field_data.spr_set_back_id);
 
-    std::vector<auth_3d_id> auth_3d_end;
+    std::vector<auth_3d_detail::Handle> auth_3d_end;
     std::set_difference(
         curr_field_data.auth_3d_ids.begin(), curr_field_data.auth_3d_ids.end(),
         next_field_data.auth_3d_ids.begin(), next_field_data.auth_3d_ids.end(), std::back_inserter(auth_3d_end));
-    std::vector<auth_3d_id> auth_3d_start;
+    std::vector<auth_3d_detail::Handle> auth_3d_start;
     std::set_difference(
         next_field_data.auth_3d_ids.begin(), next_field_data.auth_3d_ids.end(),
         curr_field_data.auth_3d_ids.begin(), curr_field_data.auth_3d_ids.end(), std::back_inserter(auth_3d_start));
-    std::vector<auth_3d_id> auth_3d_cont;
+    std::vector<auth_3d_detail::Handle> auth_3d_cont;
     std::set_intersection(
         curr_field_data.auth_3d_ids.begin(), curr_field_data.auth_3d_ids.end(),
         next_field_data.auth_3d_ids.begin(), next_field_data.auth_3d_ids.end(), std::back_inserter(auth_3d_cont));
 
-    for (auth_3d_id& i : auth_3d_end) {
-        i.set_visibility(false);
-        i.set_enable(false);
+    for (auth_3d_detail::Handle& i : auth_3d_end) {
+        i.set_visible(false);
+        i.set_enabled(false);
     }
 
     bool disp = true;
@@ -1399,78 +1399,78 @@ void pv_game::change_field(size_t field, ssize_t dsc_time, ssize_t curr_time) {
             disp = field > pv_disp2d->title_end_3d_field;
     }
 
-    for (auth_3d_id& i : auth_3d_start) {
-        float_t req_frame = 0.0f;
-        float_t max_frame = -1.0f;
+    for (auth_3d_detail::Handle& i : auth_3d_start) {
+        float_t frame_req = 0.0f;
+        float_t frame_max = -1.0f;
 
         if (data.has_auth_3d_frame) {
             int32_t auth_3d_frame = get_field_auth_3d_frame(next_field_data, i.get_uid(), 0);
-            req_frame = pv_game::get_auth_3d_frame_max_frame(get_frame(auth_3d_frame,
-                dsc_time, curr_time), i.get_uid(), dsc_time, curr_time, 0, &max_frame);
-            req_frame = max_def(req_frame, 0.0f);
+            frame_req = pv_game::get_scene_frame_max_frame(get_frame(auth_3d_frame,
+                dsc_time, curr_time), i.get_uid(), dsc_time, curr_time, 0, &frame_max);
+            frame_req = max_def(frame_req, 0.0f);
         }
 
-        i.set_enable(true);
-        i.set_req_frame(req_frame);
-        i.set_max_frame(max_frame);
-        i.set_paused(false);
-        i.set_visibility(disp);
+        i.set_enabled(true);
+        i.set_frame_req(frame_req);
+        i.set_frame_max(frame_max);
+        i.set_pause(false);
+        i.set_visible(disp);
     }
 
-    for (auth_3d_id& i : auth_3d_cont) {
-        float_t max_frame = -1.0f;
+    for (auth_3d_detail::Handle& i : auth_3d_cont) {
+        float_t frame_max = -1.0f;
 
         if (data.has_auth_3d_frame) {
             int32_t auth_3d_frame = get_field_auth_3d_frame(next_field_data, i.get_uid(), 0);
-            float_t req_frame = get_auth_3d_frame_max_frame(get_frame_continue(auth_3d_frame),
-                i.get_uid(), dsc_time, curr_time, 0, &max_frame);
-            if (req_frame >= 0.0f)
-                i.set_req_frame(req_frame);
+            float_t frame_req = get_scene_frame_max_frame(get_frame_continue(auth_3d_frame),
+                i.get_uid(), dsc_time, curr_time, 0, &frame_max);
+            if (frame_req >= 0.0f)
+                i.set_frame_req(frame_req);
         }
 
-        i.set_max_frame(max_frame);
+        i.set_frame_max(frame_max);
     }
 
     if (next_field_data.light_auth_3d_id == curr_field_data.light_auth_3d_id) {
-        auth_3d_id& light_auth = next_field_data.light_auth_3d_id;
-        if (light_auth.check_not_empty()) {
-            float_t max_frame = -1.0f;
+        auth_3d_detail::Handle& light_auth = next_field_data.light_auth_3d_id;
+        if (light_auth.is_valid()) {
+            float_t frame_max = -1.0f;
 
             if (data.has_light_frame) {
                 int32_t light_frame = get_field_auth_3d_frame(next_field_data, light_auth.get_uid(), 1);
-                float_t req_frame = get_auth_3d_frame_max_frame(get_frame_continue(light_frame),
-                    light_auth.get_uid(), dsc_time, curr_time, 1, &max_frame);
-                if (req_frame >= 0.0f)
-                    light_auth.set_req_frame(req_frame);
+                float_t frame_req = get_scene_frame_max_frame(get_frame_continue(light_frame),
+                    light_auth.get_uid(), dsc_time, curr_time, 1, &frame_max);
+                if (frame_req >= 0.0f)
+                    light_auth.set_frame_req(frame_req);
             }
 
-            light_auth.set_max_frame(max_frame);
+            light_auth.set_frame_max(frame_max);
         }
     }
     else {
-        auth_3d_id& prev_light_auth = curr_field_data.light_auth_3d_id;
-        if (prev_light_auth.check_not_empty()) {
-            prev_light_auth.set_visibility(false);
-            prev_light_auth.set_enable(false);
+        auth_3d_detail::Handle& prev_light_auth = curr_field_data.light_auth_3d_id;
+        if (prev_light_auth.is_valid()) {
+            prev_light_auth.set_visible(false);
+            prev_light_auth.set_enabled(false);
         }
 
-        auth_3d_id& next_light_auth = next_field_data.light_auth_3d_id;
-        if (next_light_auth.check_not_empty()) {
-            float_t req_frame = 0.0f;
-            float_t max_frame = -1.0f;
+        auth_3d_detail::Handle& next_light_auth = next_field_data.light_auth_3d_id;
+        if (next_light_auth.is_valid()) {
+            float_t frame_req = 0.0f;
+            float_t frame_max = -1.0f;
 
             if (data.has_light_frame) {
                 int32_t light_frame = get_field_auth_3d_frame(next_field_data, next_light_auth.get_uid(), 1);
-                req_frame = get_auth_3d_frame_max_frame(get_frame(light_frame,
-                    dsc_time, curr_time), next_light_auth.get_uid(), dsc_time, curr_time, 1, &max_frame);
-                req_frame = max_def(req_frame, 0.0f);
+                frame_req = get_scene_frame_max_frame(get_frame(light_frame,
+                    dsc_time, curr_time), next_light_auth.get_uid(), dsc_time, curr_time, 1, &frame_max);
+                frame_req = max_def(frame_req, 0.0f);
             }
 
-            next_light_auth.set_enable(true);
-            next_light_auth.set_req_frame(req_frame);
-            next_light_auth.set_max_frame(req_frame);
-            next_light_auth.set_paused(false);
-            next_light_auth.set_visibility(true);
+            next_light_auth.set_enabled(true);
+            next_light_auth.set_frame_req(frame_req);
+            next_light_auth.set_frame_max(frame_max);
+            next_light_auth.set_pause(false);
+            next_light_auth.set_visible(true);
         }
     }
 
@@ -1864,7 +1864,7 @@ int32_t pv_game::ctrl_end(float_t delta_time) {
 void pv_game::data_itmpv_disable() {
     for (auto& i : data.itmpv)
         for (auto& j : i)
-            j.second.first.set_enable(false);
+            j.second.first.set_enabled(false);
 }
 
 void pv_game::disp() {
@@ -1942,16 +1942,16 @@ void pv_game::edit_effect_set(int32_t index, float_t speed, float_t delta_time) 
 
 void pv_game::edit_instrument_reset() {
     for (pv_game_edit_instrument& i : data.edit_instrument)
-        for (auth_3d_id& j : i.auth_3d_ids)
-            j.set_enable(false);
+        for (auth_3d_detail::Handle& j : i.auth_3d_ids)
+            j.set_enabled(false);
 }
 
 void pv_game::edit_instrument_set_disp(int32_t rob_id, bool value) {
     pv_game_edit_instrument& v4 = data.edit_instrument[rob_id];
     if (v4.index >= 0 && v4.auth_3d_ids.size()) {
-        auth_3d_id& id = v4.auth_3d_ids[v4.index];
-        if (id.check_not_empty())
-            id.set_visibility(value);
+        auth_3d_detail::Handle& id = v4.auth_3d_ids[v4.index];
+        if (id.is_valid())
+            id.set_visible(value);
     }
 }
 
@@ -1979,11 +1979,11 @@ void pv_game::end(bool complete, bool set_fade) {
 }
 
 float_t pv_game::get_aet_frame_max_frame(int32_t aet_frame, int32_t aet_index, std::pair<std::string,
-    std::string>& aet_name_id, int64_t dsc_time, int64_t curr_time, float_t* max_frame) {
-    if (!max_frame)
+    std::string>& aet_name_id, int64_t dsc_time, int64_t curr_time, float_t* frame_max) {
+    if (!frame_max)
         return -1.0f;
 
-    *max_frame = -1.0f;
+    *frame_max = -1.0f;
     if (dsc_time < 0 || curr_time < 0)
         return 0.0f;
 
@@ -1991,9 +1991,9 @@ float_t pv_game::get_aet_frame_max_frame(int32_t aet_frame, int32_t aet_index, s
         data.aet_time[aet_index].insert_or_assign(aet_name_id, dsc_time);
 
         if (!aet_frame) {
-            *max_frame = get_aet_frame_max_frame_change_field(aet_index, aet_name_id, dsc_time);
-            if (*max_frame < 0.0f)
-                *max_frame = get_next_aet_max_frame_change_field(aet_index, aet_name_id, dsc_time, curr_time);
+            *frame_max = get_aet_frame_max_frame_change_field(aet_index, aet_name_id, dsc_time);
+            if (*frame_max < 0.0f)
+                *frame_max = get_next_aet_max_frame_change_field(aet_index, aet_name_id, dsc_time, curr_time);
         }
         return 0.0f;
     }
@@ -2007,19 +2007,19 @@ float_t pv_game::get_aet_frame_max_frame(int32_t aet_frame, int32_t aet_index, s
         }
 
         if (aet_frame == -1) {
-            *max_frame = get_aet_frame_max_frame_change_field(aet_index, aet_name_id, dsc_time);
-            if (*max_frame < 0.0f)
-                *max_frame = get_next_aet_max_frame_change_field(aet_index, aet_name_id, dsc_time, curr_time);
+            *frame_max = get_aet_frame_max_frame_change_field(aet_index, aet_name_id, dsc_time);
+            if (*frame_max < 0.0f)
+                *frame_max = get_next_aet_max_frame_change_field(aet_index, aet_name_id, dsc_time, curr_time);
         }
         return frame;
     }
     else if (!((aet_frame + 6) & ~4u) && aet_frame == -2)
-        *max_frame = get_aet_frame_max_frame_change_field(aet_index, aet_name_id, dsc_time);
+        *frame_max = get_aet_frame_max_frame_change_field(aet_index, aet_name_id, dsc_time);
     return -1.0f;
 }
 
-void pv_game::get_aet_frame_max_frame_by_name(float_t& frame, float_t& max_frame, std::pair<std::string, std::string>& aet_name_id) {
-    if (frame < 0.0f && max_frame < 0.0f || !data.pv_disp2d)
+void pv_game::get_aet_frame_max_frame_by_name(float_t& frame, float_t& frame_max, std::pair<std::string, std::string>& aet_name_id) {
+    if (frame < 0.0f && frame_max < 0.0f || !data.pv_disp2d)
         return;
 
     data_struct* aft_data = &data_list[DATA_AFT];
@@ -2038,10 +2038,10 @@ void pv_game::get_aet_frame_max_frame_by_name(float_t& frame, float_t& max_frame
             frame = end_frame;
     }
 
-    if (max_frame >= 0.0f) {
-        max_frame += start_frame;
-        if (end_frame >= 0.0f && max_frame > end_frame)
-            max_frame = end_frame;
+    if (frame_max >= 0.0f) {
+        frame_max += start_frame;
+        if (end_frame >= 0.0f && frame_max > end_frame)
+            frame_max = end_frame;
     }
 }
 
@@ -2065,12 +2065,12 @@ int64_t pv_game::get_aet_time(int32_t aet_index, std::pair<std::string, std::str
     return -1;
 }
 
-float_t pv_game::get_auth_3d_frame_max_frame(int32_t auth_3d_frame, int32_t auth_3d_uid,
-    int64_t dsc_time, int64_t curr_time, uint8_t type, float_t* max_frame) {
-    if (!max_frame || type != 0 && type != 1)
+float_t pv_game::get_scene_frame_max_frame(int32_t auth_3d_frame, int32_t auth_3d_uid,
+    int64_t dsc_time, int64_t curr_time, uint8_t type, float_t* frame_max) {
+    if (!frame_max || type != 0 && type != 1)
         return -1.0f;
 
-    *max_frame = -1.0f;
+    *frame_max = -1.0f;
     if (dsc_time < 0 || curr_time < 0)
         return 0.0f;
 
@@ -2081,15 +2081,15 @@ float_t pv_game::get_auth_3d_frame_max_frame(int32_t auth_3d_frame, int32_t auth
             data.auth_3d_time.insert_or_assign(auth_3d_uid, dsc_time);
 
         if (!auth_3d_frame) {
-            *max_frame = get_auth_3d_frame_max_frame_change_field(auth_3d_uid, dsc_time, type);
-            if (*max_frame < 0.0f)
-                *max_frame = get_next_auth_3d_max_frame_change_field(auth_3d_uid, dsc_time, curr_time, type);
+            *frame_max = get_scene_frame_max_frame_change_field(auth_3d_uid, dsc_time, type);
+            if (*frame_max < 0.0f)
+                *frame_max = get_next_auth_3d_max_frame_change_field(auth_3d_uid, dsc_time, curr_time, type);
         }
         return 0.0f;
     }
     else if (!((auth_3d_frame + 5) & ~4u)) {
         float_t frame = -1.0f;
-        int64_t auth_3d_time = get_auth_3d_time(auth_3d_uid, type);
+        int64_t auth_3d_time = get_scene_time(auth_3d_uid, type);
         if (auth_3d_time >= 0) {
             frame = dsc_time_to_frame(curr_time - auth_3d_time);
             float_t dsc_frame = prj::roundf(dsc_time_to_frame(dsc_time - auth_3d_time));
@@ -2097,18 +2097,18 @@ float_t pv_game::get_auth_3d_frame_max_frame(int32_t auth_3d_frame, int32_t auth
         }
 
         if (auth_3d_frame == -1) {
-            *max_frame = get_auth_3d_frame_max_frame_change_field(auth_3d_uid, dsc_time, type);
-            if (*max_frame < 0.0f)
-                *max_frame = get_next_auth_3d_max_frame_change_field(auth_3d_uid, dsc_time, curr_time, type);
+            *frame_max = get_scene_frame_max_frame_change_field(auth_3d_uid, dsc_time, type);
+            if (*frame_max < 0.0f)
+                *frame_max = get_next_auth_3d_max_frame_change_field(auth_3d_uid, dsc_time, curr_time, type);
         }
         return frame;
     }
     else if (!((auth_3d_frame + 6) & ~4u) && auth_3d_frame == -2)
-        *max_frame = get_auth_3d_frame_max_frame_change_field(auth_3d_uid, dsc_time, type);
+        *frame_max = get_scene_frame_max_frame_change_field(auth_3d_uid, dsc_time, type);
     return -1.0f;
 }
 
-float_t pv_game::get_auth_3d_frame_max_frame_change_field(uint32_t auth_3d_uid, int64_t time, uint8_t type) {
+float_t pv_game::get_scene_frame_max_frame_change_field(uint32_t auth_3d_uid, int64_t time, uint8_t type) {
     if (time < 0)
         return -1.0f;
 
@@ -2116,18 +2116,18 @@ float_t pv_game::get_auth_3d_frame_max_frame_change_field(uint32_t auth_3d_uid, 
         ? data.pv_data.change_field_branch_fail
         : data.pv_data.change_field_branch_success;
     if (time == 10000LL * change_field.back().first)
-        return prj::roundf(dsc_time_to_frame(data.max_time - get_auth_3d_time(auth_3d_uid, type))) - 1.0f;
+        return prj::roundf(dsc_time_to_frame(data.max_time - get_scene_time(auth_3d_uid, type))) - 1.0f;
     return -1.0f;
 }
 
-auth_3d_id pv_game::get_auth_3d_id(int32_t uid) {
+auth_3d_detail::Handle pv_game::get_scene_id(int32_t uid) {
     auto elem = data.auth_3d.find(uid);
     if (elem != data.auth_3d.end())
         return elem->second;
     return {};
 }
 
-int64_t pv_game::get_auth_3d_time(int32_t uid, uint8_t type) {
+int64_t pv_game::get_scene_time(int32_t uid, uint8_t type) {
     switch (type) {
     case 0: {
         auto elem = data.auth_3d_time.find(uid);
@@ -2164,7 +2164,7 @@ uint32_t pv_game::get_chreff_auth_3d_object_set(int32_t& uid) {
     }
 
     if (obj_set == -1 && uid >= 0 && uid < aft_auth_3d_db->uid.size()) {
-        std::string& category = aft_auth_3d_db->uid[uid].category;
+        const std::string& category = aft_auth_3d_db->uid[uid].category_name;
         if (!category.find("EFFCHRPV"))
             return aft_obj_db->get_object_set_id(category.c_str());
     }
@@ -2201,7 +2201,7 @@ int32_t pv_game::get_field_aet_frame_by_name_id(pv_game_field& field,
 int32_t pv_game::get_field_aet_index_by_name_id(pv_game_field& field,
     int32_t aet_index, std::pair<std::string, std::string>& aet_name_id) {
     int32_t index = 0;
-    for (std::string& i : field.aet_names[aet_index]) {
+    for (const std::string& i : field.aet_names[aet_index]) {
         std::string* id = 0;
         if (index < field.aet_ids[aet_index].size())
             id = &field.aet_ids[aet_index][index];
@@ -2263,18 +2263,18 @@ float_t pv_game::get_next_aet_max_frame_change_field(int32_t aet_index, std::pai
             aet_name_id, dsc_time, &max_time, curr_time, change_field);
     }
 
-    float_t max_frame_fail = get_next_aet_max_time_max_frame_change_field(aet_index,
+    float_t frame_max_fail = get_next_aet_max_time_max_frame_change_field(aet_index,
         aet_name_id, dsc_time, &max_time, curr_time, data.pv_data.change_field_branch_fail);
-    if (max_frame_fail < 0.0f)
+    if (frame_max_fail < 0.0f)
         return get_next_aet_max_time_max_frame_change_field(aet_index,
             aet_name_id, dsc_time, &max_time, curr_time, data.pv_data.change_field_branch_success);
     else if (max_time > data.pv_data.change_field_branch_time) {
-        float_t max_frame_success = get_next_aet_max_time_max_frame_change_field(aet_index,
+        float_t frame_max_success = get_next_aet_max_time_max_frame_change_field(aet_index,
             aet_name_id, dsc_time, &max_time, curr_time, data.pv_data.change_field_branch_success);
-        if (max_frame_success >= 0.0f && max_frame_success < max_frame_fail)
-            return max_frame_success;
+        if (frame_max_success >= 0.0f && frame_max_success < frame_max_fail)
+            return frame_max_success;
     }
-    return max_frame_fail;
+    return frame_max_fail;
 }
 
 float_t pv_game::get_next_aet_max_time_max_frame_change_field(int32_t aet_index,
@@ -2308,18 +2308,18 @@ float_t pv_game::get_next_auth_3d_max_frame_change_field(uint32_t auth_3d_uid,
             dsc_time, &max_time, curr_time, change_field, type);
     }
 
-    float_t max_frame_fail = get_next_auth_3d_max_time_max_frame_change_field(auth_3d_uid,
+    float_t frame_max_fail = get_next_auth_3d_max_time_max_frame_change_field(auth_3d_uid,
         dsc_time, &max_time, curr_time, data.pv_data.change_field_branch_fail, type);
-    if (max_frame_fail < 0.0f)
+    if (frame_max_fail < 0.0f)
         return get_next_auth_3d_max_time_max_frame_change_field(auth_3d_uid,
             dsc_time, &max_time, curr_time, data.pv_data.change_field_branch_success, type);
     else if (max_time > data.pv_data.change_field_branch_time) {
-        float_t max_frame_success = get_next_auth_3d_max_time_max_frame_change_field(auth_3d_uid,
+        float_t frame_max_success = get_next_auth_3d_max_time_max_frame_change_field(auth_3d_uid,
             dsc_time, &max_time, curr_time, data.pv_data.change_field_branch_success, type);
-        if (max_frame_success >= 0.0f && max_frame_success < max_frame_fail)
-            return max_frame_success;
+        if (frame_max_success >= 0.0f && frame_max_success < frame_max_fail)
+            return frame_max_success;
     }
-    return max_frame_fail;
+    return frame_max_fail;
 }
 
 float_t pv_game::get_next_auth_3d_max_time_max_frame_change_field(uint32_t auth_3d_uid, int64_t dsc_time,
@@ -2332,7 +2332,7 @@ float_t pv_game::get_next_auth_3d_max_time_max_frame_change_field(uint32_t auth_
         if (time > dsc_time && i.second >= 0 && i.second < data.field_data.size()
             && ((get_field_auth_3d_frame(data.field_data[i.second], auth_3d_uid, type) + 5) & -6) == 0) {
             *max_time = time;
-            return prj::roundf(dsc_time_to_frame(time - get_auth_3d_time(auth_3d_uid, type))) - 1.0f;
+            return prj::roundf(dsc_time_to_frame(time - get_scene_time(auth_3d_uid, type))) - 1.0f;
         }
     }
     return -1.0f;
@@ -2455,14 +2455,14 @@ bool pv_game::is_play_data_option_3() {
 void pv_game::itmpv_reset() {
     for (auto& i : data.itmpv)
         for (auto& j : i) {
-            auth_3d_id& id = j.second.first;
-            id.set_repeat(0);
-            id.set_enable(0);
-            id.set_camera_root_update(0);
-            id.set_visibility(1);
-            id.set_frame_rate(get_diva_pv_frame_rate());
+            auth_3d_detail::Handle& id = j.second.first;
+            id.set_looped(false);
+            id.set_enabled(false);;
+            id.camera_set_enabled(false);
+            id.set_visible(true);
+            id.set_frame_rate_control(get_diva_pv_frame_rate());
             id.set_shadow(true);
-            id.set_chara_id((int32_t)(&i - data.itmpv));
+            id.assign_rob_id((int32_t)(&i - data.itmpv));
             j.second.second = -1;
         }
 }
@@ -2955,11 +2955,11 @@ bool pv_game::load() {
                 chreff.src_auth_3d_uid = aft_auth_3d_db->get_uid(chreff.src_auth_3d.c_str());
                 chreff.dst_auth_3d_uid = aft_auth_3d_db->get_uid(chreff.dst_auth_3d.c_str());
 
-                std::string& src_category = aft_auth_3d_db->uid[chreff.src_auth_3d_uid].category;
+                const std::string& src_category = aft_auth_3d_db->uid[chreff.src_auth_3d_uid].category_name;
                 if (src_category.size())
                     chreff.src_auth_3d_category.assign(src_category);
 
-                std::string& dst_category = aft_auth_3d_db->uid[chreff.dst_auth_3d_uid].category;
+                const std::string& dst_category = aft_auth_3d_db->uid[chreff.dst_auth_3d_uid].category_name;
                 if (dst_category.size())
                     chreff.dst_auth_3d_category.assign(dst_category);
 
@@ -3041,8 +3041,8 @@ bool pv_game::load() {
                         field.auth_3d_uids.push_back(auth_3d_uid);
                         data.loaded_auth_3d_uids.push_back(auth_3d_uid);
 
-                        if (aft_auth_3d_db->uid[auth_3d_uid].category.size())
-                            data.auth_3d_categories.push_back(aft_auth_3d_db->uid[auth_3d_uid].category);
+                        if (aft_auth_3d_db->uid[auth_3d_uid].category_name.size())
+                            data.auth_3d_categories.push_back(aft_auth_3d_db->uid[auth_3d_uid].category_name);
 
                         if (chreff_auth_3d_obj_set_id != -1)
                             data.chreff_auth_3d_obj_set_ids.push_back(chreff_auth_3d_obj_set_id);
@@ -3070,8 +3070,8 @@ bool pv_game::load() {
                     if (i.light_frame_set)
                         data.has_light_frame = true;
 
-                    if (aft_auth_3d_db->uid[light_uid].category.size())
-                        data.auth_3d_categories.push_back(aft_auth_3d_db->uid[light_uid].category);
+                    if (aft_auth_3d_db->uid[light_uid].category_name.size())
+                        data.auth_3d_categories.push_back(aft_auth_3d_db->uid[light_uid].category_name);
 
                     size_t pos = i.light.find('_');
                     if (pos != -1) {
@@ -3150,7 +3150,7 @@ bool pv_game::load() {
                 data.field_data.push_back(field);
             }
 
-            prj::sort_unique(data.chreff_auth_3d_obj_set_ids);
+            prj::sort_and_erase_non_unique(data.chreff_auth_3d_obj_set_ids);
             for (uint32_t& i : data.chreff_auth_3d_obj_set_ids)
                 objset_info_storage_load_set(aft_data, aft_obj_db, i);
 
@@ -3174,7 +3174,7 @@ bool pv_game::load() {
             if (data.itmpv_auth_3d_uids.size()) {
                 data.auth_3d_categories.push_back(data.itmpv_string);
                 for (int32_t& i : data.itmpv_auth_3d_uids)
-                    check_auth_replace_by_module(auth_3d_data_get_uid_name(i, aft_auth_3d_db), i);
+                    check_auth_replace_by_module(auth_3d_detail::get_name_uid(i, aft_auth_3d_db), i);
 
                 data.loaded_auth_3d_uids.insert(data.loaded_auth_3d_uids.end(),
                     data.itmpv_auth_3d_uids.begin(), data.itmpv_auth_3d_uids.end());
@@ -3184,11 +3184,11 @@ bool pv_game::load() {
             for (int32_t i = 0; i < 3; i++) {
                 v261 |= !!diff->field_228[i].size();
                 for (auto& j : diff->field_228[i])
-                    data.itmpv_uids.push_back(auth_3d_data_get_uid_name(j.second.second, aft_auth_3d_db));
+                    data.itmpv_uids.push_back(auth_3d_detail::get_name_uid(j.second.second, aft_auth_3d_db));
             }
 
             if (v261)
-                for (std::string& i : data.itmpv_uids)
+                for (const std::string& i : data.itmpv_uids)
                     data.auth_3d_categories.push_back(i);
 
             data.field_2D770.clear();
@@ -3196,7 +3196,7 @@ bool pv_game::load() {
                 for (auto& j : diff->field_228[i])
                     data.field_2D770.push_back(j.second.first.set_id);
 
-            prj::sort_unique(data.field_2D770);
+            prj::sort_and_erase_non_unique(data.field_2D770);
             for (uint32_t& i : data.field_2D770)
                 objset_info_storage_load_set(aft_data, aft_obj_db, i);
 
@@ -3205,7 +3205,7 @@ bool pv_game::load() {
                 for (const pv_db_pv_ex_song_ex_auth& j : i.ex_auth) {
                     uint32_t uid = aft_auth_3d_db->get_uid(j.org_name.c_str());
                     data.loaded_auth_3d_uids.push_back(uid);
-                    const char* category_name = aft_auth_3d_db->uid[uid].category.c_str();
+                    const char* category_name = aft_auth_3d_db->uid[uid].category_name.c_str();
                     if (category_name) {
                         uint32_t obj_set_id = aft_obj_db->get_object_set_id(category_name);
                         if (obj_set_id != -1)
@@ -3213,11 +3213,11 @@ bool pv_game::load() {
                     }
                 }
 
-            prj::sort_unique(data.ex_song_ex_auth_obj_set_ids);
+            prj::sort_and_erase_non_unique(data.ex_song_ex_auth_obj_set_ids);
             for (uint32_t& i : data.ex_song_ex_auth_obj_set_ids)
                 objset_info_storage_load_set(aft_data, aft_obj_db, i);
 
-            prj::sort_unique(data.stage_indices);
+            prj::sort_and_erase_non_unique(data.stage_indices);
             if (!data.stage_indices.size())
                 data.stage_indices.push_back(0);
 
@@ -3238,7 +3238,7 @@ bool pv_game::load() {
                     data.stgpvhrc_obj_set_ids.push_back(obj_set_id);
             }
 
-            prj::sort_unique(data.stgpvhrc_obj_set_ids);
+            prj::sort_and_erase_non_unique(data.stgpvhrc_obj_set_ids);
             for (uint32_t& i : data.stgpvhrc_obj_set_ids)
                 objset_info_storage_load_set(aft_data, aft_obj_db, i);
 
@@ -3271,38 +3271,38 @@ bool pv_game::load() {
         state = 2;
     } break;
     case 8: {
-        prj::sort_unique(data.spr_set_back_ids);
+        prj::sort_and_erase_non_unique(data.spr_set_back_ids);
         for (uint32_t& i : data.spr_set_back_ids)
             spr::request(i, std::string(data.pv->mdata.dir), aft_data, aft_spr_db);
         data.field_2D7E8 = true;
 
-        prj::sort_unique(data.auth_3d_categories);
-        for (std::string& i : data.auth_3d_categories)
-            auth_3d_data_load_category(i.c_str(), data.pv->mdata.dir.c_str());
+        prj::sort_and_erase_non_unique(data.auth_3d_categories);
+        for (const std::string& i : data.auth_3d_categories)
+            auth_3d_detail::category_load_req(i.c_str(), data.pv->mdata.dir.c_str());
         data.field_2DAC8 = true;
 
-        prj::sort_unique(data.loaded_auth_3d_uids);
+        prj::sort_and_erase_non_unique(data.loaded_auth_3d_uids);
         for (int32_t& i : data.loaded_auth_3d_uids) {
-            auth_3d_id id = auth_3d_id(i, aft_auth_3d_db);
-            if (!id.check_not_empty())
+            auth_3d_detail::Handle id = auth_3d_detail::Handle::create(i, aft_auth_3d_db);
+            if (!id.is_valid())
                 continue;
 
-            id.set_enable(false);
-            id.set_repeat(true);
-            id.set_paused(false);
+            id.set_enabled(false);
+            id.set_looped(true);
+            id.set_pause(false);
 
             data.auth_3d.insert_or_assign(i, id);
         }
 
         for (pv_game_field& i : data.field_data) {
             for (int32_t& j : i.auth_3d_uids) {
-                auth_3d_id id = get_auth_3d_id(j);
-                if (!id.check_not_empty())
+                auth_3d_detail::Handle id = get_scene_id(j);
+                if (!id.is_valid())
                     continue;
 
                 for (pv_game_chreff& k : data.chreff_auth_3d_obj)
                     if (k.dst_auth_3d_uid == j) {
-                        id.set_src_dst_chara(k.src_chara_num, k.dst_chara_num);
+                        id.replace_chara(k.src_chara_num, k.dst_chara_num);
                         break;
                     }
 
@@ -3311,15 +3311,15 @@ bool pv_game::load() {
 
             prj::sort(i.auth_3d_ids);
 
-            auth_3d_id light_auth_3d_id = get_auth_3d_id(i.light_auth_3d_uid);
-            if (light_auth_3d_id.check_not_empty())
+            auth_3d_detail::Handle light_auth_3d_id = get_scene_id(i.light_auth_3d_uid);
+            if (light_auth_3d_id.is_valid())
                 i.light_auth_3d_id = light_auth_3d_id;
             else
                 i.light_auth_3d_id = {};
         }
 
         for (int32_t& i : data.campv_auth_3d_uids) {
-            const char* name = auth_3d_data_get_uid_name(i, aft_auth_3d_db);
+            const char* name = auth_3d_detail::get_name_uid(i, aft_auth_3d_db);
             if (!name)
                 continue;
 
@@ -3329,17 +3329,17 @@ bool pv_game::load() {
 
             auto elem = data.auth_3d.find(i);
             if (elem != data.auth_3d.end()) {
-                auth_3d_id& id = elem->second;
-                id.set_camera_root_update(true);
-                id.set_repeat(false);
-                id.set_frame_rate(get_diva_pv_frame_rate());
+                auth_3d_detail::Handle& id = elem->second;
+                id.camera_set_enabled(true);
+                id.set_looped(false);
+                id.set_frame_rate_control(get_diva_pv_frame_rate());
                 data.campv.insert_or_assign(cam_index, id);
             }
         }
         data.campv_index = 0;
 
         for (int32_t& i : data.itmpv_auth_3d_uids) {
-            const char* name = auth_3d_data_get_uid_name(i, aft_auth_3d_db);
+            const char* name = auth_3d_detail::get_name_uid(i, aft_auth_3d_db);
             if (!name)
                 continue;
 
@@ -3368,22 +3368,22 @@ bool pv_game::load() {
                 auto elem = data.auth_3d.find(i);
                 if (elem != data.auth_3d.end())
                     data.itmpv[chara_id].insert_or_assign(itm_index,
-                        std::pair<auth_3d_id, int64_t>(elem->second, -1));
+                        std::pair<auth_3d_detail::Handle, int64_t>(elem->second, -1));
             }
         }
 
         itmpv_reset();
         for (pv_game_edit_instrument& i : data.edit_instrument) {
             for (auto& j : i.data) {
-                auth_3d_id id = auth_3d_id(j.second, aft_auth_3d_db);
-                if (!id.check_not_empty())
+                auth_3d_detail::Handle id = auth_3d_detail::Handle::create(j.second, aft_auth_3d_db);
+                if (!id.is_valid())
                     continue;
 
-                id.set_enable(false);
-                id.set_repeat(true);
-                id.set_paused(false);
-                id.set_camera_root_update(false);
-                //id.set_object_info(j.first);
+                id.set_enabled(false);
+                id.set_looped(true);
+                id.set_pause(false);
+                id.camera_set_enabled(false);
+                id.set_obj_uid(j.first);
                 i.auth_3d_ids.push_back(id);
             }
         }
@@ -3441,7 +3441,7 @@ bool pv_game::load() {
         if (itmpv_obj_set != -1)
             data.obj_set_itmpv.push_back(itmpv_obj_set);
 
-        prj::sort_unique(data.obj_set_itmpv);
+        prj::sort_and_erase_non_unique(data.obj_set_itmpv);
         for (uint32_t& i : data.obj_set_itmpv)
             objset_info_storage_load_set(aft_data, aft_obj_db, i);
 
@@ -3465,7 +3465,7 @@ bool pv_game::load() {
                 }
             }
 
-            prj::sort_unique(data.obj_set_handitem);
+            prj::sort_and_erase_non_unique(data.obj_set_handitem);
             for (uint32_t& i : data.obj_set_handitem)
                 objset_info_storage_load_set(aft_data, aft_obj_db, i);
 
@@ -3483,8 +3483,8 @@ bool pv_game::load() {
             if (spr::wait(i, aft_spr_db))
                 wait_load |= true;
 
-        for (std::string& i : data.auth_3d_categories)
-            if (!auth_3d_data_check_category_loaded(i.c_str()))
+        for (const std::string& i : data.auth_3d_categories)
+            if (!auth_3d_detail::category_load_is_done(i.c_str()))
                 wait_load |= true;
 
         for (uint32_t& i : data.edit_effect.aet_set_ids)
@@ -3528,11 +3528,11 @@ bool pv_game::load() {
     } break;
     case 10: {
         for (auto& i : data.auth_3d)
-            i.second.read_file(aft_auth_3d_db);
+            i.second.load_req(aft_auth_3d_db);
 
         for (pv_game_edit_instrument& i : data.edit_instrument)
-            for (auth_3d_id& j : i.auth_3d_ids)
-                j.read_file(aft_auth_3d_db);
+            for (auth_3d_detail::Handle& j : i.auth_3d_ids)
+                j.load_req(aft_auth_3d_db);
 
         if (Glitter::glt_particle_manager) {
             Glitter::counter.Reset();
@@ -3549,12 +3549,12 @@ bool pv_game::load() {
         bool wait_load = false;
 
         for (auto& i : data.auth_3d)
-            if (!i.second.check_loaded())
+            if (!i.second.load_is_done())
                 wait_load |= true;
 
         for (pv_game_edit_instrument& i : data.edit_instrument)
-            for (auth_3d_id& j : i.auth_3d_ids)
-                if (!j.check_loaded())
+            for (auth_3d_detail::Handle& j : i.auth_3d_ids)
+                if (!j.load_is_done())
                     wait_load |= true;
 
         if (!wait_load)
@@ -3628,7 +3628,7 @@ bool pv_game::load() {
                         }
 
                 for (pv_game_field& j : data.field_data)
-                    for (auth_3d_id& k : j.auth_3d_ids)
+                    for (auth_3d_detail::Handle& k : j.auth_3d_ids)
                         if (k.get_uid() == org_uid) {
                             auto elem = data.auth_3d.find(uid);
                             if (elem != data.auth_3d.end()) {
@@ -3884,13 +3884,13 @@ bool pv_game::load() {
         }
 
         for (int32_t& i : data.campv_auth_3d_uids) {
-            const char* name = auth_3d_data_get_uid_name(i, aft_auth_3d_db);
+            const char* name = auth_3d_detail::get_name_uid(i, aft_auth_3d_db);
             if (!name || !check_chrcam(name, i))
                 continue;
 
             auto elem = data.auth_3d.find(i);
             if (elem != data.auth_3d.end())
-                elem->second.set_enable(false);
+                elem->second.set_enabled(false);
         }
 
         itmpv_reset();
@@ -3899,18 +3899,18 @@ bool pv_game::load() {
 
         for (pv_game_field& i : data.field_data) {
             for (int32_t& j : i.auth_3d_uids) {
-                auth_3d_id id = get_auth_3d_id(j);
-                id.set_enable(false);
-                id.set_visibility(false);
-                id.set_paused(false);
-                id.set_req_frame(0.0f);
+                auth_3d_detail::Handle id = get_scene_id(j);
+                id.set_enabled(false);
+                id.set_visible(false);
+                id.set_pause(false);
+                id.set_frame_req(0.0f);
             }
 
-            if (i.light_auth_3d_id.check_not_empty()) {
-                i.light_auth_3d_id.set_enable(false);
-                i.light_auth_3d_id.set_visibility(false);
-                i.light_auth_3d_id.set_paused(false);
-                i.light_auth_3d_id.set_req_frame(0.0f);
+            if (i.light_auth_3d_id.is_valid()) {
+                i.light_auth_3d_id.set_enabled(false);
+                i.light_auth_3d_id.set_visible(false);
+                i.light_auth_3d_id.set_pause(false);
+                i.light_auth_3d_id.set_frame_req(0.0f);
             }
         }
 
@@ -4235,11 +4235,11 @@ void pv_game::reset_field() {
     if (data.current_field) {
         pv_game_field& curr_field_data = data.field_data[data.current_field];
 
-        for (auth_3d_id& i : curr_field_data.auth_3d_ids)
-            i.set_enable(false);
+        for (auth_3d_detail::Handle& i : curr_field_data.auth_3d_ids)
+            i.set_enabled(false);
 
-        if (curr_field_data.light_auth_3d_id.check_not_empty())
-            curr_field_data.light_auth_3d_id.set_enable(false);
+        if (curr_field_data.light_auth_3d_id.is_valid())
+            curr_field_data.light_auth_3d_id.set_enabled(false);
 
         data.current_field = 0;
     }
@@ -4336,15 +4336,14 @@ void pv_game::restart() {
     auth_3d_database* aft_auth_3d_db = &aft_data->data_ft.auth_3d_db;
 
     for (int32_t& i : data.campv_auth_3d_uids) {
-        int32_t uid = i;
-        const char* name = auth_3d_data_get_uid_name(uid, aft_auth_3d_db);
-        if (!name)
+        const char* name = auth_3d_detail::get_name_uid(i, aft_auth_3d_db);
             continue;
 
+        int32_t uid = i;
         if (check_chrcam(name, uid)) {
             auto elem = data.auth_3d.find(uid);
             if (elem != data.auth_3d.end())
-                elem->second.set_enable(false);
+                elem->second.set_enabled(false);
         }
     }
 
@@ -4382,16 +4381,16 @@ void pv_game::set_data_campv(int32_t type, int32_t index, float_t frame) {
     if (campv_index) {
         auto elem = data.campv.find(campv_index);
         if (elem != data.campv.end())
-            elem->second.set_enable(false);
+            elem->second.set_enabled(false);
     }
     data.campv_index = index;
 
-    auth_3d_id& id = elem->second;
-    id.set_enable(true);
+    auth_3d_detail::Handle& id = elem->second;
+    id.set_enabled(true);
     data.camera_auth_3d_uid = id.get_uid();
     if (type == 0 || type == 1) {
-        id.set_req_frame(frame);
-        id.set_paused(false);
+        id.set_frame_req(frame);
+        id.set_pause(false);
     }
 }
 
@@ -4400,15 +4399,15 @@ void pv_game::set_data_itmpv(int32_t rob_id, int32_t index, bool enable, int64_t
     if (elem == data.itmpv[rob_id].end())
         return;
 
-    auth_3d_id& id = elem->second.first;
+    auth_3d_detail::Handle& id = elem->second.first;
     if (enable) {
-        id.set_enable(true);
-        id.set_paused(false);
-        id.set_req_frame(0.0f);
+        id.set_enabled(true);
+        id.set_pause(false);
+        id.set_frame_req(0.0f);
         elem->second.second = time;
     }
     else {
-        id.set_enable(false);
+        id.set_enabled(false);
         elem->second.second = -1;
     }
 }
@@ -4416,35 +4415,35 @@ void pv_game::set_data_itmpv(int32_t rob_id, int32_t index, bool enable, int64_t
 void pv_game::set_data_itmpv_chara_id(int32_t rob_id, int32_t index, bool attach) {
     auto elem = data.itmpv[rob_id].find(index);
     if (elem != data.itmpv[rob_id].end())
-        elem->second.first.set_chara_id(attach ? rob_id : ROB_ID_NULL);
+        elem->second.first.assign_rob_id(attach ? rob_id : ROB_ID_NULL);
 }
 
 void pv_game::set_data_itmpv_req_frame(int32_t rob_id, int32_t index, float_t value) {
     auto elem = data.itmpv[rob_id].find(index);
     if (elem != data.itmpv[rob_id].end())
-        elem->second.first.set_req_frame(value);
+        elem->second.first.set_frame_req(value);
 }
 
 void pv_game::set_data_itmpv_max_frame(int32_t rob_id, float_t value) {
     for (auto& i : data.itmpv[rob_id])
-        i.second.first.set_max_frame(value);
+        i.second.first.set_frame_max(value);
 }
 
 void pv_game::set_data_itmpv_max_frame(int32_t rob_id, int32_t index, float_t value) {
     auto elem = data.itmpv[rob_id].find(index);
     if (elem != data.itmpv[rob_id].end())
-        elem->second.first.set_max_frame(value);
+        elem->second.first.set_frame_max(value);
 }
 
 void pv_game::set_data_itmpv_visibility(int32_t rob_id, bool value) {
     for (auto& i : data.itmpv[rob_id])
-        i.second.first.set_visibility(value);
+        i.second.first.set_visible(value);
 }
 
 void pv_game::set_data_itmpv_visibility(int32_t rob_id, int32_t index, bool value) {
     auto elem = data.itmpv[rob_id].find(index);
     if (elem != data.itmpv[rob_id].end())
-        elem->second.first.set_visibility(value);
+        elem->second.first.set_visible(value);
 }
 
 void pv_game::set_edit_instrument(int32_t rob_id, bool disp, int32_t index, float_t frame, float_t frame_speed) {
@@ -4456,26 +4455,26 @@ void pv_game::set_edit_instrument(int32_t rob_id, bool disp, int32_t index, floa
         if (edit_instrument.index >= edit_instrument.auth_3d_ids.size())
             return;
 
-        auth_3d_id& id = edit_instrument.auth_3d_ids[edit_instrument.index];
-        id.set_enable(false);
+        auth_3d_detail::Handle& id = edit_instrument.auth_3d_ids[edit_instrument.index];
+        id.set_enabled(false);
     }
 
     if (index >= 0) {
         if (index >= edit_instrument.auth_3d_ids.size())
             return;
 
-        auth_3d_id& id = edit_instrument.auth_3d_ids[index];
-        if (id.check_not_empty()) {
-            id.set_enable(true);
-            id.set_visibility(disp);
-            id.set_paused(false);
-            id.set_req_frame(frame);
-            id.set_chara_id(rob_id);
-            id.set_last_frame(id.get_play_control_size() - 1.0f);
+        auth_3d_detail::Handle& id = edit_instrument.auth_3d_ids[index];
+        if (id.is_valid()) {
+            id.set_enabled(true);
+            id.set_visible(disp);
+            id.set_pause(false);
+            id.set_frame_req(frame);
+            id.assign_rob_id(rob_id);
+            id.set_frame_loop_end(id.get_frame_size() - 1.0f);
 
             FrameRateControl* sys_frame_rate = sys_frame_rate_get(rob_id);
             sys_frame_rate->set_frame_speed(frame_speed);
-            id.set_frame_rate(sys_frame_rate);
+            id.set_frame_rate_control(sys_frame_rate);
         }
     }
     edit_instrument.index = index;
@@ -4765,15 +4764,15 @@ bool pv_game::unload() {
     data.enable_movie = true;
 
     for (auto& i : data.auth_3d)
-        i.second.unload(rctx_ptr);
+        i.second.destroy(rctx_ptr);
 
     for (auto& i : data.edit_instrument)
         for (auto& j : i.auth_3d_ids)
-            j.unload(rctx_ptr);
+            j.destroy(rctx_ptr);
 
     if (data.field_2DAC8)
-        for (std::string& i : data.auth_3d_categories)
-            auth_3d_data_unload_category(i.c_str());
+        for (const std::string& i : data.auth_3d_categories)
+            auth_3d_detail::category_free(i.c_str());
 
     data.camera_auth_3d_uid = -1;
     data.campv_string.clear();
@@ -5045,7 +5044,7 @@ void pv_game::chara_item_alpha_callback(void* data, ROB_ID rob_id, int32_t type,
     }
 
     for (auto& i : ((pv_game*)data)->data.itmpv[rob_id])
-        i.second.first.set_alpha_obj_flags(alpha, flags);
+        i.second.first.set_trnsl(alpha, flags);
 }
 
 void pv_game::get_item_mask(pv_performer_type type,
@@ -5266,7 +5265,7 @@ bool TaskPvGame::init() {
 #endif
 
     load(data);
-    //touch_util::touch_reaction_set_enable(false);
+    //touch_util::touch_reaction_set_enabled(false);
     return true;
 }
 
@@ -5280,7 +5279,7 @@ bool TaskPvGame::dest() {
 
     set_next_frame_speed(1.0f);
 
-    //touch_util::touch_reaction_set_enable(true);
+    //touch_util::touch_reaction_set_enabled(true);
     return true;
 }
 

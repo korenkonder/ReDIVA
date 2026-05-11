@@ -4,6 +4,7 @@
 */
 
 #include "ogg_vorbis.hpp"
+#include "../KKdLib/prj/algorithm.hpp"
 #include "../KKdLib/str_utils.hpp"
 #include "../KKdLib/vec.hpp"
 #include "data.hpp"
@@ -641,14 +642,7 @@ p_OggFileHandler::~p_OggFileHandler() {
         ptr = 0;
     }
 
-    std::list<p_OggFileHandler*>& list = ogg_file_handler_storage_ptr->list;
-    for (auto i = list.begin(); i != list.end();)
-        if (*i == this) {
-            list.erase(i);
-            break;
-        }
-        else
-            i++;
+    prj::find_and_erase(ogg_file_handler_storage_ptr->list, this);
 }
 
 int32_t p_OggFileHandler::GetChannelPairsCount() {

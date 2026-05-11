@@ -272,12 +272,12 @@ void motion_database::update() {
         }
     }
 
-    motion_set_ids.sort_unique();
-    motion_set_names.sort_unique();
-    motion_set_motion_ids.sort_unique();
-    motion_set_motion_names.sort_unique();
-    motion_ids.sort_unique();
-    motion_names.sort_unique();
+    motion_set_ids.sort_and_erase_non_unique();
+    motion_set_names.sort_and_erase_non_unique();
+    motion_set_motion_ids.sort_and_erase_non_unique();
+    motion_set_motion_names.sort_and_erase_non_unique();
+    motion_ids.sort_and_erase_non_unique();
+    motion_names.sort_and_erase_non_unique();
 }
 
 const motion_set_info* motion_database::get_motion_set_by_id(uint32_t id) const {

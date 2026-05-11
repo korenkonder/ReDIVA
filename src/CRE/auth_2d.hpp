@@ -74,6 +74,59 @@ struct AetArgs {
     AetArgs& operator=(const AetArgs& other);
 };
 
+namespace aet {
+    class IdHandle {
+    private:
+        AetArgs M_args;
+        int32_t M_handle;
+
+        void M_put();
+        void remove();
+
+    public:
+        IdHandle(const IdHandle& other);
+        IdHandle();
+        ~IdHandle();
+
+        inline bool isValid() {
+            return M_handle != -1;
+        }
+
+        IdHandle& assign(const AetArgs& in_args);
+        void restart();
+        void put();
+        void put_valid();
+        void destroy();
+        void setDisplay(bool flag);
+        void setPlay(bool flag);
+        bool getReady();
+    };
+
+    class SetHandle {
+    private:
+        int32_t M_set;
+        int32_t M_spr_set;
+        bool M_is_requested;
+
+        void destroy();
+
+        static const uint32_t S_INVALID_SPR_SET = -1;
+
+    public:
+        SetHandle();
+        ~SetHandle();
+
+        inline bool isValid() {
+            return M_set != -1;
+        }
+
+        SetHandle& assign(int32_t uid);
+        void request();
+        bool wait();
+        void free();
+    };
+}
+
 struct aet_layout_data {
     mat4 mat;
     vec3 position;

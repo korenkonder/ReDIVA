@@ -581,7 +581,7 @@ static void stage_modern_free(stage_modern* s) {
     light_chara_ambient = false;
 
     if (s->auth_3d_loaded) {
-        auth_3d_data_unload_category(s->stage_data->auth_3d_name_hash);
+        auth_3d_detail::category_free(s->stage_data->auth_3d_name_hash);
         s->auth_3d_loaded = false;
     }
 
@@ -608,14 +608,14 @@ static void stage_modern_load(stage_modern* s, void* data, object_database* obj_
     else if (s->state == 3) {
         objset_info_storage_load_set_hash(data, s->stage_data->hash);
 
-        auth_3d_data_load_category(data, s->stage_data->auth_3d_name.c_str(),
+        auth_3d_detail::category_load_req(data, s->stage_data->auth_3d_name.c_str(),
             s->stage_data->auth_3d_name_hash);
         s->auth_3d_loaded = true;
         s->state = 4;
     }
     else if (s->state == 4) {
         if (objset_info_storage_load_obj_set_check_not_read(s->stage_data->hash, obj_db, tex_db)
-            || !auth_3d_data_check_category_loaded(s->stage_data->auth_3d_name_hash))
+            || !auth_3d_detail::category_load_is_done(s->stage_data->auth_3d_name_hash))
             return;
 
         if (s->stage_data->render_texture != -1 && s->stage_data->render_texture != hash_murmurhash_empty)

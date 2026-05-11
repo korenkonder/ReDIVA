@@ -23,7 +23,7 @@ static void auth_3d_database_file_write_inner(auth_3d_database_file* auth_3d_db_
 static void auth_3d_database_file_read_text(auth_3d_database_file* auth_3d_db_file, void* data, size_t size);
 static void auth_3d_database_file_write_text(auth_3d_database_file* auth_3d_db_file, void** data, size_t* size);
 
-auth_3d_database_uid::auth_3d_database_uid() : enabled(), org_uid(), size() {
+auth_3d_database_uid::auth_3d_database_uid() : enabled(), frame_size(), org_uid() {
     category_hash = hash_murmurhash_empty;
     name_hash = hash_murmurhash_empty;
 }
@@ -32,7 +32,7 @@ auth_3d_database_uid::~auth_3d_database_uid() {
 
 }
 
-auth_3d_database_uid_file::auth_3d_database_uid_file() : flags(), org_uid(), size() {
+auth_3d_database_uid_file::auth_3d_database_uid_file() : flag(), frame_size(), org_uid() {
 
 }
 
@@ -197,8 +197,8 @@ void auth_3d_database::update() {
     for (auth_3d_database_uid& i : uid)
         uid_names.push_back(i.name_hash, &i);
 
-    category_names.sort_unique();
-    uid_names.sort_unique();
+    category_names.sort_and_erase_non_unique();
+    uid_names.sort_and_erase_non_unique();
 }
 
 int32_t auth_3d_database::get_category_index(const char* name) const {
@@ -281,7 +281,7 @@ static void auth_3d_database_load_uids(auth_3d_database* auth_3d_db,
         int32_t org_uid;
         if (!mdata)
             org_uid = (int32_t)i;
-        else if (uid_file->flags & AUTH_3D_DATABASE_UID_ORG_UID)
+        else if (uid_file->flag & auth_3d_database_uid_file::FLAG_ORG_UID)
             org_uid = uid_file->org_uid;
         else
             org_uid = (int32_t)(uid_count + i);
@@ -296,29 +296,29 @@ static void auth_3d_database_load_uids(auth_3d_database* auth_3d_db,
 
             uid->name.assign(uid_file->value.substr(2, uid_file->value.size() - 2));
             uid->name_hash = hash_string_murmurhash(uid->name);
-            uid->category.assign(uid_file->category);
-            uid->category_hash = hash_string_murmurhash(uid->category);
+            uid->category_name.assign(uid_file->category_name);
+            uid->category_hash = hash_string_murmurhash(uid->category_name);
         }
 
         if (uid->enabled) {
-            uid_file->category.assign(uid->category);
+            uid_file->category_name.assign(uid->category_name);
 
-            if (uid->category.size() > 0)
+            if (uid->category_name.size() > 0)
                 for (auth_3d_database_category& j : category)
-                    if (!uid->category.compare(j.name)) {
+                    if (!uid->category_name.compare(j.name)) {
                         j.uid.push_back(org_uid);
                         break;
                     }
         }
 
-        if (uid_file->flags & AUTH_3D_DATABASE_UID_SIZE)
-            uid->size = uid_file->size;
+        if (uid_file->flag & auth_3d_database_uid_file::FLAG_FRAME_SIZE)
+            uid->frame_size = uid_file->frame_size;
         else
-            uid->size = -1.0f;
+            uid->frame_size = -1.0f;
     }
 
     for (auth_3d_database_category& i : category)
-        prj::sort_unique(i.uid);
+        prj::sort_and_erase_non_unique(i.uid);
 }
 
 static void auth_3d_database_file_read_inner(auth_3d_database_file* auth_3d_db_file, stream& s) {
@@ -383,11 +383,11 @@ static void auth_3d_database_file_read_text(auth_3d_database_file* auth_3d_db_fi
                     continue;
 
                 auth_3d_database_uid_file* u = &vu[i];
-                kv.read("category", u->category);
+                kv.read("category", u->category_name);
                 if (kv.read("org_uid", u->org_uid))
-                    enum_or(u->flags, AUTH_3D_DATABASE_UID_ORG_UID);
-                if (kv.read("size", u->size))
-                    enum_or(u->flags, AUTH_3D_DATABASE_UID_SIZE);
+                    u->flag |= auth_3d_database_uid_file::FLAG_ORG_UID;
+                if (kv.read("size", u->frame_size))
+                    u->flag |= auth_3d_database_uid_file::FLAG_FRAME_SIZE;
                 kv.read("value", u->value);
 
                 kv.close_scope();
@@ -439,15 +439,15 @@ static void auth_3d_database_file_write_text(auth_3d_database_file* auth_3d_db_f
 
             auth_3d_database_uid_file* u = &vu[sort_index_data[i]];
 
-            kv.write(s, "category", u->category);
-            if ((int32_t)(u->flags & AUTH_3D_DATABASE_UID_ORG_UID))
+            kv.write(s, "category", u->category_name);
+            if (u->flag & auth_3d_database_uid_file::FLAG_ORG_UID)
                 kv.write(s, "org_uid", u->org_uid);
-            if ((int32_t)(u->flags & AUTH_3D_DATABASE_UID_SIZE))
-                kv.write(s, "size", u->size);
+            if (u->flag & auth_3d_database_uid_file::FLAG_FRAME_SIZE)
+                kv.write(s, "size", u->frame_size);
             kv.write(s, "value", u->value);
 
-            if ((int32_t)(u->flags & AUTH_3D_DATABASE_UID_ORG_UID) && u->org_uid > uid_max)
-                uid_max = u->org_uid;
+            if (u->flag & auth_3d_database_uid_file::FLAG_ORG_UID)
+                uid_max = max_def(uid_max, u->org_uid);
 
             kv.close_scope();
         }

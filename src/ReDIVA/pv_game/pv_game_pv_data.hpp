@@ -344,7 +344,7 @@ struct pv_game_pv_data {
     void reset();
     void reset_camera_post_process();
     void scene_fade_ctrl(float_t delta_time);
-    void set_camera_max_frame(int64_t time);
-    void set_item_anim_max_frame(int32_t rob_id, int32_t index, int64_t time);
-    void set_motion_max_frame(int32_t rob_id, int32_t motion_index, int64_t time);
+    void set_camera_frame_max(int64_t time);
+    void set_item_anim_frame_max(int32_t rob_id, int32_t index, int64_t time);
+    void set_motion_frame_max(int32_t rob_id, int32_t motion_index, int64_t time);
 };

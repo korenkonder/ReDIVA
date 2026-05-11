@@ -614,16 +614,16 @@ bool DataTestMot::ctrl() {
     if (data.reset_cam) {
         data.reset_cam = false;
 
-        cam_struct cam;
+        CameraParam cam;
         if (data.field_A9) {
             cam.view_point = { -3.79f, 0.71f, 1.0f };
             cam.interest = { 0.0f, 0.96f, 0.0f };
-            cam.fov = 0.57268613576889f;
+            cam.v_fov = 0.57268613576889f;
         }
         else {
             cam.view_point = { 0.0f, 1.0f, 3.45f };
             cam.interest = { 0.0f, 1.0f, 0.0f };
-            cam.fov = 0.563171327114105f;
+            cam.v_fov = 0.563171327114105f;
         }
         cam.set(rctx_ptr->camera);
     }
@@ -730,7 +730,7 @@ bool DataTestMotA3d::ctrl() {
             break;
 
         for (std::string& i : categories)
-            auth_3d_data_load_category(i.c_str());
+            auth_3d_detail::category_load_req(i.c_str());
 
         state = 4;
     } break;
@@ -738,7 +738,7 @@ bool DataTestMotA3d::ctrl() {
         bool wait_load = false;
 
         for (std::string& i : categories)
-            if (!auth_3d_data_check_category_loaded(i.c_str()))
+            if (!auth_3d_detail::category_load_is_done(i.c_str()))
                 wait_load |= true;
 
         if (wait_load)
@@ -747,23 +747,23 @@ bool DataTestMotA3d::ctrl() {
         data_struct* aft_data = &data_list[DATA_AFT];
         auth_3d_database* aft_auth_3d_db = &aft_data->data_ft.auth_3d_db;
 
-        for (auth_3d_id& i : auth_3d_ids)
-            i.read_file(aft_auth_3d_db);
+        for (auth_3d_detail::Handle& i : auth_3d_ids)
+            i.load_req(aft_auth_3d_db);
 
         state = 5;
     } break;
     case 5: {
         bool wait_load = false;
 
-        for (auth_3d_id& i : auth_3d_ids)
-            if (!i.check_loaded())
+        for (auth_3d_detail::Handle& i : auth_3d_ids)
+            if (!i.load_is_done())
                 wait_load |= true;
 
         if (wait_load)
             break;
 
-        for (auth_3d_id& i : auth_3d_ids)
-            i.set_enable(true);
+        for (auth_3d_detail::Handle& i : auth_3d_ids)
+            i.set_enabled(true);
 
         state = 1;
     } break;
@@ -833,12 +833,12 @@ void DataTestMotA3d::LoadAuth3d(std::string&& name) {
     if (uid == -1)
         return;
 
-    auth_3d_id id = auth_3d_id(uid, aft_auth_3d_db);
-    if (!id.check_not_empty())
+    auth_3d_detail::Handle id = auth_3d_detail::Handle::create(uid, aft_auth_3d_db);
+    if (!id.is_valid())
         return;
 
-    id.set_enable(false);
-    id.set_repeat(true);
+    id.set_enabled(false);
+    id.set_looped(true);
 
     auth_3d_ids.push_back(id);
 
@@ -851,19 +851,19 @@ void DataTestMotA3d::LoadAuth3d(std::string&& name) {
             camera = false;
     }
 
-    std::string category(aft_auth_3d_db->uid[uid].category.c_str());
+    std::string category(aft_auth_3d_db->uid[uid].category_name.c_str());
     categories.push_back(category);
     auth_3d_data_get_obj_sets_from_category(category, obj_sets, aft_auth_3d_db, aft_obj_db);
 }
 
 void DataTestMotA3d::Reset() {
     for (std::string& i : categories)
-        auth_3d_data_unload_category(i.c_str());
+        auth_3d_detail::category_free(i.c_str());
 
     categories.clear();
 
-    for (auth_3d_id& i : auth_3d_ids)
-        i.unload(rctx_ptr);
+    for (auth_3d_detail::Handle& i : auth_3d_ids)
+        i.destroy(rctx_ptr);
 
     auth_3d_ids.clear();
 
@@ -889,8 +889,8 @@ void DataTestMotA3d::Sync1pFrame() {
     if (get_pause())
         frame -= dtm_mot_array[ROB_ID_1P].GetStep();
 
-    for (auth_3d_id& i : auth_3d_ids)
-        i.set_req_frame(frame);
+    for (auth_3d_detail::Handle& i : auth_3d_ids)
+        i.set_frame_req(frame);
 }
 
 DtmMot::DtmMot() : rob_man(), motion(), assign(), rot(), pre_offset(), post_offset(), div(),
@@ -1262,7 +1262,7 @@ bool DtmMot::ctrl() {
         if (rob_man->get_disp_on(rctrl) != display)
             rob_man->set_disp_on(rctrl, display);
 
-        rob_chr->rob_info_ctrl();
+        rob_chr->ctrl_rob_info_main();
 
         while (set_motion_index < set_motion.size()) {
             if (set_motion.data()[set_motion_index].motnum != uid) {
@@ -3050,7 +3050,7 @@ static void motion_test_objset_load() {
             motion_test_objset.push_back(hnd_itm.obj_right.set_id);
     }
 
-    prj::sort_unique(motion_test_objset);
+    prj::sort_and_erase_non_unique(motion_test_objset);
 
     data_struct* aft_data = &data_list[DATA_AFT];
     object_database* aft_obj_db = &aft_data->data_ft.obj_db;

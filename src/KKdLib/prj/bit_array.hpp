@@ -73,7 +73,7 @@ namespace prj {
         uint32_t* M_data() {
             return M_core.M_pool;
         }
-        
+
         const uint32_t* M_data() const {
             return M_core.M_pool;
         }
@@ -180,7 +180,7 @@ namespace prj {
                     return false;
             return true;
         }
-        
+
         void operator&=(const BitArrayBase<T>& right) {
             for (size_t i = 0; i < num_blocks(); i++)
                 M_data()[i] &= right.M_data()[i];

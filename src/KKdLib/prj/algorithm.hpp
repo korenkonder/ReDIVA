@@ -12,40 +12,52 @@
 #include <vector>
 
 namespace prj {
-    template <class T>
-    bool find(std::vector<T>& vec, const T& value) {
-        auto begin = vec.begin();
-        auto end = vec.end();
-        for (auto i = begin; i != end; i++)
-            if (*i == value)
-                return true;
+    template <class T, class U>
+    inline bool find(T& in_c, const U& in_v) {
+        auto elem = std::find(in_c.begin(), in_c.end(), in_v);
+        return elem != in_c.end();
+    }
+
+    template <class T, class U>
+    inline bool find(T& in_c, const U&& in_v) {
+        auto elem = std::find(in_c.begin(), in_c.end(), in_v);
+        return elem != in_c.end();
+    }
+
+    template <class T, class U>
+    inline bool find_and_erase(T& in_c, const U& in_v) {
+        auto elem = std::find(in_c.begin(), in_c.end(), in_v);
+        if (elem != in_c.end()) {
+            in_c.erase(elem);
+            return true;
+        }
+        return false;
+    }
+
+    template <class T, class U>
+    inline bool find_and_erase(T& in_c, const U&& in_v) {
+        auto elem = std::find(in_c.begin(), in_c.end(), in_v);
+        if (elem != in_c.end()) {
+            in_c.erase(elem);
+            return true;
+        }
         return false;
     }
 
     template <class T>
-    bool find(std::vector<T>& vec, const T&& value) {
-        auto begin = vec.begin();
-        auto end = vec.end();
-        for (auto i = begin; i != end; i++)
-            if (*i == value)
-                return true;
-        return false;
+    inline void sort(T& in_c) {
+        std::sort(in_c.begin(), in_c.end());
     }
 
     template <class T>
-    inline void sort(std::vector<T>& vec) {
-        std::sort(vec.begin(), vec.end());
+    inline void unique_and_erase(T& in_c) {
+        auto last = std::unique(in_c.begin(), in_c.end());
+        in_c.erase(last, in_c.end());
     }
 
     template <class T>
-    void unique(std::vector<T>& vec) {
-        auto last = std::unique(vec.begin(), vec.end());
-        vec.erase(last, vec.end());
-    }
-
-    template <class T>
-    inline void sort_unique(std::vector<T>& vec) {
-        sort(vec);
-        unique(vec);
+    inline void sort_and_erase_non_unique(T& in_c) {
+        sort(in_c);
+        unique_and_erase(in_c);
     }
 }

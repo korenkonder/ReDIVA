@@ -26,257 +26,250 @@ FaceAnim::Auth3D::~Auth3D() {
 
 }
 
-inline static void set_data(auth_3d_key& key, const float_t value) {
-    key.reset();
-    key.type = value != 0.0f && value != -0.0f ? AUTH_3D_KEY_STATIC : AUTH_3D_KEY_NONE;
-    key.value = value;
-}
-
-inline static void set_data(auth_3d_object_model_transform& mt, const vec3 translation,
+inline static void set_data(auth_3d_detail::MotionTransform& mt, const vec3 translation,
     const vec3 rotation, const vec3 scale = 1.0f, const float_t visibility = 1.0f) {
-    set_data(mt.translation.x, translation.x);
-    set_data(mt.translation.y, translation.y);
-    set_data(mt.translation.z, translation.z);
-    set_data(mt.rotation.x, rotation.x);
-    set_data(mt.rotation.y, rotation.y);
-    set_data(mt.rotation.z, rotation.z);
-    set_data(mt.scale.x, scale.x);
-    set_data(mt.scale.y, scale.y);
-    set_data(mt.scale.z, scale.z);
-    set_data(mt.visibility, visibility);
+    mt.fcurve_translation.x.init(translation.x);
+    mt.fcurve_translation.y.init(translation.y);
+    mt.fcurve_translation.z.init(translation.z);
+    mt.fcurve_rotation.x.init(rotation.x);
+    mt.fcurve_rotation.y.init(rotation.y);
+    mt.fcurve_rotation.z.init(rotation.z);
+    mt.fcurve_scale.x.init(scale.x);
+    mt.fcurve_scale.y.init(scale.y);
+    mt.fcurve_scale.z.init(scale.z);
+    mt.fcurve_visibility.init(visibility);
 }
 
 void FaceAnim::Auth3D::patch() {
-    ::auth_3d* auth = id.get_auth_3d();
-    auth_3d_object_hrc* objhrc = &auth->object_hrc[0];
-    auth_3d_object_node* nodes = objhrc->node.data();
+    auth_3d_detail::Scene* scene = id.get_scene();
+    auth_3d_detail::HierarchyObject* objhrc = scene->object_hrc_list[0];
+    auth_3d_detail::TransformNode* node_list = objhrc->node_list.data();
 
-    set_data(nodes[ 0].model_transform,
+    set_data(node_list[ 0].motion_transform,
         vec3(0.0f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // OBJHRC_EFFCHRPV826MIK001_MOB
-    set_data(nodes[ 1].model_transform,
+    set_data(node_list[ 1].motion_transform,
         vec3(0.0f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // gblctr
-    set_data(nodes[ 2].model_transform,
+    set_data(node_list[ 2].motion_transform,
         vec3(0.0f, 1.055f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // n_hara
-    set_data(nodes[ 3].model_transform,
+    set_data(node_list[ 3].motion_transform,
         vec3(0.0f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // n_hara_y
-    set_data(nodes[ 4].model_transform,
+    set_data(node_list[ 4].motion_transform,
         vec3(0.0f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_hara_wj
-    set_data(nodes[ 5].model_transform,
+    set_data(node_list[ 5].motion_transform,
         vec3(0.0f, 0.0f, 0.0f),
         vec3(0.0f, 1.570796f, 0.0f)); // n_kosi
-    set_data(nodes[ 6].model_transform,
+    set_data(node_list[ 6].motion_transform,
         vec3(0.0f, 0.11f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_mune_wj
-    set_data(nodes[ 7].model_transform,
+    set_data(node_list[ 7].motion_transform,
         vec3(0.0f, 0.0f, 0.0f),
         vec3(0.0f, -1.570796f, 0.0f)); // n_mune_kl
-    set_data(nodes[ 8].model_transform,
+    set_data(node_list[ 8].motion_transform,
         vec3(0.0f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_mune_b_wj
-    set_data(nodes[ 9].model_transform,
+    set_data(node_list[ 9].motion_transform,
         vec3(0.0f, 0.145f, -0.044f),
         vec3(0.0f, 0.0f, 0.0f)); // j_kubi_wj
-    set_data(nodes[10].model_transform,
+    set_data(node_list[10].motion_transform,
         vec3(0.0f, 0.079f, 0.004f),
         vec3(1.570796f, 0.0f, 0.0f)); // n_kao
-    set_data(nodes[11].model_transform,
+    set_data(node_list[11].motion_transform,
         vec3(0.0f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_kao_wj
-    set_data(nodes[12].model_transform,
+    set_data(node_list[12].motion_transform,
         vec3(0.111f, -0.062f, -0.18f),
         vec3(0.0f, -1.570796f, 1.221731f)); // j_hair_twin_l_000_wj
-    set_data(nodes[13].model_transform,
+    set_data(node_list[13].motion_transform,
         vec3(0.222f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_hair_twin_l_001_wj
-    set_data(nodes[14].model_transform,
+    set_data(node_list[14].motion_transform,
         vec3(0.222f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_hair_twin_l_002_wj
-    set_data(nodes[15].model_transform,
+    set_data(node_list[15].motion_transform,
         vec3(0.222f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_hair_twin_l_003_wj
-    set_data(nodes[16].model_transform,
+    set_data(node_list[16].motion_transform,
         vec3(0.222f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_hair_twin_l_004_wj
-    set_data(nodes[17].model_transform,
+    set_data(node_list[17].motion_transform,
         vec3(0.222f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_hair_twin_l_005_wj
-    set_data(nodes[18].model_transform,
+    set_data(node_list[18].motion_transform,
         vec3(-0.111f, -0.062f, -0.18f),
         vec3(0.0f, -1.570796f, -1.221731f)); // j_hair_twin_r_000_wj
-    set_data(nodes[19].model_transform,
+    set_data(node_list[19].motion_transform,
         vec3(0.222f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_hair_twin_r_001_wj
-    set_data(nodes[20].model_transform,
+    set_data(node_list[20].motion_transform,
         vec3(0.222f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_hair_twin_r_002_wj
-    set_data(nodes[21].model_transform,
+    set_data(node_list[21].motion_transform,
         vec3(0.222f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_hair_twin_r_003_wj
-    set_data(nodes[22].model_transform,
+    set_data(node_list[22].motion_transform,
         vec3(0.222f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_hair_twin_r_004_wj
-    set_data(nodes[23].model_transform,
+    set_data(node_list[23].motion_transform,
         vec3(0.222f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_hair_twin_r_005_wj
-    /*set_data(nodes[24].model_transform,
+    /*set_data(node_list[24].motion_transform,
         vec3(0.0f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_kao_normal_wj
-    set_data(nodes[25].model_transform,
+    set_data(node_list[25].motion_transform,
         vec3(0.0f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_kao_close_wj
-    set_data(nodes[26].model_transform,
+    set_data(node_list[26].motion_transform,
         vec3(0.0f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_kao_smile_wj
-    set_data(nodes[27].model_transform,
+    set_data(node_list[27].motion_transform,
         vec3(0.0f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_kao_close_half_wj
-    set_data(nodes[28].model_transform,
+    set_data(node_list[28].motion_transform,
         vec3(0.0f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_kao_smile_half_wj
-    set_data(nodes[29].model_transform,
+    set_data(node_list[29].motion_transform,
         vec3(0.0148f, -0.0018f, 0.079f),
         vec3(0.0f, 0.0f, 0.0f)); // j_kuti_l_wj
-    set_data(nodes[30].model_transform,
+    set_data(node_list[30].motion_transform,
         vec3(0.0f, 0.00048f, 0.088f),
         vec3(0.0f, 0.0f, 0.0f)); // j_kuti_u_wj
-    set_data(nodes[31].model_transform,
+    set_data(node_list[31].motion_transform,
         vec3(0.0f, -0.00672f, 0.082f),
         vec3(0.0f, 0.0f, 0.0f)); // j_kuti_d_wj
-    set_data(nodes[32].model_transform,
+    set_data(node_list[32].motion_transform,
         vec3(-0.0148f, -0.0018f, 0.079f),
         vec3(0.0f, 0.0f, 0.0f)); // j_kuti_r_wj
-    set_data(nodes[33].model_transform,
+    set_data(node_list[33].motion_transform,
         vec3(-0.027f, 0.061f, 0.015f),
         vec3(-1.570796f, 0.0f, 0.0f)); // j_eye_r_wj
-    set_data(nodes[34].model_transform,
+    set_data(node_list[34].motion_transform,
         vec3(0.027f, 0.061f, 0.015f),
         vec3(-1.570796f, 0.0f, 0.0f)); // j_eye_l_wj*/
-    set_data(nodes[35].model_transform,
+    set_data(node_list[35].motion_transform,
         vec3(0.02f, 0.129f, -0.053f),
         vec3(1.570796f, 0.0f, 1.570796f)); // n_waki_l
-    set_data(nodes[36].model_transform,
+    set_data(node_list[36].motion_transform,
         vec3(0.0f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_waki_l_wj
-    set_data(nodes[37].model_transform,
+    set_data(node_list[37].motion_transform,
         vec3(-0.01f, 0.0f, 0.083f),
         vec3(-0.037163f, -1.081817f, -3.108780f)); // n_kata_l
-    set_data(nodes[38].model_transform,
+    set_data(node_list[38].motion_transform,
         vec3(0.0f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_kata_l_wj
-    set_data(nodes[39].model_transform,
+    set_data(node_list[39].motion_transform,
         vec3(0.208f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_ude_l_wj
-    set_data(nodes[40].model_transform,
+    set_data(node_list[40].motion_transform,
         vec3(0.21f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_te_l_wj
-    set_data(nodes[41].model_transform,
+    set_data(node_list[41].motion_transform,
         vec3(0.0f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_te_sizen2_l_wj
-    set_data(nodes[42].model_transform,
+    set_data(node_list[42].motion_transform,
         vec3(0.0f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_te_close_l_wj
-    set_data(nodes[43].model_transform,
+    set_data(node_list[43].motion_transform,
         vec3(0.0f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_te_reset_l_wj
-    set_data(nodes[44].model_transform,
+    set_data(node_list[44].motion_transform,
         vec3(-0.02f, 0.129f, -0.053f),
         vec3(1.570796f, 0.0f, 1.570796f)); // n_waki_r
-    set_data(nodes[45].model_transform,
+    set_data(node_list[45].motion_transform,
         vec3(0.0f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_waki_r_wj
-    set_data(nodes[46].model_transform,
+    set_data(node_list[46].motion_transform,
         vec3(-0.01f, 0.0f, -0.083f),
         vec3(0.037163f, 1.081817f, -3.108780f)); // n_kata_r
-    set_data(nodes[47].model_transform,
+    set_data(node_list[47].motion_transform,
         vec3(0.0f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_kata_r_wj
-    set_data(nodes[48].model_transform,
+    set_data(node_list[48].motion_transform,
         vec3(0.208f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_ude_r_wj
-    set_data(nodes[49].model_transform,
+    set_data(node_list[49].motion_transform,
         vec3(0.21f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_te_r_wj
-    set_data(nodes[50].model_transform,
+    set_data(node_list[50].motion_transform,
         vec3(0.0f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_te_sizen2_r_wj
-    set_data(nodes[51].model_transform,
+    set_data(node_list[51].motion_transform,
         vec3(0.0f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_te_close_r_wj
-    set_data(nodes[52].model_transform,
+    set_data(node_list[52].motion_transform,
         vec3(0.0f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_te_reset_r_wj
-    set_data(nodes[53].model_transform,
+    set_data(node_list[53].motion_transform,
         vec3(0.0f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_te_one_r_wj
-    set_data(nodes[54].model_transform,
+    set_data(node_list[54].motion_transform,
         vec3(0.0f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_kosi_wj
-    set_data(nodes[55].model_transform,
+    set_data(node_list[55].motion_transform,
         vec3(0.046f, -0.15f, 0.065f),
         vec3(0.0f, 0.0f, -1.570796f)); // n_momo_l
-    set_data(nodes[56].model_transform,
+    set_data(node_list[56].motion_transform,
         vec3(0.0f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_momo_l_wj
-    set_data(nodes[57].model_transform,
+    set_data(node_list[57].motion_transform,
         vec3(0.39f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_sune_l_wj
-    set_data(nodes[58].model_transform,
+    set_data(node_list[58].motion_transform,
         vec3(0.38f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_asi_l_wj
-    set_data(nodes[59].model_transform,
+    set_data(node_list[59].motion_transform,
         vec3(0.046f, -0.15f, -0.065f),
         vec3(0.0f, 0.0f, -1.570796f)); // n_momo_r
-    set_data(nodes[60].model_transform,
+    set_data(node_list[60].motion_transform,
         vec3(0.0f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_momo_r_wj
-    set_data(nodes[61].model_transform,
+    set_data(node_list[61].motion_transform,
         vec3(0.39f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_sune_r_wj
-    set_data(nodes[62].model_transform,
+    set_data(node_list[62].motion_transform,
         vec3(0.38f, 0.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f)); // j_asi_r_wj
-    set_data(nodes[63].model_transform,
+    set_data(node_list[63].motion_transform,
         vec3(-0.060104f, -0.052047f, 0.0f),
         vec3(0.0f, 0.0f, -1.762782f)); // j_cloth_skirt_f_000_wj
-    set_data(nodes[64].model_transform,
+    set_data(node_list[64].motion_transform,
         vec3(-0.042834f, -0.052048f, 0.05915f),
         vec3(-0.368869f, -0.220518f, -1.784135f)); // j_cloth_skirt_l_02_000_wj
-    set_data(nodes[65].model_transform,
+    set_data(node_list[65].motion_transform,
         vec3(-0.013f, -0.052048f, 0.109621f),
         vec3(-1.710423f, -0.331613f, -1.588249f)); // j_cloth_skirt_l_04_000_wj
-    set_data(nodes[66].model_transform,
+    set_data(node_list[66].motion_transform,
         vec3(0.0927504f, -0.052048f, 0.08239f),
         vec3(-2.356194f, -0.314159f, -1.308997f)); // j_cloth_skirt_l_06_000_wj
-    set_data(nodes[67].model_transform,
+    set_data(node_list[67].motion_transform,
         vec3(-0.042834f, -0.052048f, -0.05915f),
         vec3(0.368869f, 0.220518f, -1.784135f)); // j_cloth_skirt_r_02_000_wj
-    set_data(nodes[68].model_transform,
+    set_data(node_list[68].motion_transform,
         vec3(0.013f, -0.052048f, -0.10962f),
         vec3(1.710423f, 0.331613f, -1.588249f)); // j_cloth_skirt_r_04_000_wj
-    set_data(nodes[69].model_transform,
+    set_data(node_list[69].motion_transform,
         vec3(0.09275f, -0.052048f, -0.08239f),
         vec3(2.356194f, 0.314159f, -1.308997f)); // j_cloth_skirt_r_06_000_wj
-    set_data(nodes[70].model_transform,
+    set_data(node_list[70].motion_transform,
         vec3(0.118331f, -0.052048f, 0.0f),
         vec3(-3.141592f, 0.0f, -1.186823f)); // j_cloth_skirt_b_000_wj
 
-    objhrc->interpolate(0.0f);
+    objhrc->get(0.0f);
 }
 
 void FaceAnim::Auth3D::reset() {
-    auth_3d_data_unload_category(category.hash_murmurhash);
-    id.unload(rctx_ptr);
+    auth_3d_detail::category_free(category.hash_murmurhash);
+    id.destroy(rctx_ptr);
     objset_info_storage_unload_set(object_set.hash_murmurhash);
 
     category.clear();
     file.clear();
     object_set.clear();
-    id = -1;
 
     obj_db.clear();
     tex_db.clear();
@@ -316,43 +309,44 @@ bool FaceAnim::ctrl() {
         auth_3d.file.assign("EFFCHRPV826MIK001");
         auth_3d.object_set.assign("EFFCHRPV826MIK001");
 
-        auth_3d_data_load_category(x_data, auth_3d.category.c_str(), auth_3d.category.hash_murmurhash);
+        auth_3d_detail::category_load_req(x_data, auth_3d.category.c_str(), auth_3d.category.hash_murmurhash);
         objset_info_storage_load_set_hash(x_data, auth_3d.object_set.hash_murmurhash);
 
         state = 2;
     } break;
     case 2: {
-        if (!auth_3d_data_check_category_loaded(auth_3d.category.hash_murmurhash)
+        if (!auth_3d_detail::category_load_is_done(auth_3d.category.hash_murmurhash)
             || (objset_info_storage_get_objset_info(auth_3d.object_set.hash_murmurhash)
             && objset_info_storage_load_obj_set_check_not_read(
                 auth_3d.object_set.hash_murmurhash, &auth_3d.obj_db, &auth_3d.tex_db)))
             break;
 
-        auth_3d.id = auth_3d_id(auth_3d.file.hash_murmurhash, x_data, &auth_3d.obj_db, &auth_3d.tex_db);
-        auth_3d.id.read_file_modern();
+        auth_3d.id = auth_3d_detail::Handle::create(auth_3d.file.hash_murmurhash,
+            x_data, &auth_3d.obj_db, &auth_3d.tex_db);
+        auth_3d.id.load_req_modern();
 
         state = 3;
     } break;
     case 3: {
-        if (!auth_3d.id.check_not_empty() || !auth_3d.id.check_loaded())
+        if (!auth_3d.id.is_valid() || !auth_3d.id.load_is_done())
             break;
 
-        auth_3d.id.set_enable(true);
-        auth_3d.id.set_paused(false);
-        auth_3d.id.set_repeat(false);
-        auth_3d.id.set_req_frame(0.0f);
-        auth_3d.id.set_visibility(true);
+        auth_3d.id.set_enabled(true);
+        auth_3d.id.set_pause(false);
+        auth_3d.id.set_looped(false);
+        auth_3d.id.set_frame_req(0.0f);
+        auth_3d.id.set_visible(true);
         auth_3d.patch();
 
         frame = 5000;
-        frame_max = (int32_t)auth_3d.id.get_last_frame();
+        frame_max = (int32_t)auth_3d.id.get_frame_size();
 
         ogg_path.assign("H:\\C\\Documents\\A\\pv826\\lipsync\\01_rin.ogg");
         //sound_work_play_stream(0, ogg_path.c_str(), (float_t)((double_t)frame / 60.0));
         state = 4;
     } break;
     case 4: {
-        auth_3d.id.set_req_frame((float_t)frame);
+        auth_3d.id.set_frame_req((float_t)frame);
 
         if (!play && sound_play) {
             sound_work_release_stream(0);
@@ -400,7 +394,7 @@ void FaceAnim::window() {
     ImGuiWindowFlags window_flags = 0;
     window_flags |= ImGuiWindowFlags_NoResize;
 
-    focus = false;
+    reset_focus();
     bool open = true;
     if (!ImGui::Begin("Face Anim", &open, window_flags)) {
         ImGui::End();
@@ -415,6 +409,8 @@ void FaceAnim::window() {
         play ^= true;
 
     ImGui::Text("% 5d/% 5d", frame, frame_max);
+
+    set_focus(ImGui::IsWindowFocused());
     ImGui::End();
 }
 

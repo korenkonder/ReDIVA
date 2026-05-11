@@ -920,10 +920,10 @@ namespace Glitter {
             }
     }
 
-    void GltParticleManager::SetSceneEffectReqFrame(SceneCounter scene_counter, float_t req_frame) {
+    void GltParticleManager::SetSceneEffectFrameReq(SceneCounter scene_counter, float_t frame_req) {
         for (Scene*& i : scenes)
             if (i && i->counter.counter == scene_counter.counter) {
-                i->SetReqFrame(scene_counter.index, req_frame);
+                i->SetFrameReq(scene_counter.index, frame_req);
                 break;
             }
     }

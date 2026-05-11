@@ -4,6 +4,7 @@
 */
 
 #include "dw.hpp"
+#include "../KKdLib/prj/algorithm.hpp"
 #include "../CRE/prj/memory_manager.hpp"
 #include "../CRE/app_system_detail.hpp"
 #include "../CRE/data.hpp"
@@ -1033,15 +1034,8 @@ namespace dw {
 
         if (parent_comp) {
             Shell* parent_shell = dynamic_cast<Shell*>(parent_comp);
-            if (parent_shell) {
-                auto i = parent_shell->children.begin();
-                auto i_end = parent_shell->children.end();
-                while (i != i_end)
-                    if (*i == this) {
-                        parent_shell->children.erase(i);
-                        break;
-                    }
-            }
+            if (parent_shell)
+                prj::find_and_erase(parent_shell->children, this);
         }
 
         dw_gui_detail_display->RemoveShell(this);
@@ -3867,7 +3861,7 @@ void dw_sys_menu_init(dw::Shell* shell) {
 }
 
 PrintWorkDebug::PrintWorkDebug() {
-    prio = spr::SPR_PRIO_29;
+    prio = spr::SPR_PRIO_DW;
     set_screen_mode(SCREEN_MODE_MAX);
 }
 
@@ -3929,18 +3923,8 @@ namespace dw {
     }
 
     void DragBoundsData::RemoveDragBoundsListener(DragBoundsListener* value) {
-        if (!value)
-            return;
-
-        auto i = drag_bounds_listeners.begin();
-        auto i_end = drag_bounds_listeners.end();
-        while (i != i_end)
-            if (*i == value) {
-                drag_bounds_listeners.erase(i);
-                break;
-            }
-            else
-                i++;
+        if (value)
+            prj::find_and_erase(drag_bounds_listeners, value);
     }
 
     // 0x1402E5020
@@ -4519,7 +4503,7 @@ void dw_gui_detail::Input::Draw() {
     else if (field_20 < 300) {
         spr::SprArgs args;
         args.id = 3343;
-        args.prio = spr::SPR_PRIO_29;
+        args.prio = spr::SPR_PRIO_DW;
         args.trans.x = mouse_pos.x;
         args.trans.y = mouse_pos.y;
         args.screen_trans = SCREEN_MODE_MAX;
@@ -4809,7 +4793,6 @@ int32_t dw_gui_detail::Display::GetActiveShell() {
         active_shell->KeyCallback(key_callback_data);
     }
     else {
-
         bool found = false;
         for (dw::Shell*& i : shells)
             if (i->GetDisp()) {
@@ -4862,62 +4845,24 @@ void dw_gui_detail::Display::HideMenus() {
 }
 
 void dw_gui_detail::Display::MakeShellFirst(dw::Shell* value) {
-    if (!value)
-        return;
-
-    auto i = shells.begin();
-    auto i_end = shells.end();
-    while (i != i_end)
-        if (*i == value) {
-            shells.erase(i);
-            shells.push_back(value);
-            break;
-        }
-        else
-            i++;
+    if (value && prj::find_and_erase(shells, value))
+        shells.push_back(value);
 }
 
 void dw_gui_detail::Display::MakeShellLast(dw::Shell* value) {
-    if (!value)
-        return;
-
-    auto i = shells.begin();
-    auto i_end = shells.end();
-    while (i != i_end)
-        if (*i == value) {
-            shells.erase(i);
-            shells.insert(shells.begin(), value);
-            break;
-        }
-        else
-            i++;
+    if (value && prj::find_and_erase(shells, value))
+        shells.insert(shells.begin(), value);
 }
 
 void dw_gui_detail::Display::RemoveMenu(dw::Menu* value) {
-    auto i = menus.begin();
-    auto i_end = menus.end();
-    while (i != i_end)
-        if (*i == value) {
-            menus.erase(i);
-            break;
-        }
-        else
-            i++;
+    prj::find_and_erase(menus, value);
 
     if (active_menu == value)
         active_menu = 0;
 }
 
 void dw_gui_detail::Display::RemoveShell(dw::Shell* value) {
-    auto i = shells.begin();
-    auto i_end = shells.end();
-    while (i != i_end)
-        if (*i == value) {
-            shells.erase(i);
-            break;
-        }
-        else
-            i++;
+    prj::find_and_erase(shells, value);
 
     if (active_shell == value) {
         active_shell = 0;

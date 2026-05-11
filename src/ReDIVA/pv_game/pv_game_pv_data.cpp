@@ -517,7 +517,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
                         pv_expression_file_name.c_str(), rob_id, i.motion_id);
 
                 if (!pv_game->data.pv->disable_calc_motfrm_limit)
-                    set_motion_max_frame(rob_id, i.motion_index, i.dsc_time);
+                    set_motion_frame_max(rob_id, i.motion_index, i.dsc_time);
             }
             playdata->set_motion.clear();
         }
@@ -641,7 +641,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
                     pv_expression_file_name.c_str(), rob_id, motion_id);
 
             if (!pv_game->data.pv->disable_calc_motfrm_limit)
-                set_motion_max_frame(rob_id, motion_index, motion ? motion->time : 0);
+                set_motion_frame_max(rob_id, motion_index, motion ? motion->time : 0);
         }
         else {
             playdata->set_motion.clear();
@@ -701,7 +701,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
 
             pv_game->set_data_campv(0, index, frame);
             rctx_ptr->camera->set_fast_change_hist0(true);
-            set_camera_max_frame(data_camera[0].time);
+            set_camera_frame_max(data_camera[0].time);
         } break;
         case 1: {
             if (data_camera[1].index != index - 1) {
@@ -726,7 +726,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
 
             pv_game->set_data_campv(1, index, frame);
             rctx_ptr->camera->set_fast_change_hist0(true);
-            set_camera_max_frame(data_camera[1].time);
+            set_camera_frame_max(data_camera[1].time);
         } break;
         case 2: {
             pv_game->set_data_campv(2, index, 0.0f);
@@ -1658,12 +1658,12 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
                 if (frame < dsc_frame)
                     frame = dsc_frame;
                 pv_game->set_data_itmpv_req_frame(rob_id, index, frame);
-                set_item_anim_max_frame(rob_id, index, time);
+                set_item_anim_frame_max(rob_id, index, time);
             }
         }
         else if (v290 >= 0) {
             pv_game->set_data_itmpv(rob_id, index, v290 != 0, dsc_time);
-            set_item_anim_max_frame(rob_id, index, dsc_time);
+            set_item_anim_frame_max(rob_id, index, dsc_time);
         }
 
         if (disp >= 0)
@@ -2582,7 +2582,7 @@ void pv_game_pv_data::scene_fade_ctrl(float_t delta_time) {
     scene_fade.ctrl(delta_time);
 }
 
-void pv_game_pv_data::set_camera_max_frame(int64_t time) {
+void pv_game_pv_data::set_camera_frame_max(int64_t time) {
     std::vector<int32_t>& data_camera = branch_mode != 2
         ? data_camera_branch_fail
         : data_camera_branch_success;
@@ -2590,17 +2590,17 @@ void pv_game_pv_data::set_camera_max_frame(int64_t time) {
         if (10000LL * i <= dsc_time)
             continue;
 
-        float_t max_frame = prj::roundf(dsc_time_to_frame(10000LL * i - time));
+        float_t frame_max = prj::roundf(dsc_time_to_frame(10000LL * i - time));
         if (pv_game->data.camera_auth_3d_uid != -1) {
-            auth_3d_id id = pv_game->get_auth_3d_id(pv_game->data.camera_auth_3d_uid);
-            if (id.check_not_empty())
-                id.set_max_frame(max_frame - 1.0f);
+            auth_3d_detail::Handle id = pv_game->get_scene_id(pv_game->data.camera_auth_3d_uid);
+            if (id.is_valid())
+                id.set_frame_max(frame_max - 1.0f);
         }
         break;
     }
 }
 
-void pv_game_pv_data::set_item_anim_max_frame(int32_t rob_id, int32_t index, int64_t time) {
+void pv_game_pv_data::set_item_anim_frame_max(int32_t rob_id, int32_t index, int64_t time) {
     if (rob_id < 0 || rob_id >= ROB_ID_MAX || index < 0)
         return;
 
@@ -2612,7 +2612,7 @@ void pv_game_pv_data::set_item_anim_max_frame(int32_t rob_id, int32_t index, int
         }
 }
 
-void pv_game_pv_data::set_motion_max_frame(int32_t rob_id, int32_t motion_index, int64_t time) {
+void pv_game_pv_data::set_motion_frame_max(int32_t rob_id, int32_t motion_index, int64_t time) {
     if (rob_id < 0 || rob_id >= ROB_ID_MAX || motion_index < 0)
         return;
 

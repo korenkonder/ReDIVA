@@ -8,8 +8,12 @@
 #include "../../KKdLib/default.hpp"
 #include <string>
 
+namespace auth_3d_detail {
+    class Handle;
+}
+
 extern void effchrpv_auth_3d_to_mot_init(int32_t pv_id, const enum ROB_ID* rob_ids);
-extern void effchrpv_auth_3d_to_mot_add_chara_effect_auth_3d(uint32_t hash, int32_t id);
+extern void effchrpv_auth_3d_to_mot_add_chara_effect_auth_3d(uint32_t hash, auth_3d_detail::Handle handle);
 extern void effchrpv_auth_3d_to_mot_add_file_name(const std::string& file, const std::string& category);
 extern void effchrpv_auth_3d_to_mot_disp();
 extern void effchrpv_auth_3d_to_mot_get_body_anim(int32_t frame, bool add_keys);

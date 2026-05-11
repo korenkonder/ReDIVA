@@ -163,10 +163,10 @@ struct x_pv_play_data {
 };
 
 struct x_pv_game_song_effect_auth_3d {
-    auth_3d_id id;
+    auth_3d_detail::Handle id;
 
     x_pv_game_song_effect_auth_3d();
-    x_pv_game_song_effect_auth_3d(auth_3d_id id);
+    x_pv_game_song_effect_auth_3d(auth_3d_detail::Handle id);
 
     void reset();
 };
@@ -200,7 +200,7 @@ struct x_pv_game_camera {
     int32_t state;
     string_hash category;
     string_hash file;
-    auth_3d_id id;
+    auth_3d_detail::Handle id;
     FrameRateControl* frame_rate_control;
 
     x_pv_game_camera();
@@ -229,11 +229,11 @@ struct x_pv_game_effect {
     x_pv_game_effect();
     ~x_pv_game_effect();
 
+    void assign_rob_id(int32_t index, ROB_ID rob_id, bool chara_scale);
     void ctrl(object_database* obj_db, texture_database* tex_db);
     void load(int32_t pv_id, pvpp* play_param, FrameRateControl* frame_rate_control);
     void load_data(int32_t pv_id, object_database* obj_db, texture_database* tex_db);
     void reset();
-    void set_chara_id(int32_t index, ROB_ID rob_id, bool chara_scale);
     void set_song_effect(int32_t index, int64_t time);
     void set_song_effect_time(int32_t index, int64_t time, bool glitter);
     void set_song_effect_time_inner(int32_t index, int64_t time, bool glitter);
@@ -246,12 +246,12 @@ struct x_pv_game_effect {
 
 struct x_pv_game_chara_effect_auth_3d {
     bool field_0;
-    CHARA_NUM src_chara;
-    CHARA_NUM dst_chara;
+    CHARA_NUM cn_src;
+    CHARA_NUM cn_dst;
     string_hash file;
     string_hash category;
     string_hash object_set;
-    auth_3d_id id;
+    auth_3d_detail::Handle id;
     int64_t time;
     std::string node_name;
     int32_t objhrc_index;
@@ -570,7 +570,7 @@ public:
 };
 
 struct x_pv_game_stage_env_data {
-    auth_3d_id light_auth_3d_id;
+    auth_3d_detail::Handle light_auth_3d_id;
     aet_obj_data data[5][8];
 
     x_pv_game_stage_env_data();
@@ -620,7 +620,7 @@ struct x_pv_game_stage_env {
 struct x_pv_game_stage_effect_auth_3d {
     bool repeat;
     bool field_1;
-    auth_3d_id id;
+    auth_3d_detail::Handle id;
 
     x_pv_game_stage_effect_auth_3d();
 
@@ -716,7 +716,7 @@ struct x_pv_game_stage {
 
     object_database obj_db;
     texture_database tex_db;
-    std::map<uint32_t, auth_3d_id> auth_3d_ids;
+    std::map<uint32_t, auth_3d_detail::Handle> auth_3d_ids;
 
     x_pv_game_stage();
     ~x_pv_game_stage();
@@ -760,7 +760,7 @@ public:
 
     std::string light_category;
 
-    auth_3d_id light_auth_3d_id;
+    auth_3d_detail::Handle light_auth_3d_id;
 
     bool success;
     bool task_effect_init;

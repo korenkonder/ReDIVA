@@ -36,7 +36,7 @@ public:
 
     SPRSET(uint32_t in_id);
     virtual ~SPRSET();
-    
+
     void request(const char* fname, const std::string mdata_dir, void* data);
     void requestModern(uint32_t sethash, void* data); // Added
     bool wait();
@@ -126,7 +126,7 @@ namespace spr {
         void Clear();
         void Update();
     };
-    
+
     struct SprArgsDraw {
         int32_t num_texture;
         int32_t blend;
@@ -1483,7 +1483,7 @@ namespace spr {
         SprMgr::sprmgr().request(spr_db->getSetIdFromUid(setid),
             spr_db->getSetFileFromUid(setid), mdata_dir, data);
     }
-    
+
     // Added
     void requestModern(const std::vector<uint32_t>& sethashes, void* data, SprDb* spr_db) {
         for (uint32_t sethash : sethashes)

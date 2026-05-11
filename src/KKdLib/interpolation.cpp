@@ -422,12 +422,12 @@ int32_t interpolate_chs_reverse_sequence(const std::vector<float_t>& values_src,
         for (size_t i = 0; i < length - 3; i++)
             if (*(uint32_t*)&keys[i + 0].value == *(uint32_t*)&keys[i + 1].value
                 && *(uint32_t*)&keys[i + 1].value == *(uint32_t*)&keys[i + 2].value
-                && *(uint32_t*)&keys[i + 0].tangent2 == 0
-                && *(uint32_t*)&keys[i + 1].tangent1 == 0
-                && *(uint32_t*)&keys[i + 1].tangent2 == 0
-                && *(uint32_t*)&keys[i + 2].tangent1 == 0) {
+                && *(uint32_t*)&keys[i + 0].r_slope == 0
+                && *(uint32_t*)&keys[i + 1].l_slope == 0
+                && *(uint32_t*)&keys[i + 1].r_slope == 0
+                && *(uint32_t*)&keys[i + 2].l_slope == 0) {
                 keys[i + 1].frame = keys[i + 2].frame;
-                keys[i + 1].tangent2 = keys[i + 2].tangent2;
+                keys[i + 1].r_slope = keys[i + 2].r_slope;
                 values.erase(values.begin() + (i + 2));
                 keys = values.data();
                 length = values.size();
@@ -439,11 +439,11 @@ int32_t interpolate_chs_reverse_sequence(const std::vector<float_t>& values_src,
     if (values.size() >= 2) {
         kft3* keys = values.data();
         if (*(uint32_t*)&keys[0].value == *(uint32_t*)&keys[1].value
-            && *(uint32_t*)&keys[0].tangent1 == 0
-            && *(uint32_t*)&keys[0].tangent2 == 0
-            && *(uint32_t*)&keys[1].tangent1 == 0) {
+            && *(uint32_t*)&keys[0].l_slope == 0
+            && *(uint32_t*)&keys[0].r_slope == 0
+            && *(uint32_t*)&keys[1].l_slope == 0) {
             keys[0].frame = keys[1].frame;
-            keys[0].tangent2 = keys[1].tangent2;
+            keys[0].r_slope = keys[1].r_slope;
             values.erase(values.begin() + 1);
         }
     }
@@ -452,9 +452,9 @@ int32_t interpolate_chs_reverse_sequence(const std::vector<float_t>& values_src,
         kft3* keys = values.data();
         size_t length = values.size();
         if (*(uint32_t*)&keys[length - 2].value == *(uint32_t*)&keys[length - 1].value
-            && *(uint32_t*)&keys[length - 2].tangent2 == 0
-            && *(uint32_t*)&keys[length - 1].tangent1 == 0
-            && *(uint32_t*)&keys[length - 1].tangent2 == 0) {
+            && *(uint32_t*)&keys[length - 2].r_slope == 0
+            && *(uint32_t*)&keys[length - 1].l_slope == 0
+            && *(uint32_t*)&keys[length - 1].r_slope == 0) {
             values.erase(values.begin() + (length - 1));
         }
     }
@@ -490,8 +490,8 @@ int32_t interpolate_chs_reverse_sequence(const std::vector<float_t>& values_src,
     }
 
     for (kft3& i : values) {
-        i.tangent1 = 0.0f;
-        i.tangent2 = 0.0f;
+        i.l_slope = 0.0f;
+        i.r_slope = 0.0f;
     }
     return 2;
 }

@@ -627,8 +627,8 @@ namespace Glitter {
         key.type = KEY_CONSTANT;
         key.frame = 0;
         key.value = 0.0f;
-        key.tangent1 = 0.0f;
-        key.tangent2 = 0.0f;
+        key.l_slope = 0.0f;
+        key.r_slope = 0.0f;
         key.random_range = 0.0f;
 
         std::vector<Curve::Key>& keys = c->keys;
@@ -641,8 +641,8 @@ namespace Glitter {
                             key.type = (KeyType)load_reverse_endianness_int16_t((void*)d);
                             key.frame = load_reverse_endianness_int16_t((void*)(d + 2));
                             if (key.type == KEY_HERMITE) {
-                                key.tangent1 = load_reverse_endianness_float_t((void*)(d + 4));
-                                key.tangent2 = load_reverse_endianness_float_t((void*)(d + 8));
+                                key.l_slope = load_reverse_endianness_float_t((void*)(d + 4));
+                                key.r_slope = load_reverse_endianness_float_t((void*)(d + 8));
                                 key.min_value = load_reverse_endianness_float_t((void*)(d + 12));
                                 key.max_value = load_reverse_endianness_float_t((void*)(d + 16));
                                 keys.push_back(key);
@@ -660,8 +660,8 @@ namespace Glitter {
                             key.type = (KeyType)load_reverse_endianness_int16_t((void*)d);
                             key.frame = load_reverse_endianness_int16_t((void*)(d + 2));
                             if (key.type == KEY_HERMITE) {
-                                key.tangent1 = load_reverse_endianness_float_t((void*)(d + 4));
-                                key.tangent2 = load_reverse_endianness_float_t((void*)(d + 8));
+                                key.l_slope = load_reverse_endianness_float_t((void*)(d + 4));
+                                key.r_slope = load_reverse_endianness_float_t((void*)(d + 8));
                                 key.value = load_reverse_endianness_float_t((void*)(d + 12));
                                 keys.push_back(key);
                                 d += 16;
@@ -678,8 +678,8 @@ namespace Glitter {
                             key.type = (KeyType) * (int16_t*)d;
                             key.frame = *(int16_t*)(d + 2);
                             if (key.type == KEY_HERMITE) {
-                                key.tangent1 = *(float_t*)(d + 4);
-                                key.tangent2 = *(float_t*)(d + 8);
+                                key.l_slope = *(float_t*)(d + 4);
+                                key.r_slope = *(float_t*)(d + 8);
                                 key.min_value = *(float_t*)(d + 12);
                                 key.max_value = *(float_t*)(d + 16);
                                 keys.push_back(key);
@@ -697,8 +697,8 @@ namespace Glitter {
                             key.type = (KeyType) * (int16_t*)d;
                             key.frame = *(int16_t*)(d + 2);
                             if (key.type == KEY_HERMITE) {
-                                key.tangent1 = *(float_t*)(d + 4);
-                                key.tangent2 = *(float_t*)(d + 8);
+                                key.l_slope = *(float_t*)(d + 4);
+                                key.r_slope = *(float_t*)(d + 8);
                                 key.value = *(float_t*)(d + 12);
                                 keys.push_back(key);
                                 d += 16;
@@ -717,8 +717,8 @@ namespace Glitter {
                             key.type = (KeyType)load_reverse_endianness_int16_t((void*)d);
                             key.frame = load_reverse_endianness_int16_t((void*)(d + 2));
                             if (key.type == KEY_HERMITE) {
-                                key.tangent1 = load_reverse_endianness_float_t((void*)(d + 16));
-                                key.tangent2 = load_reverse_endianness_float_t((void*)(d + 20));
+                                key.l_slope = load_reverse_endianness_float_t((void*)(d + 16));
+                                key.r_slope = load_reverse_endianness_float_t((void*)(d + 20));
                                 key.min_value = load_reverse_endianness_float_t((void*)(d + 24));
                                 key.max_value = load_reverse_endianness_float_t((void*)(d + 28));
                                 keys.push_back(key);
@@ -736,8 +736,8 @@ namespace Glitter {
                             key.type = (KeyType)load_reverse_endianness_int16_t((void*)d);
                             key.frame = load_reverse_endianness_int16_t((void*)(d + 2));
                             if (key.type == KEY_HERMITE) {
-                                key.tangent1 = load_reverse_endianness_float_t((void*)(d + 4));
-                                key.tangent2 = load_reverse_endianness_float_t((void*)(d + 8));
+                                key.l_slope = load_reverse_endianness_float_t((void*)(d + 4));
+                                key.r_slope = load_reverse_endianness_float_t((void*)(d + 8));
                                 key.value = load_reverse_endianness_float_t((void*)(d + 12));
                                 keys.push_back(key);
                                 d += 16;
@@ -754,8 +754,8 @@ namespace Glitter {
                             key.type = (KeyType) * (int16_t*)d;
                             key.frame = *(int16_t*)(d + 2);
                             if (key.type == KEY_HERMITE) {
-                                key.tangent1 = *(float_t*)(d + 16);
-                                key.tangent2 = *(float_t*)(d + 20);
+                                key.l_slope = *(float_t*)(d + 16);
+                                key.r_slope = *(float_t*)(d + 20);
                                 key.min_value = *(float_t*)(d + 24);
                                 key.max_value = *(float_t*)(d + 28);
                                 keys.push_back(key);
@@ -773,8 +773,8 @@ namespace Glitter {
                             key.type = (KeyType) * (int16_t*)d;
                             key.frame = *(int16_t*)(d + 2);
                             if (key.type == KEY_HERMITE) {
-                                key.tangent1 = *(float_t*)(d + 4);
-                                key.tangent2 = *(float_t*)(d + 8);
+                                key.l_slope = *(float_t*)(d + 4);
+                                key.r_slope = *(float_t*)(d + 8);
                                 key.value = *(float_t*)(d + 12);
                                 keys.push_back(key);
                                 d += 16;
@@ -811,8 +811,8 @@ namespace Glitter {
                             key.type = (KeyType)load_reverse_endianness_int16_t((void*)d);
                             key.frame = load_reverse_endianness_int16_t((void*)(d + 2));
                             if (key.type == KEY_HERMITE) {
-                                key.tangent1 = load_reverse_endianness_float_t((void*)(d + 4));
-                                key.tangent2 = load_reverse_endianness_float_t((void*)(d + 8));
+                                key.l_slope = load_reverse_endianness_float_t((void*)(d + 4));
+                                key.r_slope = load_reverse_endianness_float_t((void*)(d + 8));
                                 key.random_range = load_reverse_endianness_float_t((void*)(d + 12));
                                 key.value = load_reverse_endianness_float_t((void*)(d + 16));
                                 keys.push_back(key);
@@ -830,8 +830,8 @@ namespace Glitter {
                             key.type = (KeyType)load_reverse_endianness_int16_t((void*)d);
                             key.frame = load_reverse_endianness_int16_t((void*)(d + 2));
                             if (key.type == KEY_HERMITE) {
-                                key.tangent1 = load_reverse_endianness_float_t((void*)(d + 4));
-                                key.tangent2 = load_reverse_endianness_float_t((void*)(d + 8));
+                                key.l_slope = load_reverse_endianness_float_t((void*)(d + 4));
+                                key.r_slope = load_reverse_endianness_float_t((void*)(d + 8));
                                 key.value = load_reverse_endianness_float_t((void*)(d + 12));
                                 keys.push_back(key);
                                 d += 16;
@@ -848,8 +848,8 @@ namespace Glitter {
                             key.type = (KeyType)load_reverse_endianness_int16_t((void*)d);
                             key.frame = load_reverse_endianness_int16_t((void*)(d + 2));
                             if (key.type == KEY_HERMITE) {
-                                key.tangent1 = load_reverse_endianness_float_t((void*)(d + 4)) * scale;
-                                key.tangent2 = load_reverse_endianness_float_t((void*)(d + 8)) * scale;
+                                key.l_slope = load_reverse_endianness_float_t((void*)(d + 4)) * scale;
+                                key.r_slope = load_reverse_endianness_float_t((void*)(d + 8)) * scale;
                                 key.random_range = load_reverse_endianness_float_t((void*)(d + 12)) * scale;
                                 key.value = load_reverse_endianness_float_t((void*)(d + 16)) * scale;
                                 keys.push_back(key);
@@ -867,8 +867,8 @@ namespace Glitter {
                             key.type = (KeyType)load_reverse_endianness_int16_t((void*)d);
                             key.frame = load_reverse_endianness_int16_t((void*)(d + 2));
                             if (key.type == KEY_HERMITE) {
-                                key.tangent1 = load_reverse_endianness_float_t((void*)(d + 4)) * scale;
-                                key.tangent2 = load_reverse_endianness_float_t((void*)(d + 8)) * scale;
+                                key.l_slope = load_reverse_endianness_float_t((void*)(d + 4)) * scale;
+                                key.r_slope = load_reverse_endianness_float_t((void*)(d + 8)) * scale;
                                 key.value = load_reverse_endianness_float_t((void*)(d + 12)) * scale;
                                 keys.push_back(key);
                                 d += 16;
@@ -886,8 +886,8 @@ namespace Glitter {
                             key.type = (KeyType) * (int16_t*)d;
                             key.frame = *(int16_t*)(d + 2);
                             if (key.type == KEY_HERMITE) {
-                                key.tangent1 = *(float_t*)(d + 4);
-                                key.tangent2 = *(float_t*)(d + 8);
+                                key.l_slope = *(float_t*)(d + 4);
+                                key.r_slope = *(float_t*)(d + 8);
                                 key.random_range = *(float_t*)(d + 12);
                                 key.value = *(float_t*)(d + 16);
                                 keys.push_back(key);
@@ -905,8 +905,8 @@ namespace Glitter {
                             key.type = (KeyType) * (int16_t*)d;
                             key.frame = *(int16_t*)(d + 2);
                             if (key.type == KEY_HERMITE) {
-                                key.tangent1 = *(float_t*)(d + 4);
-                                key.tangent2 = *(float_t*)(d + 8);
+                                key.l_slope = *(float_t*)(d + 4);
+                                key.r_slope = *(float_t*)(d + 8);
                                 key.value = *(float_t*)(d + 12);
                                 keys.push_back(key);
                                 d += 16;
@@ -923,8 +923,8 @@ namespace Glitter {
                             key.type = (KeyType) * (int16_t*)d;
                             key.frame = *(int16_t*)(d + 2);
                             if (key.type == KEY_HERMITE) {
-                                key.tangent1 = *(float_t*)(d + 4) * scale;
-                                key.tangent2 = *(float_t*)(d + 8) * scale;
+                                key.l_slope = *(float_t*)(d + 4) * scale;
+                                key.r_slope = *(float_t*)(d + 8) * scale;
                                 key.random_range = *(float_t*)(d + 12) * scale;
                                 key.value = *(float_t*)(d + 16) * scale;
                                 keys.push_back(key);
@@ -942,8 +942,8 @@ namespace Glitter {
                             key.type = (KeyType) * (int16_t*)d;
                             key.frame = *(int16_t*)(d + 2);
                             if (key.type == KEY_HERMITE) {
-                                key.tangent1 = *(float_t*)(d + 4) * scale;
-                                key.tangent2 = *(float_t*)(d + 8) * scale;
+                                key.l_slope = *(float_t*)(d + 4) * scale;
+                                key.r_slope = *(float_t*)(d + 8) * scale;
                                 key.value = *(float_t*)(d + 12) * scale;
                                 keys.push_back(key);
                                 d += 16;

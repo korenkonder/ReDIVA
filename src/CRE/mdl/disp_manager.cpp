@@ -45,10 +45,17 @@ material_list_struct::material_list_struct() : blend_color(), has_blend_color(),
     hash = (uint32_t)-1;
 }
 
-material_list_struct::material_list_struct(uint32_t hash, vec4& blend_color,
-    vec4u8& has_blend_color, vec4& emission, vec4u8& has_emission) : hash(hash), blend_color(blend_color),
-    has_blend_color(has_blend_color), emission(emission), has_emission(has_emission) {
-
+material_list_struct::material_list_struct(uint32_t in_hash, const vec4& in_blend_color,
+    const bool in_has_blend_color[4], const vec4& in_emission, const bool in_has_emission[4])
+    : hash(in_hash), blend_color(in_blend_color), emission(in_emission) {
+    has_blend_color[0] = in_has_blend_color[0];
+    has_blend_color[1] = in_has_blend_color[1];
+    has_blend_color[2] = in_has_blend_color[2];
+    has_blend_color[3] = in_has_blend_color[3];
+    has_emission[0] = in_has_emission[0];
+    has_emission[1] = in_has_emission[1];
+    has_emission[2] = in_has_emission[2];
+    has_emission[3] = in_has_emission[3];
 }
 
 TexChange::TexChange() {
@@ -2381,22 +2388,22 @@ namespace mdl {
 
                 if (mat_list) {
                     bool has_blend_color = false;
-                    if (mat_list->has_blend_color.x) {
+                    if (mat_list->has_blend_color[0]) {
                         _blend_color.x = mat_list->blend_color.x;
                         has_blend_color = true;
                     }
 
-                    if (mat_list->has_blend_color.y) {
+                    if (mat_list->has_blend_color[1]) {
                         _blend_color.y = mat_list->blend_color.y;
                         has_blend_color = true;
                     }
 
-                    if (mat_list->has_blend_color.z) {
+                    if (mat_list->has_blend_color[2]) {
                         _blend_color.z = mat_list->blend_color.z;
                         has_blend_color = true;
                     }
 
-                    if (mat_list->has_blend_color.w) {
+                    if (mat_list->has_blend_color[3]) {
                         _blend_color.w = mat_list->blend_color.w;
                         has_blend_color = true;
                     }
@@ -2409,22 +2416,22 @@ namespace mdl {
                     }
 
                     bool has_emission = false;
-                    if (mat_list->has_emission.x) {
+                    if (mat_list->has_emission[0]) {
                         _emission.x = mat_list->emission.x;
                         has_emission = true;
                     }
 
-                    if (mat_list->has_emission.y) {
+                    if (mat_list->has_emission[1]) {
                         _emission.y = mat_list->emission.y;
                         has_emission = true;
                     }
 
-                    if (mat_list->has_emission.z) {
+                    if (mat_list->has_emission[2]) {
                         _emission.z = mat_list->emission.z;
                         has_emission = true;
                     }
 
-                    if (mat_list->has_emission.w) {
+                    if (mat_list->has_emission[3]) {
                         _emission.w = mat_list->emission.w;
                         has_emission = true;
                     }

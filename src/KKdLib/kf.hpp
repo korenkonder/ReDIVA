@@ -26,14 +26,14 @@ struct kft1 {
 struct kft2 {
     float_t frame;
     float_t value;
-    float_t tangent;
+    float_t slope;
 };
 
 struct kft3 {
     float_t frame;
     float_t value;
-    float_t tangent1;
-    float_t tangent2;
+    float_t l_slope;
+    float_t r_slope;
 };
 
 extern void kft_check(void* src_key, kf_type src_type, void* dst_key, kf_type* dst_type);

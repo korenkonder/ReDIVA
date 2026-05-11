@@ -3930,7 +3930,7 @@ void rob_chara::rob_motion_modifier_ctrl() {
         rob_chara_bone_data_set_right_hand_scale(bone_data, right_hand_scale);
 }
 
-bool rob_chara::replace_rob_motion(uint32_t motnum, float_t frame, 
+bool rob_chara::replace_rob_motion(uint32_t motnum, float_t frame,
     float_t blend_duration, bool blend, bool set_motion_reset_data, MotionBlendType blend_type,
     const bone_database* bone_data, const motion_database* mot_db) {
     if (!blend && rob_base.robmot.num == motnum)
@@ -5825,7 +5825,7 @@ bool RobManagement::get_colli_check_on() const {
     return colli_check_on;
 }
 
-// 0x140531F50 
+// 0x140531F50
 bool RobManagement::get_disp_on(ROB_ID id) const  {
     if (is_init(id))
         return rob_impl[id].check_disp();
@@ -6260,7 +6260,7 @@ void OpdChecker::sub_140471020() {
         SetIndexSize(++index, (int32_t)osage_play_data_database->map.size());
     }
 
-    prj::sort_unique(objects);
+    prj::sort_and_erase_non_unique(objects);
     SetState(3);
 
     //if (!v63)
@@ -11149,7 +11149,7 @@ void opd_make_start_get_motion_ids(std::vector<int32_t>& motion_ids) {
         opd_motion_ids++;
     }*/
     motion_ids.push_back(195); // CMN_MRA00_13_01
-    prj::sort_unique(motion_ids);
+    prj::sort_and_erase_non_unique(motion_ids);
 }
 
 void opd_make_stop() {
@@ -17159,7 +17159,7 @@ void OsagePlayDataManager::LoadOpdFileList() {
     data_struct* aft_data = &data_list[DATA_AFT];
     motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
-    prj::sort_unique(req_data);
+    prj::sort_and_erase_non_unique(req_data);
 
     auto i_begin = req_data.begin();
     auto i_end = req_data.end();
@@ -17762,7 +17762,7 @@ void OpdMakeManager::CharaData::Reset() {
 void OpdMakeManager::CharaData::SortUnique() {
     for (int32_t i = 0; i < CN_MAX; i++)
         for (int32_t j = 0; j < ROB_ITEM_EQUIP_SUB_ID_MAX; j++) {
-            prj::sort_unique(chara_costumes[i].items[j]);
+            prj::sort_and_erase_non_unique(chara_costumes[i].items[j]);
             count += chara_costumes[i].items[j].size();
         }
 
@@ -17832,7 +17832,7 @@ bool OpdMakeManager::ctrl() {
                 motion_set_ids.push_back(set_id);
         }
 
-        prj::sort_unique(motion_set_ids);
+        prj::sort_and_erase_non_unique(motion_set_ids);
 
         for (uint32_t& i : motion_set_ids) {
             motion_set_load_motion(i, "", aft_mot_db);
@@ -18969,7 +18969,7 @@ void PvOsageManager::SetPvSetMotion(const std::vector<pv_data_set_motion>& set_m
 }
 
 void PvOsageManager::sub_1404F77E0() {
-    prj::sort_unique(pv_set_motion);
+    prj::sort_and_erase_non_unique(pv_set_motion);
 
     pv_data_set_motion* i_begin = pv_set_motion.data();
     pv_data_set_motion* i_end = pv_set_motion.data() + pv_set_motion.size();

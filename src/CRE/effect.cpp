@@ -143,7 +143,7 @@ public:
 struct struc_621 {
     uint32_t stage_hash; // Added
     int32_t stage_index;
-    std::vector<auth_3d_id> auth_3d_ids;
+    std::vector<auth_3d_detail::Handle> auth_3d_ids;
 
     struc_621();
     ~struc_621();
@@ -152,8 +152,8 @@ struct struc_621 {
 struct EffectAuth3d {
     size_t count;
     size_t max_count;
-    auth_3d_id* auth_3d_ids_ptr;
-    auth_3d_id auth_3d_ids[TASK_STAGE_STAGE_COUNT];
+    auth_3d_detail::Handle* auth_3d_ids_ptr;
+    auth_3d_detail::Handle auth_3d_ids[TASK_STAGE_STAGE_COUNT];
 
     EffectAuth3d();
 };
@@ -193,7 +193,7 @@ public:
     virtual void reset() override;
 
     void reset_data();
-    void set_visibility(bool value);
+    void set_visible(bool value);
 };
 
 struct EffectFogAnim {
@@ -1934,8 +1934,6 @@ struc_621::~struc_621() {
 EffectAuth3d::EffectAuth3d() : auth_3d_ids() {
     count = 0;
     max_count = TASK_STAGE_STAGE_COUNT;
-    for (auth_3d_id& i : auth_3d_ids)
-        i = -1;
     auth_3d_ids_ptr = auth_3d_ids;
 }
 
@@ -1957,15 +1955,15 @@ bool TaskEffectAuth3D::init() {
 
     if (stage.count) {
         for (int32_t i = 0; i < stage.count; i++)
-            if (!stage.auth_3d_ids_ptr[i].check_loaded())
+            if (!stage.auth_3d_ids_ptr[i].load_is_done())
                 return false;
     }
 
     for (int32_t i = 0; i < stage.count; i++) {
-        auth_3d_id& id = stage.auth_3d_ids_ptr[i];
-        id.set_repeat(true);
-        id.set_paused(false);
-        id.set_enable(true);
+        auth_3d_detail::Handle& id = stage.auth_3d_ids_ptr[i];
+        id.set_looped(true);
+        id.set_pause(false);
+        id.set_enabled(true);
     }
 
     //if (field_158)
@@ -2031,12 +2029,12 @@ void TaskEffectAuth3D::set_stage_hashes(const std::vector<uint32_t>& stage_hashe
                 if (stage.count == stage.max_count)
                     break;
 
-                auth_3d_id id = auth_3d_id(j, data, obj_db, tex_db);
-                if (!id.check_not_empty())
+                auth_3d_detail::Handle id = auth_3d_detail::Handle::create(j, data, obj_db, tex_db);
+                if (!id.is_valid())
                     break;
 
-                id.read_file_modern();
-                id.set_visibility(false);
+                id.load_req_modern();
+                id.set_visible(false);
                 if (stage.count + 1 <= stage.max_count)
                     stage.auth_3d_ids_ptr[stage.count++] = id;
                 v30.auth_3d_ids.push_back(id);
@@ -2066,12 +2064,12 @@ void TaskEffectAuth3D::set_stage_indices(const std::vector<int32_t>& stage_indic
                 if (stage.count == stage.max_count)
                     break;
 
-                auth_3d_id id = auth_3d_id(j, aft_auth_3d_db);
-                if (!id.check_not_empty())
+                auth_3d_detail::Handle id = auth_3d_detail::Handle::create(j, aft_auth_3d_db);
+                if (!id.is_valid())
                     break;
 
-                id.read_file(aft_auth_3d_db);
-                id.set_visibility(false);
+                id.load_req(aft_auth_3d_db);
+                id.set_visible(false);
                 if (stage.count + 1 <= stage.max_count)
                     stage.auth_3d_ids_ptr[stage.count++] = id;
                 v30.auth_3d_ids.push_back(id);
@@ -2084,14 +2082,14 @@ void TaskEffectAuth3D::set_stage_indices(const std::vector<int32_t>& stage_indic
 void TaskEffectAuth3D::set_frame(int32_t value) {
     double_t frame = (double_t)value;
     for (int32_t i = 0; i < stage.count; i++) {
-        auth_3d_id& id = stage.auth_3d_ids_ptr[i];
-        float_t play_control_size = id.get_play_control_size();
-        float_t req_frame;
-        if (play_control_size != 0.0f)
-            req_frame = (float_t)fmod(frame, play_control_size);
+        auth_3d_detail::Handle& id = stage.auth_3d_ids_ptr[i];
+        float_t frame_size = id.get_frame_size();
+        float_t frame_req;
+        if (frame_size != 0.0f)
+            frame_req = (float_t)fmod(frame, frame_size);
         else
-            req_frame = 0.0f;
-        id.set_req_frame(req_frame);
+            frame_req = 0.0f;
+        id.set_frame_req(frame_req);
     }
 }
 
@@ -2099,40 +2097,40 @@ void TaskEffectAuth3D::set_current_stage_hash(uint32_t value) {
     if (current_stage_hash == value)
         return;
 
-    set_visibility(false);
+    set_visible(false);
     current_stage_hash = value;
-    set_visibility(enable);
+    set_visible(enable);
 }
 
 void TaskEffectAuth3D::set_current_stage_index(int32_t value) {
     if (current_stage_index == value)
         return;
 
-    set_visibility(false);
+    set_visible(false);
     current_stage_index = value;
-    set_visibility(enable);
+    set_visible(enable);
 }
 
 void TaskEffectAuth3D::set_frame_rate_control(FrameRateControl* value) {
     for (int32_t i = 0; i < stage.count; i++) {
-        auth_3d_id& id = stage.auth_3d_ids_ptr[i];
-        id.set_frame_rate(value);
+        auth_3d_detail::Handle& id = stage.auth_3d_ids_ptr[i];
+        id.set_frame_rate_control(value);
     }
 }
 
 void TaskEffectAuth3D::reset() {
     for (int32_t i = 0; i < stage.count; i++) {
-        auth_3d_id& id = stage.auth_3d_ids_ptr[i];
-        id.set_enable(true);
-        id.set_paused(false);
-        id.set_req_frame(0.0f);
+        auth_3d_detail::Handle& id = stage.auth_3d_ids_ptr[i];
+        id.set_enabled(true);
+        id.set_pause(false);
+        id.set_frame_req(0.0f);
     }
 }
 
 void TaskEffectAuth3D::reset_data() {
     for (int32_t i = 0; i < stage.count; i++) {
-        auth_3d_id& id = stage.auth_3d_ids_ptr[i];
-        id.unload(rctx_ptr);
+        auth_3d_detail::Handle& id = stage.auth_3d_ids_ptr[i];
+        id.destroy(rctx_ptr);
     }
     stage.count = 0;
     enable = false;
@@ -2147,14 +2145,14 @@ void TaskEffectAuth3D::reset_data() {
     frame = -1.0f;
 }
 
-void TaskEffectAuth3D::set_visibility(bool value) {
+void TaskEffectAuth3D::set_visible(bool value) {
     if (current_stage_index != -1)
         for (struc_621& i : field_120) {
             if (i.stage_index != current_stage_index)
                 continue;
 
-            for (auth_3d_id& j : i.auth_3d_ids)
-                j.set_visibility(value);
+            for (auth_3d_detail::Handle& j : i.auth_3d_ids)
+                j.set_visible(value);
             break;
         }
     else if (current_stage_hash != -1 && current_stage_hash
@@ -2163,15 +2161,15 @@ void TaskEffectAuth3D::set_visibility(bool value) {
             if (i.stage_hash != current_stage_hash)
                 continue;
 
-            for (auth_3d_id& j : i.auth_3d_ids)
-                j.set_visibility(value);
+            for (auth_3d_detail::Handle& j : i.auth_3d_ids)
+                j.set_visible(value);
             break;
         }
 }
 
 void TaskEffectAuth3D::set_enable(bool value) {
     enable = value;
-    set_visibility(value);
+    set_visible(value);
 }
 
 EffectFogAnim::EffectFogAnim() : field_0(), field_4(), field_8(), field_C(),
@@ -5709,7 +5707,7 @@ void EffectManager::set_stage_hashes(const std::vector<uint32_t>& stage_hashes) 
                 obj_set_ids.push_back(j);
     }
 
-    prj::sort_unique(obj_set_ids);
+    prj::sort_and_erase_non_unique(obj_set_ids);
 
     for (uint32_t i : obj_set_ids)
         objset_info_storage_load_set_hash(data, i);
@@ -5745,7 +5743,7 @@ void EffectManager::set_stage_indices(const std::vector<int32_t>& stage_indices)
                 obj_set_ids.push_back(j);
     }
 
-    prj::sort_unique(obj_set_ids);
+    prj::sort_and_erase_non_unique(obj_set_ids);
 
     for (uint32_t i : obj_set_ids)
         objset_info_storage_load_set(aft_data, aft_obj_db, i);

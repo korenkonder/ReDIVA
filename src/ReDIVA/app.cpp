@@ -2204,7 +2204,7 @@ static int32_t app_create_logical_device() {
     std::vector<uint32_t> unique_queue_families;
     unique_queue_families.insert(unique_queue_families.end(), indices.first);
     unique_queue_families.insert(unique_queue_families.end(), indices.second);
-    prj::sort_unique(unique_queue_families);
+    prj::sort_and_erase_non_unique(unique_queue_families);
 
     std::vector<VkDeviceQueueCreateInfo> queue_create_infos;
     queue_create_infos.reserve(unique_queue_families.size());

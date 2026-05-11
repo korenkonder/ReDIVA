@@ -2546,17 +2546,7 @@ void RobOsageTestDw::Collision::Init(dw::Composite* parent) {
 
 void RobOsageTestDw::Collision::Update() {
     if (element_comp) {
-        Composite* parent_comp = element_comp->parent_comp;
-        auto i_begin = parent_comp->controls.begin();
-        auto i_end = parent_comp->controls.end();
-        for (auto i = i_begin; i != i_end; )
-            if (*i == element_comp) {
-                parent_comp->controls.erase(i);
-                break;
-            }
-            else
-                i++;
-
+        prj::find_and_erase(element_comp->parent_comp->controls, element_comp);
         element_comp->Free();
         element_comp = 0;
     }

@@ -46,8 +46,8 @@ public:
         DataEventListener();
         virtual ~DataEventListener() override;
 
-        virtual void OnLoad(::auth_3d_id& id) override;
-        virtual void OnPostCtrl(::auth_3d_id& id) override;
+        virtual void loadFinished(auth_3d_detail::Handle& in_handle) override;
+        virtual void playLoopJumpAfter(auth_3d_detail::Handle& in_handle) override;
     } data_event_listener;
 
     int32_t field_1C0;
@@ -56,10 +56,10 @@ public:
     int32_t field_1CC;
     bool field_1D0;
     int32_t state;
-    ::auth_3d_id auth_3d_id;
+    auth_3d_detail::Handle auth_3d_id;
     int32_t auth_3d_uid;
     bool repeat;
-    bool mirror;
+    bool reverse_side;
     bool pos;
     bool snap_shot;
     int32_t snap_shot_state;
@@ -69,9 +69,10 @@ public:
     bool stage_link_change;
     int32_t effcmn_obj_set_state;
     uint32_t effcmn_obj_set;
+    std::vector<aet::SetHandle> aet_set_handle;
     int32_t aet_state;
     int32_t aet_id;
-    auth_3d_detail::EventA2d::Aet aet;
+    aet::IdHandle aet_id_handle;
     bool plane_above_floor;
     bool stg_auth_display;
     bool stg_display;
@@ -103,7 +104,7 @@ public:
     virtual bool dest() override;
     virtual void disp() override;
 
-    void DispAuth3dChara(::auth_3d_id& id);
+    void DispAuth3dChara(auth_3d_detail::Handle& in_handle);
     void DispChara();
     void SetAuth3dId();
     void SetAuth3dUid(int32_t value);

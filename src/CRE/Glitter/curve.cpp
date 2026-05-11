@@ -11,12 +11,12 @@ namespace Glitter {
         const uint8_t step, size_t i, double_t t1, double_t t2, double_t t2_old,
         std::vector<Curve::KeyRev>* keys_rev);
 
-    Curve::Key::Key() : type(), frame(), value(), tangent1(), tangent2(), random_range() {
+    Curve::Key::Key() : type(), frame(), value(), l_slope(), r_slope(), random_range() {
 
     }
 
     Curve::Key::Key(KeyType type, int32_t frame,
-        float_t value, float_t random_range) : tangent1(), tangent2() {
+        float_t value, float_t random_range) : l_slope(), r_slope() {
         this->type = type;
         this->frame = frame;
         this->value = value;
@@ -24,21 +24,21 @@ namespace Glitter {
     }
 
     Curve::Key::Key(KeyType type, int32_t frame, float_t value,
-        float_t tangent1, float_t tangent2, float_t random_range) {
+        float_t l_slope, float_t r_slope, float_t random_range) {
         this->type = type;
         this->frame = frame;
         this->value = value;
-        this->tangent1 = tangent1;
-        this->tangent2 = tangent2;
+        this->l_slope = l_slope;
+        this->r_slope = r_slope;
         this->random_range = random_range;
     }
 
-    Curve::KeyRev::KeyRev() : type(), frame(), value(), tangent1(), tangent2(), random_range() {
+    Curve::KeyRev::KeyRev() : type(), frame(), value(), l_slope(), r_slope(), random_range() {
 
     }
 
     Curve::KeyRev::KeyRev(KeyType type, int32_t frame,
-        double_t value, double_t random_range) : tangent1(), tangent2() {
+        double_t value, double_t random_range) : l_slope(), r_slope() {
         this->type = type;
         this->frame = frame;
         this->value = value;
@@ -46,12 +46,12 @@ namespace Glitter {
     }
 
     Curve::KeyRev::KeyRev(KeyType type, int32_t frame, double_t value,
-        double_t tangent1, double_t tangent2, double_t random_range) {
+        double_t l_slope, double_t r_slope, double_t random_range) {
         this->type = type;
         this->frame = frame;
         this->value = value;
-        this->tangent1 = tangent1;
-        this->tangent2 = tangent2;
+        this->l_slope = l_slope;
+        this->r_slope = r_slope;
         this->random_range = random_range;
     }
 
@@ -171,7 +171,7 @@ namespace Glitter {
         float_t next_val = F2RandomizeKey(GLT_VAL, next, random);
         float_t curr_val = F2RandomizeKey(GLT_VAL, curr, random);
         return InterpolateHermite(F2RandomizeKey(GLT_VAL, curr, random),
-            next_val - curr_val, curr.tangent2, next.tangent1,
+            next_val - curr_val, curr.r_slope, next.l_slope,
             (float_t)curr.frame, (float_t)next.frame, frame);
     }
 
@@ -211,8 +211,8 @@ namespace Glitter {
         const Curve::Key& src, bool baked_x = false, bool negate = false) {
         dst.type = src.type;
         dst.frame = src.frame;
-        dst.tangent1 = src.tangent1;
-        dst.tangent2 = src.tangent2;
+        dst.l_slope = src.l_slope;
+        dst.r_slope = src.r_slope;
 
         if (!baked_x) {
             dst.value = src.value;
@@ -497,8 +497,8 @@ namespace Glitter {
         const Curve::KeyRev& src, bool baked_x = false, bool negate = false) {
         dst.type = src.type;
         dst.frame = src.frame;
-        dst.tangent1 = (float_t)src.tangent1;
-        dst.tangent2 = (float_t)src.tangent2;
+        dst.l_slope = (float_t)src.l_slope;
+        dst.r_slope = (float_t)src.r_slope;
 
         if (!baked_x) {
             dst.value = (float_t)src.value;
@@ -598,7 +598,7 @@ namespace Glitter {
             }
             else if (curr_key->type == KEY_HERMITE) {
                 val = InterpolateHermite(curr_key->value, next_key->value - curr_key->value,
-                    curr_key->tangent2, next_key->tangent1,
+                    curr_key->r_slope, next_key->l_slope,
                     (double_t)curr_key->frame, (double_t)next_key->frame, (double_t)frame);
                 rand_range = InterpolateHermite(curr_key->random_range,
                     next_key->random_range - curr_key->random_range, 0.0, 0.0,
@@ -716,7 +716,7 @@ namespace Glitter {
         float_t next_val = XRandomizeKey(next, random);
         float_t curr_val = XRandomizeKey(curr, random);
         return InterpolateHermite(XRandomizeKey(curr, random),
-            next_val - curr_val, curr.tangent2, next.tangent1,
+            next_val - curr_val, curr.r_slope, next.l_slope,
             (float_t)curr.frame, (float_t)next.frame, frame);
     }
 

@@ -101,17 +101,22 @@ struct camera {
     void update_data();
 };
 
-struct cam_struct {
+struct CameraParam {
     bool use_up;
     vec3 view_point;
     vec3 interest;
-    float_t fov;
+    float_t v_fov;
     float_t roll;
     vec3 up;
-    float_t min_distance;
+    float_t clip_near;
 
-    cam_struct();
+    inline CameraParam() : use_up(), view_point(),
+        interest(), v_fov(), roll(), up(), clip_near() {
+        init();
+    }
+
     void get(camera* cam);
+    void init();
     void set(camera* cam);
 };
 

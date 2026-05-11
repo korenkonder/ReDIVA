@@ -663,8 +663,8 @@ static void stage_free(stage* s) {
     light_chara_ambient = false;
 
     if (s->auth_3d_loaded) {
-        auth_3d_data_unload_category(s->stage_data->auth_3d_name.c_str());
-        auth_3d_data_unload_category(s->stage_data->name.c_str());
+        auth_3d_detail::category_free(s->stage_data->auth_3d_name.c_str());
+        auth_3d_detail::category_free(s->stage_data->name.c_str());
         s->auth_3d_loaded = false;
     }
 
@@ -694,15 +694,15 @@ static void stage_load(stage* s) {
         object_database* aft_obj_db = &aft_data->data_ft.obj_db;
         objset_info_storage_load_set(aft_data, aft_obj_db, s->stage_data->object_set_id);
 
-        auth_3d_data_load_category(s->stage_data->name.c_str());
-        auth_3d_data_load_category(s->stage_data->auth_3d_name.c_str());
+        auth_3d_detail::category_load_req(s->stage_data->name.c_str());
+        auth_3d_detail::category_load_req(s->stage_data->auth_3d_name.c_str());
         s->auth_3d_loaded = true;
         s->state = 4;
     }
     else if (s->state == 4) {
         if (objset_info_storage_load_obj_set_check_not_read(s->stage_data->object_set_id)
-            || !auth_3d_data_check_category_loaded(s->stage_data->name.c_str())
-            || !auth_3d_data_check_category_loaded(s->stage_data->auth_3d_name.c_str()))
+            || !auth_3d_detail::category_load_is_done(s->stage_data->name.c_str())
+            || !auth_3d_detail::category_load_is_done(s->stage_data->auth_3d_name.c_str()))
             return;
 
         if (s->stage_data->render_texture != -1)

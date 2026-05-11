@@ -28,42 +28,44 @@ dft_dsc_data::~dft_dsc_data() {
 }
 
 static bool a3da_to_dof_data(const char* a3da_path, dft_dsc_data& data) {
-    a3da cam_a3da_file;
-    a3da::load_file(&cam_a3da_file, "DOF\\auth_3d\\", a3da_path, 0);
+    auth_3d_detail::SceneFile file;
+    a3d::Scene::load_file(&file.prop, "DOF\\auth_3d\\", a3da_path, 0);
 
-    if (!cam_a3da_file.dof.has_dof) {
+    if (!file.prop.dof.has_dof) {
         data.frames = 0;
         return false;
     }
 
-    auth_3d cam_a3da;
-    cam_a3da.load(&cam_a3da_file, 0, 0);
+    auth_3d_detail::Scene scene;
+    scene.M_loadFromProperties(file, 0, 0);
 
-    data.frames = (int32_t)cam_a3da.play_control.size;
+    data.frames = (int32_t)scene.play_control.size;
 
     data.dof.data.reserve(data.frames + 1ULL);
     data.dof_index.reserve(data.frames);
 
     data.dof.data.push_back({ (dof_flags)0, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f });
 
-    auth_3d_camera_root* cr = &cam_a3da.camera_root[0];
+    auth_3d_detail::CameraRoot& cr = scene.camera_root_list[0];
 
     for (int32_t i = 0; i < data.frames; i++) {
-        cam_a3da.dof.model_transform.interpolate((float_t)i);
-        bool enable = fabsf(cam_a3da.dof.model_transform.rotation_value.z) > 0.000001f;
+        cr.view_point.model_transform.get((float_t)i);
+        scene.dof.get((float_t)i);
+        bool enable = fabsf(scene.dof.model_transform.rotation.z) > 0.000001f;
         if (!enable) {
             data.dof_index.push_back(0);
             continue;
         }
 
-        float_t focus = vec3::distance(cam_a3da.dof.model_transform.translation_value, cr->view_point_value);
+        float_t focus = vec3::distance(scene.dof.model_transform.translation,
+            cr.view_point.model_transform.translation);
 
         dof_data d;
         d.flags = (dof_flags)(DOF_QUALITY | DOF_RATIO | DOF_FUZZING_RANGE | DOF_FOCUS_RANGE | DOF_FOCUS);
         d.focus = focus;
-        d.focus_range = cam_a3da.dof.model_transform.scale_value.x;
-        d.fuzzing_range = cam_a3da.dof.model_transform.rotation_value.x;
-        d.ratio = cam_a3da.dof.model_transform.rotation_value.y;
+        d.focus_range = scene.dof.model_transform.scale.x;
+        d.fuzzing_range = scene.dof.model_transform.rotation.x;
+        d.ratio = scene.dof.model_transform.rotation.y;
         d.quality = 1.0f;
 
         bool found = false;

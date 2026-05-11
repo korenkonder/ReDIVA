@@ -5310,7 +5310,7 @@ static void glitter_editor_curve_editor_property_window(GlitterEditor* glt_edt) 
                 break;
             case Glitter::KEY_HERMITE:
                 value = Glitter::Curve::InterpolateHermite(
-                    c->value, n->value - c->value, c->tangent2, n->tangent1,
+                    c->value, n->value - c->value, c->r_slope, n->l_slope,
                     (double_t)c->frame, (double_t)n->frame, (double_t)crv_edt->frame);
                 break;
             }
@@ -5356,20 +5356,20 @@ static void glitter_editor_curve_editor_property_window(GlitterEditor* glt_edt) 
         ImGui::DisableElementPop(key_random_range);
 
         if (n && c->type == Glitter::KEY_HERMITE) {
-            float_t tangent2 = (float_t)(c->tangent2 * scale);
-            if (ImGui::ColumnDragFloat("Tangent 1",
-                &tangent2, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
+            float_t r_slope = (float_t)(c->r_slope * scale);
+            if (ImGui::ColumnDragFloat("R Slope",
+                &r_slope, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
                 ImGuiSliderFlags_NoRoundToFormat)) {
-                c->tangent2 = tangent2 * inv_scale;
+                c->r_slope = r_slope * inv_scale;
                 changed = true;
             }
             key_edit |= ImGui::IsItemFocused();
 
-            float_t tangent1 = (float_t)(n->tangent1 * scale);
-            if (ImGui::ColumnDragFloat("Tangent 2",
-                &tangent1, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
+            float_t l_slope = (float_t)(n->l_slope * scale);
+            if (ImGui::ColumnDragFloat("L Slope",
+                &l_slope, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
                 ImGuiSliderFlags_NoRoundToFormat)) {
-                n->tangent1 = tangent1 * inv_scale;
+                n->l_slope = l_slope * inv_scale;
                 changed = true;
             }
             key_edit |= ImGui::IsItemFocused();
@@ -5892,11 +5892,11 @@ static void glitter_editor_curve_editor_window(GlitterEditor* glt_edt) {
                 case Glitter::KEY_HERMITE: {
                     int32_t df = n->frame - c->frame;
                     int32_t _df = key.frame - c->frame;
-                    std::vector<double_t> v_arr = interpolate_chs(c->value, n->value, c->tangent2, n->tangent1, 0, df);
+                    std::vector<double_t> v_arr = interpolate_chs(c->value, n->value, c->r_slope, n->l_slope, 0, df);
                     key.value = v_arr[_df];
                     key.random_range = lerp_def(c->random_range, n->random_range, (double_t)_df / (double_t)df);
-                    interpolate_chs_reverse(v_arr.data(), v_arr.size(), c->tangent2, key.tangent1, 0, _df);
-                    interpolate_chs_reverse(v_arr.data(), v_arr.size(), key.tangent2, n->tangent1, _df, df);
+                    interpolate_chs_reverse(v_arr.data(), v_arr.size(), c->r_slope, key.l_slope, 0, _df);
+                    interpolate_chs_reverse(v_arr.data(), v_arr.size(), key.r_slope, n->l_slope, _df, df);
                 } break;
                 }
                 keys->insert(keys->begin() + ++pos, key);
@@ -5939,18 +5939,18 @@ static void glitter_editor_curve_editor_window(GlitterEditor* glt_edt) {
                     int32_t df_n = n->frame - i->frame;
 
                     std::vector<double_t> v_arr_c = interpolate_chs(c->value,
-                        i->value, c->tangent2, i->tangent1, 0, df_c);
+                        i->value, c->r_slope, i->l_slope, 0, df_c);
 
                     std::vector<double_t> v_arr_n = i->type == Glitter::KEY_HERMITE
-                        ? interpolate_chs(i->value, n->value, i->tangent2, n->tangent1, 0, df_n)
+                        ? interpolate_chs(i->value, n->value, i->r_slope, n->l_slope, 0, df_n)
                         : interpolate_linear(i->value, n->value, 0, df_n);
 
                     size_t v_length = v_arr_c.size() + v_arr_n.size() - 1;
                     double_t* v_arr = new double_t[v_length];
                     memmove(v_arr, v_arr_c.data(), (v_arr_c.size() - 1) * sizeof(*v_arr));
                     memmove(v_arr + (v_arr_c.size() - 1), v_arr_n.data(), v_arr_n.size() * sizeof(*v_arr));
-                    interpolate_chs_reverse(v_arr, v_length, c->tangent2,
-                        n->tangent1, 0, (size_t)n->frame - c->frame);
+                    interpolate_chs_reverse(v_arr, v_length, c->r_slope,
+                        n->l_slope, 0, (size_t)n->frame - c->frame);
                     delete[] v_arr;
                 }
                 keys->erase(keys->begin() + (i - i_begin));
@@ -6524,70 +6524,70 @@ static void glitter_editor_curve_editor_window(GlitterEditor* glt_edt) {
         }
 
         if (i - i_begin > 0 && (i - 1)->type == Glitter::KEY_HERMITE) {
-            double_t tangent1 = i->tangent1;
+            double_t l_slope = i->l_slope;
             ImVec2 circle_pos;
             circle_pos.x = x - 25.0f;
             circle_pos.y = y - base_line + convert_value_to_height(crv_edt,
-                (float_t)tangent1, canvas_pos.y, canvas_size.y, min, max);
+                (float_t)l_slope, canvas_pos.y, canvas_size.y, min, max);
             draw_list->AddLine({ x, y }, circle_pos, default_color, 1.5f);
 
             if ((circle_pos.x >= p3.x - 10.0f && circle_pos.x <= p3.x + canvas_size.x + 10.0f)
                 && (circle_pos.y >= p3.y - 10.0f && circle_pos.y <= p3.y + canvas_size.y + 10.0f)) {
                 ImGui::SetCursorScreenPos({ circle_pos.x - 7.5f, circle_pos.y - 7.5f });
-                ImGui::InvisibleButton("tan1", { 15.0f, 15.0f }, 0);
+                ImGui::InvisibleButton("l slope", { 15.0f, 15.0f }, 0);
 
-                ImU32 tangent1_color;
+                ImU32 l_slope_color;
                 if (can_drag && ImGui::IsItemActive()) {
                     if (ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
-                        i->tangent1 = convert_height_to_value(crv_edt,
+                        i->l_slope = convert_height_to_value(crv_edt,
                             circle_pos.y + io.MouseDelta.y - y + base_line,
                             canvas_pos.y, canvas_size.y, min, max);
 
-                        if (i->tangent1 != tangent1)
+                        if (i->l_slope != l_slope)
                             changed = true;
                     }
                     holding_tan = true;
-                    tangent1_color = selected_color;
+                    l_slope_color = selected_color;
                 }
                 else
-                    tangent1_color = default_color;
+                    l_slope_color = default_color;
 
                 draw_list->AddCircleFilled(circle_pos,
-                    crv_edt->key_radius_in, tangent1_color, 12);
+                    crv_edt->key_radius_in, l_slope_color, 12);
             }
         }
 
         if (i_end - i > 1 && i->type == Glitter::KEY_HERMITE) {
-            double_t tangent2 = i->tangent2;
+            double_t r_slope = i->r_slope;
             ImVec2 circle_pos;
             circle_pos.x = x + 25.0f;
             circle_pos.y = y - base_line + convert_value_to_height(crv_edt,
-                (float_t)tangent2, canvas_pos.y, canvas_size.y, min, max);
+                (float_t)r_slope, canvas_pos.y, canvas_size.y, min, max);
             draw_list->AddLine({ x, y }, circle_pos, default_color, 1.5f);
 
             if ((circle_pos.x >= p3.x - 10.0f && circle_pos.x <= p3.x + canvas_size.x + 10.0f)
                 && (circle_pos.y >= p3.y - 10.0f && circle_pos.y <= p3.y + canvas_size.y + 10.0f)) {
                 ImGui::SetCursorScreenPos({ circle_pos.x - 7.5f, circle_pos.y - 7.5f });
-                ImGui::InvisibleButton("tan2", { 15.0f, 15.0f }, 0);
+                ImGui::InvisibleButton("r slope", { 15.0f, 15.0f }, 0);
 
-                ImU32 tangent2_color;
+                ImU32 r_slope_color;
                 if (can_drag && ImGui::IsItemActive()) {
                     if (ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
-                        i->tangent2 = convert_height_to_value(crv_edt,
+                        i->r_slope = convert_height_to_value(crv_edt,
                             circle_pos.y + io.MouseDelta.y - y + base_line,
                             canvas_pos.y, canvas_size.y, min, max);
 
-                        if (i->tangent2 != tangent2)
+                        if (i->r_slope != r_slope)
                             changed = true;
                     }
                     holding_tan = true;
-                    tangent2_color = selected_color;
+                    r_slope_color = selected_color;
                 }
                 else
-                    tangent2_color = default_color;
+                    r_slope_color = default_color;
 
                 draw_list->AddCircleFilled(circle_pos,
-                    crv_edt->key_radius_in, tangent2_color, 12);
+                    crv_edt->key_radius_in, r_slope_color, 12);
             }
         }
 
@@ -6813,7 +6813,7 @@ static void glitter_editor_curve_editor_window_draw(GlitterEditor* glt_edt, cons
                         break;
                     case Glitter::KEY_HERMITE:
                         value = Glitter::Curve::InterpolateHermite(c_value_vec, n_value_vec - c_value_vec,
-                            vec3((float_t)c->tangent2), vec3((float_t)n->tangent1),
+                            vec3((float_t)c->r_slope), vec3((float_t)n->l_slope),
                             vec3((float_t)c->frame), vec3((float_t)n->frame), vec3((float_t)start_time));
                         break;
                     }
@@ -6862,7 +6862,7 @@ static void glitter_editor_curve_editor_window_draw(GlitterEditor* glt_edt, cons
                         break;
                     case Glitter::KEY_HERMITE:
                         value = Glitter::Curve::InterpolateHermite(c_value_vec, n_value_vec - c_value_vec,
-                            vec3((float_t)c->tangent2), vec3((float_t)n->tangent1),
+                            vec3((float_t)c->r_slope), vec3((float_t)n->l_slope),
                             vec3((float_t)c->frame), vec3((float_t)n->frame), vec3((float_t)end_time));
                         break;
                     }
@@ -6948,8 +6948,8 @@ static void glitter_editor_curve_editor_window_draw(GlitterEditor* glt_edt, cons
             case Glitter::KEY_HERMITE: {
                 const float_t c_frame = (float_t)c->frame;
                 const float_t n_frame = (float_t)n->frame;
-                const float_t c_tangent2 = (float_t)c->tangent2;
-                const float_t n_tangent1 = (float_t)n->tangent1;
+                const float_t c_r_slope = (float_t)c->r_slope;
+                const float_t n_l_slope = (float_t)n->l_slope;
 
                 const vec3 c_frame_vec = c_frame;
                 const vec3 n_frame_vec = n_frame;
@@ -6957,8 +6957,8 @@ static void glitter_editor_curve_editor_window_draw(GlitterEditor* glt_edt, cons
                     (float_t)c_value, (float_t)(c_value - c_random_range) };
                 const vec3 n_value_vec = { (float_t)(n_value + n_random_range),
                     (float_t)n_value, (float_t)(n_value - n_random_range) };
-                const vec3 c_tangent2_vec = c_tangent2;
-                const vec3 n_tangent1_vec = n_tangent1;
+                const vec3 c_r_slope_vec = c_r_slope;
+                const vec3 n_l_slope_vec = n_l_slope;
                 const int32_t frame_width_int = (int32_t)prj::roundf(frame_width);
                 for (int32_t j = c->frame; j < n->frame; j++) {
                     if (j < start_time)
@@ -6971,7 +6971,7 @@ static void glitter_editor_curve_editor_window_draw(GlitterEditor* glt_edt, cons
                         const vec3 frame_vec = frame;
 
                         const vec3 value = Glitter::Curve::InterpolateHermite(c_value_vec, n_value_vec - c_value_vec,
-                            c_tangent2_vec, n_tangent1_vec, c_frame_vec, n_frame_vec, frame_vec);
+                            c_r_slope_vec, n_l_slope_vec, c_frame_vec, n_frame_vec, frame_vec);
                         const vec3 random = !random_range_mult
                             ? random_range : glt_type_ft
                             ? (random_range * value) : (random_range * value * 0.01f);
@@ -7019,7 +7019,7 @@ static void glitter_editor_curve_editor_window_draw(GlitterEditor* glt_edt, cons
                     break;
                 case Glitter::KEY_HERMITE:
                     value = Glitter::Curve::InterpolateHermite(c_value, n_value - c_value,
-                        (double_t)c->tangent2, (double_t)n->tangent1,
+                        (double_t)c->r_slope, (double_t)n->l_slope,
                         (double_t)c->frame, (double_t)n->frame, (double_t)start_time);
                     break;
                 }
@@ -7062,7 +7062,7 @@ static void glitter_editor_curve_editor_window_draw(GlitterEditor* glt_edt, cons
                     break;
                 case Glitter::KEY_HERMITE:
                     value = Glitter::Curve::InterpolateHermite(c_value, n_value - c_value,
-                        (double_t)c->tangent2, (double_t)n->tangent1,
+                        (double_t)c->r_slope, (double_t)n->l_slope,
                         (double_t)c->frame, (double_t)n->frame, (double_t)end_time);
                     break;
                 }
@@ -7142,11 +7142,11 @@ static void glitter_editor_curve_editor_window_draw(GlitterEditor* glt_edt, cons
         else if (c->type == Glitter::KEY_HERMITE) {
             const double_t c_frame = (double_t)c->frame;
             const double_t n_frame = (double_t)n->frame;
-            const double_t c_tangent2 = c->tangent2;
-            const double_t n_tangent1 = n->tangent1;
+            const double_t c_r_slope = c->r_slope;
+            const double_t n_l_slope = n->l_slope;
 
             double_t value = Glitter::Curve::InterpolateHermite(c_value, n_value - c_value,
-                c_tangent2, n_tangent1,
+                c_r_slope, n_l_slope,
                 c_frame, n_frame, (double_t)max_def(c->frame, start_time));
             float_t x = canvas_pos.x + (float_t)(max_def(c->frame, start_time)
                 - base_start_time) * frame_width;
@@ -7164,7 +7164,7 @@ static void glitter_editor_curve_editor_window_draw(GlitterEditor* glt_edt, cons
 
                 for (int32_t k = 0; k < frame_width_int; k++) {
                     const double_t value = Glitter::Curve::InterpolateHermite(c_value, n_value - c_value,
-                        c_tangent2, n_tangent1, c_frame, n_frame, (double_t)j + (double_t)k / frame_width);
+                        c_r_slope, n_l_slope, c_frame, n_frame, (double_t)j + (double_t)k / frame_width);
 
                     float_t x = canvas_pos.x
                         + (float_t)(j - base_start_time) * frame_width + (float_t)k;

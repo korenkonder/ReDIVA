@@ -503,9 +503,9 @@ static void x_pv_game_update_object_set(ObjsetInfo* info);
 static void x_pv_game_write_aet(uint32_t aet_set_id,
     const aet_database* aet_db, aet_database_file* x_pack_aet_db,
     const SprDbFile* x_pack_spr_db, const char* out_dir);
-static bool x_pv_game_write_auth_3d(farc* f, auth_3d* auth, auth_3d_database_file* auth_3d_db,
+static bool x_pv_game_write_auth_3d(farc* f, auth_3d_detail::Scene* in_scene, auth_3d_database_file* auth_3d_db,
     const char* category, std::vector<uint64_t>& avail_uids, const char* out_dir);
-static void x_pv_game_write_auth_3d_camera(auth_3d* auth, int32_t pv_id,
+static void x_pv_game_write_auth_3d_camera(auth_3d_detail::Scene* in_scene, int32_t pv_id,
     auth_3d_database_file* auth_3d_db, std::vector<uint64_t>& avail_uids, const char* out_dir);
 static void x_pv_game_write_auth_3d_category(const std::string& category,
     auth_3d_database_file* auth_3d_db, std::vector<uint64_t>& avail_uids, const char* out_dir);
@@ -542,7 +542,7 @@ static void replace_pv832(std::string& str);
 #endif
 
 #if BAKE_X_PACK
-static bool get_replace_auth_name(char* name, size_t name_size, auth_3d* auth);
+static bool get_replace_auth_name(char* name, size_t name_size, auth_3d_detail::Scene* in_scene);
 static void remove_auth_3d_category(auth_3d_database_file& auth_3d_db,
     std::vector<uint64_t>& avail_uids, const char* category_name, const char* out_dir);
 static void replace_names(char* str);
@@ -893,7 +893,7 @@ x_pv_game_song_effect_auth_3d::x_pv_game_song_effect_auth_3d() {
 
 }
 
-x_pv_game_song_effect_auth_3d::x_pv_game_song_effect_auth_3d(auth_3d_id id) {
+x_pv_game_song_effect_auth_3d::x_pv_game_song_effect_auth_3d(auth_3d_detail::Handle id) {
     this->id = id;
 }
 
@@ -946,16 +946,16 @@ x_pv_game_camera::~x_pv_game_camera() {
 void x_pv_game_camera::ctrl(float_t curr_time) {
     switch (state) {
     case 10: {
-        if (!auth_3d_data_check_category_loaded(category.hash_murmurhash))
+        if (!auth_3d_detail::category_load_is_done(category.hash_murmurhash))
             break;
 
-        auth_3d_id id = auth_3d_id(file.hash_murmurhash, &data_list[DATA_X], 0, 0);
-        if (id.check_not_empty()) {
-            id.read_file_modern();
-            id.set_enable(false);
-            id.set_repeat(false);
-            id.set_paused(false);
-            id.set_frame_rate(frame_rate_control);
+        auth_3d_detail::Handle id = auth_3d_detail::Handle::create(file.hash_murmurhash, &data_list[DATA_X], 0, 0);
+        if (id.is_valid()) {
+            id.load_req_modern();
+            id.set_enabled(false);
+            id.set_looped(false);
+            id.set_pause(false);
+            id.set_frame_rate_control(frame_rate_control);
         }
 
         this->id = id;
@@ -963,16 +963,16 @@ void x_pv_game_camera::ctrl(float_t curr_time) {
         state = 11;
     } break;
     case 11: {
-        if (id.check_not_empty() && id.check_loaded())
+        if (id.is_valid() && id.load_is_done())
             state = 20;
     } break;
     case 20: {
-        auth_3d_id& id = this->id;
-        id.set_enable(true);
-        id.set_repeat(false);
-        id.set_paused(false);
-        id.set_camera_root_update(true);
-        id.set_req_frame(curr_time * 60.0f);
+        auth_3d_detail::Handle& id = this->id;
+        id.set_enabled(true);
+        id.set_looped(false);
+        id.set_pause(false);
+        id.camera_set_enabled(true);
+        id.set_frame_req(curr_time * 60.0f);
     } break;
     }
 }
@@ -995,7 +995,7 @@ void x_pv_game_camera::load_data() {
     if (state || !category.str.size())
         return;
 
-    auth_3d_data_load_category(&data_list[DATA_X], category.c_str(), category.hash_murmurhash);
+    auth_3d_detail::category_load_req(&data_list[DATA_X], category.c_str(), category.hash_murmurhash);
     state = 10;
 }
 
@@ -1007,8 +1007,8 @@ void x_pv_game_camera::reset() {
 }
 
 void x_pv_game_camera::stop() {
-    if (id.check_not_empty())
-        id.set_enable(false);
+    if (id.is_valid())
+        id.set_enabled(false);
 }
 
 void x_pv_game_camera::unload() {
@@ -1019,8 +1019,8 @@ void x_pv_game_camera::unload_data() {
     if (state != 20)
         return;
 
-    id.unload(rctx_ptr);
-    auth_3d_data_unload_category(category.hash_murmurhash);
+    id.destroy(rctx_ptr);
+    auth_3d_detail::category_free(category.hash_murmurhash);
     state = 0;
 }
 
@@ -1033,13 +1033,27 @@ x_pv_game_effect::~x_pv_game_effect() {
 
 }
 
+void x_pv_game_effect::assign_rob_id(int32_t index, ROB_ID rob_id, bool chara_item) {
+    if (index < 0 || index >= song_effect.size())
+        return;
+
+    x_pv_game_song_effect& song_effect = this->song_effect[index];
+
+    for (x_pv_game_song_effect_auth_3d& i : song_effect.auth_3d) {
+        i.id.assign_rob_id(rob_id);
+        i.id.set_chara_item(chara_item);
+    }
+
+    song_effect.rob_id = rob_id;
+}
+
 void x_pv_game_effect::ctrl(object_database* obj_db, texture_database* tex_db) {
     switch (state) {
     case 10: {
         bool wait_load = false;
 
         for (string_hash& i : pv_auth_3d)
-            if (!auth_3d_data_check_category_loaded(i.hash_murmurhash))
+            if (!auth_3d_detail::category_load_is_done(i.hash_murmurhash))
                 wait_load |= true;
 
         for (string_hash& i : pv_obj_set)
@@ -1059,16 +1073,16 @@ void x_pv_game_effect::ctrl(object_database* obj_db, texture_database* tex_db) {
             x_pv_game_song_effect& song_effect = this->song_effect[i];
             pvpp_effect& effect = play_param->effect[i];
             for (string_hash& j : effect.auth_3d) {
-                auth_3d_id id = auth_3d_id(j.hash_murmurhash, x_data, obj_db, tex_db);
-                if (!id.check_not_empty())
+                auth_3d_detail::Handle id = auth_3d_detail::Handle::create(j.hash_murmurhash, x_data, obj_db, tex_db);
+                if (!id.is_valid())
                     continue;
 
-                id.read_file_modern();
-                id.set_enable(false);
-                id.set_repeat(false);
-                id.set_paused(false);
-                id.set_visibility(false);
-                id.set_frame_rate(frame_rate_control);
+                id.load_req_modern();
+                id.set_enabled(false);
+                id.set_looped(false);
+                id.set_pause(false);
+                id.set_visible(false);
+                id.set_frame_rate_control(frame_rate_control);
                 song_effect.auth_3d.push_back(id);
             }
         }
@@ -1079,7 +1093,7 @@ void x_pv_game_effect::ctrl(object_database* obj_db, texture_database* tex_db) {
 
         for (x_pv_game_song_effect& i : song_effect)
             for (x_pv_game_song_effect_auth_3d& j : i.auth_3d)
-                if (j.id.check_not_empty() && !j.id.check_loaded())
+                if (j.id.is_valid() && !j.id.load_is_done())
                     wait_load |= true;
 
         for (string_hash& i : pv_glitter)
@@ -1135,7 +1149,7 @@ void x_pv_game_effect::ctrl(object_database* obj_db, texture_database* tex_db) {
         for (x_pv_game_song_effect& i : song_effect)
             if (i.enable)
                 for (x_pv_game_song_effect_auth_3d& j : i.auth_3d)
-                    j.id.set_chara_id(i.rob_id);
+                    j.id.assign_rob_id(i.rob_id);
     } break;
     }
 }
@@ -1175,7 +1189,7 @@ void x_pv_game_effect::load_data(int32_t pv_id, object_database* obj_db, texture
         objset_info_storage_load_set_hash(x_data, i.hash_murmurhash);
 
     for (string_hash& i : pv_auth_3d)
-        auth_3d_data_load_category(x_data, i.c_str(), i.hash_murmurhash);
+        auth_3d_detail::category_load_req(x_data, i.c_str(), i.hash_murmurhash);
 
     size_t effect_count = play_param->effect.size();
     for (size_t i = 0; i < effect_count; i++) {
@@ -1211,20 +1225,6 @@ void x_pv_game_effect::reset() {
     frame_rate_control = 0;
 }
 
-void x_pv_game_effect::set_chara_id(int32_t index, ROB_ID rob_id, bool chara_item) {
-    if (index < 0 || index >= song_effect.size())
-        return;
-
-    x_pv_game_song_effect& song_effect = this->song_effect[index];
-
-    for (x_pv_game_song_effect_auth_3d& i : song_effect.auth_3d) {
-        i.id.set_chara_id(rob_id);
-        i.id.set_chara_item(chara_item);
-    }
-
-    song_effect.rob_id = rob_id;
-}
-
 void x_pv_game_effect::set_song_effect(int32_t index, int64_t time) {
     if (state && state != 20)
         return;
@@ -1248,10 +1248,10 @@ void x_pv_game_effect::set_song_effect(int32_t index, int64_t time) {
     song_effect.rob_id = rob_id;
 
     for (x_pv_game_song_effect_auth_3d& i : song_effect.auth_3d) {
-        i.id.set_enable(true);
-        i.id.set_repeat(false);
-        i.id.set_req_frame(0.0f);
-        i.id.set_visibility(true);
+        i.id.set_enabled(true);
+        i.id.set_looped(false);
+        i.id.set_frame_req(0.0f);
+        i.id.set_visible(true);
     }
 
 #if !BAKE_VIDEO_ALPHA
@@ -1270,7 +1270,7 @@ void x_pv_game_effect::set_song_effect(int32_t index, int64_t time) {
     set_song_effect_time_inner(index, time, false);
 
     for (x_pv_game_song_effect_auth_3d& i : song_effect.auth_3d)
-        i.id.set_chara_id(rob_id);
+        i.id.assign_rob_id(rob_id);
 }
 
 void x_pv_game_effect::set_song_effect_time(int32_t index, int64_t time, bool glitter) {
@@ -1284,8 +1284,8 @@ void x_pv_game_effect::set_song_effect_time_inner(int32_t index, int64_t time, b
 
     x_pv_game_song_effect& song_effect = this->song_effect[index];
 
-    float_t req_frame = (float_t)((double_t)std::abs(time - song_effect.time) * 0.000000001) * 60.0f;
-    float_t max_frame = -1.0f;
+    float_t frame_req = (float_t)((double_t)std::abs(time - song_effect.time) * 0.000000001) * 60.0f;
+    float_t frame_max = -1.0f;
 
     if (change_fields) {
         int64_t* key = change_fields->data();
@@ -1304,14 +1304,14 @@ void x_pv_game_effect::set_song_effect_time_inner(int32_t index, int64_t time, b
             next_change_field_time = *key;
 
         if (next_change_field_time >= 0)
-            max_frame = (float_t)((double_t)std::abs(next_change_field_time
+            frame_max = (float_t)((double_t)std::abs(next_change_field_time
                 - song_effect.time) * 0.000000001) * 60.0f - 1.0f;
     }
 
     for (x_pv_game_song_effect_auth_3d& i : song_effect.auth_3d) {
-        i.id.set_req_frame(req_frame);
-        i.id.set_paused(false);
-        i.id.set_max_frame(max_frame);
+        i.id.set_frame_req(frame_req);
+        i.id.set_pause(false);
+        i.id.set_frame_max(frame_max);
     }
 
     if (glitter)
@@ -1320,7 +1320,7 @@ void x_pv_game_effect::set_song_effect_time_inner(int32_t index, int64_t time, b
                 continue;
 
             float_t frame = Glitter::glt_particle_manager->GetSceneFrameLifeTime(i.scene_counter, 0);
-            Glitter::glt_particle_manager->SetSceneEffectReqFrame(i.scene_counter, req_frame - frame);
+            Glitter::glt_particle_manager->SetSceneEffectFrameReq(i.scene_counter, frame_req - frame);
         }
 }
 
@@ -1347,10 +1347,10 @@ void x_pv_game_effect::stop_song_effect(int32_t index, bool free_glitter) {
     x_pv_game_song_effect& song_effect = this->song_effect[index];
 
     for (x_pv_game_song_effect_auth_3d& i : song_effect.auth_3d) {
-        auth_3d_id& id = i.id;
-        id.set_enable(false);
-        id.set_req_frame(0.0f);
-        id.set_visibility(false);
+        auth_3d_detail::Handle& id = i.id;
+        id.set_enabled(false);
+        id.set_frame_req(0.0f);
+        id.set_visible(false);
     }
 
     for (x_pv_game_song_effect_glitter& i : song_effect.glitter)
@@ -1379,13 +1379,11 @@ void x_pv_game_effect::unload_data() {
         Glitter::glt_particle_manager->FreeScene(i.hash_murmurhash);
 
     for (x_pv_game_song_effect& i : song_effect)
-        for (x_pv_game_song_effect_auth_3d& j : i.auth_3d) {
-            j.id.unload(rctx_ptr);
-            j.id = {};
-        }
+        for (x_pv_game_song_effect_auth_3d& j : i.auth_3d)
+            j.id.destroy(rctx_ptr);
 
     for (string_hash& i : pv_auth_3d)
-        auth_3d_data_unload_category(i.hash_murmurhash);
+        auth_3d_detail::category_free(i.hash_murmurhash);
 
     for (string_hash& i : pv_obj_set)
         objset_info_storage_unload_set(i.hash_murmurhash);
@@ -1399,7 +1397,7 @@ void x_pv_game_effect::unload_data() {
 }
 
 x_pv_game_chara_effect_auth_3d::x_pv_game_chara_effect_auth_3d()
-    : field_0(), src_chara(), dst_chara(), objhrc_index(), node_mat() {
+    : field_0(), cn_src(), cn_dst(), objhrc_index(), node_mat() {
     id = {};
     time = -1;
     reset();
@@ -1411,8 +1409,8 @@ x_pv_game_chara_effect_auth_3d::~x_pv_game_chara_effect_auth_3d() {
 
 void x_pv_game_chara_effect_auth_3d::reset() {
     field_0 = false;
-    src_chara = CN_MAX;
-    dst_chara = CN_MAX;
+    cn_src = CN_MAX;
+    cn_dst = CN_MAX;
     file.clear();
     category.clear();
     object_set.clear();
@@ -1441,7 +1439,7 @@ void x_pv_game_chara_effect::ctrl(int32_t pv_id, object_database* obj_db, textur
                 if (!j.category.str.size())
                     continue;
 
-                if (!auth_3d_data_check_category_loaded(j.category.hash_murmurhash))
+                if (!auth_3d_detail::category_load_is_done(j.category.hash_murmurhash))
                     wait_load |= true;
 
                 if (objset_info_storage_get_objset_info(j.object_set.hash_murmurhash)
@@ -1459,27 +1457,28 @@ void x_pv_game_chara_effect::ctrl(int32_t pv_id, object_database* obj_db, textur
                 if (!j.category.str.size())
                     continue;
 
-                auth_3d_id id = auth_3d_id(j.file.hash_murmurhash, x_data, obj_db, tex_db);
-                if (!id.check_not_empty()) {
+                auth_3d_detail::Handle id = auth_3d_detail::Handle::create(
+                    j.file.hash_murmurhash, x_data, obj_db, tex_db);
+                if (!id.is_valid()) {
                     j.id = {};
                     continue;
                 }
 
-                id.read_file_modern();
-                id.set_enable(false);
-                id.set_repeat(false);
-                id.set_paused(true);
-                id.set_visibility(false);
-                id.set_frame_rate(frame_rate_control);
+                id.load_req_modern();
+                id.set_enabled(false);
+                id.set_looped(false);
+                id.set_pause(true);
+                id.set_visible(false);
+                id.set_frame_rate_control(frame_rate_control);
 
                 if (j.field_0)
-                    id.set_src_dst_chara(j.src_chara, j.dst_chara);
+                    id.replace_chara(j.cn_src, j.cn_dst);
 
                 j.id = id;
 
 #if BAKE_PV826
                 if (pv_id == 826)
-                    effchrpv_auth_3d_to_mot_add_chara_effect_auth_3d(j.file.hash_murmurhash, id.id);
+                    effchrpv_auth_3d_to_mot_add_chara_effect_auth_3d(j.file.hash_murmurhash, id);
 #endif
             }
 
@@ -1493,7 +1492,7 @@ void x_pv_game_chara_effect::ctrl(int32_t pv_id, object_database* obj_db, textur
                 if (!j.category.str.size())
                     continue;
 
-                if (j.id.check_not_empty() && !j.id.check_loaded())
+                if (j.id.is_valid() && !j.id.load_is_done())
                     wait_load |= true;
             }
 
@@ -1517,20 +1516,20 @@ vec3 x_pv_game_chara_effect::get_node_translation(ROB_ID rob_id,
         return 0.0f;
 
     x_pv_game_chara_effect_auth_3d& chr_eff = chr_eff_auth[chara_effect];
-    if (chr_eff.id.is_null())
+    if (chr_eff.id.is_valid())
         return 0.0f;
 
-    ::auth_3d* auth = chr_eff.id.get_auth_3d();
-    if (!auth || objhrc_index < 0 || objhrc_index >= auth->object_hrc.size())
+    auth_3d_detail::Scene* in_scene = chr_eff.id.get_scene();
+    if (!in_scene || objhrc_index < 0 || objhrc_index >= in_scene->object_hrc_holder.size())
         return 0.0f;
 
     if (!chr_eff.node_mat || chr_eff.objhrc_index != objhrc_index
         || chr_eff.node_name.compare(node_name)) {
         mat4* mat = 0;
         const uint64_t node_name_hash = hash_utf8_xxh3_64bits(node_name);
-        for (auth_3d_object_node& i : auth->object_hrc[objhrc_index].node)
+        for (auth_3d_detail::TransformNode & i : in_scene->object_hrc_holder[objhrc_index].node_list)
             if (hash_string_xxh3_64bits(i.name) == node_name_hash) {
-                mat = i.mat;
+                mat = i.mat_ptr;
                 break;
             }
 
@@ -1563,23 +1562,23 @@ void x_pv_game_chara_effect::load(int32_t pv_id, pvpp* play_param,
 
         pvpp_chara_effect& chara_effect = chara.chara_effect;
 
-        CHARA_NUM src_chara = (CHARA_NUM)chara_effect.base_chara;
-        CHARA_NUM dst_chara = charas[i];
-        CHARA_NUM dst_chara_mei = dst_chara == CN_SAKINE ? CN_MEIKO : dst_chara;
+        CHARA_NUM cn_src = (CHARA_NUM)chara_effect.base_chara;
+        CHARA_NUM cn_dst = charas[i];
+        CHARA_NUM cn_dst_mei = cn_dst == CN_SAKINE ? CN_MEIKO : cn_dst;
 
-        /*if (dst_chara == CHARA_EXTRA)
-            dst_chara = src_chara;*/
+        /*if (cn_dst == CHARA_EXTRA)
+            cn_dst = cn_src;*/
 
-        const char* src_chara_str = get_char_id_str(src_chara);
-        const char* dst_chara_str = get_char_id_str(dst_chara);
-        const char* dst_chara_mei_str = get_char_id_str(dst_chara_mei);
+        const char* cn_src_str = get_char_id_str(cn_src);
+        const char* cn_dst_str = get_char_id_str(cn_dst);
+        const char* cn_dst_mei_str = get_char_id_str(cn_dst_mei);
 
 #if BAKE_X_PACK
         if (pv_x_bake && pv_id == 814) {
         repeat:
-            dst_chara_mei = dst_chara == CN_SAKINE ? CN_MEIKO : dst_chara;
-            dst_chara_str = get_char_id_str(dst_chara);
-            dst_chara_mei_str = get_char_id_str(dst_chara_mei);
+            cn_dst_mei = cn_dst == CN_SAKINE ? CN_MEIKO : cn_dst;
+            cn_dst_str = get_char_id_str(cn_dst);
+            cn_dst_mei_str = get_char_id_str(cn_dst_mei);
         }
 #endif
 
@@ -1588,22 +1587,22 @@ void x_pv_game_chara_effect::load(int32_t pv_id, pvpp* play_param,
             if (pv_id == 826 && !j.auth_3d.str.find("EFFCHRPV826")) {
                 switch (&j - chara_effect.auth_3d.data()) {
                 case 0:
-                    src_chara = CN_RIN;
+                    cn_src = CN_RIN;
                     break;
                 case 1:
-                    src_chara = CN_LEN;
+                    cn_src = CN_LEN;
                     break;
                 case 2:
-                    src_chara = CN_LUKA;
+                    cn_src = CN_LUKA;
                     break;
                 case 3:
-                    src_chara = CN_KAITO;
+                    cn_src = CN_KAITO;
                     break;
                 case 4:
-                    src_chara = CN_MEIKO;
+                    cn_src = CN_MEIKO;
                     break;
                 }
-                src_chara_str = get_char_id_str(src_chara);
+                cn_src_str = get_char_id_str(cn_src);
             }
 #endif
 
@@ -1614,27 +1613,27 @@ void x_pv_game_chara_effect::load(int32_t pv_id, pvpp* play_param,
             else
                 object_set.assign(file);
 
-            if (src_chara != dst_chara) {
-                if (src_chara_str) {
-                    size_t pos = object_set.find(src_chara_str);
+            if (cn_src != cn_dst) {
+                if (cn_src_str) {
+                    size_t pos = object_set.find(cn_src_str);
                     if (pos != -1)
-                        object_set.replace(pos, 3, dst_chara_str);
-                    else if (dst_chara_mei_str) {
-                        size_t pos = object_set.find(dst_chara_mei_str);
+                        object_set.replace(pos, 3, cn_dst_str);
+                    else if (cn_dst_mei_str) {
+                        size_t pos = object_set.find(cn_dst_mei_str);
                         if (pos != -1)
-                            object_set.replace(pos, 3, src_chara_str);
+                            object_set.replace(pos, 3, cn_src_str);
                     }
                 }
 
                 if (!j.u00)
-                    if (src_chara_str) {
-                        size_t pos = file.find(src_chara_str);
+                    if (cn_src_str) {
+                        size_t pos = file.find(cn_src_str);
                         if (pos != -1)
-                            file.replace(pos, 3, dst_chara_str);
-                        else if (dst_chara_mei_str) {
-                            size_t pos = file.find(dst_chara_mei_str);
+                            file.replace(pos, 3, cn_dst_str);
+                        else if (cn_dst_mei_str) {
+                            size_t pos = file.find(cn_dst_mei_str);
                             if (pos != -1)
-                                file.replace(pos, 3, src_chara_str);
+                                file.replace(pos, 3, cn_src_str);
                         }
                     }
             }
@@ -1654,8 +1653,8 @@ void x_pv_game_chara_effect::load(int32_t pv_id, pvpp* play_param,
             this->auth_3d[i].push_back({});
             x_pv_game_chara_effect_auth_3d& auth_3d = this->auth_3d[i].back();
             auth_3d.field_0 = j.u00;
-            auth_3d.src_chara = src_chara;
-            auth_3d.dst_chara = dst_chara;
+            auth_3d.cn_src = cn_src;
+            auth_3d.cn_dst = cn_dst;
             auth_3d.file.assign(file);
             auth_3d.category.assign(category);
             auth_3d.object_set.assign(object_set);
@@ -1667,8 +1666,8 @@ void x_pv_game_chara_effect::load(int32_t pv_id, pvpp* play_param,
         }
 #if BAKE_X_PACK
         if (pv_x_bake && pv_id == 814) {
-            dst_chara = (CHARA_NUM)((int32_t)(dst_chara + 1));
-            if (dst_chara != CN_MAX)
+            cn_dst = (CHARA_NUM)((int32_t)(cn_dst + 1));
+            if (cn_dst != CN_MAX)
                 goto repeat;
         }
 #endif
@@ -1687,7 +1686,7 @@ void x_pv_game_chara_effect::load_data() {
             if (!j.category.str.size())
                 continue;
 
-            auth_3d_data_load_category(x_data, j.category.c_str(), j.category.hash_murmurhash);
+            auth_3d_detail::category_load_req(x_data, j.category.c_str(), j.category.hash_murmurhash);
             objset_info_storage_load_set_hash(x_data, j.object_set.hash_murmurhash);
         }
 
@@ -1714,23 +1713,23 @@ void x_pv_game_chara_effect::set_chara_effect(ROB_ID rob_id, int32_t index, int6
     if (index < 0 || index >= auth_3d.size())
         return;
 
-    auth_3d_id& id = auth_3d[index].id;
+    auth_3d_detail::Handle& id = auth_3d[index].id;
 
-    if (!id.check_not_empty())
+    if (!id.is_valid())
         return;
 
-    if (id.get_enable())
-        id.set_req_frame((float_t)((double_t)std::abs(time - auth_3d[index].time) * 0.000000001) * 60.0f);
+    if (id.is_finished())
+        id.set_frame_req((float_t)((double_t)std::abs(time - auth_3d[index].time) * 0.000000001) * 60.0f);
     else {
-        id.set_enable(true);
-        id.set_paused(false);
-        id.set_repeat(false);
-        id.set_req_frame(0.0f);
-        id.set_visibility(true);
+        id.set_enabled(true);
+        id.set_pause(false);
+        id.set_looped(false);
+        id.set_frame_req(0.0f);
+        id.set_visible(true);
         auth_3d[index].time = time;
     }
 
-    float_t max_frame = -1.0f;
+    float_t frame_max = -1.0f;
     if (change_fields) {
         int64_t* key = change_fields->data();
         size_t length = change_fields->size();
@@ -1748,11 +1747,11 @@ void x_pv_game_chara_effect::set_chara_effect(ROB_ID rob_id, int32_t index, int6
             next_change_field_time = *key;
 
         if (next_change_field_time >= 0)
-            max_frame = (float_t)((double_t)std::abs(next_change_field_time
+            frame_max = (float_t)((double_t)std::abs(next_change_field_time
                 - auth_3d[index].time) * 0.000000001) * 60.0f - 1.0f;
     }
 
-    id.set_max_frame(max_frame);
+    id.set_frame_max(frame_max);
 }
 
 void x_pv_game_chara_effect::set_chara_effect_time(ROB_ID rob_id, int32_t index, int64_t time) {
@@ -1760,11 +1759,11 @@ void x_pv_game_chara_effect::set_chara_effect_time(ROB_ID rob_id, int32_t index,
         return;
 
     for (x_pv_game_chara_effect_auth_3d& i : auth_3d[rob_id]) {
-        if (!i.id.check_not_empty() || !i.id.get_enable())
+        if (!i.id.is_valid() || !i.id.is_finished())
             continue;
 
-        i.id.set_req_frame((float_t)((double_t)std::abs(time - i.time) * 0.000000001) * 60.0f);
-        i.id.set_paused(false);
+        i.id.set_frame_req((float_t)((double_t)std::abs(time - i.time) * 0.000000001) * 60.0f);
+        i.id.set_pause(false);
     }
 }
 
@@ -1774,11 +1773,11 @@ void x_pv_game_chara_effect::set_time(int64_t time) {
 
     for (auto& i : auth_3d)
         for (x_pv_game_chara_effect_auth_3d& j : i) {
-            if (!j.id.check_not_empty() || !j.id.get_enable())
+            if (!j.id.is_valid() || !j.id.is_finished())
                 continue;
 
-            j.id.set_req_frame((float_t)((double_t)std::abs(time - j.time) * 0.000000001) * 60.0f);
-            j.id.set_paused(false);
+            j.id.set_frame_req((float_t)((double_t)std::abs(time - j.time) * 0.000000001) * 60.0f);
+            j.id.set_pause(false);
         }
 }
 
@@ -1788,8 +1787,8 @@ void x_pv_game_chara_effect::stop() {
 
     for (std::vector<x_pv_game_chara_effect_auth_3d>& i : auth_3d)
         for (x_pv_game_chara_effect_auth_3d& j : i)
-            if (j.id.check_not_empty())
-                j.id.set_enable(false);
+            if (j.id.is_valid())
+                j.id.set_enabled(false);
 }
 
 void x_pv_game_chara_effect::stop_chara_effect(ROB_ID rob_id, int32_t index) {
@@ -1797,8 +1796,8 @@ void x_pv_game_chara_effect::stop_chara_effect(ROB_ID rob_id, int32_t index) {
         return;
 
     for (x_pv_game_chara_effect_auth_3d& i : auth_3d[rob_id])
-        if (i.id.check_not_empty())
-            i.id.set_enable(false);
+        if (i.id.is_valid())
+            i.id.set_enabled(false);
 }
 
 void x_pv_game_chara_effect::unload() {
@@ -1827,8 +1826,8 @@ void x_pv_game_chara_effect::unload_data() {
                 if (!j.category.str.size())
                     continue;
 
-                j.id.unload(rctx_ptr);
-                auth_3d_data_unload_category(j.category.hash_murmurhash);
+                j.id.destroy(rctx_ptr);
+                auth_3d_detail::category_free(j.category.hash_murmurhash);
                 objset_info_storage_unload_set(j.object_set.hash_murmurhash);
             }
 
@@ -3770,7 +3769,7 @@ bool x_pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         ROB_ID rob_id = (ROB_ID)data[1];
         int32_t chara_item = data[2];
 
-        pv_game->get_data().effect.set_chara_id(index, rob_id, !!chara_item);
+        pv_game->get_data().effect.assign_rob_id(index, rob_id, !!chara_item);
     } break;
     case DSC_X_LIGHT_AUTH: {
 
@@ -5357,7 +5356,7 @@ void x_pv_game_stage::ctrl(float_t delta_time) {
         }
 
         for (string_hash& i : stage_auth_3d)
-            auth_3d_data_load_category(x_data, i.c_str(), i.hash_murmurhash);
+            auth_3d_detail::category_load_req(x_data, i.c_str(), i.hash_murmurhash);
 
         env.load(stage_id, stage_resource);
         state = 11;
@@ -5369,7 +5368,7 @@ void x_pv_game_stage::ctrl(float_t delta_time) {
         bool wait_load = false;
 
         for (string_hash& i : stage_auth_3d)
-            if (!auth_3d_data_check_category_loaded(i.hash_murmurhash))
+            if (!auth_3d_detail::category_load_is_done(i.hash_murmurhash))
                 wait_load |= true;
 
         for (uint32_t& i : stage_glitter)
@@ -5408,19 +5407,19 @@ void x_pv_game_stage::ctrl(float_t delta_time) {
 
                 auto elem = auth_3d_ids.find(stg_eff_auth_3d.name.hash_murmurhash);
                 if (elem == auth_3d_ids.end()) {
-                    auth_3d_id id = auth_3d_id(stg_eff_auth_3d
-                        .name.hash_murmurhash, x_data, &obj_db, &tex_db);
-                    if (!id.check_not_empty()) {
+                    auth_3d_detail::Handle id = auth_3d_detail::Handle::create(
+                        stg_eff_auth_3d.name.hash_murmurhash, x_data, &obj_db, &tex_db);
+                    if (!id.is_valid()) {
                         eff_auth_3d.id = {};
                         continue;
                     }
 
-                    id.read_file_modern();
-                    id.set_enable(false);
-                    id.set_repeat(true);
-                    id.set_paused(false);
-                    id.set_visibility(false);
-                    id.set_frame_rate(&bpm_frame_rate_control);
+                    id.load_req_modern();
+                    id.set_enabled(false);
+                    id.set_looped(true);
+                    id.set_pause(false);
+                    id.set_visible(false);
+                    id.set_frame_rate_control(&bpm_frame_rate_control);
                     eff_auth_3d.id = id;
 
                     auth_3d_ids.insert({ stg_eff_auth_3d.name.hash_murmurhash, id });
@@ -5465,7 +5464,7 @@ void x_pv_game_stage::ctrl(float_t delta_time) {
         for (int32_t i = 0; i < X_PV_GAME_STAGE_EFFECT_COUNT; i++) {
             x_pv_game_stage_effect& eff = effect[i];
             for (x_pv_game_stage_effect_auth_3d& j : eff.auth_3d)
-                if (j.id.check_not_empty() && !j.id.check_loaded())
+                if (j.id.is_valid() && !j.id.load_is_done())
                     wait_load |= true;
         }
 
@@ -5473,7 +5472,7 @@ void x_pv_game_stage::ctrl(float_t delta_time) {
             for (int32_t j = 0; j < X_PV_GAME_STAGE_EFFECT_COUNT; j++) {
                 x_pv_game_stage_change_effect& chg_eff = change_effect[i][j];
                 for (x_pv_game_stage_effect_auth_3d& k : chg_eff.auth_3d)
-                    if (k.id.check_not_empty() && !k.id.check_loaded())
+                    if (k.id.is_valid() && !k.id.load_is_done())
                         wait_load |= true;
             }
 
@@ -5547,9 +5546,9 @@ void x_pv_game_stage::ctrl_inner() {
             else if (bar_beat->counter > 0) {
                 std::vector<x_pv_game_stage_effect_auth_3d>& auth_3d = eff.auth_3d;
                 for (x_pv_game_stage_effect_auth_3d& i : auth_3d) {
-                    auth_3d_id& id = i.id;
+                    auth_3d_detail::Handle& id = i.id;
                     if (i.field_1)
-                        id.set_repeat(false);
+                        id.set_looped(false);
                 }
             }
         } break;
@@ -5608,19 +5607,19 @@ void x_pv_game_stage::ctrl_inner() {
         std::vector<x_pv_game_stage_effect_auth_3d>& auth_3d = eff.auth_3d;
         std::vector<x_pv_game_stage_effect_glitter>& glitter = eff.glitter;
 
-        bool stop = false;
+        bool is_finished = false;
         if (auth_3d.size())
-            stop = auth_3d[eff.main_auth_3d_index].id.get_ended();
+            is_finished = auth_3d[eff.main_auth_3d_index].id.is_finished();
 
-        if (!stop) {
+        if (!is_finished) {
             for (x_pv_game_stage_effect_glitter& j : glitter)
                 if (Glitter::glt_particle_manager->CheckSceneEnded(j.scene_counter)) {
-                    stop = true;
+                    is_finished = true;
                     break;
                 }
         }
 
-        if (stop) {
+        if (is_finished) {
             stop_stage_effect_auth_3d(i);
             stop_stage_effect_glitter(i);
             flags &= ~(1 << i);
@@ -5687,19 +5686,19 @@ void x_pv_game_stage::load_change_effect(int32_t curr_stage_effect, int32_t next
 
         auto elem = auth_3d_ids.find(stg_chg_eff_auth_3d.name.hash_murmurhash);
         if (elem == auth_3d_ids.end()) {
-            auth_3d_id id = auth_3d_id(stg_chg_eff_auth_3d
-                .name.hash_murmurhash, x_data, &obj_db, &tex_db);
-            if (!id.check_not_empty()) {
+            auth_3d_detail::Handle id = auth_3d_detail::Handle::create(
+                stg_chg_eff_auth_3d.name.hash_murmurhash, x_data, &obj_db, &tex_db);
+            if (!id.is_valid()) {
                 chg_eff_auth_3d.id = {};
                 continue;
             }
 
-            id.read_file_modern();
-            id.set_enable(false);
-            id.set_repeat(false);
-            id.set_paused(false);
-            id.set_visibility(false);
-            id.set_frame_rate(&bpm_frame_rate_control);
+            id.load_req_modern();
+            id.set_enabled(false);
+            id.set_looped(false);
+            id.set_pause(false);
+            id.set_visible(false);
+            id.set_frame_rate_control(&bpm_frame_rate_control);
             chg_eff_auth_3d.id = id;
 
             auth_3d_ids.insert({ stg_chg_eff_auth_3d.name.hash_murmurhash, id });
@@ -5814,19 +5813,19 @@ void x_pv_game_stage::set_change_effect_frame_part_2(float_t frame) {
         return;
 
     for (x_pv_game_stage_effect_auth_3d& i : chg_eff.auth_3d) {
-        auth_3d_id& id = i.id;
-        id.set_camera_root_update(false);
+        auth_3d_detail::Handle& id = i.id;
+        id.camera_set_enabled(false);
 #if BAKE_VIDEO_ALPHA
-        id.set_enable(false);
+        id.set_enabled(false);
 #else
-        id.set_enable(true);
+        id.set_enabled(true);
 #endif
-        id.set_repeat(i.repeat);
-        id.set_req_frame(frame);
-        id.set_max_frame(id.get_last_frame() - 1.0f);
-        id.set_paused(false);
-        id.set_visibility(!!(flags & 0x01));
-        id.set_frame_rate(&bpm_frame_rate_control);
+        id.set_looped(i.repeat);
+        id.set_frame_req(frame);
+        id.set_frame_max(id.get_frame_size() - 1.0f);
+        id.set_pause(false);
+        id.set_visible(!!(flags & 0x01));
+        id.set_frame_rate_control(&bpm_frame_rate_control);
     }
 
 #if !BAKE_VIDEO_ALPHA
@@ -5840,7 +5839,7 @@ void x_pv_game_stage::set_change_effect_frame_part_2(float_t frame) {
             continue;
 
         Glitter::glt_particle_manager->SetSceneFrameRate(i.scene_counter, &bpm_frame_rate_control);
-        Glitter::glt_particle_manager->SetSceneEffectReqFrame(i.scene_counter, frame);
+        Glitter::glt_particle_manager->SetSceneEffectFrameReq(i.scene_counter, frame);
     }
 #endif
 }
@@ -5878,9 +5877,9 @@ void x_pv_game_stage::set_stage_effect(int32_t stage_effect) {
                 && curr_stage_effect >= 1 && curr_stage_effect <= 12) {
                 std::vector<x_pv_game_stage_effect_auth_3d>& auth_3d = effect[curr_stage_effect - 1ULL].auth_3d;
                 for (x_pv_game_stage_effect_auth_3d& i : auth_3d) {
-                    auth_3d_id& id = i.id;
+                    auth_3d_detail::Handle& id = i.id;
                     if (i.field_1)
-                        id.set_repeat(false);
+                        id.set_looped(false);
                 }
             }
             return;
@@ -5909,26 +5908,27 @@ void x_pv_game_stage::set_stage_effect_auth_3d_frame(int32_t stage_effect, float
 
     std::vector<x_pv_game_stage_effect_auth_3d>& auth_3d = effect[stage_effect - 1ULL].auth_3d;
     for (x_pv_game_stage_effect_auth_3d& i : auth_3d) {
-        auth_3d_id& id = i.id;
-        id.set_camera_root_update(false);
+        auth_3d_detail::Handle& id = i.id;
+        id.camera_set_enabled(false);
 #if BAKE_VIDEO_ALPHA
-        id.set_enable(false);
+        id.set_enabled(false);
 #else
-        id.set_enable(true);
+        id.set_enabled(true);
 #endif
-        id.set_repeat(true);
-        float_t last_frame = id.get_last_frame();
-        if (i.repeat && last_frame <= frame) {
-            int32_t frame_offset = (int32_t)id.get_frame_offset();
-            int32_t _frame = frame_offset + (int32_t)(frame - (float_t)frame_offset) % (int32_t)last_frame;
+        id.set_looped(true);
+        float_t frame_loop_end = id.get_frame_loop_end();
+        if (i.repeat && frame_loop_end <= frame) {
+            int32_t frame_loop_begin = (int32_t)id.get_frame_loop_begin();
+            int32_t _frame = frame_loop_begin
+                + (int32_t)(frame - (float_t)frame_loop_begin) % (int32_t)frame_loop_end;
 
             frame = (float_t)_frame + (frame - prj::floorf(frame));
         }
-        id.set_req_frame(frame);
-        id.set_max_frame(-1.0f);
-        id.set_paused(false);
-        id.set_visibility(true);
-        id.set_frame_rate(&bpm_frame_rate_control);
+        id.set_frame_req(frame);
+        id.set_frame_max(-1.0f);
+        id.set_pause(false);
+        id.set_visible(true);
+        id.set_frame_rate_control(&bpm_frame_rate_control);
     }
 }
 
@@ -5957,10 +5957,10 @@ void x_pv_game_stage::set_stage_effect_glitter_frame(int32_t stage_effect, float
             float_t _life_time = (float_t)life_time;
             while (frame >= _life_time)
                 frame -= _life_time;
-            Glitter::glt_particle_manager->SetSceneEffectReqFrame(i.scene_counter, frame);
+            Glitter::glt_particle_manager->SetSceneEffectFrameReq(i.scene_counter, frame);
         }
         else if (frame < (float_t)life_time)
-            Glitter::glt_particle_manager->SetSceneEffectReqFrame(i.scene_counter, frame);
+            Glitter::glt_particle_manager->SetSceneEffectFrameReq(i.scene_counter, frame);
         else
             Glitter::glt_particle_manager->FreeSceneEffect(i.scene_counter, false);
 
@@ -5987,9 +5987,9 @@ void x_pv_game_stage::stop_stage_change_effect() {
     x_pv_game_stage_change_effect& chg_eff = change_effect[curr_stg_eff][next_stg_eff];
 
     for (x_pv_game_stage_effect_auth_3d& i : chg_eff.auth_3d) {
-        auth_3d_id& id = i.id;
-        id.set_visibility(false);
-        id.set_enable(false);
+        auth_3d_detail::Handle& id = i.id;
+        id.set_visible(false);
+        id.set_enabled(false);
     }
 
     for (x_pv_game_stage_effect_glitter& i : chg_eff.glitter)
@@ -6032,9 +6032,9 @@ void x_pv_game_stage::stop_stage_effect_auth_3d(int32_t stage_effect) {
 
     std::vector<x_pv_game_stage_effect_auth_3d>& auth_3d = effect[stage_effect - 1ULL].auth_3d;
     for (x_pv_game_stage_effect_auth_3d& i : auth_3d) {
-        auth_3d_id& id = i.id;
-        id.set_visibility(false);
-        id.set_enable(false);
+        auth_3d_detail::Handle& id = i.id;
+        id.set_visible(false);
+        id.set_enabled(false);
     }
 }
 
@@ -6054,8 +6054,8 @@ void x_pv_game_stage::unload() {
     if (!stage_resource || !stage_id)
         return;
 
-    for (std::pair<uint32_t, auth_3d_id> i : auth_3d_ids)
-        i.second.unload(rctx_ptr);
+    for (std::pair<uint32_t, auth_3d_detail::Handle> i : auth_3d_ids)
+        i.second.destroy(rctx_ptr);
 
     auth_3d_ids.clear();
 
@@ -6095,7 +6095,7 @@ void x_pv_game_stage::unload() {
     stage_glitter.clear();
 
     for (string_hash& i : stage_auth_3d)
-        auth_3d_data_unload_category(i.hash_murmurhash);
+        auth_3d_detail::category_free(i.hash_murmurhash);
 
     stage_auth_3d.clear();
 
@@ -6265,7 +6265,7 @@ static video_packet_handler* nvenc_alpha_video_packets;
 #endif
 
 #if BAKE_DOF
-static void a3da_key_rev(a3da_key& k, std::vector<float_t>& values_src) {
+static void a3da_key_rev(a3d::Fcurve& k, std::vector<float_t>& values_src) {
     std::vector<kft3> values;
     int32_t type = interpolate_chs_reverse_sequence(values_src, values);
 
@@ -6273,17 +6273,17 @@ static void a3da_key_rev(a3da_key& k, std::vector<float_t>& values_src) {
     switch (type) {
     case 0:
     default:
-        k.type = A3DA_KEY_NONE;
+        k.type = a3d::FC_TYPE_STATIC_0;
         return;
     case 1:
         k.value = values[0].value;
-        k.type = A3DA_KEY_STATIC;
+        k.type = a3d::FC_TYPE_STATIC_DATA;
         return;
     case 2:
-        k.type = A3DA_KEY_LINEAR;
+        k.type = a3d::FC_TYPE_LINEAR;
         break;
     case 3:
-        k.type = A3DA_KEY_HERMITE;
+        k.type = a3d::FC_TYPE_HERMITE;
         break;
     }
 
@@ -6517,7 +6517,7 @@ bool x_pv_game::ctrl() {
 
         light_param_data_storage_data_set_pv_id(get_data().pv_id == 832 ? 800 : get_data().pv_id);
 
-        auth_3d_data_load_category(light_category.c_str());
+        auth_3d_detail::category_load_req(light_category.c_str());
 
 #if BAKE_X_PACK
         if (!pv_x_bake) {
@@ -6605,7 +6605,7 @@ bool x_pv_game::ctrl() {
     case 7: {
         bool wait_load = false;
 
-        if (!auth_3d_data_check_category_loaded(light_category.c_str()))
+        if (!auth_3d_detail::category_load_is_done(light_category.c_str()))
             wait_load |= true;
 
         if (wait_load)
@@ -6624,11 +6624,11 @@ bool x_pv_game::ctrl() {
             uint32_t light_auth_3d_hash = hash_utf8_murmurhash(buf);
             int32_t uid = aft_auth_3d_db->get_uid(buf);
             if (uid != -1) {
-                light_auth_3d_id = auth_3d_id(uid, aft_auth_3d_db);
-                if (light_auth_3d_id.check_not_empty()) {
-                    light_auth_3d_id.read_file(aft_auth_3d_db);
-                    light_auth_3d_id.set_enable(false);
-                    light_auth_3d_id.set_visibility(false);
+                light_auth_3d_id = auth_3d_detail::Handle::create(uid, aft_auth_3d_db);
+                if (light_auth_3d_id.is_valid()) {
+                    light_auth_3d_id.load_req(aft_auth_3d_db);
+                    light_auth_3d_id.set_enabled(false);
+                    light_auth_3d_id.set_visible(false);
                 }
                 else
                     light_auth_3d_id = {};
@@ -6640,21 +6640,21 @@ bool x_pv_game::ctrl() {
     case 8: {
         bool wait_load = false;
 
-        if (light_auth_3d_id.check_not_empty() && !light_auth_3d_id.check_loaded())
+        if (light_auth_3d_id.is_valid() && !light_auth_3d_id.load_is_done())
             wait_load |= true;
 
         if (wait_load)
             break;
 
-        if (light_auth_3d_id.not_null()) {
-            auth_3d* light_auth_3d = light_auth_3d_id.get_auth_3d();
+        if (light_auth_3d_id.is_valid()) {
+            auth_3d_detail::Scene* light_auth_3d = light_auth_3d_id.get_scene();
 
             char path_buf[0x200];
             sprintf_s(path_buf, sizeof(path_buf), "patch\\AFT\\auth_3d\\STGPV%03d_LT_POS.txt",
                 800 + stage_data.stage_id);
 
-            auth_3d_light* light = 0;
-            for (auth_3d_light& i : light_auth_3d->light)
+            auth_3d_detail::Light* light = 0;
+            for (auth_3d_detail::Light& i : light_auth_3d->light_list)
                 if (i.id == LIGHT_CHARA) {
                     light = &i;
                     break;
@@ -6662,9 +6662,9 @@ bool x_pv_game::ctrl() {
 
             if (light && path_check_file_exists(path_buf)) {
                 prj::vector_pair<int32_t, vec3> values;
-                light->interpolate(0.0f);
-                values.push_back(0, light->position.translation_value);
-                light->interpolate(light_auth_3d->frame);
+                light->get(0.0f);
+                values.push_back(0, light->position.translation);
+                light->get(light_auth_3d->M_frame);
 
                 file_stream lt_pos_fs;
                 lt_pos_fs.open(path_buf, "rb");
@@ -6717,37 +6717,37 @@ bool x_pv_game::ctrl() {
                 free_def(data);
 
                 if (values.size() > 1) {
-                    auto auth_3d_key_load = [](auth_3d_key* k,
+                    auto auth_3d_fcurve_load = [](auth_3d_detail::Fcurve& fcv,
                         const prj::vector_pair<int32_t, vec3>& values, const int32_t comp) {
-                        k->type = AUTH_3D_KEY_HOLD;
-                        k->value = 0.0f;
+                        fcv.m_type = auth_3d_detail::FC_TYPE_NO_INTERPOLATION;
+                        fcv.m_static_value = 0.0f;
 
-                        k->ep_type_pre = AUTH_3D_EP_NONE;
-                        k->ep_type_post = AUTH_3D_EP_NONE;
+                        fcv.m_ep_type_pre = auth_3d_detail::EP_TYPE_CONSTANT;
+                        fcv.m_ep_type_post = auth_3d_detail::EP_TYPE_CONSTANT;
 
-                        size_t length = values.size();
-                        k->keys_vec.resize(length);
-                        k->length = length;
-                        k->keys = k->keys_vec.data();
+                        size_t key_data_size = values.size();
+                        fcv.m_key_data_list.resize(key_data_size);
+                        fcv.m_key_data_size = key_data_size;
+                        fcv.m_key_data_ptr = fcv.m_key_data_list.data();
 
-                        kft3* key = k->keys_vec.data();
-                        for (size_t i = length, j = 0; i; i--, j++)
-                            *key++ = {
+                        auth_3d_detail::Fcurve::KeyData* key_data = fcv.m_key_data_list.data();
+                        for (size_t i = key_data_size, j = 0; i; i--, j++)
+                            *key_data++ = {
                                 (float_t)values.data()[j].first,
                                 ((float_t*)&values.data()[j].second)[comp]
                             };
 
-                        kft3* first_key = &k->keys[0];
-                        kft3* last_key = &k->keys[length - 1];
-                        k->frame_delta = last_key->frame - first_key->frame;
-                        k->value_delta = last_key->value - first_key->value;
+                        const auth_3d_detail::Fcurve::KeyData* first_key = &fcv.m_key_data_ptr[0];
+                        const auth_3d_detail::Fcurve::KeyData* last_key = &fcv.m_key_data_ptr[key_data_size - 1];
+                        fcv.m_frame_delta = last_key->frame - first_key->frame;
+                        fcv.m_value_delta = last_key->value - first_key->value;
 
-                        k->interpolate(0.0f);
+                        fcv.get(0.0f);
                     };
 
-                    auth_3d_key_load(&light->position.translation.x, values, 0);
-                    auth_3d_key_load(&light->position.translation.y, values, 1);
-                    auth_3d_key_load(&light->position.translation.z, values, 2);
+                    auth_3d_fcurve_load(light->position.fcurve_translation.x, values, 0);
+                    auth_3d_fcurve_load(light->position.fcurve_translation.y, values, 1);
+                    auth_3d_fcurve_load(light->position.fcurve_translation.z, values, 2);
                 }
             }
         }
@@ -7185,18 +7185,18 @@ bool x_pv_game::ctrl() {
         time_t t;
         srand((uint32_t)::time(&t));
 
-        std::vector<auth_3d*> chara_effect_auth_3ds;
-        std::vector<auth_3d*> song_effect_auth_3ds;
-        std::vector<auth_3d*> stage_data_effect_auth_3ds;
-        std::vector<auth_3d*> stage_data_change_effect_auth_3ds;
+        std::vector<auth_3d_detail::Scene*> chara_effect_auth_3ds;
+        std::vector<auth_3d_detail::Scene*> song_effect_auth_3ds;
+        std::vector<auth_3d_detail::Scene*> stage_data_effect_auth_3ds;
+        std::vector<auth_3d_detail::Scene*> stage_data_change_effect_auth_3ds;
 
-        auto add_auth_3d = [](std::vector<auth_3d*>& auth_3ds, auth_3d_id id) {
-            if (!id.check_not_empty() || !id.check_loaded())
+        auto add_auth_3d = [](std::vector<auth_3d_detail::Scene*>& auth_3ds, auth_3d_detail::Handle id) {
+            if (!id.is_valid() || !id.load_is_done())
                 return;
 
-            auth_3d* auth = id.get_auth_3d();
-            if (auth && (auth->object.size() || auth->object_hrc.size()))
-                auth_3ds.push_back(auth);
+            auth_3d_detail::Scene* in_scene = id.get_scene();
+            if (in_scene && (in_scene->object_holder.size() || in_scene->object_hrc_holder.size()))
+                auth_3ds.push_back(in_scene);
         };
 
         for (auto& i : pv_data.chara_effect.auth_3d)
@@ -7220,23 +7220,13 @@ bool x_pv_game::ctrl() {
                     add_auth_3d(stage_data_change_effect_auth_3ds, k.id);
             }
 
-        prj::sort_unique(chara_effect_auth_3ds);
-        prj::sort_unique(song_effect_auth_3ds);
-        prj::sort_unique(stage_data_effect_auth_3ds);
-        prj::sort_unique(stage_data_change_effect_auth_3ds);
+        prj::sort_and_erase_non_unique(chara_effect_auth_3ds);
+        prj::sort_and_erase_non_unique(song_effect_auth_3ds);
+        prj::sort_and_erase_non_unique(stage_data_effect_auth_3ds);
+        prj::sort_and_erase_non_unique(stage_data_change_effect_auth_3ds);
 
-        for (auth_3d*& i : stage_data_effect_auth_3ds) {
-            auto j_begin = stage_data_change_effect_auth_3ds.begin();
-            auto j_end = stage_data_change_effect_auth_3ds.end();
-            for (auto j = j_begin; j != j_end;) {
-                if (*j != i)
-                    j++;
-                else {
-                    j = stage_data_change_effect_auth_3ds.erase(j);
-                    j_end = stage_data_change_effect_auth_3ds.end();
-                }
-            }
-        }
+        for (auth_3d_detail::Scene* i : stage_data_effect_auth_3ds)
+            prj::find_and_erase(stage_data_change_effect_auth_3ds, i);
 
         std::vector<uint32_t> pv_object_set_ids;
         std::vector<uint32_t> stage_object_set_ids;
@@ -7254,16 +7244,16 @@ bool x_pv_game::ctrl() {
                 stage_object_set_ids.push_back(hash_utf8_murmurhash(name));
         }
 
-        auto add_auth_3d_object_set_id = [](auth_3d* auth, std::vector<uint32_t>& object_set_ids) {
-            object_set_ids.reserve(auth->object.size() + auth->object_hrc.size());
+        auto add_auth_3d_object_set_id = [](auth_3d_detail::Scene* in_scene, std::vector<uint32_t>& object_set_ids) {
+            object_set_ids.reserve(in_scene->object_holder.size() + in_scene->object_hrc_holder.size());
 
-            for (auth_3d_object& i : auth->object)
-                if (i.object_info.not_null_modern())
-                    object_set_ids.push_back(i.object_info.set_id);
+            for (auth_3d_detail::Object& i : in_scene->object_holder)
+                if (i.obj_uid.not_null_modern())
+                    object_set_ids.push_back(i.obj_uid.set_id);
 
-            for (auth_3d_object_hrc& i : auth->object_hrc)
-                if (i.object_info.not_null_modern())
-                    object_set_ids.push_back(i.object_info.set_id);
+            for (auth_3d_detail::HierarchyObject& i : in_scene->object_hrc_holder)
+                if (i.obj_uid.not_null_modern())
+                    object_set_ids.push_back(i.obj_uid.set_id);
         };
 
         auto add_glitter_object_set_id = [](uint32_t eff_group_hash,
@@ -7281,17 +7271,17 @@ bool x_pv_game::ctrl() {
             }
         };
 
-        for (auth_3d*& i : chara_effect_auth_3ds)
-            add_auth_3d_object_set_id(i, pv_object_set_ids);
+        for (auth_3d_detail::Scene* scene : chara_effect_auth_3ds)
+            add_auth_3d_object_set_id(scene, pv_object_set_ids);
 
-        for (auth_3d*& i : song_effect_auth_3ds)
-            add_auth_3d_object_set_id(i, pv_object_set_ids);
+        for (auth_3d_detail::Scene* scene : song_effect_auth_3ds)
+            add_auth_3d_object_set_id(scene, pv_object_set_ids);
 
-        for (auth_3d*& i : stage_data_effect_auth_3ds)
-            add_auth_3d_object_set_id(i, stage_object_set_ids);
+        for (auth_3d_detail::Scene* scene : stage_data_effect_auth_3ds)
+            add_auth_3d_object_set_id(scene, stage_object_set_ids);
 
-        for (auth_3d*& i : stage_data_change_effect_auth_3ds)
-            add_auth_3d_object_set_id(i, stage_object_set_ids);
+        for (auth_3d_detail::Scene* scene : stage_data_change_effect_auth_3ds)
+            add_auth_3d_object_set_id(scene, stage_object_set_ids);
 
         for (string_hash& i : pv_data.effect.pv_glitter)
             add_glitter_object_set_id(i.hash_murmurhash, pv_glitter_eff_groups, pv_object_set_ids);
@@ -7303,14 +7293,14 @@ bool x_pv_game::ctrl() {
         for (uint32_t& i : stage_data.stage_glitter)
             add_glitter_object_set_id(i, stage_glitter_eff_groups, stage_object_set_ids);
 
-        prj::sort_unique(pv_object_set_ids);
-        prj::sort_unique(stage_object_set_ids);
+        prj::sort_and_erase_non_unique(pv_object_set_ids);
+        prj::sort_and_erase_non_unique(stage_object_set_ids);
 
         std::vector<uint32_t> object_set_ids;
         object_set_ids.insert(object_set_ids.end(), pv_object_set_ids.begin(), pv_object_set_ids.end());
         object_set_ids.insert(object_set_ids.end(), stage_object_set_ids.begin(), stage_object_set_ids.end());
 
-        prj::sort_unique(object_set_ids);
+        prj::sort_and_erase_non_unique(object_set_ids);
 
         for (const uint32_t& i : object_set_ids) {
             ObjsetInfo* info = objset_info_storage_get_objset_info(i);
@@ -7425,7 +7415,7 @@ bool x_pv_game::ctrl() {
             auth_3d_database_file& auth_3d_db = baker->aft.auth_3d_db;
             std::vector<uint64_t>& avail_uids = baker->aft.avail_auth_3d_uids;
 
-            x_pv_game_write_auth_3d_camera(get_data().camera.id.get_auth_3d(),
+            x_pv_game_write_auth_3d_camera(get_data().camera.id.get_scene(),
                 pv_data.pv_id, &auth_3d_db, avail_uids, x_pack_aft_out_dir);
 
             if (song_effect_auth_3ds.size()) {
@@ -7439,15 +7429,15 @@ bool x_pv_game::ctrl() {
                 effpv_farc->entry_padding = 0x01 + (rand() % 0x10);
                 effpv_farc->header_padding = 0x01 + (rand() % 0x20);
 
-                for (auth_3d*& i : song_effect_auth_3ds)
-                    x_pv_game_write_auth_3d(effpv_farc, i, &auth_3d_db, name, avail_uids, x_pack_aft_out_dir);
+                for (auth_3d_detail::Scene* scene : song_effect_auth_3ds)
+                    x_pv_game_write_auth_3d(effpv_farc, scene, &auth_3d_db, name, avail_uids, x_pack_aft_out_dir);
 
                 farc_compress_ptr->AddFarc(effpv_farc,
                     sprintf_s_string("%s\\auth_3d\\%s", x_pack_aft_out_dir, name));
             }
 
-            for (auth_3d*& i : chara_effect_auth_3ds)
-                x_pv_game_write_auth_3d(0, i, &auth_3d_db, 0, avail_uids, x_pack_aft_out_dir);
+            for (auth_3d_detail::Scene* scene : chara_effect_auth_3ds)
+                x_pv_game_write_auth_3d(0, scene, &auth_3d_db, 0, avail_uids, x_pack_aft_out_dir);
 
             char name[0x40];
             sprintf_s(name, sizeof(name), "EFFSTGPV%03d", stage_data.stage_id);
@@ -7461,22 +7451,22 @@ bool x_pv_game::ctrl() {
 
             for (stage_data_modern& i : stage_data.stage_data.stg_db.stage_modern)
                 for (uint32_t& j : i.auth_3d_ids) {
-                    auth_3d* auth = auth_3d_data_get_auth_3d(j);
-                    if (auth)
-                        x_pv_game_write_auth_3d(effstgpv_farc, auth,
+                    auth_3d_detail::Scene* scene = auth_3d_detail::get_scene(j);
+                    if (scene)
+                        x_pv_game_write_auth_3d(effstgpv_farc, scene,
                             &auth_3d_db, name, avail_uids, x_pack_aft_out_dir);
                 }
 
-            for (auth_3d*& i : stage_data_effect_auth_3ds)
-                x_pv_game_write_auth_3d(effstgpv_farc, i,
+            for (auth_3d_detail::Scene* scene : stage_data_effect_auth_3ds)
+                x_pv_game_write_auth_3d(effstgpv_farc, scene,
                     &auth_3d_db, name, avail_uids, x_pack_aft_out_dir);
 
-            for (auth_3d*& i : stage_data_change_effect_auth_3ds)
-                x_pv_game_write_auth_3d(effstgpv_farc, i,
+            for (auth_3d_detail::Scene* scene : stage_data_change_effect_auth_3ds)
+                x_pv_game_write_auth_3d(effstgpv_farc, scene,
                     &auth_3d_db, name, avail_uids, x_pack_aft_out_dir);
 
-            if (light_auth_3d_id.check_not_empty())
-                x_pv_game_write_auth_3d(effstgpv_farc, light_auth_3d_id.get_auth_3d(),
+            if (light_auth_3d_id.is_valid())
+                x_pv_game_write_auth_3d(effstgpv_farc, light_auth_3d_id.get_scene(),
                     &auth_3d_db, name, avail_uids, x_pack_aft_out_dir);
 
             if (effstgpv_farc->files.size())
@@ -7490,7 +7480,7 @@ bool x_pv_game::ctrl() {
             auth_3d_database_file& auth_3d_db = baker->mmp.auth_3d_db;
             std::vector<uint64_t>& avail_uids = baker->mmp.avail_auth_3d_uids;
 
-            x_pv_game_write_auth_3d_camera(get_data().camera.id.get_auth_3d(),
+            x_pv_game_write_auth_3d_camera(get_data().camera.id.get_scene(),
                 pv_data.pv_id, &auth_3d_db, avail_uids, x_pack_mmp_out_dir);
 
             if (song_effect_auth_3ds.size()) {
@@ -7504,15 +7494,15 @@ bool x_pv_game::ctrl() {
                 effpv_farc->entry_size = 0x11 + (rand() % 0x10);
                 effpv_farc->header_size = 0x11 + (rand() % 0x20);
 
-                for (auth_3d*& i : song_effect_auth_3ds)
-                    x_pv_game_write_auth_3d(effpv_farc, i, &auth_3d_db, name, avail_uids, x_pack_mmp_out_dir);
+                for (auth_3d_detail::Scene* scene : song_effect_auth_3ds)
+                    x_pv_game_write_auth_3d(effpv_farc, scene, &auth_3d_db, name, avail_uids, x_pack_mmp_out_dir);
 
                 farc_compress_ptr->AddFarc(effpv_farc,
                     sprintf_s_string("%s\\auth_3d\\%s", x_pack_mmp_out_dir, name));
             }
 
-            for (auth_3d*& i : chara_effect_auth_3ds)
-                x_pv_game_write_auth_3d(0, i, &auth_3d_db, 0, avail_uids, x_pack_mmp_out_dir);
+            for (auth_3d_detail::Scene* scene : chara_effect_auth_3ds)
+                x_pv_game_write_auth_3d(0, scene, &auth_3d_db, 0, avail_uids, x_pack_mmp_out_dir);
 
             char name[0x40];
             sprintf_s(name, sizeof(name), "EFFSTGPV%03d", stage_data.stage_id);
@@ -7526,22 +7516,22 @@ bool x_pv_game::ctrl() {
 
             for (stage_data_modern& i : stage_data.stage_data.stg_db.stage_modern)
                 for (uint32_t& j : i.auth_3d_ids) {
-                    auth_3d* auth = auth_3d_data_get_auth_3d(j);
-                    if (auth)
-                        x_pv_game_write_auth_3d(effstgpv_farc, auth,
+                    auth_3d_detail::Scene* scene = auth_3d_detail::get_scene(j);
+                    if (scene)
+                        x_pv_game_write_auth_3d(effstgpv_farc, scene,
                             &auth_3d_db, name, avail_uids, x_pack_mmp_out_dir);
                 }
 
-            for (auth_3d*& i : stage_data_effect_auth_3ds)
-                x_pv_game_write_auth_3d(effstgpv_farc, i,
+            for (auth_3d_detail::Scene* scene : stage_data_effect_auth_3ds)
+                x_pv_game_write_auth_3d(effstgpv_farc, scene,
                     &auth_3d_db, name, avail_uids, x_pack_mmp_out_dir);
 
-            for (auth_3d*& i : stage_data_change_effect_auth_3ds)
-                x_pv_game_write_auth_3d(effstgpv_farc, i,
+            for (auth_3d_detail::Scene* scene : stage_data_change_effect_auth_3ds)
+                x_pv_game_write_auth_3d(effstgpv_farc, scene,
                     &auth_3d_db, name, avail_uids, x_pack_mmp_out_dir);
 
-            if (light_auth_3d_id.check_not_empty())
-                x_pv_game_write_auth_3d(effstgpv_farc, light_auth_3d_id.get_auth_3d(),
+            if (light_auth_3d_id.is_valid())
+                x_pv_game_write_auth_3d(effstgpv_farc, light_auth_3d_id.get_scene(),
                     &auth_3d_db, name, avail_uids, x_pack_mmp_out_dir);
 
             if (effstgpv_farc->files.size())
@@ -7644,12 +7634,12 @@ bool x_pv_game::ctrl() {
 
         pv_data.ctrl(false, (float_t)(frame_float * (1.0 / 60.0)), 0.0f);
 
-        light_auth_3d_id.set_enable(true);
-        light_auth_3d_id.set_camera_root_update(false);
-        light_auth_3d_id.set_paused(false);
-        light_auth_3d_id.set_repeat(false);
-        light_auth_3d_id.set_visibility(true);
-        light_auth_3d_id.set_req_frame((float_t)frame_float);
+        light_auth_3d_id.set_enabled(true);
+        light_auth_3d_id.camera_set_enabled(false);
+        light_auth_3d_id.set_pause(false);
+        light_auth_3d_id.set_looped(false);
+        light_auth_3d_id.set_visible(true);
+        light_auth_3d_id.set_frame_req((float_t)frame_float);
 
 #if BAKE_PV826
         if (get_data().pv_id == 826)
@@ -7808,10 +7798,10 @@ bool x_pv_game::ctrl() {
             else
                 sprintf_s(buf, sizeof(buf), "CAMPV%03d_BASE", pv_data.pv_id);
 
-            a3da a;
+            a3d::Scene scene;
             farc_file* ff = f->read_file(hash_utf8_murmurhash(buf));
             if (ff)
-                a.read(ff->data, ff->size);
+                scene.read(ff->data, ff->size);
             delete f;
 
             if ((pv_data.pv_id % 100) >= 25 && (pv_data.pv_id % 100) <= 30
@@ -7821,28 +7811,28 @@ bool x_pv_game::ctrl() {
                 sprintf_s(buf, sizeof(buf), "DOF\\auth_3d\\CAMPV%03d_BASE", pv_data.pv_id);
 
             replace_pv832(buf);
-            replace_pv832(a._file_name);
+            replace_pv832(scene._file_name);
 
-            a.ready = true;
-            a.compressed = true;
-            a.format = A3DA_FORMAT_AFT_X_PACK;
-            a.dof = {};
-            a.dof.has_dof = true;
+            scene.ready = true;
+            scene.compressed = true;
+            scene.format = a3d::FORMAT_AFT_X_PACK;
+            scene.dof = {};
+            scene.dof.has_dof = true;
 
             std::thread position_x(a3da_key_rev,
-                std::ref(a.dof.model_transform.translation.x), std::ref(dof_cam_data.position_x));
+                std::ref(scene.dof.model_transform.translation.x), std::ref(dof_cam_data.position_x));
             std::thread position_y(a3da_key_rev,
-                std::ref(a.dof.model_transform.translation.y), std::ref(dof_cam_data.position_y));
+                std::ref(scene.dof.model_transform.translation.y), std::ref(dof_cam_data.position_y));
             std::thread position_z(a3da_key_rev,
-                std::ref(a.dof.model_transform.translation.z), std::ref(dof_cam_data.position_z));
+                std::ref(scene.dof.model_transform.translation.z), std::ref(dof_cam_data.position_z));
             std::thread focus_range(a3da_key_rev,
-                std::ref(a.dof.model_transform.scale.x), std::ref(dof_cam_data.focus_range));
+                std::ref(scene.dof.model_transform.scale.x), std::ref(dof_cam_data.focus_range));
             //std::thread focus(a3da_key_rev,
-            //    std::ref(a.dof.model_transform.scale.y), std::ref(dof_cam_data.focus));
+            //    std::ref(scene.dof.model_transform.scale.y), std::ref(dof_cam_data.focus));
             std::thread fuzzing_range(a3da_key_rev,
-                std::ref(a.dof.model_transform.rotation.x), std::ref(dof_cam_data.fuzzing_range));
+                std::ref(scene.dof.model_transform.rotation.x), std::ref(dof_cam_data.fuzzing_range));
             std::thread ratio(a3da_key_rev,
-                std::ref(a.dof.model_transform.rotation.y), std::ref(dof_cam_data.ratio));
+                std::ref(scene.dof.model_transform.rotation.y), std::ref(dof_cam_data.ratio));
             SetThreadDescription((HANDLE)position_x.native_handle(), L"DoF A3DA Bake Thread: Position X");
             SetThreadDescription((HANDLE)position_y.native_handle(), L"DoF A3DA Bake Thread: Position Y");
             SetThreadDescription((HANDLE)position_z.native_handle(), L"DoF A3DA Bake Thread: Position Z");
@@ -7872,29 +7862,29 @@ bool x_pv_game::ctrl() {
             if (ratio.joinable())
                 ratio.join();
 
-            a.dof.model_transform.translation.x.raw_data = true;
-            a.dof.model_transform.translation.y.raw_data = true;
-            a.dof.model_transform.translation.z.raw_data = true;
+            scene.dof.model_transform.translation.x.raw_data = true;
+            scene.dof.model_transform.translation.y.raw_data = true;
+            scene.dof.model_transform.translation.z.raw_data = true;
 
-            a3da_key& rot_z = a.dof.model_transform.rotation.z;
+            a3d::Fcurve& rot_z = scene.dof.model_transform.rotation.z;
             if (dof_cam_data.enable_frame.size() > 1) {
-                rot_z.type = A3DA_KEY_HOLD;
+                rot_z.type = a3d::FC_TYPE_NO_INTERPOLATION;
                 rot_z.keys.reserve(dof_cam_data.enable_frame.size());
                 for (std::pair<int32_t, bool>& i : dof_cam_data.enable_frame)
                     rot_z.keys.push_back({ (float_t)i.first, i.second ? 1.00051f : 0.0f });
-                rot_z.max_frame = a.play_control.size;
+                rot_z.max_frame = scene.play_control.size;
             }
             else if (dof_cam_data.enable_frame.size()) {
-                rot_z.type = A3DA_KEY_STATIC;
+                rot_z.type = a3d::FC_TYPE_STATIC_DATA;
                 rot_z.value = dof_cam_data.enable_frame[0].second ? 1.00051f : 0.0f;
             }
             else
-                rot_z.type = A3DA_KEY_NONE;
+                rot_z.type = a3d::FC_TYPE_STATIC_0;
 
-            a.dof.model_transform.visibility.type = A3DA_KEY_STATIC;
-            a.dof.model_transform.visibility.value = 1.0f;
+            scene.dof.model_transform.visibility.type = a3d::FC_TYPE_STATIC_DATA;
+            scene.dof.model_transform.visibility.value = 1.0f;
 
-            a.write(buf);
+            scene.write(buf);
 
             dof_cam_data.reset();
         }
@@ -8269,11 +8259,9 @@ bool x_pv_game::unload() {
             i = ROB_ID_NULL;
         }
 
-    light_auth_3d_id.unload(rctx_ptr);
+    light_auth_3d_id.destroy(rctx_ptr);
 
-    light_auth_3d_id = {};
-
-    auth_3d_data_unload_category(light_category.c_str());
+    auth_3d_detail::category_free(light_category.c_str());
 
     light_category.clear();
     light_category.shrink_to_fit();
@@ -10068,17 +10056,17 @@ static void x_pv_game_item_alpha_callback(void* data, ROB_ID rob_id, int32_t typ
     if (rob_id < 0 || rob_id >= pv_data.play_param->chara.size())
         return;
 
-    mdl::ObjFlags flags;
+    mdl::ObjFlags state;
     switch (type) {
     case 0:
     default:
-        flags = mdl::OBJ_ALPHA_ORDER_POST_GLITTER;
+        state = mdl::OBJ_ALPHA_ORDER_POST_GLITTER;
         break;
     case 1:
-        flags = mdl::OBJ_ALPHA_ORDER_POST_TRANSLUCENT;
+        state = mdl::OBJ_ALPHA_ORDER_POST_TRANSLUCENT;
         break;
     case 2:
-        flags = mdl::OBJ_ALPHA_ORDER_POST_OPAQUE;
+        state = mdl::OBJ_ALPHA_ORDER_POST_OPAQUE;
         break;
     }
 
@@ -10087,7 +10075,7 @@ static void x_pv_game_item_alpha_callback(void* data, ROB_ID rob_id, int32_t typ
             continue;
 
         for (x_pv_game_song_effect_auth_3d& j : i.auth_3d)
-            j.id.set_alpha_obj_flags(alpha, flags);
+            j.id.set_trnsl(alpha, state);
 
         for (x_pv_game_song_effect_glitter& j : i.glitter)
             Glitter::glt_particle_manager->SetSceneEffectExtColor(j.scene_counter,
@@ -11544,27 +11532,54 @@ static void x_pv_game_write_aet(uint32_t aet_set_id,
     free_def(data);
 }
 
-static bool x_pv_game_write_auth_3d(farc* f, auth_3d* auth, auth_3d_database_file* auth_3d_db,
+static bool x_pv_game_write_auth_3d(farc* f, auth_3d_detail::Scene* in_scene, auth_3d_database_file* auth_3d_db,
     const char* category, std::vector<uint64_t>& avail_uids, const char* out_dir) {
     char name[0x200];
-    if (!get_replace_auth_name(name, sizeof(name), auth))
+    if (!get_replace_auth_name(name, sizeof(name), in_scene))
         return false;
 
-    a3da a;
-    float_t max_frame = auth->max_frame;
-    auth->max_frame = auth->play_control.size;
-    auth->store(&a);
-    auth->max_frame = max_frame;
-    a._converter_version.assign("20111019");
-    a._file_name.assign(name);
-    a._file_name.append(".a3da");
-    a._property_version.assign("20110526");
-    a.ready = true;
-    a.compressed = true;
-    a.format = A3DA_FORMAT_AFT_X_PACK;
+    auth_3d_detail::SceneFile file;
 
-    for (a3da_m_object_hrc& i : a.m_object_hrc) {
-        for (a3da_object_instance& j : i.instance) {
+    float_t frame_max = in_scene->frame_max;
+    in_scene->frame_max = in_scene->play_control.size;
+    in_scene->M_storeToProperties(file);
+    in_scene->frame_max = frame_max;
+
+    a3d::Scene& scene = file.prop;
+    scene._converter_version.assign("20111019");
+    scene._file_name.assign(name);
+    scene._file_name.append(".a3da");
+    scene._property_version.assign("20110526");
+    scene.ready = true;
+    scene.compressed = true;
+    scene.format = a3d::FORMAT_AFT_X_PACK;
+
+    for (a3d::Object& i : scene.object) {
+        replace_names(i.name);
+        replace_names(i.parent_name);
+        replace_names(i.uid_name);
+
+        for (a3d::Texture& j : i.texture)
+            replace_names(j.name);
+
+        for (a3d::TextureTransform& j : i.texture_transform)
+            replace_names(j.name);
+    }
+
+    for (std::string& i : scene.object_list)
+        replace_names(i);
+
+    for (a3d::ObjectHrc& i : scene.object_hrc) {
+        replace_names(i.name);
+        replace_names(i.parent_name);
+        replace_names(i.uid_name);
+    }
+
+    for (std::string& i : scene.object_hrc_list)
+        replace_names(i);
+
+    for (a3d::MObjectHrc& i : scene.m_object_hrc) {
+        for (a3d::ObjectInstance& j : i.instance) {
             replace_names(j.name);
             replace_names(j.uid_name);
         }
@@ -11572,31 +11587,7 @@ static bool x_pv_game_write_auth_3d(farc* f, auth_3d* auth, auth_3d_database_fil
         replace_names(i.name);
     }
 
-    for (std::string& i : a.m_object_hrc_list)
-        replace_names(i);
-
-    for (a3da_object& i : a.object) {
-        replace_names(i.name);
-        replace_names(i.parent_name);
-        replace_names(i.uid_name);
-
-        for (a3da_object_texture_pattern& j : i.texture_pattern)
-            replace_names(j.name);
-
-        for (a3da_object_texture_transform& j : i.texture_transform)
-            replace_names(j.name);
-    }
-
-    for (a3da_object_hrc& i : a.object_hrc) {
-        replace_names(i.name);
-        replace_names(i.parent_name);
-        replace_names(i.uid_name);
-    }
-
-    for (std::string& i : a.object_hrc_list)
-        replace_names(i);
-
-    for (std::string& i : a.object_list)
+    for (std::string& i : scene.m_object_hrc_list)
         replace_names(i);
 
     bool own_farc = !f;
@@ -11615,7 +11606,7 @@ static bool x_pv_game_write_auth_3d(farc* f, auth_3d* auth, auth_3d_database_fil
 
     farc_file* ff = f->add_file(name);
     ff->name.append(".a3da");
-    a.write(&ff->data, &ff->size);
+    scene.write(&ff->data, &ff->size);
 
     if (own_farc) {
         farc_compress_ptr->AddFarc(f, sprintf_s_string("%s\\auth_3d\\%s", out_dir, name));
@@ -11648,15 +11639,15 @@ static bool x_pv_game_write_auth_3d(farc* f, auth_3d* auth, auth_3d_database_fil
         }
 
     auth_3d_database_uid_file& uid = auth_3d_db->uid.data()[uid_index];
-    uid.flags = (auth_3d_database_uid_flags)(AUTH_3D_DATABASE_UID_SIZE | AUTH_3D_DATABASE_UID_ORG_UID);
-    uid.category.assign(own_farc ? name : category);
-    uid.size = auth->play_control.size;
+    uid.flag = auth_3d_database_uid_file::FLAG_ORG_UID | auth_3d_database_uid_file::FLAG_FRAME_SIZE;
+    uid.category_name.assign(own_farc ? name : category);
+    uid.frame_size = in_scene->play_control.size;
     uid.value.assign("A ");
     uid.value.append(name);
     return true;
 }
 
-static void x_pv_game_write_auth_3d_camera(auth_3d* auth, int32_t pv_id,
+static void x_pv_game_write_auth_3d_camera(auth_3d_detail::Scene* in_scene, int32_t pv_id,
     auth_3d_database_file* auth_3d_db, std::vector<uint64_t>& avail_uids, const char* out_dir) {
     std::string category = sprintf_s_string("CAMPV%03d", pv_id);
     replace_names(category);
@@ -11691,9 +11682,9 @@ static void x_pv_game_write_auth_3d_camera(auth_3d* auth, int32_t pv_id,
         }
 
     auth_3d_database_uid_file& uid = auth_3d_db->uid.data()[uid_index];
-    uid.flags = (auth_3d_database_uid_flags)(AUTH_3D_DATABASE_UID_SIZE | AUTH_3D_DATABASE_UID_ORG_UID);
-    uid.category.assign(category);
-    uid.size = auth->play_control.size;
+    uid.flag = auth_3d_database_uid_file::FLAG_ORG_UID | auth_3d_database_uid_file::FLAG_FRAME_SIZE;
+    uid.category_name.assign(name);
+    uid.frame_size = in_scene->play_control.size;
     uid.value.assign("A ");
     uid.value.append(name);
 }
@@ -11729,24 +11720,24 @@ static void x_pv_game_write_auth_3d_category(const std::string& category,
         size_t avail_uids_old_size = avail_uids.size();
         for (auth_3d_database_uid_file& i : auth_3d_db->uid) {
             size_t index = &i - auth_3d_db->uid.data();
-            if (!i.category.size() && prj::find(avail_uids, index))
+            if (!i.category_name.size() && prj::find(avail_uids, index))
                 continue;
 
-            const uint64_t hash = hash_string_xxh3_64bits(i.category);
+            const uint64_t hash = hash_string_xxh3_64bits(i.category_name);
             if (hash == category_hash || itmpv && hash == itmpv_name_hash) {
                 x_pv_game_baker_ptr->print_log(out_dir, "Clearing Auth 3D UID: %d"
                     "; Former value: \"%s\"", i.org_uid, i.value.c_str());
 
-                i.flags = AUTH_3D_DATABASE_UID_ORG_UID;
-                i.category.clear();
-                i.size = 0.0f;
+                i.flag = auth_3d_database_uid_file::FLAG_ORG_UID;
+                i.category_name.clear();
+                i.frame_size = 0.0f;
                 i.value.clear();
                 avail_uids.push_back(index);
             }
         }
 
         if (avail_uids.size() != avail_uids_old_size)
-            prj::sort_unique(avail_uids);
+            prj::sort_and_erase_non_unique(avail_uids);
     }
 }
 
@@ -11902,7 +11893,7 @@ static void x_pv_game_write_auth_3d_reflect(stream& s, auth_3d_database_file* au
         }
     }
 
-    names.sort_unique();
+    names.sort_and_erase_non_unique();
 
     for (auto& i : names) {
         i.second = ms.get_position();
@@ -12242,17 +12233,17 @@ static void x_pv_game_write_glitter(Glitter::EffectGroup* eff_group, const auth_
         uint32_t file_name_hash = ext_anim->file_name_hash;
         uint32_t object_hash = ext_anim->object_hash;
         uint32_t instance_id = ext_anim->instance_id;
-        for (int32_t& i : auth_3d_data->loaded_ids) {
+        for (int32_t& i : auth_3d_detail::g_manager->handle_list) {
             if (i < 0 || (i & 0x7FFF) >= AUTH_3D_DATA_COUNT)
                 continue;
 
-            auth_3d* auth = &auth_3d_data->data[i & 0x7FFF];
-            if (auth->id != i)
+            auth_3d_detail::Scene* scene = &auth_3d_detail::g_manager->scene_buffer[i & 0x7FFF];
+            if (scene->my_handle != i)
                 continue;
 
             bool ret = false;
             if (file_name_hash != hash_murmurhash_empty) {
-                if (auth->hash != file_name_hash)
+                if (scene->hash != file_name_hash)
                     continue;
 
                 ret = true;
@@ -12260,16 +12251,16 @@ static void x_pv_game_write_glitter(Glitter::EffectGroup* eff_group, const auth_
 
             std::string uid_name;
             if (instance_id < 0) {
-                for (auth_3d_object& i : auth->object)
-                    if (object_hash == i.object_hash) {
+                for (auth_3d_detail::Object& i : scene->object_holder)
+                    if (object_hash == i.obj_hash) {
                         uid_name.assign(i.uid_name);
                         ret = false;
                         break;
                     }
 
                 if (!uid_name.size())
-                    for (auth_3d_object_hrc& i : auth->object_hrc)
-                        if (object_hash == i.object_hash) {
+                    for (auth_3d_detail::HierarchyObject& i : scene->object_hrc_holder)
+                        if (object_hash == i.obj_hash) {
                             uid_name.assign(i.uid_name);
                             ret = false;
                             break;
@@ -12277,8 +12268,8 @@ static void x_pv_game_write_glitter(Glitter::EffectGroup* eff_group, const auth_
             }
             else {
                 int32_t obj_instance = 0;
-                for (auth_3d_object& i : auth->object)
-                    if (object_hash == i.object_hash) {
+                for (auth_3d_detail::Object& i : scene->object_holder)
+                    if (object_hash == i.obj_hash) {
                         if (obj_instance == instance_id) {
                             uid_name.assign(i.uid_name);
                             ret = false;
@@ -12289,8 +12280,8 @@ static void x_pv_game_write_glitter(Glitter::EffectGroup* eff_group, const auth_
 
                 if (!uid_name.size()) {
                     int32_t obj_hrc_instance = 0;
-                    for (auth_3d_object_hrc& i : auth->object_hrc)
-                        if (object_hash == i.object_hash) {
+                    for (auth_3d_detail::HierarchyObject& i : scene->object_hrc_holder)
+                        if (object_hash == i.obj_hash) {
                             if (obj_hrc_instance == instance_id) {
                                 uid_name.assign(i.uid_name);
                                 ret = false;
@@ -12320,7 +12311,7 @@ static void x_pv_game_write_glitter(Glitter::EffectGroup* eff_group, const auth_
             }
 
             char auth_name[0x200];
-            if (!get_replace_auth_name(auth_name, sizeof(auth_name), auth))
+            if (!get_replace_auth_name(auth_name, sizeof(auth_name), scene))
                 goto End;
 
             ext_anim->file_name_hash = x_pack_auth_3d_db->get_uid(auth_name);
@@ -12730,7 +12721,7 @@ static void x_pv_game_write_object_set(obj_set* obj_set, const std::string& name
             tex_ids->push_back(old_id, id);
         }
 
-        tex_ids->sort_unique();
+        tex_ids->sort_and_erase_non_unique();
 
         int32_t obj_num = set->obj_num;
         obj_set_info->object.reserve(obj_num);
@@ -13450,14 +13441,14 @@ static void x_pv_game_write_stage_data(int32_t stage_id, const auth_3d_database*
 
         stage_data->auth_3d_ids.reserve(i.auth_3d_ids.size());
         for (const uint32_t& j : i.auth_3d_ids) {
-            auth_3d* auth = auth_3d_data_get_auth_3d(j);
-            if (!auth) {
+            auth_3d_detail::Scene* scene = auth_3d_detail::get_scene(j);
+            if (!scene) {
                 printf("");
                 continue;
             }
 
             char name[0x200];
-            if (get_replace_auth_name(name, sizeof(name), auth)) {
+            if (get_replace_auth_name(name, sizeof(name), scene)) {
                 int32_t uid = x_pack_auth_3d_db->get_uid(name);
                 if (uid != -1)
                     stage_data->auth_3d_ids.push_back(uid);
@@ -13869,11 +13860,11 @@ inline static void replace_pv832(std::string& str) {
 #endif
 
 #if BAKE_X_PACK
-static bool get_replace_auth_name(char* name, size_t name_size, auth_3d* auth) {
+static bool get_replace_auth_name(char* name, size_t name_size, auth_3d_detail::Scene* in_scene) {
     if (!name)
         return false;
 
-    strcpy_s(name, name_size, auth->file_name.c_str());
+    strcpy_s(name, name_size, in_scene->file_name.c_str());
 
     const char* a3da_ext = ".a3da";
 
@@ -13896,15 +13887,15 @@ static void remove_auth_3d_category(auth_3d_database_file& auth_3d_db,
     size_t avail_uids_old_size = avail_uids.size();
 
     for (auth_3d_database_uid_file& i : auth_3d_db.uid) {
-        if (i.category.size() < category_name_len || i.category.find(category_name) == -1)
+        if (i.category_name.size() < category_name_len || i.category_name.find(category_name) == -1)
             continue;
 
         x_pv_game_baker_ptr->print_log(out_dir, "Clearing Auth 3D UID: %d"
             "; Former value: \"%s\"", i.org_uid, i.value.c_str());
 
-        i.flags = AUTH_3D_DATABASE_UID_ORG_UID;
-        i.category.clear();
-        i.size = 0.0f;
+        i.flag = auth_3d_database_uid_file::FLAG_ORG_UID;
+        i.category_name.clear();
+        i.frame_size = 0.0f;
         i.value.clear();
         avail_uids.push_back(&i - auth_3d_db.uid.data());
     }
@@ -13924,7 +13915,7 @@ static void remove_auth_3d_category(auth_3d_database_file& auth_3d_db,
             i++;
 
     if (avail_uids.size() != avail_uids_old_size)
-        prj::sort_unique(avail_uids);
+        prj::sort_and_erase_non_unique(avail_uids);
 }
 
 static void replace_names(char* str) {

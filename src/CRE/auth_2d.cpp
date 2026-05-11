@@ -6,6 +6,7 @@
 #include <map>
 #include <vector>
 #include "auth_2d.hpp"
+#include "../KKdLib/prj/algorithm.hpp"
 #include "../KKdLib/farc.hpp"
 #include "../KKdLib/str_utils.hpp"
 #include "data.hpp"
@@ -216,6 +217,164 @@ AetArgs& AetArgs::operator=(const AetArgs& other) {
 
     spr_db = other.spr_db;
     return *this;
+}
+
+namespace aet {
+    // 0x14019CB90
+    void IdHandle::M_put() {
+        data_struct* aft_data = &data_list[DATA_AFT];
+        aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
+
+        if (M_args.id.id < 0)
+            M_handle = -1;
+        else {
+            M_handle = aet_manager_init_aet_object(M_args, aft_aet_db);
+            if (M_handle != -1)
+                aet_manager_set_obj_play(M_handle, 1);
+        }
+    }
+
+    // 0x14019D540
+    void IdHandle::remove() {
+        if (M_handle != -1)
+            aet_manager_free_aet_object(M_handle);
+        M_handle = -1;
+    }
+
+    IdHandle::IdHandle(const IdHandle& other) : M_args(other.M_args), M_handle(other.M_handle) {
+
+    }
+
+    IdHandle::IdHandle() : M_handle(-1) {
+
+    }
+
+    IdHandle::~IdHandle() {
+
+    }
+
+    // 0x14019CC80
+    IdHandle& IdHandle::assign(const AetArgs& in_args) {
+        remove();
+        M_args = in_args;
+        return *this;
+    }
+
+    // Missing
+    void IdHandle::restart() {
+        if (isValid() && getReady()) {
+            remove();
+            M_put();
+        }
+    }
+
+    // 0x1401E5F10
+    void IdHandle::put() {
+        remove();
+        M_put();
+    }
+
+    // Inlined
+    void IdHandle::put_valid() {
+        if (isValid()) {
+            remove();
+            M_put();
+        }
+    }
+
+    // Inlined
+    void IdHandle::destroy() {
+        remove();
+        M_args = {};
+    }
+
+    // Missing
+    void IdHandle::setDisplay(bool flag) {
+        if (isValid())
+            aet_manager_set_obj_visible(M_handle, flag);
+    }
+
+    // Missing
+    void IdHandle::setPlay(bool flag) {
+        if (isValid())
+            aet_manager_set_obj_play(M_handle, flag);
+    }
+
+    // 0x1401D4F10
+    bool IdHandle::getReady() {
+        data_struct* aft_data = &data_list[DATA_AFT];
+        aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
+
+        return aet_manager_get_set_ready(M_args.id.id, aft_aet_db);
+    }
+
+    // 0x14019CD00
+    void SetHandle::destroy() {
+        free();
+        M_set = -1;
+        M_spr_set = S_INVALID_SPR_SET;
+    }
+
+    SetHandle::SetHandle() : M_set(-1), M_spr_set(S_INVALID_SPR_SET), M_is_requested(false) {
+
+    }
+
+    SetHandle::~SetHandle() {
+
+    }
+
+    // 0x14019CCB0
+    SetHandle& SetHandle::assign(int32_t uid) {
+        destroy();
+
+        data_struct* aft_data = &data_list[DATA_AFT];
+        aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
+
+        M_spr_set = S_INVALID_SPR_SET;
+        M_set = uid;
+        M_spr_set = aft_aet_db->get_aet_set_by_id(M_set)->sprite_set_id;
+        return *this;
+    }
+
+    // 0x14019D5C0
+    void SetHandle::request() {
+        if (!isValid())
+            return;
+
+        data_struct* aft_data = &data_list[DATA_AFT];
+        aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
+        SprDb* aft_spr_db = &aft_data->data_ft.spr_db;
+
+        spr::request(M_spr_set, "", aft_data, aft_spr_db);
+        aet_manager_read_file(M_set, "", aft_data, aft_aet_db);
+        M_is_requested = true;
+    }
+
+    // 0x14019D920
+    bool SetHandle::wait() {
+        if (!isValid() || !M_is_requested)
+            return false;
+
+        data_struct* aft_data = &data_list[DATA_AFT];
+        aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
+        SprDb* aft_spr_db = &aft_data->data_ft.spr_db;
+
+        return spr::wait(M_spr_set, aft_spr_db) || aet_manager_load_file(M_set, aft_aet_db);
+    }
+
+    // 0x14019CDA0
+    void SetHandle::free() {
+        if (!isValid() || !M_is_requested)
+            return;
+
+        data_struct* aft_data = &data_list[DATA_AFT];
+        aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
+        SprDb* aft_spr_db = &aft_data->data_ft.spr_db;
+
+        aet_manager_unload_set(M_set, aft_aet_db);
+        spr::free(M_spr_set, aft_spr_db);
+        M_is_requested = false;
+    }
 }
 
 aet_layout_data::aet_layout_data() : width(), height() {
@@ -1579,16 +1738,7 @@ void AetMgr::FreeAetObject(uint32_t id) {
 }
 
 void AetMgr::FreeAetObject(std::map<uint32_t, AetObj>::iterator it) {
-    auto i = free_objects.begin();
-    auto i_end = free_objects.end();
-    while (i != i_end) {
-        if (it == *i) {
-            free_objects.erase(i);
-            break;
-        }
-        i++;
-    }
-
+    prj::find_and_erase(free_objects, it);
     free_objects.push_back(it);
 }
 

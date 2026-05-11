@@ -581,7 +581,7 @@ key_val* skin_param_storage_get_key_val(object_info obj_uid) {
 
 void skin_param_storage_load(std::vector<object_info>& obj_infos,
     void* data, const object_database* obj_db) {
-    prj::sort_unique(obj_infos);
+    prj::sort_and_erase_non_unique(obj_infos);
     for (const object_info& i : obj_infos) {
         if (i.is_null())
             continue;

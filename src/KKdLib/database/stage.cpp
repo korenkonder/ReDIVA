@@ -427,8 +427,8 @@ void stage_database::update() {
     for (stage_data_modern& i : stage_modern)
         stage_modern_names.push_back(i.hash, &i);
 
-    stage_data_names.sort_unique();
-    stage_modern_names.sort_unique();
+    stage_data_names.sort_and_erase_non_unique();
+    stage_modern_names.sort_and_erase_non_unique();
 }
 
 const ::stage_data* stage_database::get_stage_data(int32_t stage_index) const {

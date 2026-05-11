@@ -261,12 +261,12 @@ void bone_database::update() {
         for (std::string& j : i.bone_node_name)
             i.bone_node_name_map.push_back(hash_string_murmurhash(j), &j);
 
-        i.body_type_map.sort_unique();
-        i.bone_name_map.sort_unique();
-        i.bone_node_name_map.sort_unique();
+        i.body_type_map.sort_and_erase_non_unique();
+        i.bone_name_map.sort_and_erase_non_unique();
+        i.bone_node_name_map.sort_and_erase_non_unique();
     }
 
-    bonedata_map.sort_unique();
+    bonedata_map.sort_and_erase_non_unique();
 }
 
 const BoneData* bone_database::get_bone_data(const char* kind_name) const {
