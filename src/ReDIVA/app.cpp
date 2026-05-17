@@ -1267,7 +1267,7 @@ static void render_context_disp(render_context* rctx) {
 #endif
 
         post_rend_data_ctx.state.bind_framebuffer(0);
-        post_rend_data_ctx.state.active_bind_texture_2d(0, rctx->screen_buffer.GetColorTex());
+        post_rend_data_ctx.state.active_bind_texture_2d(0, rctx->screen_buffer.get_texture_glid());
         post_rend_data_ctx.shader_flags.arr[U_ALPHA_MASK] = 0;
         post_rend_data_ctx.shader_flags.arr[U_REDUCE] = 0;
         shaders_ft.set(post_rend_data_ctx.state, post_rend_data_ctx.shader_flags, SHADER_FT_REDUCE);
@@ -1277,11 +1277,11 @@ static void render_context_disp(render_context* rctx) {
 #ifdef USE_OPENGL
     else {
 #if BAKE_PNG || BAKE_VIDEO
-        fbo_blit(post_rend_data_ctx.state, rctx->screen_buffer.fbos[0], 0,
+        fbo_blit(post_rend_data_ctx.state, rctx->screen_buffer.get_fb(), 0,
             0, 0, rctx->sprite_width, rctx->sprite_height,
             0, 0, rctx->screen_width, rctx->screen_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 #else
-        fbo_blit(post_rend_data_ctx.state, rctx->screen_buffer.fbos[0], 0,
+        fbo_blit(post_rend_data_ctx.state, rctx->screen_buffer.get_fb(), 0,
             0, 0, rctx->sprite_width, rctx->sprite_height,
             rctx->screen_x_offset, rctx->screen_y_offset,
             rctx->sprite_width, rctx->sprite_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);

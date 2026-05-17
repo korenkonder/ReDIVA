@@ -97,13 +97,13 @@ namespace renderer {
                     }
 
                     focus = max_def(focus, (float_t)cam->min_distance);
-                    apply_physical(rend_data_ctx, rt, buf_rt, rt->GetColorTex(), rt->GetDepthTex(),
+                    apply_physical(rend_data_ctx, rt, buf_rt, rt->get_texture_glid(), rt->get_depth_texture_glid(),
                         cam->min_distance, cam->max_distance, focus,
                         dof_debug_data.focal_length, cam->fov * DEG_TO_RAD_FLOAT, dof_debug_data.f_number);
                 }
                 else {
                     float_t fuzzing_range = max_def(dof_debug_data.f2.fuzzing_range, 0.01f);
-                    apply_f2(rend_data_ctx, rt, buf_rt, rt->GetColorTex(), rt->GetDepthTex(),
+                    apply_f2(rend_data_ctx, rt, buf_rt, rt->get_texture_glid(), rt->get_depth_texture_glid(),
                         cam->min_distance, cam->max_distance, cam->fov * DEG_TO_RAD_FLOAT,
                         dof_debug_data.f2.focus, dof_debug_data.f2.focus_range,
                         fuzzing_range, dof_debug_data.f2.ratio);
@@ -113,7 +113,7 @@ namespace renderer {
         }
         else if (dof_pv_data.enable && dof_pv_data.f2.ratio > 0.0f) {
             float_t fuzzing_range = max_def(dof_pv_data.f2.fuzzing_range, 0.01f);
-            apply_f2(rend_data_ctx, rt, buf_rt, rt->GetColorTex(), rt->GetDepthTex(),
+            apply_f2(rend_data_ctx, rt, buf_rt, rt->get_texture_glid(), rt->get_depth_texture_glid(),
                 cam->min_distance, cam->max_distance, cam->fov * DEG_TO_RAD_FLOAT,
                 dof_pv_data.f2.focus, dof_pv_data.f2.focus_range,
                 fuzzing_range, dof_pv_data.f2.ratio);
@@ -303,7 +303,7 @@ namespace renderer {
         RenderTexture* rt, RenderTexture* buf_rt,
         GLuint color_texture, GLuint depth_texture, bool f2) {
         rend_data_ctx.state.begin_event("renderer::DOF3::upsample");
-        buf_rt->Bind(rend_data_ctx.state);
+        buf_rt->begin_render(rend_data_ctx.state);
         rend_data_ctx.state.set_viewport(0, 0, width, height);
         rend_data_ctx.shader_flags.arr[U_DOF_STAGE] = 4;
         shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_DOF);
@@ -322,10 +322,10 @@ namespace renderer {
 
         if (GLAD_GL_VERSION_4_3)
             rend_data_ctx.state.copy_image_sub_data(
-                buf_rt->GetColorTex(), GL_TEXTURE_2D, 0, 0, 0, 0,
-                rt->GetColorTex(), GL_TEXTURE_2D, 0, 0, 0, 0, width, height, 1);
+                buf_rt->get_texture_glid(), GL_TEXTURE_2D, 0, 0, 0, 0,
+                rt->get_texture_glid(), GL_TEXTURE_2D, 0, 0, 0, 0, width, height, 1);
         else
-            fbo_blit(rend_data_ctx.state, buf_rt->fbos[0], rt->fbos[0],
+            fbo_blit(rend_data_ctx.state, buf_rt->get_fb(), rt->get_fb(),
                 0, 0, width, height,
                 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
         rend_data_ctx.state.end_event();

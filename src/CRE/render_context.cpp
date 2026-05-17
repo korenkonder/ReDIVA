@@ -99,9 +99,9 @@ void draw_state::set_use_global_material(bool value) {
 }
 
 light_proj::light_proj(int32_t width, int32_t height) : enable(), texture_id() {
-    shadow_texture[0].Init(2048, 512, 0, GL_R32F, GL_DEPTH_COMPONENT32F);
-    shadow_texture[1].Init(2048, 512, 0, GL_R32F, GL_ZERO);
-    draw_texture.Init(width, height, 0, GL_RGBA8, GL_DEPTH_COMPONENT32F);
+    shadow_texture[0].create_texture(2048, 512, 0, GL_R32F, GL_DEPTH_COMPONENT32F);
+    shadow_texture[1].create_texture(2048, 512, 0, GL_R32F, GL_ZERO);
+    draw_texture.create_texture(width, height, 0, GL_RGBA8, GL_DEPTH_COMPONENT32F);
 }
 
 light_proj::~light_proj() {
@@ -112,7 +112,7 @@ void light_proj::resize(int32_t width, int32_t height) {
     if (!this)
         return;
 
-    draw_texture.Init(width, height, 0, GL_RGBA8, GL_DEPTH_COMPONENT32F);
+    draw_texture.create_texture(width, height, 0, GL_RGBA8, GL_DEPTH_COMPONENT32F);
 }
 
 bool light_proj::set(render_data_context& rend_data_ctx, cam_data& cam) {
@@ -122,7 +122,7 @@ bool light_proj::set(render_data_context& rend_data_ctx, cam_data& cam) {
     static const vec4 color_clear = 0.0f;
     static const GLfloat depth_clear = 1.0f;
 
-    shadow_texture[0].Bind(rend_data_ctx.state);
+    shadow_texture[0].begin_render(rend_data_ctx.state);
     rend_data_ctx.state.set_viewport(0, 0, 2048, 512);
     rend_data_ctx.state.enable_depth_test();
     rend_data_ctx.state.set_depth_mask(GL_TRUE);
@@ -135,8 +135,8 @@ bool light_proj::set(render_data_context& rend_data_ctx, cam_data& cam) {
         return true;
     }
     else {
-        draw_texture.Bind(rend_data_ctx.state);
-        draw_texture.SetViewport(rend_data_ctx.state);
+        draw_texture.begin_render(rend_data_ctx.state);
+        draw_texture.set_viewport(rend_data_ctx.state);
         rend_data_ctx.state.enable_depth_test();
         rend_data_ctx.state.set_depth_mask(GL_TRUE);
         rend_data_ctx.state.clear_buffer(GL_COLOR, 0, (float_t*)&color_clear);
@@ -1401,11 +1401,11 @@ void render_context::disp() {
 }
 
 void render_context::free() {
-    shadow_buffer.Free();
-    screen_overlay_buffer.Free();
-    screen_buffer.Free();
-    render_buffer.Free();
-    reflect_buffer.Free();
+    shadow_buffer.destroy();
+    screen_overlay_buffer.destroy();
+    screen_buffer.destroy();
+    render_buffer.destroy();
+    reflect_buffer.destroy();
 
     texture_release(empty_texture_cube_map);
     texture_release(empty_texture_2d);
@@ -1436,9 +1436,8 @@ void render_context::init() {
         GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, 4, 4, 0, empty_texture_cube_map_array);
 
     auto init_copy_buffer = [&](RenderTexture& src, RenderTexture& dst) {
-        dst.Init(src.GetWidth(),
-            src.GetHeight(), 0, src.color_texture->internal_format,
-            src.depth_texture ? src.depth_texture->internal_format : GL_ZERO);
+        dst.create_texture(src.get_width(), src.get_height(), 0, src.get_texture()->internal_format,
+            src.get_depth_texture() ? src.get_depth_texture()->internal_format : GL_ZERO);
     };
 
     RenderTexture& render_buffer = render.rend_texture[0];
@@ -1448,8 +1447,8 @@ void render_context::init() {
     init_copy_buffer(render_buffer, this->render_buffer);
     init_copy_buffer(shadow_buffer, this->shadow_buffer);
 
-    screen_buffer.Init(sprite_width, sprite_height, 0, GL_RGBA8, 0);
-    screen_overlay_buffer.Init(sprite_width, sprite_height, 0, GL_RGBA8, 0);
+    screen_buffer.create_texture(sprite_width, sprite_height, 0, GL_RGBA8, 0);
+    screen_overlay_buffer.create_texture(sprite_width, sprite_height, 0, GL_RGBA8, 0);
 }
 
 void render_context::resize(int32_t render_width, int32_t render_height,

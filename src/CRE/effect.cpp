@@ -1528,7 +1528,7 @@ void snow_particle_draw(render_data_context& rend_data_ctx, const cam_data& cam)
     snow_particle_batch_ubo.WriteMemory(rend_data_ctx.state, snow_batch);
 
     rend_data_ctx.state.active_bind_texture_2d(0, tex->glid);
-    rend_data_ctx.state.active_bind_texture_2d(1, rctx_ptr->render.rend_texture[0].GetDepthTex());
+    rend_data_ctx.state.active_bind_texture_2d(1, rctx_ptr->render.rend_texture[0].get_depth_texture_glid());
     rend_data_ctx.state.bind_vertex_array(rctx_ptr->common_vao);
 
     rend_data_ctx.shader_flags.arr[U_SNOW_PARTICLE] = 0;
@@ -2436,16 +2436,16 @@ void EffectFogRing::draw(render_data_context& rend_data_ctx, const cam_data& cam
 
     rctx->draw_state->set_fog_height(true);
     RenderTexture& rt = rctx->render_manager->get_render_texture(8);
-    rt.Bind(rend_data_ctx.state);
+    rt.begin_render(rend_data_ctx.state);
     rend_data_ctx.state.set_viewport(0, 0,
-        rt.color_texture->get_width_align_mip_level(),
-        rt.color_texture->get_height_align_mip_level());
+        rt.get_texture()->get_width_align_mip_level(),
+        rt.get_texture()->get_height_align_mip_level());
     rend_data_ctx.state.clear_color(density_offset, density_offset, density_offset, 1.0f);
     rend_data_ctx.state.clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     if (rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_USER))
         rctx->disp_manager->draw(rend_data_ctx, mdl::OBJ_TYPE_USER, cam);
-    rend_data_ctx.state.bind_framebuffer(0);
-    rctx->render_manager->set_effect_texture(rt.color_texture);
+    rt.end_render(rend_data_ctx.state);
+    rctx->render_manager->set_effect_texture(rt.get_texture());
     gl_get_error_print();
 }
 
@@ -3226,10 +3226,10 @@ void EffectRipple::clear_tex() {
             v5 = 0.5f;
         }
 
-        rt->Bind(gl_state);
+        rt->begin_render(gl_state);
         glClearColor(0.0f, 0.0f, 0.0f, v5);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        gl_state.bind_framebuffer(0);
+        rt->end_render(gl_state);
     }
 
     glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
@@ -3244,11 +3244,10 @@ void EffectRipple::copy_to_ripple_tex(render_data_context& rend_data_ctx, Render
     if (!ripple_tex)
         return;
 
-    ripple_texture.SetColorDepthTextures(ripple_tex->glid);
-    ripple_texture.Bind(rend_data_ctx.state);
-
-    image_filter_scale(rend_data_ctx, &ripple_texture, rt->color_texture);
-    rend_data_ctx.state.bind_framebuffer(0);
+    ripple_texture.attach_texture(ripple_tex->glid);
+    ripple_texture.begin_render(rend_data_ctx.state);
+    image_filter_scale(rend_data_ctx, &ripple_texture, rt->get_texture());
+    ripple_texture.end_render(rend_data_ctx.state);
 }
 
 void EffectRipple::ctrl() {
@@ -3305,24 +3304,24 @@ void EffectRipple::draw(render_data_context& rend_data_ctx, const cam_data& cam)
         if (counter >= 3)
             counter = 0;
 
-        rt[(counter + 1) % 3]->Bind(rend_data_ctx.state);
+        rt[(counter + 1) % 3]->begin_render(rend_data_ctx.state);
 
         gl_rend_state_rect viewport_rect = rend_data_ctx.state.get_viewport();
 
-        int32_t width = rt[0]->GetWidth();
-        int32_t height = rt[0]->GetHeight();
+        int32_t width = rt[0]->get_width();
+        int32_t height = rt[0]->get_height();
 
         rend_data_ctx.state.set_viewport(1, 1, width - 2, height - 2);
 
         rend_data_ctx.set_batch_scene_camera(cam);
         rend_data_ctx.state.clear(GL_DEPTH_BUFFER_BIT);
         if (rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_USER)) {
-            rend_data_ctx.state.active_bind_texture_2d(7, rt[counter % 3]->GetColorTex());
+            rend_data_ctx.state.active_bind_texture_2d(7, rt[counter % 3]->get_texture_glid());
             rctx->disp_manager->draw(rend_data_ctx, mdl::OBJ_TYPE_USER, cam);
             rend_data_ctx.state.active_bind_texture_2d(7, 0);
         }
 
-        rend_data_ctx.state.bind_framebuffer(0);
+        rt[(counter + 1) % 3]->end_render(rend_data_ctx.state);
 
         params.field_8 = 0.0005f;
         params.field_C = 0.97f;
@@ -3345,7 +3344,7 @@ void EffectRipple::draw(render_data_context& rend_data_ctx, const cam_data& cam)
         v11 += 3;
 
     rctx->render_manager->set_effect_texture(
-        rctx->render_manager->get_render_texture(v11).color_texture);
+        rctx->render_manager->get_render_texture(v11).get_texture());
 
     update = false;
 
@@ -5806,8 +5805,8 @@ static void draw_ripple_particles(render_data_context& rend_data_ctx,
 
     RenderTexture& rt = rctx_ptr->render_manager->get_render_texture(
         effect_ripple->use_float_ripplemap ? 2 : 5);
-    int32_t width = rt.GetWidth();
-    int32_t height = rt.GetHeight();
+    int32_t width = rt.get_width();
+    int32_t height = rt.get_height();
 
     ripple_emit_scene_shader_data shader_data = {};
     shader_data.g_size_in_projection = {
@@ -6776,14 +6775,14 @@ static void water_particle_free() {
 // 0x1403B6ED0
 static void ripple_propagate(render_data_context& rend_data_ctx,
     RenderTexture* dst, RenderTexture* curr, RenderTexture* prev, const EffectRipple::Params& params) {
-    dst->Bind(rend_data_ctx.state);
-    if (dst->color_texture->internal_format == GL_RGBA32F
-        || dst->color_texture->internal_format == GL_RGBA16F)
+    dst->begin_render(rend_data_ctx.state);
+    if (dst->get_texture()->internal_format == GL_RGBA32F
+        || dst->get_texture()->internal_format == GL_RGBA16F)
         rend_data_ctx.shader_flags.arr[U_RIPPLE] = 1;
     else
         rend_data_ctx.shader_flags.arr[U_RIPPLE] = 0;
-    ripple_propagate_sub(rend_data_ctx, dst->color_texture, curr->color_texture, prev->color_texture, params);
-    rend_data_ctx.state.bind_framebuffer(0);
+    ripple_propagate_sub(rend_data_ctx, dst->get_texture(), curr->get_texture(), prev->get_texture(), params);
+    dst->end_render(rend_data_ctx.state);
 }
 
 // 0x1403B6F60

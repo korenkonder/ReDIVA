@@ -58,7 +58,7 @@ void Shadow::calc_proj_view_mat(cam_data& cam, const vec3& view_point,
 void Shadow::clear_textures(p_gl_rend_state& p_gl_rend_st) {
     for (int32_t i = 1; i < 3; i++)
         for (int32_t j = 0; j < 4; j++) {
-            curr_render_textures[i]->Bind(p_gl_rend_st, j);
+            curr_render_textures[i]->begin_render(p_gl_rend_st, j);
             p_gl_rend_st.clear_color(1.0f, 1.0f, 1.0f, 1.0f);
             p_gl_rend_st.clear(GL_COLOR_BUFFER_BIT);
         }
@@ -93,7 +93,7 @@ void Shadow::ctrl() {
 
 void Shadow::free() {
     for (RenderTexture& i : render_textures)
-        i.Free();
+        i.destroy();
 
     reset();
 }
@@ -121,12 +121,12 @@ int32_t Shadow::init() {
 
     shadow_texture_init_params* init_param = init_params;
     for (int32_t i = 0; i < 7; i++, init_param++)
-        if (render_textures[i].Init(init_param->width, init_param->height,
+        if (render_textures[i].create_texture(init_param->width, init_param->height,
             init_param->max_level, init_param->color_format, init_param->depth_format) < 0)
             return -1;
 
     for (int32_t i = 0; i < 3; i++) {
-        gl_state.bind_texture_2d(render_textures[i].GetColorTex());
+        gl_state.bind_texture_2d(render_textures[i].get_texture_glid());
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16.0f);
@@ -134,7 +134,7 @@ int32_t Shadow::init() {
         glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, (GLfloat*)&border_color);
     }
 
-    gl_state.bind_texture_2d(render_textures[0].GetDepthTex());
+    gl_state.bind_texture_2d(render_textures[0].get_depth_texture_glid());
     GLint swizzle[] = { GL_RED, GL_RED, GL_RED, GL_ONE };
     glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
     gl_state.bind_texture_2d(0);
