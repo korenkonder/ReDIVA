@@ -82,10 +82,10 @@ void DataViewObject::window() {
         if (!info->obj_set)
             continue;
 
-        ImGui::PushID(info->set_id);
+        ImGui::PushID(info->id);
         char buf[0x1000];
-        sprintf_s(buf, sizeof(buf), "ID: 0x%08X; Load Count: %3d; Name: %s",
-            info->set_id, info->load_count, info->name.c_str());
+        sprintf_s(buf, sizeof(buf), "ID: 0x%08X; Request Count: %3d; Name: %s",
+            info->id, info->req_cnt, info->name.c_str());
         ImGui::Selectable(buf);
         ImGui::PopID();
     }
@@ -99,10 +99,10 @@ void DataViewObject::window() {
         if (!info->obj_set)
             continue;
 
-        ImGui::PushID(info->set_id);
+        ImGui::PushID(info->id);
         char buf[0x1000];
-        sprintf_s(buf, sizeof(buf), "ID: 0x%08X; Load Count: %3d; Name: %s",
-            info->set_id, info->load_count, info->name.c_str());
+        sprintf_s(buf, sizeof(buf), "ID: 0x%08X; Request Count: %3d; Name: %s",
+            info->id, info->req_cnt, info->name.c_str());
         ImGui::Selectable(buf);
         ImGui::PopID();
     }

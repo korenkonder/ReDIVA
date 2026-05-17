@@ -175,7 +175,7 @@ ColorChangeDw::ColorChangeDw() {
     texture_names = new dw::ListBox(texture_group, (dw::Flags)(dw::FLAG_800 | dw::VERTICAL | dw::MULTISELECT));
     texture_names->SetText("listbox1");
 
-    const int32_t tex_num = objset_info_storage_get_obj_set_tex_num(obj_set_id);
+    const int32_t tex_num = get_objset_num_textures(obj_set_id);
     for (int32_t i = 0; i < tex_num; i++)
         texture_names->AddItem(sprintf_s_string("%d", i));
 
@@ -479,8 +479,8 @@ const char* ColorChangeDw::GetItemTexChangeName() {
 }
 
 texture* ColorChangeDw::GetOrgTex() {
-    texture** textures = objset_info_storage_get_obj_set_textures(obj_set_id);
-    if (textures && color_change_index < objset_info_storage_get_obj_set_tex_num(obj_set_id))
+    texture** textures = get_objset_textures(obj_set_id);
+    if (textures && color_change_index < get_objset_num_textures(obj_set_id))
         return textures[color_change_index];
     return 0;
 }
@@ -511,9 +511,9 @@ void ColorChangeDw::GetTextureNames() {
 
     texture_names->ClearItems();
 
-    const int32_t tex_num = objset_info_storage_get_obj_set_tex_num(obj_set_id);
+    const int32_t tex_num = get_objset_num_textures(obj_set_id);
     for (int32_t i = 0; i < tex_num; i++) {
-        uint32_t tex_id = objset_info_storage_get_obj_set_tex_id(obj_set_id, i);
+        uint32_t tex_id = get_texnum_idx2uid(obj_set_id, i);
 
         char buf[64];
         sprintf_s(buf, sizeof(buf), "%s", aft_tex_db->get_texture_name(tex_id));
@@ -542,11 +542,11 @@ void ColorChangeDw::LoadItemNames() {
 bool ColorChangeDw::LoadTexture() {
     ResetTexture();
 
-    texture** textures = objset_info_storage_get_obj_set_textures(obj_set_id);
+    texture** textures = get_objset_textures(obj_set_id);
     if (!textures)
         return false;
 
-    const int32_t tex_num = objset_info_storage_get_obj_set_tex_num(obj_set_id);
+    const int32_t tex_num = get_objset_num_textures(obj_set_id);
     for (int32_t i = 0; i < tex_num; i++) {
         texture* tex = 0;
         if (textures[i]->target == GL_TEXTURE_2D) {
@@ -622,7 +622,7 @@ void ColorChangeDw::SetTextureName(const char* name) {
 void ColorChangeDw::UpdateData() {
     if (!set)
         ReloadData();
-    else if (!objset_info_storage_get_obj_set_textures(obj_set_id))
+    else if (!get_objset_textures(obj_set_id))
         ResetData();
 }
 
@@ -859,8 +859,8 @@ void ColorChangeDw::ShowCallback(dw::Button* data) {
 void ColorChangeDw::TextureCallback(dw::ListBox* data) {
     int32_t index = (int32_t)data->list->selected_item;
     ColorChangeDw* color_change_dw = (ColorChangeDw*)data->callback_data.v64;
-    if (objset_info_storage_get_obj_set_textures(color_change_dw->obj_set_id)
-        && index < objset_info_storage_get_obj_set_tex_num(color_change_dw->obj_set_id))
+    if (get_objset_textures(color_change_dw->obj_set_id)
+        && index < get_objset_num_textures(color_change_dw->obj_set_id))
         color_change_dw->color_change_index = index;
 }
 

@@ -2224,7 +2224,7 @@ namespace Glitter {
         object_info object_info;
         object_info.set_id = (uint32_t)particle->data.mesh.object_set_name_hash;
         object_info.id = (uint32_t)particle->data.mesh.object_name_hash;
-        obj* obj = objset_info_storage_get_obj(object_info);
+        obj* obj = get_object_header(object_info);
         if (!obj)
             return;
 

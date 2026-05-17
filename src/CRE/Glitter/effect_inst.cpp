@@ -449,12 +449,10 @@ namespace Glitter {
 
             if (ext_anim->mesh_name) {
                 if (ext_anim->mesh_index == -1)
-                    ext_anim->mesh_index = objset_info_storage_get_obj_mesh_index(
-                        ext_anim->object, ext_anim->mesh_name);
+                    ext_anim->mesh_index = get_mesh_index(ext_anim->object, ext_anim->mesh_name);
 
                 if (ext_anim->mesh_index != -1) {
-                    obj_mesh* mesh = objset_info_storage_get_obj_mesh_by_index(
-                        ext_anim->object, ext_anim->mesh_index);
+                    obj_mesh* mesh = get_mesh(ext_anim->object, ext_anim->mesh_index);
                     if (mesh) {
                         mat4_mul(obj_mat, &mat, &mat);
                         ext_anim->mat = mat;
@@ -479,13 +477,11 @@ namespace Glitter {
                 if (!ext_anim->mesh_name)
                     return;
 
-                ext_anim->mesh_index = objset_info_storage_get_obj_mesh_index(
-                    ext_anim->object, ext_anim->mesh_name);
+                ext_anim->mesh_index = get_mesh_index(ext_anim->object, ext_anim->mesh_name);
             }
 
             if (ext_anim->mesh_index != -1) {
-                obj_mesh* mesh = objset_info_storage_get_obj_mesh_by_index(ext_anim->object,
-                    ext_anim->mesh_index);
+                obj_mesh* mesh = get_mesh(ext_anim->object, ext_anim->mesh_index);
                 if (mesh) {
                     ext_anim->translation = mesh->bounding_sphere.center;
                     goto SetFlags;
@@ -1149,12 +1145,10 @@ namespace Glitter {
 
             if (ext_anim->mesh_name) {
                 if (ext_anim->mesh_index == -1)
-                    ext_anim->mesh_index = objset_info_storage_get_obj_mesh_index_by_hash(
-                        ext_anim->object_hash, ext_anim->mesh_name);
+                    ext_anim->mesh_index = get_mesh_index_modern(ext_anim->object_hash, ext_anim->mesh_name);
 
                 if (ext_anim->mesh_index != -1) {
-                    obj_mesh* mesh = objset_info_storage_get_obj_mesh_by_object_hash_index(
-                        ext_anim->object_hash, ext_anim->mesh_index);
+                    obj_mesh* mesh = get_mesh_modern(ext_anim->object_hash, ext_anim->mesh_index);
                     if (mesh) {
                         vec3* trans = &mesh->bounding_sphere.center;
                         SetExtAnim(&mat, obj_mat, trans, true);
@@ -1170,13 +1164,11 @@ namespace Glitter {
                 if (!ext_anim->mesh_name)
                     return;
 
-                ext_anim->mesh_index = objset_info_storage_get_obj_mesh_index_by_hash(
-                    ext_anim->object_hash, ext_anim->mesh_name);
+                ext_anim->mesh_index = get_mesh_index_modern(ext_anim->object_hash, ext_anim->mesh_name);
             }
 
             if (ext_anim->mesh_index != -1) {
-                obj_mesh* mesh = objset_info_storage_get_obj_mesh_by_object_hash_index(
-                    ext_anim->object_hash, ext_anim->mesh_index);
+                obj_mesh* mesh = get_mesh_modern(ext_anim->object_hash, ext_anim->mesh_index);
                 if (mesh) {
                     vec3* trans = &mesh->bounding_sphere.center;
                     SetExtAnim(0, 0, trans, true);

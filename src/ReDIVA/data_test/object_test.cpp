@@ -13,7 +13,7 @@
 
 class DataTestObjectManager : public app::Task {
 public:
-    int32_t object_set_index;
+    int32_t objset_index;
     uint32_t object_set_id;
     int32_t obj_num;
     int32_t obj_index;
@@ -34,8 +34,8 @@ public:
     int32_t get_obj_num();
     const obj_bounding_sphere* get_object_bounding_sphere(int32_t obj_index);
     const char* get_object_name(int32_t obj_index);
-    void set_object_index(int32_t value);
-    void set_object_set_index(int32_t object_set_index);
+    void set_obj_index(int32_t value);
+    void set_objset_index(int32_t objset_index);
     void set_rotation(const vec3& value);
     void set_shadow(bool value);
 };
@@ -68,10 +68,10 @@ TaskDataTestObj* task_data_test_obj;
 
 static void data_test_obj_dw_init();
 
-TaskDataTestObj::Data::Data() : object_set_index(), curr_object_set_index(), obj_num(),
+TaskDataTestObj::Data::Data() : objset_index(), curr_objset_index(), obj_num(),
 curr_obj_num(), cull_camera(), curr_cull_camera(), stage_index(), curr_stage_index(), stage_display() {
-    object_index = -1;
-    curr_object_index = -1;
+    obj_index = -1;
+    curr_obj_index = -1;
     shadow = 1;
 }
 
@@ -97,11 +97,11 @@ bool TaskDataTestObj::init() {
 }
 
 bool TaskDataTestObj::ctrl() {
-     data_test_object_manager->set_object_set_index(data.object_set_index);
+     data_test_object_manager->set_objset_index(data.objset_index);
 
-    if (data.object_set_index != data.curr_object_set_index) {
-        data.curr_object_set_index = data.object_set_index;
-        data.object_index = -1;
+    if (data.objset_index != data.curr_objset_index) {
+        data.curr_objset_index = data.objset_index;
+        data.obj_index = -1;
 
         data_test_object_manager->close();
     }
@@ -115,16 +115,16 @@ bool TaskDataTestObj::ctrl() {
             data_test_obj_dw->AddID(data_test_object_manager->get_object_name(i));
     }
 
-    if (data.object_index != data.curr_object_index) {
-        data.curr_object_index = data.object_index;
-        data_test_object_manager->set_object_index(data.object_index);
+    if (data.obj_index != data.curr_obj_index) {
+        data.curr_obj_index = data.obj_index;
+        data_test_object_manager->set_obj_index(data.obj_index);
     }
 
     if (data.cull_camera != data.curr_cull_camera) {
         data.curr_cull_camera = data.cull_camera;
 
         if (data.cull_camera) {
-            const obj_bounding_sphere* sphere = data_test_object_manager->get_object_bounding_sphere(data.object_index);
+            const obj_bounding_sphere* sphere = data_test_object_manager->get_object_bounding_sphere(data.obj_index);
             if (sphere) {
                 camera* cam = rctx_ptr->camera;
 
@@ -234,7 +234,7 @@ void object_test_free() {
 }
 
 DataTestObjectManager::DataTestObjectManager() : obj_num(), obj_flags(), state() {
-    object_set_index = -1;
+    objset_index = -1;
     object_set_id = -1;
     obj_index = -1;
 }
@@ -251,17 +251,17 @@ bool DataTestObjectManager::init() {
     obj_index = -1;
     state = 2;
 
-    if (object_set_index < 0 || (int32_t)aft_obj_db->get_object_set_count() <= object_set_index) {
+    if (objset_index < 0 || (int32_t)aft_obj_db->get_object_set_count() <= objset_index) {
         state = 0;
         return true;
     }
 
     if (object_set_id != -1) {
-        objset_info_storage_load_set(aft_data, aft_obj_db, object_set_id);
+        request_objset(aft_data, aft_obj_db, object_set_id);
         state = 1;
     }
 
-    objset_info_storage_load_set(aft_data, aft_obj_db, aft_obj_db->get_object_set_id(object_set_index));
+    request_objset(aft_data, aft_obj_db, aft_obj_db->get_object_set_id(objset_index));
     return true;
 }
 
@@ -271,13 +271,13 @@ bool DataTestObjectManager::ctrl() {
 
     switch (state) {
     case 1:
-        if (object_set_id == -1 || !objset_info_storage_load_obj_set_check_not_read(object_set_id))
+        if (object_set_id == -1 || !wait_objset(object_set_id))
             state = 2;
         break;
     case 2: {
-        uint32_t obj_set_id = aft_obj_db->get_object_set_id(object_set_index);
-        if (!objset_info_storage_load_obj_set_check_not_read(obj_set_id)) {
-            obj_num = objset_info_storage_get_obj_set(obj_set_id)->obj_num;
+        uint32_t obj_set_id = aft_obj_db->get_object_set_id(objset_index);
+        if (!wait_objset(obj_set_id)) {
+            obj_num = get_obj_data_header(obj_set_id)->obj_num;
             state = 3;
         }
     } break;
@@ -289,22 +289,22 @@ bool DataTestObjectManager::dest() {
     data_struct* aft_data = &data_list[DATA_AFT];
     object_database* aft_obj_db = &aft_data->data_ft.obj_db;
 
-    objset_info_storage_unload_set(aft_obj_db->get_object_set_id(object_set_index));
+    free_objset(aft_obj_db->get_object_set_id(objset_index));
 
     if (object_set_id != -1)
-        objset_info_storage_unload_set(object_set_id);
+        free_objset(object_set_id);
     return true;
 }
 
 void DataTestObjectManager::disp() {
-    if (state != 3 || obj_index < 0 || obj_index >= this->obj_num)
+    if (state != 3 || obj_index < 0 || obj_index >= obj_num)
         return;
 
     data_struct* aft_data = &data_list[DATA_AFT];
     object_database* aft_obj_db = &aft_data->data_ft.obj_db;
 
-    uint32_t obj_set_id = aft_obj_db->get_object_set_id(object_set_index);
-    uint32_t obj_id = objset_info_storage_get_obj_by_index(obj_set_id, obj_index)->id;
+    uint32_t obj_set_id = aft_obj_db->get_object_set_id(objset_index);
+    uint32_t obj_id = get_objnum_idx2uid(objset_index, obj_index, aft_obj_db);
     rctx_ptr->disp_manager->set_obj_flags(
         (mdl::ObjFlags)(mdl::OBJ_SILHOUETTE_HIGH | mdl::OBJ_SILHOUETTE | obj_flags));
 
@@ -339,11 +339,9 @@ const obj_bounding_sphere* DataTestObjectManager::get_object_bounding_sphere(int
     data_struct* aft_data = &data_list[DATA_AFT];
     object_database* aft_obj_db = &aft_data->data_ft.obj_db;
 
-    uint32_t obj_set_id = aft_obj_db->get_object_set_id(object_set_index);
-    const obj* obj = objset_info_storage_get_obj_by_index(obj_set_id, obj_index);
-    if (obj)
-        return &obj->bounding_sphere;
-    return 0;
+    uint32_t obj_set_id = aft_obj_db->get_object_set_id(objset_index);
+    uint32_t obj_id = get_objnum_idx2uid(objset_index, obj_index, aft_obj_db);
+    return get_object_bsphere({ obj_id, obj_set_id });
 }
 
 const char* DataTestObjectManager::get_object_name(int32_t obj_index) {
@@ -353,28 +351,28 @@ const char* DataTestObjectManager::get_object_name(int32_t obj_index) {
     data_struct* aft_data = &data_list[DATA_AFT];
     object_database* aft_obj_db = &aft_data->data_ft.obj_db;
 
-    uint32_t obj_set_id = aft_obj_db->get_object_set_id(object_set_index);
-    const obj* obj = objset_info_storage_get_obj_by_index(obj_set_id, obj_index);
-    if (obj)
-        return obj->name;
-    return"NULL";
+    uint32_t obj_set_id = aft_obj_db->get_object_set_id(objset_index);
+    uint32_t obj_id = get_objnum_idx2uid(objset_index, obj_index, aft_obj_db);
+    if (obj_index >= 0)
+        return ::get_object_name({ obj_id, obj_set_id });
+    return "NULL";
 }
 
-void DataTestObjectManager::set_object_index(int32_t value) {
+void DataTestObjectManager::set_obj_index(int32_t value) {
     obj_index = value;
 }
 
-void DataTestObjectManager::set_object_set_index(int32_t object_set_index) {
+void DataTestObjectManager::set_objset_index(int32_t objset_index) {
     if (check_alive())
         return;
 
     data_struct* aft_data = &data_list[DATA_AFT];
     object_database* aft_obj_db = &aft_data->data_ft.obj_db;
 
-    this->object_set_index = object_set_index;
+    this->objset_index = objset_index;
     object_set_id = -1;
 
-    uint32_t obj_set_id = aft_obj_db->get_object_set_id(object_set_index);
+    uint32_t obj_set_id = aft_obj_db->get_object_set_id(objset_index);
     std::string obj_set_name(aft_obj_db->get_object_set_name(obj_set_id));
     if (!obj_set_name.find("STGPV"))
         obj_set_name.assign(obj_set_name.substr(0, 8));
@@ -410,7 +408,7 @@ DataTestObjDw::DataTestObjDw() {
     uint32_t obj_set_count = aft_obj_db->get_object_set_count();
     for (uint32_t i = obj_set_count, j = 0; i; i--, j++)
         object_sets->AddItem(aft_obj_db->get_object_set_name(aft_obj_db->get_object_set_id(j)));
-    object_sets->SetItemIndex((uint32_t)obj_data->object_set_index);
+    object_sets->SetItemIndex((uint32_t)obj_data->objset_index);
     object_sets->AddSelectionListener(new dw::SelectionListenerOnHook(DataTestObjDw::ObjectSetCallback));
 
     (new dw::Label(this))->SetText("          OBJECT          ");
@@ -484,14 +482,14 @@ void DataTestObjDw::ObjectCallback(dw::Widget* data) {
     TaskDataTestObj::Data* obj_data = task_data_test_obj->get_data();
     dw::ListBox* list_box = dynamic_cast<dw::ListBox*>(data);
     if (list_box)
-        obj_data->object_index = (int32_t)list_box->list->selected_item;
+        obj_data->obj_index = (int32_t)list_box->list->selected_item;
 }
 
 void DataTestObjDw::ObjectSetCallback(dw::Widget* data) {
     TaskDataTestObj::Data* obj_data = task_data_test_obj->get_data();
     dw::ListBox* list_box = dynamic_cast<dw::ListBox*>(data);
     if (list_box)
-        obj_data->object_set_index = (int32_t)list_box->list->selected_item;
+        obj_data->objset_index = (int32_t)list_box->list->selected_item;
 }
 
 void DataTestObjDw::ShadowCallback(dw::Widget* data) {

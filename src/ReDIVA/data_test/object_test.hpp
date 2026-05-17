@@ -12,12 +12,12 @@
 class TaskDataTestObj : public app::Task {
 public:
     struct Data {
-        int32_t object_set_index;
-        int32_t curr_object_set_index;
+        int32_t objset_index;
+        int32_t curr_objset_index;
         int32_t obj_num;
         int32_t curr_obj_num;
-        int32_t object_index;
-        int32_t curr_object_index;
+        int32_t obj_index;
+        int32_t curr_obj_index;
         bool cull_camera;
         bool curr_cull_camera;
         int32_t stage_index;

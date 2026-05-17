@@ -702,9 +702,7 @@ struct rob_chara_age_age_object_vertex {
 };
 
 struct rob_chara_age_age_object {
-    ObjsetInfo* objset_info;
-    int32_t obj_index;
-    int32_t field_C;
+    ObjsetInfoObject info_object;
     int32_t num_vertex;
     int32_t num_index;
     ::obj obj;
@@ -715,8 +713,8 @@ struct rob_chara_age_age_object {
     rob_chara_age_age_object_vertex* vertex_data;
     int32_t vertex_data_size;
     int32_t vertex_array_size;
-    obj_mesh_vertex_buffer obj_vert_buf;
-    obj_mesh_index_buffer obj_index_buf;
+    VertexBuffer vb;
+    IndexBuffer ib;
     vec3 pos[10];
     int32_t disp_count;
     int32_t count;
@@ -728,7 +726,6 @@ struct rob_chara_age_age_object {
         obj_mesh* mesh, const mat4& mat, float_t alpha);
     void disp(render_context* rctx, size_t id,
         bool npr, bool reflect, const vec3& a5, bool chara_color);
-    bool get_objset_info_obj_index(object_info obj_info);
     ::obj* get_obj_set_obj();
     std::vector<GLuint>& get_obj_set_texture();
     void load(object_info obj_info, int32_t count);
@@ -13473,7 +13470,7 @@ void RobSkinDisp::set(object_info objuid, const RobNode* mot_node,
     matrix.clear();
     dest_ex_node();
 
-    obj_skin* skin = objset_info_storage_get_obj_skin(obj_uid);
+    obj_skin* skin = get_object_skin(obj_uid);
     if (!skin)
         return;
 
@@ -15886,7 +15883,7 @@ void OpdMaker::Data::ReadOpdiFiles(rob_chara* rob_chr, std::vector<uint32_t>& mo
             continue;
 
         object_info obj_info = skin_disp->obj_uid;
-        const char* object_name = objset_info_storage_get_obj_name(obj_info);
+        const char* object_name = get_object_name(obj_info);
         if (!object_name)
             continue;
 
@@ -16216,7 +16213,7 @@ bool OpdMakeWorker::ctrl() {
 
         for (int32_t i = RPK_ITEM_BEGIN; i <= RPK_ITEM_END; i++) {
             const RobSkinDisp* skin_disp = rob_chr->disp->get_skin_work((ROB_PARTS_KIND)i);
-            if (!objset_info_storage_get_obj_name(skin_disp->obj_uid) && skin_disp->osage_nodes_count)
+            if (!get_object_name(skin_disp->obj_uid) && skin_disp->osage_nodes_count)
                 continue;
 
             const object_info* body_obj_uid = &rob_data->body_obj_uid[RPK_BASE_BEGIN];
@@ -16742,7 +16739,7 @@ void opd_chara_data::encode_data() {
             continue;
 
         object_info obj_info = skin_disp->obj_uid;
-        const char* object_name = objset_info_storage_get_obj_name(obj_info);
+        const char* object_name = get_object_name(obj_info);
         if (!object_name)
             continue;
 
@@ -16826,7 +16823,7 @@ void opd_chara_data::encode_init_data(uint32_t motnum) {
             continue;
 
         object_info obj_info = skin_disp->obj_uid;
-        const char* object_name = objset_info_storage_get_obj_name(obj_info);
+        const char* object_name = get_object_name(obj_info);
         if (!object_name)
             continue;
 
@@ -16888,7 +16885,7 @@ void opd_chara_data::fs_copy_file() {
             continue;
         opdi[i].write_file();
 
-        const char* object_name = objset_info_storage_get_obj_name(skin_disp->obj_uid);
+        const char* object_name = get_object_name(skin_disp->obj_uid);
         if (!object_name)
             continue;
 
@@ -16973,7 +16970,7 @@ void opd_chara_data::open_opd_file() {
         if (!path_check_directory_exists(chara_dir.c_str()))
             path_create_directory(chara_dir.c_str());
 
-        const char* object_name = objset_info_storage_get_obj_name(skin_disp->obj_uid);
+        const char* object_name = get_object_name(skin_disp->obj_uid);
         if (!object_name)
             continue;
 
@@ -17002,7 +16999,7 @@ void opd_chara_data::open_opdi_file() {
         if (!path_check_directory_exists(chara_dir.c_str()))
             path_create_directory(chara_dir.c_str());
 
-        const char* object_name = objset_info_storage_get_obj_name(skin_disp->obj_uid);
+        const char* object_name = get_object_name(skin_disp->obj_uid);
         if (!object_name)
             continue;
 
@@ -17173,7 +17170,7 @@ void OsagePlayDataManager::LoadOpdFileList() {
             continue;
         }
 
-        const char* object_name = objset_info_storage_get_obj_name(i->first);
+        const char* object_name = get_object_name(i->first);
         if (object_name) {
             std::string obj_name_buf = string_to_lower(object_name);
 
@@ -18067,9 +18064,8 @@ void rob_chara_age_age_data::reset() {
     alive = false;
 }
 
-rob_chara_age_age_object::rob_chara_age_age_object() : objset_info(),
-obj_index(), field_C(), num_vertex(), num_index(), vertex_data(),
-vertex_data_size(), vertex_array_size(), disp_count(), count(), field_C3C() {
+rob_chara_age_age_object::rob_chara_age_age_object() : info_object(), num_vertex(), num_index(),
+vertex_data(), vertex_data_size(), vertex_array_size(), disp_count(), count(), field_C3C() {
 
 }
 
@@ -18095,7 +18091,7 @@ void rob_chara_age_age_object::calc_vertex(rob_chara_age_age_object_vertex*& vtx
 void rob_chara_age_age_object::disp(render_context* rctx, size_t id,
     bool npr, bool reflect, const vec3& a5, bool chara_color) {
     int32_t disp_count = this->disp_count;
-    if (!objset_info || !disp_count)
+    if (!info_object.info || !disp_count)
         return;
 
     disp_count = min_def(disp_count, 10);
@@ -18112,10 +18108,10 @@ void rob_chara_age_age_object::disp(render_context* rctx, size_t id,
                 return a.first < b.first;
             });
 
-    obj_vert_buf.cycle_index();
+    vb.flip();
 
-    GL::ArrayBuffer buffer = obj_vert_buf.get_buffer();
-    size_t vtx_data = (size_t)buffer.MapMemory(gl_state);
+    GL::ArrayBuffer glvb = vb.get_glvb();
+    size_t vtx_data = (size_t)glvb.MapMemory(gl_state);
     if (!vtx_data)
         return;
 
@@ -18124,7 +18120,7 @@ void rob_chara_age_age_object::disp(render_context* rctx, size_t id,
         memmove((void*)(vtx_data + vertex_array_size * i),
             (void*)((size_t)vertex_data + vertex_array_size * v44[i].second), vertex_array_size);
 
-    buffer.UnmapMemory(gl_state);
+    glvb.UnmapMemory(gl_state);
 
     mesh.num_vertex = disp_count * num_vertex;
     sub_mesh.num_index = disp_count * num_index;
@@ -18136,29 +18132,15 @@ void rob_chara_age_age_object::disp(render_context* rctx, size_t id,
     rctx->disp_manager->set_obj_flags(flags);
     rctx->disp_manager->set_chara_color(chara_color);
     rctx->disp_manager->set_shadow_group(id ? SHADOW_GROUP_STAGE : SHADOW_GROUP_CHARA);
-    rctx->disp_manager->entry_obj_by_obj(mat4_identity, &obj,
-        &get_obj_set_texture(), &obj_vert_buf, &obj_index_buf, 0, 1.0f);
-}
-
-bool rob_chara_age_age_object::get_objset_info_obj_index(object_info obj_info) {
-    objset_info = objset_info_storage_get_objset_info(obj_info.set_id);
-    if (!objset_info)
-        return false;
-
-    auto elem = objset_info->obj_id_data.find(obj_info.id);
-    if (elem == objset_info->obj_id_data.end())
-        return false;
-
-    obj_index = elem->second;
-    return true;
+    rctx->disp_manager->entry_obj_by_obj(mat4_identity, &obj, &get_obj_set_texture(), &vb, &ib, 0, 1.0f);
 }
 
 ::obj* rob_chara_age_age_object::get_obj_set_obj() {
-    return objset_info->obj_set->obj_data[obj_index];
+    return info_object.info->obj_set->obj_data[info_object.index];
 }
 
 std::vector<GLuint>& rob_chara_age_age_object::get_obj_set_texture() {
-    return objset_info->gentex;
+    return info_object.info->gentex_vec;
 }
 
 void rob_chara_age_age_object::load(object_info obj_info, int32_t count) {
@@ -18169,22 +18151,22 @@ void rob_chara_age_age_object::load(object_info obj_info, int32_t count) {
     num_index = 0;
     disp_count = 0;
 
-    if (!get_objset_info_obj_index(obj_info)) {
-        obj_index = -1;
-        objset_info = 0;
+    if (!find_objdata_index(info_object, obj_info)) {
+        info_object.index = -1;
+        info_object.info = 0;
         return;
     }
     else {
         ::obj* o = get_obj_set_obj();
         if (o->num_mesh != 1 || o->mesh_array[0].num_submesh != 1
             || o->mesh_array[0].submesh_array[0].index_format != OBJ_INDEX_U16) {
-            obj_index = -1;
-            objset_info = 0;
+            info_object.index = -1;
+            info_object.info = 0;
             return;
         }
     }
 
-    if (!objset_info)
+    if (!info_object.info)
         return;
 
     ::obj* o = get_obj_set_obj();
@@ -18197,11 +18179,11 @@ void rob_chara_age_age_object::load(object_info obj_info, int32_t count) {
     int32_t num_index = sm->num_index;
     this->num_index = num_index;
 
-    size_t vertex_array_size = sizeof(rob_chara_age_age_object_vertex) * num_vertex;
-    this->vertex_array_size = (uint32_t)vertex_array_size;
+    uint32_t vertex_array_size = sizeof(rob_chara_age_age_object_vertex) * num_vertex;
+    this->vertex_array_size = vertex_array_size;
 
-    size_t vertex_data_size = vertex_array_size * count;
-    this->vertex_data_size = (uint32_t)vertex_data_size;
+    uint32_t vertex_data_size = vertex_array_size * count;
+    this->vertex_data_size = vertex_data_size;
 
     rob_chara_age_age_object_vertex* vtx_data = force_malloc<rob_chara_age_age_object_vertex>(vertex_data_size);
     vertex_data = vtx_data;
@@ -18215,7 +18197,7 @@ void rob_chara_age_age_object::load(object_info obj_info, int32_t count) {
             vtx_data->texcoord = vertex_array[k].texcoord0;
         }
 
-    obj_vert_buf.load_data(vertex_data_size, vertex_data, 2, GL::BUFFER_USAGE_STREAM);
+    vb.create(vertex_data_size, vertex_data, 2, GL::BUFFER_USAGE_STREAM);
 
     this->num_index = num_index + 1;
     int32_t num_idx_data = (int32_t)(count * (num_index + 1));
@@ -18233,13 +18215,13 @@ void rob_chara_age_age_object::load(object_info obj_info, int32_t count) {
         idx_data[l++] = 0xFFFF;
         index_offset += num_vertex;
     }
-    obj_index_buf.load_data(sizeof(uint16_t) * num_idx_data, idx_data);
+    ib.create(sizeof(uint16_t) * num_idx_data, idx_data);
     free_def(idx_data);
 
     material[0] = o->material_array[0];
     material[1] = o->material_array[0];
-    material[1].material.attrib.m.alpha_texture = 0;
-    material[1].material.attrib.m.alpha_material = 0;
+    material[1].material.attrib.m.alpha_tex = 0;
+    material[1].material.attrib.m.alpha_mat = 0;
 
     obj.bounding_sphere = o->bounding_sphere;
     obj.mesh_array = &mesh;
@@ -18279,8 +18261,8 @@ void rob_chara_age_age_object::load(object_info obj_info, int32_t count) {
     sub_mesh.num_index = num_idx_data;
     sub_mesh.attrib = sm->attrib;
     sub_mesh.axis_aligned_bounding_box = sm->axis_aligned_bounding_box;
-    sub_mesh.first_index = 0;
-    sub_mesh.last_index = (uint16_t)((size_t)num_vertex * count);
+    sub_mesh.min_index = 0;
+    sub_mesh.max_index = (uint16_t)((size_t)num_vertex * count);
     sub_mesh.index_offset = 0;
 
     axis_aligned_bounding_box = sm->axis_aligned_bounding_box;
@@ -18289,15 +18271,15 @@ void rob_chara_age_age_object::load(object_info obj_info, int32_t count) {
         for (int32_t i = 0; i < 2; i++) {
             extern render_context* rctx_ptr;
             rctx_ptr->disp_manager->add_vertex_array(&mesh, &sub_mesh, material,
-                obj_vert_buf.get_buffer(), obj_vert_buf.get_offset(), obj_index_buf.buffer, 0, 0);
+                vb.get_glvb(), vb.get_glvb_offset(), ib.ib, 0, 0);
 
-            obj_vert_buf.cycle_index();
+            vb.flip();
         }
 }
 
 void rob_chara_age_age_object::reset() {
-    obj_index_buf.unload();
-    obj_vert_buf.unload();
+    ib.destroy();
+    vb.destroy();
 
     if (vertex_data) {
         free(vertex_data);
@@ -18307,12 +18289,12 @@ void rob_chara_age_age_object::reset() {
     vertex_data_size = 0;
     num_vertex = 0;
     num_index = 0;
-    objset_info = 0;
-    obj_index = -1;
+    info_object.info = 0;
+    info_object.index = -1;
 }
 
 void rob_chara_age_age_object::update(rob_chara_age_age_data* data, int32_t count, float_t alpha) {
-    if (!objset_info)
+    if (!info_object.info)
         return;
 
     ::obj* o = get_obj_set_obj();
@@ -19966,20 +19948,20 @@ bool TaskRobLoad::LoadCharaItemsCheckNotRead(CHARA_NUM cn, RobItemEquip* item_se
 bool TaskRobLoad::LoadCharaItemsCheckNotReadParent(CHARA_NUM cn, RobItemEquip* item_set) {
     return TaskRobLoad::LoadCharaItemsCheckNotRead(cn, item_set)
         || item_set->item_no[ROB_ITEM_EQUIP_SUB_ID_KAMI] == 649
-        && objset_info_storage_load_obj_set_check_not_read(3291);
+        && wait_objset(3291);
 }
 
 void TaskRobLoad::LoadCharaItems(CHARA_NUM cn,
     RobItemEquip* item_set, void* data, const object_database* obj_db) {
     RobItem::s_req_obj_all(cn, item_set, data, obj_db);
     if (item_set->item_no[ROB_ITEM_EQUIP_SUB_ID_KAMI] == 649)
-        objset_info_storage_load_set(data, obj_db, 3291);
+        request_objset(data, obj_db, 3291);
 }
 
 void TaskRobLoad::LoadCharaObjSetMotionSet(CHARA_NUM cn,
     void* data, const object_database* obj_db, const motion_database* mot_db) {
     const RobData* rob_data = get_rob_data(cn);
-    objset_info_storage_load_set(data, obj_db, rob_data->objset);
+    request_objset(data, obj_db, rob_data->objset);
     motion_set_load_motion(cmn_set_id, "", mot_db);
     motion_set_load_mothead(cmn_set_id, "", mot_db);
     motion_set_load_motion(rob_data->motfile, "", mot_db);
@@ -19987,7 +19969,7 @@ void TaskRobLoad::LoadCharaObjSetMotionSet(CHARA_NUM cn,
 
 bool TaskRobLoad::LoadCharaObjSetMotionSetCheck(CHARA_NUM cn) {
     const RobData* rob_data = get_rob_data(cn);
-    if (objset_info_storage_load_obj_set_check_not_read(rob_data->objset)
+    if (wait_objset(rob_data->objset)
         || motion_storage_check_mot_file_not_ready(cmn_set_id)
         || mothead_storage_check_mhd_file_not_ready(cmn_set_id))
         return true;
@@ -20010,13 +19992,13 @@ void TaskRobLoad::ResetReqDataObj() {
 
 void TaskRobLoad::UnloadCharaItems(CHARA_NUM cn, RobItemEquip* item_set) {
     if (item_set->item_no[ROB_ITEM_EQUIP_SUB_ID_KAMI] == 649)
-        objset_info_storage_unload_set(3291);
+        free_objset(3291);
     RobItem::s_free_obj_all(cn, item_set);
 }
 
 void TaskRobLoad::UnloadCharaObjSetMotionSet(CHARA_NUM cn) {
     const RobData* rob_data = get_rob_data(cn);
-    objset_info_storage_unload_set(rob_data->objset);
+    free_objset(rob_data->objset);
     motion_set_unload_motion(cmn_set_id);
     motion_set_unload_mothead(cmn_set_id);
     motion_set_unload_motion(rob_data->motfile);

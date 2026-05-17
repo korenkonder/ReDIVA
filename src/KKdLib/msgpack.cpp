@@ -111,6 +111,19 @@ _Ret_maybenull_ msgpack* msgpack::read(_In_opt_z_ const char* name) {
     return name ? get_by_name(name) : this;
 }
 
+_Ret_maybenull_ msgpack* msgpack::read(const std::initializer_list<const char*>& name) {
+    if (!this)
+        return 0;
+
+    for (const char* i : name)
+        if (i) {
+            msgpack* m = get_by_name(i);
+            if (m)
+                return m;
+        }
+    return 0;
+}
+
 _Ret_maybenull_ msgpack* msgpack::read(_In_opt_z_ const char* name, _In_ msgpack_type type) {
     if (!this)
         return 0;

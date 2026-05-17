@@ -1351,7 +1351,7 @@ static void render_context_dispose(render_context* rctx) {
     aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
     SprDb* aft_spr_db = &aft_data->data_ft.spr_db;
 
-    objset_info_storage_unload_set(dbg_set_id);
+    free_objset(dbg_set_id);
     fontmap_data_unload();
     aet_manager_unload_set(aet_gam_loadsc_set_id, aft_aet_db);
     spr::free(spr_gam_loadsc_set_id, aft_spr_db);

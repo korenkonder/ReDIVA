@@ -523,6 +523,16 @@ uint32_t object_database::get_object_set_id(uint32_t set_index) const {
     return set_index < obj_set_names.size() ? (uint32_t)obj_set_names.data()[set_index].second->id : -1;
 }
 
+uint32_t object_database::get_object_set_index(uint32_t set_id) const {
+    uint32_t index = 0;
+    for (auto& i : obj_set_names)
+        if (i.second->id == set_id)
+            return index;
+        else
+            index++;
+    return -1;
+}
+
 static void object_database_file_classic_read_inner(object_database_file* obj_db, stream& s) {
     uint32_t object_set_count = s.read_uint32_t();
     uint32_t max_object_set_id = s.read_uint32_t();

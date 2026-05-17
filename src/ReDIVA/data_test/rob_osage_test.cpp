@@ -490,7 +490,7 @@ bool RobOsageTest::ctrl() {
 
         for (int32_t i = 0; i < RPK_MAX; i++) {
             RobSkinDisp* skin_disp = rob_disp->get_skin_work((ROB_PARTS_KIND)i);
-            ::obj* obj = objset_info_storage_get_obj(skin_disp->obj_uid);
+            ::obj* obj = get_object_header(skin_disp->obj_uid);
             if (!obj || !skin_disp->osage_blk.size() && !skin_disp->cloth.size())
                 continue;
 
@@ -644,7 +644,7 @@ bool RobOsageTest::ctrl() {
 
         for (int32_t i = 0; i < RPK_MAX; i++) {
             RobSkinDisp* skin_disp = rob_disp->get_skin_work((ROB_PARTS_KIND)i);
-            ::obj* obj = objset_info_storage_get_obj(skin_disp->obj_uid);
+            ::obj* obj = get_object_header(skin_disp->obj_uid);
             if (!obj || !skin_disp->osage_blk.size() && !skin_disp->cloth.size())
                 continue;
 

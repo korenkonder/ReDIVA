@@ -5534,7 +5534,7 @@ bool EffectManager::load() {
         if (!modern) {
             bool wait_load = false;
             for (uint32_t i : obj_set_ids)
-                if (objset_info_storage_load_obj_set_check_not_read(i))
+                if (wait_objset(i))
                     wait_load |= true;
 
             if (wait_load)
@@ -5577,7 +5577,7 @@ bool EffectManager::load() {
 
             bool wait_load = false;
             for (uint32_t i : obj_set_ids)
-                if (objset_info_storage_load_obj_set_check_not_read(i, obj_db, tex_db))
+                if (wait_objset(i, obj_db, tex_db))
                     wait_load = true;
 
             if (wait_load)
@@ -5710,7 +5710,7 @@ void EffectManager::set_stage_hashes(const std::vector<uint32_t>& stage_hashes) 
     prj::sort_and_erase_non_unique(obj_set_ids);
 
     for (uint32_t i : obj_set_ids)
-        objset_info_storage_load_set_hash(data, i);
+        request_objset_modern(data, i);
     state = 1;
 }
 
@@ -5746,7 +5746,7 @@ void EffectManager::set_stage_indices(const std::vector<int32_t>& stage_indices)
     prj::sort_and_erase_non_unique(obj_set_ids);
 
     for (uint32_t i : obj_set_ids)
-        objset_info_storage_load_set(aft_data, aft_obj_db, i);
+        request_objset(aft_data, aft_obj_db, i);
     state = 1;
 }
 
@@ -5761,7 +5761,7 @@ bool EffectManager::unload() {
             return true;
 
     for (uint32_t& i : obj_set_ids)
-        objset_info_storage_unload_set(i);
+        free_objset(i);
 
     reset_data();
     return false;

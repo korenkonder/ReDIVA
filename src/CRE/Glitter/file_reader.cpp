@@ -231,7 +231,7 @@ namespace Glitter {
         if (type == Glitter::X)
             for (Mesh& i : effect_group->meshes)
                 if (!i.ready && i.object_set_hash != hash_murmurhash_empty && i.object_set_hash != -1)
-                    if (objset_info_storage_load_obj_set_check_not_read(i.object_set_hash, obj_db, tex_db))
+                    if (wait_objset(i.object_set_hash, obj_db, tex_db))
                         ret = true;
                     else
                         i.ready = true;
@@ -388,7 +388,7 @@ namespace Glitter {
             if (type == Glitter::X)
                 for (Mesh& i : eff_group->meshes)
                     if (i.object_set_hash != hash_murmurhash_empty) {
-                        objset_info_storage_load_set_hash(file_handler->ptr->ds, i.object_set_hash);
+                        request_objset_modern(file_handler->ptr->ds, i.object_set_hash);
                         i.load = true;
                     }
 

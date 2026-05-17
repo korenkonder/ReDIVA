@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <initializer_list>
 #include <string>
 #include <vector>
 #include "default.hpp"
@@ -63,6 +64,7 @@ struct msgpack {
     _Ret_maybenull_ msgpack* append(_In_z_ const char* name, _Inout_ msgpack& m);
     _Ret_maybenull_ msgpack* append(_In_z_ const char* name, _Inout_ msgpack&& m);
     _Ret_maybenull_ msgpack* read(_In_opt_z_ const char* name);
+    _Ret_maybenull_ msgpack* read(const std::initializer_list<const char*>& name);
     _Ret_maybenull_ msgpack* read(_In_opt_z_ const char* name, _In_ msgpack_type type);
     _Ret_maybenull_ msgpack* read_array(_In_opt_z_ const char* name = 0);
     _Ret_maybenull_ msgpack* read_map(_In_opt_z_ const char* name = 0);

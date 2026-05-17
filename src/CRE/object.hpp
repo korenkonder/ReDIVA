@@ -14,96 +14,60 @@
 #include "../KKdLib/txp.hpp"
 #include "../KKdLib/vec.hpp"
 #include "GL/buffer.hpp"
+#include "config.hpp"
 #include "file_handler.hpp"
 #include "static_var.hpp"
 #include "texture.hpp"
 
-#define SHARED_OBJECT_BUFFER (1)
+struct IndexBuffer;
+struct VertexBuffer;
 
-struct obj_mesh_index_buffer {
-    GLuint buffer;
-
-    obj_mesh_index_buffer();
-
-    bool load(obj_mesh& mesh);
-    bool load_data(size_t size, const void* data);
-    void unload();
-
-    static void* fill_data(void* data, obj_mesh& mesh);
+struct ObjIB {
+    int32_t num_ib;
+    IndexBuffer* ibhn_array;
 };
 
-struct obj_mesh_vertex_buffer {
-    int32_t count;
-    GLuint buffers[3];
-    GLsizeiptr size;
-#if SHARED_OBJECT_BUFFER
-    size_t offset;
-#endif
-    int32_t index;
-
-    obj_mesh_vertex_buffer();
-
-    void cycle_index();
-    GLuint get_buffer();
-    size_t get_offset();
-    GLsizeiptr get_size();
-    bool load(obj_mesh& mesh, GL::BufferUsage usage = GL::BUFFER_USAGE_STATIC);
-    bool load_data(size_t size, const void* data, int32_t count, GL::BufferUsage usage = GL::BUFFER_USAGE_STATIC);
-    void unload();
-
-    static void* fill_data(void* data, obj_mesh& mesh);
-};
-
-struct obj_index_buffer {
-    int32_t mesh_num;
-    obj_mesh_index_buffer* mesh_data;
-#if SHARED_OBJECT_BUFFER
-    GLuint buffer;
-#endif
-
-    obj_index_buffer();
-
-    bool load(obj* obj);
-    void unload();
-};
-
-struct obj_vertex_buffer {
-    int32_t mesh_num;
-    obj_mesh_vertex_buffer* mesh_data;
-#if SHARED_OBJECT_BUFFER
-    GLuint buffers[3];
-#endif
-
-    obj_vertex_buffer();
-
-    bool load(obj* obj);
-    void unload();
+struct ObjVB {
+    int32_t num_vb;
+    VertexBuffer* vbhn_array;
 };
 
 struct ObjsetInfo {
     p_file_handler obj_file_handler;
-    bool obj_loaded;
+    bool obj_ready;
     p_file_handler tex_file_handler;
-    bool tex_loaded;
+    bool tex_ready;
     prj::shared_ptr<prj::stack_allocator> alloc_handler;
     obj_set* obj_set;
-    prj::vector_pair<uint32_t, uint32_t> obj_id_data;
+    prj::vector_pair<uint32_t, uint32_t> objdb_map;
     int32_t tex_num;
-    std::vector<GLuint> gentex;
-    prj::vector_pair<uint32_t, uint32_t> tex_id_data;
-    texture** tex_data;
-    int32_t set_id;
+    std::vector<GLuint> gentex_vec;
+    prj::vector_pair<uint32_t, uint32_t> texidx_map;
+    texture** textures;
+    int32_t id;
     int32_t objvb_num;
-    obj_vertex_buffer* objvb;
+    ObjVB* objvb;
     int32_t objib_num;
-    obj_index_buffer* objib;
-    int32_t load_count;
+    ObjIB* objib;
+    int32_t req_cnt;
+
+    // Added
+#if SHARED_OBJECT_BUFFER
+    GLuint vb;
+    GLuint ib;
+#endif
+
     std::string name;
     p_file_handler farc_file_handler;
     bool modern;
 
     ObjsetInfo();
     ~ObjsetInfo();
+};
+
+struct ObjsetInfoObject {
+    ObjsetInfo* info;
+    int32_t index;
 };
 
 extern int32_t obj_material_texture_type_get_texcoord_index(
@@ -122,38 +86,62 @@ extern void object_material_msgpack_write(const char* path, const char* set_name
     obj_set* obj_set, txp_set* txp_set, texture_database* tex_db);
 
 extern void objset_info_storage_init(const object_database* obj_db);
-extern obj* objset_info_storage_get_obj(object_info obj_info);
-extern obj* objset_info_storage_get_obj_by_index(uint32_t set_id, int32_t index);
-extern ObjsetInfo* objset_info_storage_get_objset_info(uint32_t set_id);
-extern obj_mesh* objset_info_storage_get_obj_mesh(object_info obj_info, const char* mesh_name);
-extern obj_mesh* objset_info_storage_get_obj_mesh_by_index(object_info obj_info, int32_t index);
-extern obj_mesh* objset_info_storage_get_obj_mesh_by_object_hash(uint32_t hash, const char* mesh_name);
-extern obj_mesh* objset_info_storage_get_obj_mesh_by_object_hash_index(uint32_t hash, int32_t index);
-extern int32_t objset_info_storage_get_obj_mesh_index(object_info obj_info, const char* mesh_name);
-extern int32_t objset_info_storage_get_obj_mesh_index_by_hash(uint32_t hash, const char* mesh_name);
-extern const char* objset_info_storage_get_obj_name(object_info obj_info);
-extern obj_set* objset_info_storage_get_obj_set(uint32_t set_id);
-extern size_t objset_info_storage_get_obj_set_count();
-extern int32_t objset_info_storage_get_obj_storage_load_count(uint32_t set_id);
-extern obj_skin* objset_info_storage_get_obj_skin(object_info obj_info);
-extern obj_skin_ex_data* objset_info_storage_get_obj_skin_ex_data(object_info obj_info);
-extern obj_index_buffer* objset_info_storage_get_obj_index_buffers(uint32_t set_id);
-extern obj_mesh_index_buffer* objset_info_storage_get_obj_mesh_index_buffer(object_info obj_info);
-extern obj_vertex_buffer* objset_info_storage_get_obj_vertex_buffers(uint32_t set_id);
-extern obj_mesh_vertex_buffer* objset_info_storage_get_obj_mesh_vertex_buffer(object_info obj_info);
-extern std::vector<GLuint>* objset_info_storage_get_obj_set_gentex(uint32_t set_id);
-extern bool objset_info_storage_get_obj_set_loaded(uint32_t set_id);
-extern uint32_t objset_info_storage_get_obj_set_obj_id(uint32_t set_id, int32_t obj_index);
-extern int32_t objset_info_storage_get_obj_set_obj_num(uint32_t set_id);
-extern uint32_t objset_info_storage_get_obj_set_tex_id(uint32_t set_id, int32_t tex_index);
-extern int32_t objset_info_storage_get_obj_set_tex_num(uint32_t set_id);
-extern GLuint objset_info_storage_get_obj_set_texture(uint32_t set_id, uint32_t tex_id);
-extern texture** objset_info_storage_get_obj_set_textures(uint32_t set_id);
-extern int32_t objset_info_storage_load_set(void* data, const object_database* obj_db, const char* name);
-extern int32_t objset_info_storage_load_set(void* data, const object_database* obj_db, uint32_t set_id);
-extern int32_t objset_info_storage_load_set_hash(void* data, uint32_t hash);
-extern bool objset_info_storage_load_obj_set_check_not_read(uint32_t set_id,
-    object_database* obj_db = 0, texture_database* tex_db = 0);
-extern void objset_info_storage_unload_set(const object_database* obj_db, const char* name);
-extern void objset_info_storage_unload_set(uint32_t set_id);
 extern void objset_info_storage_free();
+
+extern bool check_objset_ready(uint32_t objset_index);
+
+extern bool create_mesh_index_buffer(IndexBuffer& ibhn, obj_mesh& mesh);
+#if SHARED_OBJECT_BUFFER
+extern void create_mesh_index_buffer(IndexBuffer& ibhn, obj_mesh& mesh, GLuint in_ib); // Added
+#endif
+extern bool create_mesh_vertex_buffer(VertexBuffer& vbhn,
+    obj_mesh& mesh, GL::BufferUsage usage = GL::BUFFER_USAGE_STATIC);
+#if SHARED_OBJECT_BUFFER
+extern void create_mesh_vertex_buffer(VertexBuffer& vbhn,
+    obj_mesh& mesh, GLuint in_vb, uint32_t& offset); // Added
+#endif
+
+extern bool create_objset_index_buffer(ObjsetInfo* info);
+extern bool create_objset_vertex_buffer(ObjsetInfo* info);
+
+extern bool find_objdata_index(ObjsetInfoObject& info_object, object_info obj_id);
+
+extern void free_objset_index_buffer(ObjsetInfo* info);
+extern void free_objset_vertex_buffer(ObjsetInfo* info);
+
+extern obj_set* get_obj_data_header(uint32_t objset_index);
+
+extern obj_bounding_sphere* get_object_bsphere(object_info obj_id);
+inline obj* get_object_header(object_info obj_id);
+extern IndexBuffer* get_object_index_buffer(object_info obj_id);
+extern const char* get_object_name(object_info obj_id);
+extern int32_t get_object_num(uint32_t objset_index);
+extern obj_skin* get_object_skin(object_info obj_id);
+extern obj_skin_ex_data* get_object_skin_osage_header(object_info obj_id);
+extern VertexBuffer* get_object_vertex_buffer(object_info obj_id);
+
+extern uint32_t get_objnum_idx2uid(uint32_t objset_index, int32_t obj_index, const object_database* obj_db);
+
+extern GLuint get_objset_gen_textures_id(uint32_t objset_index, uint32_t uid);
+extern std::vector<GLuint>* get_objset_gen_textures_vec(uint32_t objset_index);
+extern ObjsetInfo* get_objset_info(uint32_t objset_index);
+extern size_t get_objset_num();
+extern int32_t get_objset_num_textures(uint32_t objset_index);
+extern texture** get_objset_textures(uint32_t objset_index);
+
+extern obj_mesh* get_mesh(object_info obj_id, const char* mesh_name);
+extern obj_mesh* get_mesh(object_info obj_id, int32_t mesh_index);
+extern obj_mesh* get_mesh_modern(uint32_t hash, const char* mesh_name); // Added
+extern obj_mesh* get_mesh_modern(uint32_t hash, int32_t mesh_index); // Added
+extern int32_t get_mesh_index(object_info obj_id, const char* mesh_name);
+extern int32_t get_mesh_index_modern(uint32_t hash, const char* mesh_name);// Added
+extern VertexBuffer* get_mesh_vertex_buffer(object_info obj_id, const char* mesh_name);
+
+extern uint32_t get_texnum_idx2uid(uint32_t objset_index, int32_t tex_index);
+
+extern int32_t request_objset(void* data, const object_database* obj_db, uint32_t objset_index);
+extern int32_t request_objset(void* data, const object_database* obj_db, const char* name); // Added
+extern int32_t request_objset_modern(void* data, uint32_t hash); // Added
+extern bool wait_objset(uint32_t objset_index, object_database* obj_db = 0, texture_database* tex_db = 0);
+extern void free_objset(uint32_t objset_index);
+extern void free_objset(const object_database* obj_db, const char* name); // Added

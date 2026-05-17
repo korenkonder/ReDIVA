@@ -265,7 +265,7 @@ void FaceAnim::Auth3D::patch() {
 void FaceAnim::Auth3D::reset() {
     auth_3d_detail::category_free(category.hash_murmurhash);
     id.destroy(rctx_ptr);
-    objset_info_storage_unload_set(object_set.hash_murmurhash);
+    free_objset(object_set.hash_murmurhash);
 
     category.clear();
     file.clear();
@@ -310,14 +310,14 @@ bool FaceAnim::ctrl() {
         auth_3d.object_set.assign("EFFCHRPV826MIK001");
 
         auth_3d_detail::category_load_req(x_data, auth_3d.category.c_str(), auth_3d.category.hash_murmurhash);
-        objset_info_storage_load_set_hash(x_data, auth_3d.object_set.hash_murmurhash);
+        request_objset_modern(x_data, auth_3d.object_set.hash_murmurhash);
 
         state = 2;
     } break;
     case 2: {
         if (!auth_3d_detail::category_load_is_done(auth_3d.category.hash_murmurhash)
-            || (objset_info_storage_get_objset_info(auth_3d.object_set.hash_murmurhash)
-            && objset_info_storage_load_obj_set_check_not_read(
+            || (get_objset_info(auth_3d.object_set.hash_murmurhash)
+            && wait_objset(
                 auth_3d.object_set.hash_murmurhash, &auth_3d.obj_db, &auth_3d.tex_db)))
             break;
 

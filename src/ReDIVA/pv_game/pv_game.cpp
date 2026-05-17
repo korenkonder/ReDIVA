@@ -3152,7 +3152,7 @@ bool pv_game::load() {
 
             prj::sort_and_erase_non_unique(data.chreff_auth_3d_obj_set_ids);
             for (uint32_t& i : data.chreff_auth_3d_obj_set_ids)
-                objset_info_storage_load_set(aft_data, aft_obj_db, i);
+                request_objset(aft_data, aft_obj_db, i);
 
             char campv[0x40];
             sprintf_s(campv, sizeof(campv), "CAMPV%03d", get_pv_db_pv()->id);
@@ -3198,7 +3198,7 @@ bool pv_game::load() {
 
             prj::sort_and_erase_non_unique(data.field_2D770);
             for (uint32_t& i : data.field_2D770)
-                objset_info_storage_load_set(aft_data, aft_obj_db, i);
+                request_objset(aft_data, aft_obj_db, i);
 
             data.ex_song_ex_auth_obj_set_ids.clear();
             for (const pv_db_pv_ex_song& i : get_pv_db_pv()->ex_song.data)
@@ -3215,7 +3215,7 @@ bool pv_game::load() {
 
             prj::sort_and_erase_non_unique(data.ex_song_ex_auth_obj_set_ids);
             for (uint32_t& i : data.ex_song_ex_auth_obj_set_ids)
-                objset_info_storage_load_set(aft_data, aft_obj_db, i);
+                request_objset(aft_data, aft_obj_db, i);
 
             prj::sort_and_erase_non_unique(data.stage_indices);
             if (!data.stage_indices.size())
@@ -3240,7 +3240,7 @@ bool pv_game::load() {
 
             prj::sort_and_erase_non_unique(data.stgpvhrc_obj_set_ids);
             for (uint32_t& i : data.stgpvhrc_obj_set_ids)
-                objset_info_storage_load_set(aft_data, aft_obj_db, i);
+                request_objset(aft_data, aft_obj_db, i);
 
             data.has_frame_texture = false;
             for (const pv_db_pv_frame_texture& i : get_pv_db_pv()->frame_texture)
@@ -3257,15 +3257,15 @@ bool pv_game::load() {
             return false;
 
         for (uint32_t& i : data.chreff_auth_3d_obj_set_ids)
-            if (objset_info_storage_load_obj_set_check_not_read(i))
+            if (wait_objset(i))
                 return false;
 
         for (uint32_t& i : data.field_2D770)
-            if (objset_info_storage_load_obj_set_check_not_read(i))
+            if (wait_objset(i))
                 return false;
 
         for (uint32_t& i : data.ex_song_ex_auth_obj_set_ids)
-            if (objset_info_storage_load_obj_set_check_not_read(i))
+            if (wait_objset(i))
                 return false;
 
         state = 2;
@@ -3443,7 +3443,7 @@ bool pv_game::load() {
 
         prj::sort_and_erase_non_unique(data.obj_set_itmpv);
         for (uint32_t& i : data.obj_set_itmpv)
-            objset_info_storage_load_set(aft_data, aft_obj_db, i);
+            request_objset(aft_data, aft_obj_db, i);
 
         data.obj_set_handitem.clear();
         if (diff) {
@@ -3467,7 +3467,7 @@ bool pv_game::load() {
 
             prj::sort_and_erase_non_unique(data.obj_set_handitem);
             for (uint32_t& i : data.obj_set_handitem)
-                objset_info_storage_load_set(aft_data, aft_obj_db, i);
+                request_objset(aft_data, aft_obj_db, i);
 
             skin_param_storage_load(hand_obj_infos, aft_data, aft_obj_db);
         }
@@ -3496,19 +3496,19 @@ bool pv_game::load() {
                 wait_load |= true;
 
         for (uint32_t& i : data.obj_set_itmpv)
-            if (objset_info_storage_load_obj_set_check_not_read(i)) {
+            if (wait_objset(i)) {
                 wait_load |= true;
                 break;
             }
 
         for (uint32_t& i : data.obj_set_handitem)
-            if (objset_info_storage_load_obj_set_check_not_read(i)) {
+            if (wait_objset(i)) {
                 wait_load |= true;
                 break;
             }
 
         for (uint32_t& i : data.stgpvhrc_obj_set_ids)
-            if (objset_info_storage_load_obj_set_check_not_read(i)) {
+            if (wait_objset(i)) {
                 wait_load |= true;
                 break;
             }
@@ -4812,29 +4812,29 @@ bool pv_game::unload() {
     pv_param::post_process_data_clear_data();
 
     for (uint32_t& i : data.obj_set_itmpv)
-        objset_info_storage_unload_set(i);
+        free_objset(i);
     data.obj_set_itmpv.clear();
 
     for (uint32_t& i : data.obj_set_handitem)
-        objset_info_storage_unload_set(i);
+        free_objset(i);
     data.obj_set_handitem.clear();
 
     skin_param_storage_reset();
 
     for (uint32_t& i : data.chreff_auth_3d_obj_set_ids)
-        objset_info_storage_unload_set(i);
+        free_objset(i);
     data.chreff_auth_3d_obj_set_ids.clear();
 
     for (uint32_t& i : data.field_2D770)
-        objset_info_storage_unload_set(i);
+        free_objset(i);
     data.field_2D770.clear();
 
     for (uint32_t& i : data.stgpvhrc_obj_set_ids)
-        objset_info_storage_unload_set(i);
+        free_objset(i);
     data.stgpvhrc_obj_set_ids.clear();
 
     for (uint32_t& i : data.ex_song_ex_auth_obj_set_ids)
-        objset_info_storage_unload_set(i);
+        free_objset(i);
     data.ex_song_ex_auth_obj_set_ids.clear();
 
     for (uint64_t& i : data.effect_rs_list_hashes)

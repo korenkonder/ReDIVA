@@ -19,6 +19,7 @@
 #include "../item_table.hpp"
 #include "../render_context.hpp"
 #include "../object.hpp"
+#include "../ogl_buffer_object.hpp"
 #include "../static_var.hpp"
 #include "rob_item.hpp"
 
@@ -3245,8 +3246,8 @@ struct RobCloth : public CLOTH {
     bool osage_reset;
     obj_mesh mesh[2];
     obj_sub_mesh submesh[2][4];
-    obj_mesh_vertex_buffer vb[2];
-    obj_mesh_index_buffer ib[2];
+    VertexBuffer vb[2];
+    IndexBuffer ib[2];
     std::map<std::pair<int32_t, int32_t>, std::list<RobJointNodeResetData>> motion_reset_data;
     std::list<RobJointNodeResetData>* reset_data_list;
 

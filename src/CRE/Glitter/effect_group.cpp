@@ -30,7 +30,7 @@ namespace Glitter {
 
         for (Mesh& i : meshes)
             if (i.object_set_hash != hash_murmurhash_empty) {
-                objset_info_storage_unload_set(i.object_set_hash);
+                free_objset(i.object_set_hash);
                 i.load = false;
             }
 

@@ -79,7 +79,7 @@ static void length_limit(vec3& p, const vec3& r, const float_t rr);
 static bool make_axis_matrix(mat4& mat, const vec3& axis,
     const skin_param_hinge* hinge, vec3* rot, const ROTTYPE& rottype);
 static void make_direction_matrix(mat4& mat, const vec3& v0, const vec3& v1);
-static void modify_cloth_object(obj_mesh* mesh, obj_mesh_vertex_buffer* vb,
+static void modify_cloth_object(obj_mesh* mesh, VertexBuffer* vb,
     CLOTH_VERTEX* vtxarg, float_t sgn, int32_t num_idx, uint16_t* idxtbl, bool do_ura);
 
 static const ExpFuncUnaryTbl exp_func_unary_tbl[] = {
@@ -1215,8 +1215,8 @@ void RobCloth::disp_debug() {
 }
 
 void RobCloth::dest() {
-    vb[0].unload();
-    vb[1].unload();
+    vb[0].destroy();
+    vb[1].destroy();
     init();
     local_mat = 0;
     skin_disp = 0;
@@ -1745,16 +1745,16 @@ void RobCloth::ctrl(const float_t dt, bool init_flag) {
 
 // 0x14021B930
 void RobCloth::disp(const mat4& mat, render_context* rctx) {
-    obj* obj = objset_info_storage_get_obj(skin_disp->obj_uid);
+    obj* obj = get_object_header(skin_disp->obj_uid);
     if (!obj)
         return;
 
-    std::vector<GLuint>* textures = objset_info_storage_get_obj_set_gentex(skin_disp->obj_uid.set_id);
+    std::vector<GLuint>* textures = get_objset_gen_textures_vec(skin_disp->obj_uid.set_id);
 
     vec3 center = (vtxarg.data()[0].pos + vtxarg.data()[width * height - 1].pos) * 0.5f;
 
     ::obj o = *obj;
-    o.num_mesh = ib[1].buffer != 0 ? 2 : 1;
+    o.num_mesh = ib[1].ib != 0 ? 2 : 1;
     o.mesh_array = mesh;
     o.bounding_sphere.center = center;
     o.bounding_sphere.radius *= 2.0f;
@@ -1782,8 +1782,8 @@ void RobCloth::modify_obj() {
         calc_normal();
 
     if (cloth_modify_flag & 0x02) {
-        obj_mesh* omote_mesh = objset_info_storage_get_obj_mesh(skin_disp->obj_uid, data->omote_name);
-        obj_mesh* ura_mesh = objset_info_storage_get_obj_mesh(skin_disp->obj_uid, data->ura_name);
+        obj_mesh* omote_mesh = get_mesh(skin_disp->obj_uid, data->omote_name);
+        obj_mesh* ura_mesh = get_mesh(skin_disp->obj_uid, data->ura_name);
         if (data->ura_name) {
             modify_cloth_object(omote_mesh, &vb[0], vtxarg.data(),
                 1.0f, data->num_omote_index, data->omote_index_array, false);
@@ -1802,11 +1802,11 @@ void RobCloth::set_data(size_t w, size_t h, const obj_skin_ex_node_cloth_root * 
     const RobSkinDisp* skin, const bone_database* bone_data) {
     skin_disp = skin;
 
-    obj* obj = objset_info_storage_get_obj(skin_disp->obj_uid);
+    obj* obj = get_object_header(skin_disp->obj_uid);
     if (!obj)
         return;
 
-    obj_mesh_index_buffer* ib = objset_info_storage_get_obj_mesh_index_buffer(skin_disp->obj_uid);
+    IndexBuffer* ib = get_object_index_buffer(skin_disp->obj_uid);
     uint32_t omotea_mesh_index = obj->get_obj_mesh_index(data->omote_name);
     uint32_t ura_mesh_index = obj->get_obj_mesh_index(data->ura_name);
 
@@ -1820,25 +1820,25 @@ void RobCloth::set_data(size_t w, size_t h, const obj_skin_ex_node_cloth_root * 
         for (int32_t j = 0; j < mesh[i].num_submesh; j++) {
             obj_sub_mesh& cloth_mesh = submesh[i][j];
             cloth_mesh = mesh[i].submesh_array[j];
-            cloth_mesh.attrib.m.cloth = 0;
+            cloth_mesh.attrib.m.hide = 0;
             cloth_mesh.bounding_sphere.radius = 1000.0f;
             cloth_mesh.axis_aligned_bounding_box.center = 0.0f;
             cloth_mesh.axis_aligned_bounding_box.size = { 1000.0f, 1000.0f, 1000.0f };
-            mesh[i].submesh_array[j].attrib.m.cloth = 1;
+            mesh[i].submesh_array[j].attrib.m.hide = 1;
         }
         mesh[i].submesh_array = submesh[i];
         mesh[i].bounding_sphere.radius = 1000.0f;
     }
 
     this->ib[0] = ib[omotea_mesh_index];
-    if (!vb[0].load(mesh[0], GL::BUFFER_USAGE_STREAM))
+    if (!create_mesh_vertex_buffer(vb[0], mesh[0], GL::BUFFER_USAGE_STREAM))
         return;
 
     this->ib[1] = {};
     if (data->ura_name && ura_mesh_index != -1)
         this->ib[1] = ib[ura_mesh_index];
 
-    if (data->ura_name && !vb[1].load(mesh[1], GL::BUFFER_USAGE_STREAM))
+    if (data->ura_name && !create_mesh_vertex_buffer(vb[1], mesh[1], GL::BUFFER_USAGE_STREAM))
         return;
 
     flag.exec = 1;
@@ -1887,7 +1887,7 @@ void RobCloth::set_data(size_t w, size_t h, const obj_skin_ex_node_cloth_root * 
     for (size_t i = 0; i < data->num_omote_index; i++)
         index_array.data()[omote_index_array[i]] = i;
 
-    obj_mesh* mesh = objset_info_storage_get_obj_mesh(skin_disp->obj_uid, data->omote_name);
+    obj_mesh* mesh = get_mesh(skin_disp->obj_uid, data->omote_name);
     obj_vertex_format vertex_format = (obj_vertex_format)0;
     obj_vertex_data* vertex_array = 0;
     if (mesh) {
@@ -1944,26 +1944,26 @@ void RobCloth::set_data(const obj_skin_ex_node_cloth* cldata,
     set_data(cldata->width, cldata->height, cldata->fix_point,
         cldata->move_point, cldata->mat_array, cldata->ring_flag, skin, bone_data);
 
-    obj* obj = objset_info_storage_get_obj(skin->obj_uid);
+    obj* obj = get_object_header(skin->obj_uid);
     if (!obj)
         return;
 
     for (int32_t i = 0; i < 2; i++) {
-        if (!mesh[i].num_vertex || !mesh[i].vertex_array || !ib[i].buffer)
+        if (!mesh[i].num_vertex || !mesh[i].vertex_array || !ib[i].ib)
             continue;
 
-        obj_mesh_vertex_buffer* obj_vert_buf = &vb[i];
-        obj_mesh_index_buffer* obj_index_buf = &ib[i];
+        VertexBuffer* vbhn_array = &vb[i];
+        IndexBuffer* ibhn_array = &ib[i];
 
         obj_mesh* mesh = &this->mesh[i];
         for (int32_t j = 0; j < mesh->num_submesh; j++) {
             obj_material_data* material = &obj->material_array[mesh->submesh_array[j].material_index];
-            for (int32_t k = 0; k < (mesh->attrib.m.double_buffer ? 2 : 1); k++) {
+            for (int32_t k = 0; k < (mesh->attrib.m.soft_body ? 2 : 1); k++) {
                 extern render_context* rctx_ptr;
                 rctx_ptr->disp_manager->add_vertex_array(mesh, &mesh->submesh_array[j], material,
-                    obj_vert_buf->get_buffer(), obj_vert_buf->get_offset(), obj_index_buf->buffer, 0, 0);
+                    vbhn_array->get_glvb(), vbhn_array->get_glvb_offset(), ibhn_array->ib, 0, 0);
 
-                obj_vert_buf->cycle_index();
+                vbhn_array->flip();
             }
         }
     }
@@ -4324,15 +4324,15 @@ static void make_direction_matrix(mat4& mat, const vec3& v0, const vec3& v1) {
     mat4_set(&axis, -s, c, &mat);
 }
 
-static void modify_cloth_object(obj_mesh* mesh, obj_mesh_vertex_buffer* vb,
+static void modify_cloth_object(obj_mesh* mesh, VertexBuffer* vb,
     CLOTH_VERTEX* vtxarg, float_t sgn, int32_t num_idx, uint16_t* idxtbl, bool do_ura) {
     if (!mesh || !vb || (mesh->vertex_format
         & (OBJ_VERTEX_NORMAL | OBJ_VERTEX_POSITION)) != (OBJ_VERTEX_NORMAL | OBJ_VERTEX_POSITION))
         return;
 
-    vb->cycle_index();
-    GL::ArrayBuffer buffer = vb->get_buffer();
-    size_t data = (size_t)buffer.MapMemory(gl_state);
+    vb->flip();
+    GL::ArrayBuffer glvb = vb->get_glvb();
+    size_t data = (size_t)glvb.MapMemory(gl_state);
     if (!data)
         return;
 
@@ -4468,5 +4468,5 @@ static void modify_cloth_object(obj_mesh* mesh, obj_mesh_vertex_buffer* vb,
         break;
     }
 
-    buffer.UnmapMemory(gl_state);
+    glvb.UnmapMemory(gl_state);
 }

@@ -2391,7 +2391,7 @@ namespace auth_3d_detail {
 
     // 0x1401CA530
     void HierarchyObject::assign_object_skin() {
-        const obj_skin* skin = objset_info_storage_get_obj_skin(obj_uid);
+        const obj_skin* skin = get_object_skin(obj_uid);
         if (!skin) {
             std::string error_str = sprintf_s_string("%s skin data is not found", uid_name.c_str());
             throw std::runtime_error(error_str.c_str());
@@ -3785,47 +3785,47 @@ namespace auth_3d_detail {
             sprintf_s(buf, sizeof(buf), "%.*s%03d", uid_name_length - 3, uid_name, i);
             object_info obj_uid = obj_db->get_object_info(buf);
 
-            ::obj* obj = objset_info_storage_get_obj(obj_uid);
+            ::obj* obj = get_object_header(obj_uid);
             if (!obj)
                 continue;
 
-            obj_mesh_vertex_buffer* obj_vert_buf = objset_info_storage_get_obj_mesh_vertex_buffer(obj_uid);
-            obj_mesh_index_buffer* obj_index_buf = objset_info_storage_get_obj_mesh_index_buffer(obj_uid);
+            VertexBuffer* vbhn_array = get_object_vertex_buffer(obj_uid);
+            IndexBuffer* ibhn_array = get_object_index_buffer(obj_uid);
 
-            obj_mesh_vertex_buffer* obj_morph_vert_buf = 0;
+            VertexBuffer* morph_vbhn_array = 0;
             if (morph_obj_uid.set_id != -1)
-                obj_morph_vert_buf = objset_info_storage_get_obj_mesh_vertex_buffer(morph_obj_uid);
+                morph_vbhn_array = get_object_vertex_buffer(morph_obj_uid);
 
             for (int32_t i = 0; i < obj->num_mesh; i++) {
                 const obj_mesh* mesh = &obj->mesh_array[i];
                 for (int32_t j = 0; j < mesh->num_submesh; j++) {
                     const obj_sub_mesh* sub_mesh = &mesh->submesh_array[j];
-                    if (sub_mesh->attrib.m.cloth)
+                    if (sub_mesh->attrib.m.hide)
                         continue;
 
                     obj_material_data* material = &obj->material_array[sub_mesh->material_index];
 
-                    GLuint morph_vertex_buffer = 0;
-                    size_t morph_vertex_buffer_offset = 0;
-                    if (obj_morph_vert_buf) {
-                        morph_vertex_buffer = obj_morph_vert_buf[i].get_buffer();
-                        morph_vertex_buffer_offset = obj_morph_vert_buf[i].get_offset();
+                    GLuint morph_vb = 0;
+                    uint32_t morph_vb_offset = 0;
+                    if (morph_vbhn_array) {
+                        morph_vb = morph_vbhn_array[i].get_glvb();
+                        morph_vb_offset = morph_vbhn_array[i].get_glvb_offset();
                     }
 
-                    GLuint index_buffer = 0;
-                    if (obj_index_buf)
-                        index_buffer = obj_index_buf[i].buffer;
+                    GLuint ib = 0;
+                    if (ibhn_array)
+                        ib = ibhn_array[i].ib;
 
-                    GLuint vertex_buffer = 0;
-                    size_t vertex_buffer_offset = 0;
-                    if (obj_vert_buf) {
-                        vertex_buffer = obj_vert_buf[i].get_buffer();
-                        vertex_buffer_offset = obj_vert_buf[i].get_offset();
+                    GLuint vb = 0;
+                    uint32_t vb_offset = 0;
+                    if (vbhn_array) {
+                        vb = vbhn_array[i].get_glvb();
+                        vb_offset = vbhn_array[i].get_glvb_offset();
                     }
 
-                    if (vertex_buffer && index_buffer && (!obj_morph_vert_buf || morph_vertex_buffer))
-                        rctx_ptr->disp_manager->add_vertex_array(mesh, sub_mesh, material, vertex_buffer,
-                            vertex_buffer_offset, index_buffer, morph_vertex_buffer, morph_vertex_buffer_offset);
+                    if (vb && ib && (!morph_vbhn_array || morph_vb))
+                        rctx_ptr->disp_manager->add_vertex_array(mesh, sub_mesh, material,
+                            vb, vb_offset, ib, morph_vb, morph_vb_offset);
                 }
             }
         }
@@ -3956,7 +3956,7 @@ namespace auth_3d_detail {
         shadow = in_oi.shadow;
         motion_transform.load(in_file, in_oi.model_transform);
 
-        const obj_skin* skin = objset_info_storage_get_obj_skin(obj_uid);
+        const obj_skin* skin = get_object_skin(obj_uid);
         if (!skin) {
             std::string error_str = sprintf_s_string("%s skin data is not found", uid_name.c_str());
             throw std::runtime_error(error_str.c_str());

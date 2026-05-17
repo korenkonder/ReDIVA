@@ -183,8 +183,8 @@ struct obj_shader_compo_member {
     uint32_t color_l3 : 1;
     uint32_t color_l3_a : 1;
     uint32_t translucency : 1;
-    uint32_t flag_14 : 1;
-    uint32_t override_ibl : 1;
+    uint32_t env_sphere : 1;
+    uint32_t env_cube : 1;
     uint32_t dummy : 16;
 };
 
@@ -203,7 +203,7 @@ struct obj_material_shader_attrib_member {
     obj_material_bump_map_type bump_map_type : 2;
     uint32_t fresnel_type : 4;
     uint32_t line_light : 4;
-    uint32_t recieve_shadow : 1;
+    uint32_t receive_shadow : 1;
     uint32_t cast_shadow : 1;
     obj_material_specular_quality specular_quality : 1;
     obj_material_aniso_direction aniso_direction : 2;
@@ -230,8 +230,8 @@ struct obj_texture_attrib_member {
     uint32_t filter : 3;
     uint32_t mipmap : 2;
     uint32_t mipmap_bias : 7;
-    uint32_t flag_29 : 1;
-    uint32_t anisotropic_filter : 2;
+    uint32_t ignore : 1;
+    uint32_t aniso : 2;
 };
 
 union obj_texture_attrib {
@@ -269,8 +269,8 @@ struct obj_material_texture_data {
 };
 
 struct obj_material_attrib_member {
-    uint32_t alpha_texture : 1;
-    uint32_t alpha_material : 1;
+    uint32_t alpha_tex : 1;
+    uint32_t alpha_mat : 1;
     uint32_t punch_through : 1;
     uint32_t double_sided : 1;
     uint32_t normal_dir_light : 1;
@@ -278,13 +278,13 @@ struct obj_material_attrib_member {
     obj_material_blend_factor dst_blend_factor : 4;
     uint32_t blend_operation : 3;
     uint32_t zbias : 4;
-    uint32_t no_fog : 1;
-    uint32_t translucent_priority : 6;
-    uint32_t has_fog_height : 1;
-    uint32_t flag_28 : 1;
-    uint32_t fog_height : 1;
-    uint32_t flag_30 : 1;
-    uint32_t flag_31 : 1;
+    uint32_t no_z_fog : 1;
+    uint32_t alpha_prio : 6;
+    uint32_t y_fog : 1;
+    uint32_t ignore_alpha : 1;
+    uint32_t y_fogmap : 1;
+    uint32_t use_mat_center : 1;
+    uint32_t dummy : 1;
 };
 
 union obj_material_attrib {
@@ -330,11 +330,13 @@ struct obj_material_data {
 };
 
 struct obj_sub_mesh_attrib_member {
-    uint32_t recieve_shadow : 1;
+    uint32_t receive_shadow : 1;
     uint32_t cast_shadow : 1;
-    uint32_t translucent : 1;
-    uint32_t cloth : 1;
-    uint32_t dummy : 28;
+    uint32_t vertex_alpha : 1;
+    uint32_t hide : 1;
+    uint32_t poly_offset : 3;
+    uint32_t use_restart_index : 1;
+    uint32_t dummy : 24;
 };
 
 union obj_sub_mesh_attrib {
@@ -359,8 +361,8 @@ struct obj_sub_mesh {
         obj_axis_aligned_bounding_box axis_aligned_bounding_box;
         obj_bounding_box bounding_box;
     };
-    uint16_t first_index;
-    uint16_t last_index;
+    uint16_t min_index;
+    uint16_t max_index;
     uint32_t index_offset;
 
     obj_sub_mesh();
@@ -385,10 +387,10 @@ struct obj_vertex_data {
 };
 
 struct obj_mesh_attrib_member {
-    uint32_t double_buffer : 1;
-    uint32_t billboard_y_axis : 1;
-    uint32_t translucent_sort_by_radius : 1;
+    uint32_t soft_body : 1;
     uint32_t billboard : 1;
+    uint32_t around_obj : 1;
+    uint32_t billboard_view : 1;
     uint32_t dummy : 26; // 28
     uint32_t compression : 2; // Own stuff
 };

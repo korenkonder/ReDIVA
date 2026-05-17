@@ -48,7 +48,7 @@ public:
     dw::Slider* aniso_filter;
     dw::Layout* vertical_layout;
     dw::Layout* horizontal_layout;
-    uint32_t obj_set_id;
+    uint32_t objset_index;
     int32_t obj_index;
     int32_t material_index;
     obj_material_data material_array[100];
@@ -118,7 +118,7 @@ MaterialDw::MaterialDw() {
     data_struct* aft_data = &data_list[DATA_AFT];
     object_database* aft_obj_db = &aft_data->data_ft.obj_db;
 
-    obj_set_id = -1;
+    objset_index = -1;
     obj_index = 0;
     material_index = 0;
 
@@ -154,7 +154,7 @@ MaterialDw::MaterialDw() {
     uint32_t obj_set_count = aft_obj_db->get_object_set_count();
     for (uint32_t i = obj_set_count, j = 0; i; i--, j++) {
         uint32_t obj_set_id = aft_obj_db->get_object_set_id(j);
-        if (objset_info_storage_get_obj_set_loaded(obj_set_id))
+        if (check_objset_ready(j))
             object_sets->AddItem(aft_obj_db->get_object_set_name(obj_set_id));
     }
     object_sets->AddSelectionListener(new dw::SelectionListenerOnHook(
@@ -517,8 +517,9 @@ obj* MaterialDw::GetObj() {
     data_struct* aft_data = &data_list[DATA_AFT];
     object_database* aft_obj_db = &aft_data->data_ft.obj_db;
 
-    uint32_t obj_id = objset_info_storage_get_obj_set_obj_id(obj_set_id, obj_index);
-    return objset_info_storage_get_obj({ obj_id, obj_set_id });
+    uint32_t obj_set_id = aft_obj_db->get_object_set_id(objset_index);
+    uint32_t obj_id = get_objnum_idx2uid(objset_index, obj_index, aft_obj_db);
+    return get_object_header({ obj_id, obj_set_id });
 }
 
 void MaterialDw::ResetMaterialArray() {
@@ -565,7 +566,7 @@ void MaterialDw::SetValue(bool own) {
     dst_blend_factor->SetItemIndex(material.attrib.m.dst_blend_factor);
     zbias->SetValue((float_t)material.attrib.m.zbias);
     mipmap_bias->SetValue((float_t)material.texdata[0].attrib.m.mipmap_bias);
-    aniso_filter->SetValue((float_t)material.texdata[0].attrib.m.anisotropic_filter);
+    aniso_filter->SetValue((float_t)material.texdata[0].attrib.m.aniso);
 }
 
 void MaterialDw::UpdateObjectMeshes() {
@@ -595,9 +596,10 @@ void MaterialDw::UpdateObjects() {
 
     objects->ClearItems();
 
-    for (int32_t i = 0; i < objset_info_storage_get_obj_set_obj_num(obj_set_id); i++) {
-        uint32_t obj_id = objset_info_storage_get_obj_set_obj_id(obj_set_id, i);
-        objects->AddItem(objset_info_storage_get_obj_name({ obj_id, obj_set_id }));
+    uint32_t obj_set_id = aft_obj_db->get_object_set_id(objset_index);
+    for (int32_t i = 0; i < get_object_num(objset_index); i++) {
+        uint32_t obj_id = get_objnum_idx2uid(objset_index, i, aft_obj_db);
+        objects->AddItem(get_object_name({ obj_id, obj_set_id }));
     }
     objects->SetItemIndex(0);
 
@@ -644,14 +646,14 @@ void MaterialDw::AnisoFilterCallback(dw::Slider* data) {
     MaterialDw* material_dw = (MaterialDw*)data->callback_data.v64;
     obj_material_data* material_data = material_dw->GetMaterial();
     if (material_data) {
-        material_data->material.texdata[0].attrib.m.anisotropic_filter = (int32_t)data->GetValue();
-        material_data->material.texdata[1].attrib.m.anisotropic_filter = (int32_t)data->GetValue();
-        material_data->material.texdata[2].attrib.m.anisotropic_filter = (int32_t)data->GetValue();
-        material_data->material.texdata[3].attrib.m.anisotropic_filter = (int32_t)data->GetValue();
-        material_data->material.texdata[4].attrib.m.anisotropic_filter = (int32_t)data->GetValue();
-        material_data->material.texdata[5].attrib.m.anisotropic_filter = (int32_t)data->GetValue();
-        material_data->material.texdata[6].attrib.m.anisotropic_filter = (int32_t)data->GetValue();
-        material_data->material.texdata[7].attrib.m.anisotropic_filter = (int32_t)data->GetValue();
+        material_data->material.texdata[0].attrib.m.aniso = (int32_t)data->GetValue();
+        material_data->material.texdata[1].attrib.m.aniso = (int32_t)data->GetValue();
+        material_data->material.texdata[2].attrib.m.aniso = (int32_t)data->GetValue();
+        material_data->material.texdata[3].attrib.m.aniso = (int32_t)data->GetValue();
+        material_data->material.texdata[4].attrib.m.aniso = (int32_t)data->GetValue();
+        material_data->material.texdata[5].attrib.m.aniso = (int32_t)data->GetValue();
+        material_data->material.texdata[6].attrib.m.aniso = (int32_t)data->GetValue();
+        material_data->material.texdata[7].attrib.m.aniso = (int32_t)data->GetValue();
     }
 }
 
@@ -793,7 +795,7 @@ void MaterialDw::ObjectSetCallback(dw::ListBox* data) {
 
     MaterialDw* material_dw = (MaterialDw*)data->callback_data.v64;
     std::string item = data->GetSelectedItemStr();
-    material_dw->obj_set_id = aft_obj_db->get_object_set_id(item.c_str());
+    material_dw->objset_index = aft_obj_db->get_object_set_id(item.c_str());
     material_dw->UpdateObjects();
 }
 
@@ -816,7 +818,7 @@ void MaterialDw::RefreshCallback(dw::Widget* data) {
     uint32_t obj_set_count = aft_obj_db->get_object_set_count();
     for (uint32_t i = obj_set_count, j = 0; i; i--, j++) {
         uint32_t obj_set_id = aft_obj_db->get_object_set_id(j);
-        if (objset_info_storage_get_obj_set_loaded(obj_set_id))
+        if (check_objset_ready(obj_set_id))
             object_sets->AddItem(aft_obj_db->get_object_set_name(obj_set_id));
     }
     object_sets->SetItemIndex(0);
@@ -871,7 +873,7 @@ void MaterialDw::ResetCallback(dw::Widget* data) {
         = (obj_material_blend_factor)material_dw->dst_blend_factor->list->selected_item;
     material.attrib.m.zbias = (int32_t)material_dw->zbias->GetValue();
     material.texdata[0].attrib.m.mipmap_bias = (int32_t)material_dw->mipmap_bias->GetValue();
-    material.texdata[0].attrib.m.anisotropic_filter = (int32_t)material_dw->aniso_filter->GetValue();
+    material.texdata[0].attrib.m.aniso = (int32_t)material_dw->aniso_filter->GetValue();
 }
 
 void MaterialDw::ShininessCallback(dw::Slider* data) {

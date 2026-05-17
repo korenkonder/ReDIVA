@@ -170,4 +170,5 @@ struct object_database {
     const char* get_object_name(object_info obj_info) const;
     uint32_t get_object_set_count() const;
     uint32_t get_object_set_id(uint32_t set_index) const;
+    uint32_t get_object_set_index(uint32_t set_id) const;
 };

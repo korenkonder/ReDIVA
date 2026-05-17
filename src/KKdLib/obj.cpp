@@ -371,7 +371,7 @@ obj_material_data::obj_material_data() : num_of_textures() {
 
 obj_sub_mesh::obj_sub_mesh() : flags(), bounding_sphere(), material_index(), uv_index(), num_bone_index(),
 bone_index_array(), bones_per_vertex(), primitive_type(), index_format(), num_index(), index_array(),
-attrib(), axis_aligned_bounding_box(), first_index(), last_index(), index_offset() {
+attrib(), axis_aligned_bounding_box(), min_index(), max_index(), index_offset() {
 
 }
 
@@ -875,8 +875,8 @@ static void obj_move_data_sub_mesh(obj_sub_mesh* sub_mesh_dst, const obj_sub_mes
     sub_mesh_dst->attrib = sub_mesh_src->attrib;
     sub_mesh_dst->bounding_box = sub_mesh_src->bounding_box;
 
-    sub_mesh_dst->first_index = sub_mesh_src->first_index;
-    sub_mesh_dst->last_index = sub_mesh_src->last_index;
+    sub_mesh_dst->min_index = sub_mesh_src->min_index;
+    sub_mesh_dst->max_index = sub_mesh_src->max_index;
     sub_mesh_dst->index_offset = sub_mesh_src->index_offset;
 }
 
@@ -1738,7 +1738,7 @@ static void obj_classic_read_model_mesh(obj_mesh* mesh,
 
     obj_classic_read_vertex(mesh, alloc, s, mh.vertex,
         base_offset, mh.num_vertex, mh.format);
-    obj_vertex_generate_tangents(mesh);
+    //obj_vertex_generate_tangents(mesh);
 }
 
 static void obj_classic_read_model_sub_mesh(obj_sub_mesh* sub_mesh,
@@ -4997,7 +4997,7 @@ static void obj_modern_read_model_mesh(obj_mesh* mesh,
 
     obj_modern_read_vertex(mesh, alloc, *s_ovtx, mh.vertex,
         mh.vertex_format_index, mh.num_vertex, mh.size_vertex);
-    obj_vertex_generate_tangents(mesh);
+    //obj_vertex_generate_tangents(mesh);
 }
 
 static void obj_modern_read_model_sub_mesh(obj_sub_mesh* sub_mesh,

@@ -4183,8 +4183,8 @@ static void glitter_editor_property_particle(GlitterEditor* glt_edt) {
         uint32_t set_id = (uint32_t)mesh->object_set_name_hash;
         uint32_t obj_id = (uint32_t)mesh->object_name_hash;
 
-        ObjsetInfo* set_info = objset_info_storage_get_objset_info(set_id);
-        ssize_t object_set_count = objset_info_storage_get_obj_set_count();
+        ObjsetInfo* set_info = get_objset_info(set_id);
+        ssize_t objset_num = get_objset_num();
 
         extern std::map<uint32_t, ObjsetInfo> objset_info_storage_data_modern;
         ImGui::StartPropertyColumn("Object Set");
@@ -4201,9 +4201,9 @@ static void glitter_editor_property_particle(GlitterEditor* glt_edt) {
                     continue;
 
                 ImGui::PushID(&i);
-                if (ImGui::Selectable(info->name.c_str(), info->set_id == set_id)
+                if (ImGui::Selectable(info->name.c_str(), info->id == set_id)
                     || ImGui::ItemKeyPressed(ImGuiKey_Enter)
-                    || (ImGui::IsItemFocused() && info->set_id != set_id))
+                    || (ImGui::IsItemFocused() && info->id != set_id))
                     set_info = info;
                 ImGui::PopID();
             }
@@ -4211,7 +4211,7 @@ static void glitter_editor_property_particle(GlitterEditor* glt_edt) {
             if (!set_info)
                 set_id = -1;
             else
-                set_id = set_info->set_id;
+                set_id = set_info->id;
 
             if (mesh->object_set_name_hash != set_id) {
                 mesh->object_set_name_hash = set_id;
@@ -4237,7 +4237,7 @@ static void glitter_editor_property_particle(GlitterEditor* glt_edt) {
 
         ImGui::StartPropertyColumn("Object");
         if (ImGui::BeginCombo("##Object", obj ? obj->name : "None", 0)) {
-            if (set_id != -1 && set_info && set_info->set_id == set_id && set_info->obj_set) {
+            if (set_id != -1 && set_info && set_info->id == set_id && set_info->obj_set) {
                 obj_set* set = set_info->obj_set;
                 ::obj** obj_data = set->obj_data;
                 ssize_t obj_index = -1;

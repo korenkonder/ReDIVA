@@ -545,7 +545,7 @@ void RobItem::disp_obj_internal(object_info obj_uid, mat4& mat, uint32_t item_no
     TexChange* texchg = 0;
     size_t num_texchg = 0;
 
-    obj_skin* skin = objset_info_storage_get_obj_skin(obj_uid);
+    obj_skin* skin = get_object_skin(obj_uid);
 
     auto elem = m_txhd_map.find(item_no);
     if (elem != m_txhd_map.end()) {
@@ -723,7 +723,7 @@ void RobItem::req_obj(uint32_t item_no, void* data, const object_database* obj_d
         return;
 
     for (uint32_t i : *item_objset)
-        objset_info_storage_load_set(data, obj_db, i);
+        request_objset(data, obj_db, i);
 }
 
 // 0x14052D3D0
@@ -736,7 +736,7 @@ bool RobItem::wait_obj(uint32_t item_no) {
         return false;
 
     for (uint32_t i : *item_objset)
-        if (i != (uint32_t)-1 && objset_info_storage_load_obj_set_check_not_read(i))
+        if (i != (uint32_t)-1 && wait_objset(i))
             return true;
     return false;
 }
@@ -751,7 +751,7 @@ void RobItem::free_obj(uint32_t item_no) {
         return;
 
     for (uint32_t i : *item_objset)
-        objset_info_storage_unload_set(i);
+        free_objset(i);
 
     free_copy_texture(item_no);
 }
@@ -1259,7 +1259,7 @@ void RobItem::s_req_obj(CHARA_NUM cn, uint32_t item_no, void* data, const object
 
     for (uint32_t i : *item_objset)
         if (i != (uint32_t)-1)
-            objset_info_storage_load_set(data, obj_db, i);
+            request_objset(data, obj_db, i);
 }
 
 // 0x14052D4C0
@@ -1272,7 +1272,7 @@ bool RobItem::s_wait_obj(CHARA_NUM cn, uint32_t item_no) {
         return true;
 
     for (uint32_t i : *item_objset)
-        if (i != (uint32_t)-1 && objset_info_storage_load_obj_set_check_not_read(i))
+        if (i != (uint32_t)-1 && wait_objset(i))
             return true;
     return false;
 }
@@ -1288,7 +1288,7 @@ void RobItem::s_free_obj(CHARA_NUM cn, uint32_t item_no) {
 
     for (uint32_t i : *item_objset)
         if (i != (uint32_t)-1)
-            objset_info_storage_unload_set(i);
+            free_objset(i);
 }
 
 // 0x14052B160

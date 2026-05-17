@@ -4,3 +4,4 @@
 */
 
 #define DISPLAY_IBL (0)
+#define SHARED_OBJECT_BUFFER (1)

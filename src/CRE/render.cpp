@@ -380,7 +380,7 @@ namespace rndr {
         if (!lens_flare_texture)
             return;
 
-        GLuint tex = objset_info_storage_get_obj_set_texture(5, 4549);
+        GLuint tex = get_objset_gen_textures_id(5, 4549);
         if (!tex)
             return;
 

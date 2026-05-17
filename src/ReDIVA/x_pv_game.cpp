@@ -1057,8 +1057,8 @@ void x_pv_game_effect::ctrl(object_database* obj_db, texture_database* tex_db) {
                 wait_load |= true;
 
         for (string_hash& i : pv_obj_set)
-            if (objset_info_storage_get_objset_info(i.hash_murmurhash)
-                && objset_info_storage_load_obj_set_check_not_read(i.hash_murmurhash, obj_db, tex_db))
+            if (get_objset_info(i.hash_murmurhash)
+                && wait_objset(i.hash_murmurhash, obj_db, tex_db))
                 wait_load |= true;
 
         if (wait_load)
@@ -1186,7 +1186,7 @@ void x_pv_game_effect::load_data(int32_t pv_id, object_database* obj_db, texture
     data_struct* x_data = &data_list[DATA_X];
 
     for (string_hash& i : pv_obj_set)
-        objset_info_storage_load_set_hash(x_data, i.hash_murmurhash);
+        request_objset_modern(x_data, i.hash_murmurhash);
 
     for (string_hash& i : pv_auth_3d)
         auth_3d_detail::category_load_req(x_data, i.c_str(), i.hash_murmurhash);
@@ -1386,7 +1386,7 @@ void x_pv_game_effect::unload_data() {
         auth_3d_detail::category_free(i.hash_murmurhash);
 
     for (string_hash& i : pv_obj_set)
-        objset_info_storage_unload_set(i.hash_murmurhash);
+        free_objset(i.hash_murmurhash);
 
     for (string_hash& i : pv_glitter)
         Glitter::glt_particle_manager->UnloadEffectGroup(i.hash_murmurhash);
@@ -1442,8 +1442,8 @@ void x_pv_game_chara_effect::ctrl(int32_t pv_id, object_database* obj_db, textur
                 if (!auth_3d_detail::category_load_is_done(j.category.hash_murmurhash))
                     wait_load |= true;
 
-                if (objset_info_storage_get_objset_info(j.object_set.hash_murmurhash)
-                    && objset_info_storage_load_obj_set_check_not_read(j.object_set.hash_murmurhash, obj_db, tex_db))
+                if (get_objset_info(j.object_set.hash_murmurhash)
+                    && wait_objset(j.object_set.hash_murmurhash, obj_db, tex_db))
                     wait_load |= true;
             }
 
@@ -1687,7 +1687,7 @@ void x_pv_game_chara_effect::load_data() {
                 continue;
 
             auth_3d_detail::category_load_req(x_data, j.category.c_str(), j.category.hash_murmurhash);
-            objset_info_storage_load_set_hash(x_data, j.object_set.hash_murmurhash);
+            request_objset_modern(x_data, j.object_set.hash_murmurhash);
         }
 
     state = 20;
@@ -1828,7 +1828,7 @@ void x_pv_game_chara_effect::unload_data() {
 
                 j.id.destroy(rctx_ptr);
                 auth_3d_detail::category_free(j.category.hash_murmurhash);
-                objset_info_storage_unload_set(j.object_set.hash_murmurhash);
+                free_objset(j.object_set.hash_murmurhash);
             }
 
         state = 10;
@@ -5146,8 +5146,8 @@ void x_pv_game_stage_data::ctrl(object_database* obj_db, texture_database* tex_d
         bool wait_load = false;
 
         for (uint32_t& i : objhrc_hash)
-            if (objset_info_storage_get_objset_info(i)
-                && objset_info_storage_load_obj_set_check_not_read(i, obj_db, tex_db))
+            if (get_objset_info(i)
+                && wait_objset(i, obj_db, tex_db))
                 wait_load |= true;
 
         if (wait_load || task_stage_modern_check_not_loaded())
@@ -5207,7 +5207,7 @@ void x_pv_game_stage_data::load_objects(object_database* obj_db, texture_databas
     effect_manager_set_data(x_data, obj_db, tex_db, &stg_db);
 
     for (uint32_t& i : objhrc_hash)
-        objset_info_storage_load_set_hash(x_data, i);
+        request_objset_modern(x_data, i);
 
     state = 1;
     flags |= 0x01;
@@ -5265,7 +5265,7 @@ void x_pv_game_stage_data::set_stage(uint32_t hash) {
 
 void x_pv_game_stage_data::unload() {
     for (uint32_t& i : objhrc_hash)
-        objset_info_storage_unload_set(i);
+        free_objset(i);
 
     task_stage_modern_close();
 
@@ -7303,7 +7303,7 @@ bool x_pv_game::ctrl() {
         prj::sort_and_erase_non_unique(object_set_ids);
 
         for (const uint32_t& i : object_set_ids) {
-            ObjsetInfo* info = objset_info_storage_get_objset_info(i);
+            ObjsetInfo* info = get_objset_info(i);
             if (!info)
                 continue;
 
@@ -7320,20 +7320,14 @@ bool x_pv_game::ctrl() {
 
             prj::shared_ptr<prj::stack_allocator>& alloc = info->alloc_handler;
 
-            int32_t obj_num = set->obj_num;
-            obj** obj_data = set->obj_data;
-
-            obj_vertex_buffer* objvb = info->objvb;
-            for (int32_t j = 0; j < obj_num; j++)
-                objvb[j].unload();
-
-            obj_index_buffer* objib = info->objib;
-            for (int32_t j = 0; j < obj_num; j++)
-                objib[j].unload();
+            free_objset_index_buffer(info);
+            free_objset_vertex_buffer(info);
 
             x_pv_game_process_object(set);
             x_pv_game_process_object_reflect(set, reflect);
 
+            int32_t obj_num = set->obj_num;
+            obj** obj_data = set->obj_data;
             for (int32_t j = 0; j < obj_num; j++, obj_data++) {
                 obj* obj = *obj_data;
 
@@ -7359,20 +7353,15 @@ bool x_pv_game::ctrl() {
                         submesh->num_index = (int32_t)meshopt_stripify(submesh->index_array,
                             index_array, submesh->num_index, mesh->num_vertex, 0xFFFFFFFF);
 
-                        submesh->first_index = 0;
-                        submesh->last_index = 0;
+                        submesh->min_index = 0;
+                        submesh->max_index = 0;
                         submesh->index_offset = 0;
                     }
                 }
             }
 
-            obj_data = set->obj_data;
-
-            for (int32_t j = 0; j < obj_num; j++)
-                objvb[j].load(obj_data[j]);
-
-            for (int32_t j = 0; j < obj_num; j++)
-                objib[j].load(obj_data[j]);
+            create_objset_vertex_buffer(info);
+            create_objset_index_buffer(info);
 
             x_pv_game_update_object_set(info);
         }
@@ -7380,7 +7369,7 @@ bool x_pv_game::ctrl() {
         object_set_ids.clear();
 
         for (uint32_t& i : pv_object_set_ids) {
-            ObjsetInfo* info = objset_info_storage_get_objset_info(i);
+            ObjsetInfo* info = get_objset_info(i);
             if (info)
                 x_pv_game_write_object_set(info->obj_set, info->name, &baker->aft.obj_db,
                     &pv_data.tex_db, &baker->aft.tex_db_base, &baker->aft.tex_db,
@@ -7388,7 +7377,7 @@ bool x_pv_game::ctrl() {
         }
 
         for (uint32_t& i : stage_object_set_ids) {
-            ObjsetInfo* info = objset_info_storage_get_objset_info(i);
+            ObjsetInfo* info = get_objset_info(i);
             if (info)
                 x_pv_game_write_object_set(info->obj_set, info->name, &baker->aft.obj_db,
                     &stage_data.tex_db, &baker->aft.tex_db_base, &baker->aft.tex_db,
@@ -7396,7 +7385,7 @@ bool x_pv_game::ctrl() {
         }
 
         for (uint32_t& i : pv_object_set_ids) {
-            ObjsetInfo* info = objset_info_storage_get_objset_info(i);
+            ObjsetInfo* info = get_objset_info(i);
             if (info)
                 x_pv_game_write_object_set(info->obj_set, info->name, &baker->mmp.obj_db,
                     &pv_data.tex_db, &baker->mmp.tex_db_base, &baker->mmp.tex_db,
@@ -7404,7 +7393,7 @@ bool x_pv_game::ctrl() {
         }
 
         for (uint32_t& i : stage_object_set_ids) {
-            ObjsetInfo* info = objset_info_storage_get_objset_info(i);
+            ObjsetInfo* info = get_objset_info(i);
             if (info)
                 x_pv_game_write_object_set(info->obj_set, info->name, &baker->mmp.obj_db,
                     &stage_data.tex_db, &baker->mmp.tex_db_base, &baker->mmp.tex_db,
@@ -10604,13 +10593,13 @@ static void x_pv_game_read_object_reflect(const char* path, const char* set_name
                             if (translucency)
                                 mat->shader_compo.m.translucency = translucency->read_bool() ? 1 : 0;
 
-                            msgpack* flag_14 = shader_compo->read("flag_14");
-                            if (flag_14)
-                                mat->shader_compo.m.flag_14 = flag_14->read_bool() ? 1 : 0;
+                            msgpack* env_sphere = shader_compo->read({ "env_sphere", "flag_14" });
+                            if (env_sphere)
+                                mat->shader_compo.m.env_sphere = env_sphere->read_bool() ? 1 : 0;
 
-                            msgpack* override_ibl = shader_compo->read("override_ibl");
-                            if (override_ibl)
-                                mat->shader_compo.m.override_ibl = override_ibl->read_bool() ? 1 : 0;
+                            msgpack* env_cube = shader_compo->read({ "env_cube", "override_ibl" });
+                            if (env_cube)
+                                mat->shader_compo.m.env_cube = env_cube->read_bool() ? 1 : 0;
 
                             msgpack* dummy = shader_compo->read("dummy");
                             if (dummy)
@@ -10666,9 +10655,9 @@ static void x_pv_game_read_object_reflect(const char* path, const char* set_name
                             if (line_light)
                                 mat->shader_info.m.line_light = line_light->read_uint32_t();
 
-                            msgpack* recieve_shadow = shader_info->read("recieve_shadow");
-                            if (recieve_shadow)
-                                mat->shader_info.m.recieve_shadow = recieve_shadow->read_bool() ? 1 : 0;
+                            msgpack* receive_shadow = shader_info->read({ "receive_shadow", "recieve_shadow" });
+                            if (receive_shadow)
+                                mat->shader_info.m.receive_shadow = receive_shadow->read_bool() ? 1 : 0;
 
                             msgpack* cast_shadow = shader_info->read("cast_shadow");
                             if (cast_shadow)
@@ -10749,13 +10738,13 @@ static void x_pv_game_read_object_reflect(const char* path, const char* set_name
                                     if (mipmap_bias)
                                         l.attrib.m.mipmap_bias = mipmap_bias->read_uint32_t();
 
-                                    msgpack* flag_29 = attrib->read("flag_29");
-                                    if (flag_29)
-                                        l.attrib.m.flag_29 = flag_29->read_bool() ? 1 : 0;
+                                    msgpack* ignore = attrib->read({ "ignore", "flag_29" });
+                                    if (ignore)
+                                        l.attrib.m.ignore = ignore->read_bool() ? 1 : 0;
 
-                                    msgpack* anisotropic_filter = attrib->read("anisotropic_filter");
-                                    if (anisotropic_filter)
-                                        l.attrib.m.anisotropic_filter = anisotropic_filter->read_uint32_t();
+                                    msgpack* aniso = attrib->read({ "aniso", "anisotropic_filter" });
+                                    if (aniso)
+                                        l.attrib.m.aniso = aniso->read_uint32_t();
                                 }
 
                                 msgpack* _tex_name = tex->read("tex_name");
@@ -10852,13 +10841,13 @@ static void x_pv_game_read_object_reflect(const char* path, const char* set_name
 
                         msgpack* attrib = material.read("attrib");
                         if (attrib) {
-                            msgpack* alpha_texture = attrib->read("alpha_texture");
-                            if (alpha_texture)
-                                mat->attrib.m.alpha_texture = alpha_texture->read_bool() ? 1 : 0;
+                            msgpack* alpha_tex = attrib->read({ "alpha_tex", "alpha_texture" });
+                            if (alpha_tex)
+                                mat->attrib.m.alpha_tex = alpha_tex->read_bool() ? 1 : 0;
 
-                            msgpack* alpha_material = attrib->read("alpha_material");
-                            if (alpha_material)
-                                mat->attrib.m.alpha_material = alpha_material->read_bool() ? 1 : 0;
+                            msgpack* alpha_mat = attrib->read({ "alpha_mat", "alpha_material" });
+                            if (alpha_mat)
+                                mat->attrib.m.alpha_mat = alpha_mat->read_bool() ? 1 : 0;
 
                             msgpack* punch_through = attrib->read("punch_through");
                             if (punch_through)
@@ -10890,33 +10879,33 @@ static void x_pv_game_read_object_reflect(const char* path, const char* set_name
                             if (zbias)
                                 mat->attrib.m.zbias = zbias->read_uint32_t();
 
-                            msgpack* no_fog = attrib->read("no_fog");
-                            if (no_fog)
-                                mat->attrib.m.no_fog = no_fog->read_bool() ? 1 : 0;
+                            msgpack* no_z_fog = attrib->read({ "no_z_fog", "no_fog" });
+                            if (no_z_fog)
+                                mat->attrib.m.no_z_fog = no_z_fog->read_bool() ? 1 : 0;
 
-                            msgpack* translucent_priority = attrib->read("translucent_priority");
-                            if (translucent_priority)
-                                mat->attrib.m.translucent_priority = translucent_priority->read_uint32_t();
+                            msgpack* alpha_prio = attrib->read({ "alpha_prio", "translucent_priority" });
+                            if (alpha_prio)
+                                mat->attrib.m.alpha_prio = alpha_prio->read_uint32_t();
 
-                            msgpack* has_fog_height = attrib->read("has_fog_height");
-                            if (has_fog_height)
-                                mat->attrib.m.has_fog_height = has_fog_height->read_bool() ? 1 : 0;
+                            msgpack* y_fog = attrib->read({ "y_fog", "has_fog_height" });
+                            if (y_fog)
+                                mat->attrib.m.y_fog = y_fog->read_bool() ? 1 : 0;
 
-                            msgpack* flag_28 = attrib->read("flag_28");
-                            if (flag_28)
-                                mat->attrib.m.flag_28 = flag_28->read_bool() ? 1 : 0;
+                            msgpack* ignore_alpha = attrib->read({ "ignore_alpha", "flag_28" });
+                            if (ignore_alpha)
+                                mat->attrib.m.ignore_alpha = ignore_alpha->read_bool() ? 1 : 0;
 
-                            msgpack* fog_height = attrib->read("fog_height");
-                            if (fog_height)
-                                mat->attrib.m.fog_height = fog_height->read_bool() ? 1 : 0;
+                            msgpack* y_fogmap = attrib->read({ "y_fogmap", "fog_height" });
+                            if (y_fogmap)
+                                mat->attrib.m.y_fogmap = y_fogmap->read_bool() ? 1 : 0;
 
-                            msgpack* flag_30 = attrib->read("flag_30");
-                            if (flag_30)
-                                mat->attrib.m.flag_30 = flag_30->read_bool() ? 1 : 0;
+                            msgpack* use_mat_center = attrib->read({ "use_mat_center", "flag_30" });
+                            if (use_mat_center)
+                                mat->attrib.m.use_mat_center = use_mat_center->read_bool() ? 1 : 0;
 
-                            msgpack* flag_31 = attrib->read("flag_31");
-                            if (flag_31)
-                                mat->attrib.m.flag_31 = flag_31->read_bool() ? 1 : 0;
+                            msgpack* dummy = attrib->read({ "dummy", "flag_31" });
+                            if (dummy)
+                                mat->attrib.m.dummy = dummy->read_bool() ? 1 : 0;
                         }
 
                         msgpack* color = material.read("color");
@@ -11298,17 +11287,29 @@ static void x_pv_game_read_object_reflect(const char* path, const char* set_name
 
                                 msgpack* attrib = _sub_mesh.read("attrib");
                                 if (attrib) {
-                                    msgpack* recieve_shadow = attrib->read("recieve_shadow");
-                                    if (recieve_shadow)
-                                        sub_mesh_reflect.attrib.m.recieve_shadow = recieve_shadow->read_bool();
+                                    msgpack* receive_shadow = attrib->read({ "receive_shadow", "recieve_shadow" });
+                                    if (receive_shadow)
+                                        sub_mesh_reflect.attrib.m.receive_shadow = receive_shadow->read_bool();
 
                                     msgpack* cast_shadow = attrib->read("cast_shadow");
                                     if (cast_shadow)
                                         sub_mesh_reflect.attrib.m.cast_shadow = cast_shadow->read_bool();
 
-                                    msgpack* translucent = attrib->read("translucent");
-                                    if (translucent)
-                                        sub_mesh_reflect.attrib.m.translucent = translucent->read_bool();
+                                    msgpack* vertex_alpha = attrib->read({ "vertex_alpha", "translucent" });
+                                    if (vertex_alpha)
+                                        sub_mesh_reflect.attrib.m.vertex_alpha = vertex_alpha->read_bool();
+
+                                    msgpack* hide = attrib->read("hide");
+                                    if (hide)
+                                        sub_mesh.attrib.m.hide = hide->read_bool();
+
+                                    msgpack* poly_offset = attrib->read("poly_offset");
+                                    if (poly_offset)
+                                        sub_mesh.attrib.m.poly_offset = poly_offset->read_uint32_t();
+
+                                    msgpack* use_restart_index = attrib->read("use_restart_index");
+                                    if (hide)
+                                        sub_mesh.attrib.m.use_restart_index = hide->read_bool();
                                 }
                             }
                         }

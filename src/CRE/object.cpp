@@ -14,7 +14,7 @@
 #include "../KKdLib/str_utils.hpp"
 #include "prj/memory_manager.hpp"
 #include "data.hpp"
-#include "gl_state.hpp"
+#include "ogl_buffer_object.hpp"
 #include "render_context.hpp"
 #include "shader_ft.hpp"
 #include <list>
@@ -23,618 +23,79 @@
 #include <unordered_map>
 #include <vector>
 
-struct BufObjMgr {
-    int32_t vb_peak_size;
-    int32_t vb_all_size;
-    int32_t ib_peak_size;
-    int32_t ib_all_size;
-};
+static int32_t align_val_32(int32_t value); // Added
 
-static GLuint create_index_buffer(size_t size, const void* data);
-static GLuint create_vertex_buffer(size_t size, const void* data, GL::BufferUsage usage = GL::BUFFER_USAGE_STATIC);
-static void free_index_buffer(GLuint buffer);
-static void free_vertex_buffer(GLuint buffer);
+static void calc_aabb(obj_axis_aligned_bounding_box& aabb, obj_mesh& mesh, obj_sub_mesh& sub_mesh);
 
-static int32_t remove_degenerate_triangle_indices(
-    uint32_t* dst_index_array, const int32_t num_index, uint32_t* src_index_array);
+#if SHARED_OBJECT_BUFFER
+static void calc_index_buffer(obj_sub_mesh& sub_mesh, int32_t& size); // Added
 
-static void ObjsetInfo_calc_axis_aligned_bounding_box(ObjsetInfo* info);
-static void ObjsetInfo_get_obj_shader_index_texture_index(ObjsetInfo* info, obj* obj);
-static void ObjsetInfo_get_shader_index_texture_index(ObjsetInfo* info);
-static bool ObjsetInfo_index_buffer_load(ObjsetInfo* info);
-static void ObjsetInfo_index_buffer_free(ObjsetInfo* info);
-static bool ObjsetInfo_load_textures(ObjsetInfo* info, const void* data, bool big_endian);
-static bool ObjsetInfo_load_textures_modern(ObjsetInfo* info,
+static void calc_mesh_index_buffer(obj_mesh& mesh, int32_t& size); // Added
+static int32_t calc_mesh_vertex_buffer(obj_mesh& mesh); // Added
+
+static void calc_object_index_buffer(obj* obj, int32_t& size); // Added
+static void calc_object_vertex_buffer(obj* obj, int32_t& size); // Added
+#endif
+
+static void convert_objdata_tex_index(ObjsetInfo* info);
+static void convert_objdata_tex_index_internal(ObjsetInfo* info, obj* obj);
+
+static void create_mesh_aabb(obj_mesh& mesh);
+
+static void create_object_aabb(obj* obj);
+static bool create_object_index_buffer(ObjIB* objib, obj* obj);
+static bool create_object_vertex_buffer(ObjVB* objvb, obj* obj);
+#if SHARED_OBJECT_BUFFER
+inline bool create_object_vertex_buffer(ObjVB* objvb, obj* obj, GLuint in_vb, uint32_t& offset); // Added
+#endif
+
+static void create_objset_aabb(ObjsetInfo* info);
+
+static void fill_index_buffer(void* buf, obj_sub_mesh& sub_mesh, int32_t& offset); // Added
+
+static void fill_mesh_index_buffer(void* buf, obj_mesh& mesh, int32_t& offset); // Added
+static int32_t fill_mesh_vertex_buffer(void* buf, obj_mesh& mesh); // Added
+
+#if SHARED_OBJECT_BUFFER
+static void fill_object_index_buffer(void* buf, obj* obj, int32_t& offset); // Added
+static void fill_object_vertex_buffer(void* buf, obj* obj, int32_t& offset); // Added
+#endif
+
+static void free_objdata_indirect_table(ObjsetInfo* info);
+
+static void free_object_index_buffer(ObjIB* objib);
+static void free_object_vertex_buffer(ObjVB* objvb);
+
+static void free_objset_texture(ObjsetInfo* info);
+
+static bool load_objset_texture(ObjsetInfo* info, const void* data, bool big_endian = false);
+static bool load_objset_texture_modern(ObjsetInfo* info,
     const void* data, size_t size, const char* file, texture_database* tex_db);
-static void ObjsetInfo_vertex_array_load(ObjsetInfo* info);
-static bool ObjsetInfo_vertex_buffer_load(ObjsetInfo* info);
-static void ObjsetInfo_vertex_buffer_free(ObjsetInfo* info);
-static uint32_t obj_vertex_format_get_vertex_size(obj_vertex_format format);
-static uint32_t obj_vertex_format_get_vertex_size_comp1(obj_vertex_format format);
-static uint32_t obj_vertex_format_get_vertex_size_comp2(obj_vertex_format format);
+
+static void load_objset_vertex_array(ObjsetInfo* info); // Added
+
+static void make_objdata_indirect_table(ObjsetInfo* info);
+
+static int32_t rewrite_to_restart_index(uint32_t* new_indices,
+    const int32_t num_indices, const uint32_t* indices);
 
 std::map<uint32_t, ObjsetInfo> objset_info_storage_data;
 std::map<uint32_t, ObjsetInfo> objset_info_storage_data_modern;
 
-BufObjMgr bufobj_mgr;
-
-obj_mesh_index_buffer::obj_mesh_index_buffer() : buffer() {
-
-}
-
-bool obj_mesh_index_buffer::load(obj_mesh& mesh) {
-    size_t num_index = 0;
-    for (int32_t i = 0; i < mesh.num_submesh; i++)
-        num_index += mesh.submesh_array[i].num_index;
-
-    if (!num_index) {
-        buffer = 0;
-        return true;
-    }
-
-    uint16_t* indices = force_malloc<uint16_t>(num_index);
-    obj_mesh_index_buffer::fill_data(indices, mesh);
-
-    bool ret = load_data(num_index * sizeof(uint16_t), indices);
-    free_def(indices);
-    return ret;
-}
-
-bool obj_mesh_index_buffer::load_data(size_t size, const void* data) {
-    if (!size)
-        return false;
-
-    buffer = create_index_buffer(size, data);
-    return true;
-}
-
-void obj_mesh_index_buffer::unload() {
-    free_index_buffer(buffer);
-    buffer = 0;
-}
-
-void* obj_mesh_index_buffer::fill_data(void* data, obj_mesh& mesh) {
-    uint16_t* indices = (uint16_t*)data;
-    for (int32_t i = 0; i < mesh.num_submesh; i++) {
-        obj_sub_mesh& sub_mesh = mesh.submesh_array[i];
-
-        if (sub_mesh.primitive_type == OBJ_PRIMITIVE_TRIANGLE_STRIP && !(sub_mesh.attrib.w & 0x80)){
-            uint32_t* index_array = prj::MemoryManager::alloc<uint32_t>(prj::MemCTemp, sub_mesh.num_index, "NEW INDICES");
-            sub_mesh.num_index = remove_degenerate_triangle_indices(
-                index_array, sub_mesh.num_index, sub_mesh.index_array);
-            memmove(sub_mesh.index_array, index_array, sizeof(uint32_t) * sub_mesh.num_index);
-            prj::MemoryManager::free(prj::MemCTemp, index_array);
-        }
-
-        uint32_t* index = sub_mesh.index_array;
-        for (int32_t j = sub_mesh.num_index; j > 0; j--, index++)
-            *indices++ = (uint16_t)*index;
-    }
-
-    indices = (uint16_t*)data;
-    for (int32_t i = 0, offset = 0; i < mesh.num_submesh; i++) {
-        obj_sub_mesh& sub_mesh = mesh.submesh_array[i];
-
-        sub_mesh.first_index = 0;
-        sub_mesh.last_index = 0;
-        sub_mesh.index_offset = 0;
-        if (sub_mesh.index_format != OBJ_INDEX_U16)
-            continue;
-
-        uint16_t first_index = 0xFFFF;
-        uint16_t last_index = 0;
-        for (int32_t j = sub_mesh.num_index; j > 0; j--) {
-            uint16_t index = *indices++;
-            if (index == 0xFFFF)
-                continue;
-
-            if (first_index > index)
-                first_index = index;
-            if (last_index < index)
-                last_index = index;
-        }
-
-        sub_mesh.first_index = first_index;
-        sub_mesh.last_index = last_index;
-        sub_mesh.index_offset = (int32_t)(offset * sizeof(uint16_t));
-        offset += sub_mesh.num_index;
-    }
-    return (void*)indices;
-}
-
+ObjsetInfo::ObjsetInfo() : obj_ready(), tex_ready(), obj_set(), tex_num(), textures(),
+id(), objvb_num(), objvb(), objib_num(), objib(), req_cnt(), modern() {
 #if SHARED_OBJECT_BUFFER
-obj_mesh_vertex_buffer::obj_mesh_vertex_buffer() : count(), buffers(), size(), offset(), index() {
-#else
-obj_mesh_vertex_buffer::obj_mesh_vertex_buffer() : count(), buffers(), size(), index() {
+    ib = 0;
+    vb = 0;
 #endif
-
-}
-
-void obj_mesh_vertex_buffer::cycle_index() {
-    if (++index >= count)
-        index = 0;
-}
-
-GLuint obj_mesh_vertex_buffer::get_buffer() {
-    if (index < count)
-        return buffers[index];
-    return 0;
-}
-
-size_t obj_mesh_vertex_buffer::get_offset() {
-#if SHARED_OBJECT_BUFFER
-    if (buffers[0])
-        return offset;
-#endif
-    return 0;
-}
-
-GLsizeiptr obj_mesh_vertex_buffer::get_size() {
-    if (buffers[0])
-        return size;
-    return 0;
-}
-
-bool obj_mesh_vertex_buffer::load(obj_mesh& mesh, GL::BufferUsage usage) {
-    if (!mesh.num_vertex || !mesh.vertex_array)
-        return false;
-
-    uint32_t size_vertex;
-    switch (mesh.attrib.m.compression) {
-    case 0:
-    default:
-        size_vertex = obj_vertex_format_get_vertex_size(mesh.vertex_format);
-        break;
-    case 1:
-        size_vertex = obj_vertex_format_get_vertex_size_comp1(mesh.vertex_format);
-        break;
-    case 2:
-        size_vertex = obj_vertex_format_get_vertex_size_comp2(mesh.vertex_format);
-        break;
-    }
-
-    void* vertex = prj::MemoryManager::alloc(prj::MemCTemp, (size_t)size_vertex * mesh.num_vertex, "TMP_VTXBUF");
-    obj_mesh_vertex_buffer::fill_data(vertex, mesh);
-    mesh.size_vertex = size_vertex;
-
-    bool ret = load_data((size_t)size_vertex * mesh.num_vertex,
-        vertex, mesh.attrib.m.double_buffer ? 2 : 1, usage);
-    prj::MemoryManager::free(prj::MemCTemp, vertex);
-    return ret;
-}
-
-bool obj_mesh_vertex_buffer::load_data(size_t size, const void* data, int32_t count, GL::BufferUsage usage) {
-    if (!size || count > 3)
-        return false;
-
-    this->count = count;
-    this->size = (GLsizeiptr)size;
-#if SHARED_OBJECT_BUFFER
-    offset = 0;
-#endif
-
-    for (int32_t i = 0; i < count; i++) {
-        buffers[i] = create_vertex_buffer(size, data, usage);
-        if (!buffers[i]) {
-            unload();
-            return false;
-        }
-    }
-    return true;
-}
-
-void obj_mesh_vertex_buffer::unload() {
-    for (int32_t i = 0; i < count; i++) {
-        free_vertex_buffer(buffers[i]);
-        buffers[i] = 0;
-    }
-
-    count = 0;
-#if SHARED_OBJECT_BUFFER
-    offset = 0;
-#endif
-    size = 0;
-    index = 0;
-}
-
-void* obj_mesh_vertex_buffer::fill_data(void* data, obj_mesh& mesh) {
-    obj_vertex_format vertex_format = mesh.vertex_format;
-    obj_vertex_data* vtx = mesh.vertex_array;
-    int32_t num_vertex = mesh.num_vertex;
-    size_t d = (size_t)data;
-    switch (mesh.attrib.m.compression) {
-    case 0:
-    default:
-        for (int32_t i = num_vertex; i > 0; i--, vtx++) {
-            if (vertex_format & OBJ_VERTEX_POSITION) {
-                *(vec3*)d = vtx->position;
-                d += 12;
-            }
-
-            if (vertex_format & OBJ_VERTEX_NORMAL) {
-                *(vec3*)d = vtx->normal;
-                d += 12;
-            }
-
-            if (vertex_format & OBJ_VERTEX_TANGENT) {
-                *(vec4*)d = vtx->tangent;
-                d += 16;
-            }
-
-            if (vertex_format & OBJ_VERTEX_BINORMAL) {
-                *(vec3*)d = vtx->binormal;
-                d += 12;
-            }
-
-            if (vertex_format & OBJ_VERTEX_TEXCOORD0) {
-                *(vec2*)d = vtx->texcoord0;
-                d += 8;
-            }
-
-            if (vertex_format & OBJ_VERTEX_TEXCOORD1) {
-                *(vec2*)d = vtx->texcoord1;
-                d += 8;
-            }
-
-            if (vertex_format & OBJ_VERTEX_TEXCOORD2) {
-                *(vec2*)d = vtx->texcoord2;
-                d += 8;
-            }
-
-            if (vertex_format & OBJ_VERTEX_TEXCOORD3) {
-                *(vec2*)d = vtx->texcoord3;
-                d += 8;
-            }
-
-            if (vertex_format & OBJ_VERTEX_COLOR0) {
-                *(vec4*)d = vtx->color0;
-                d += 16;
-            }
-
-            if (vertex_format & OBJ_VERTEX_COLOR1) {
-                *(vec4*)d = vtx->color1;
-                d += 16;
-            }
-
-            if (vertex_format & OBJ_VERTEX_BONE_DATA) {
-                *(vec4*)d = vtx->bone_weight;
-                d += 16;
-                *(vec4i16*)d = vtx->bone_index;
-                d += 8;
-            }
-
-            if (vertex_format & OBJ_VERTEX_UNKNOWN) {
-                *(vec4*)d = vtx->unknown;
-                d += 16;
-            }
-        }
-        break;
-    case 1:
-        for (int32_t i = num_vertex; i > 0; i--, vtx++) {
-            if (vertex_format & OBJ_VERTEX_POSITION) {
-                *(vec3*)d = vtx->position;
-                d += 12;
-            }
-
-            if (vertex_format & OBJ_VERTEX_NORMAL) {
-                vec3_to_vec3i16(vtx->normal * 32767.0f, *(vec3i16*)d);
-                *(int16_t*)(d + 6) = 0;
-                d += 8;
-            }
-
-            if (vertex_format & OBJ_VERTEX_TANGENT) {
-                vec4_to_vec4i16(vtx->tangent * 32767.0f, *(vec4i16*)d);
-                d += 8;
-            }
-
-            if (vertex_format & OBJ_VERTEX_TEXCOORD0) {
-                vec2_to_vec2h(vtx->texcoord0, *(vec2h*)d);
-                d += 4;
-            }
-
-            if (vertex_format & OBJ_VERTEX_TEXCOORD1) {
-                vec2_to_vec2h(vtx->texcoord1, *(vec2h*)d);
-                d += 4;
-            }
-
-            if (vertex_format & OBJ_VERTEX_TEXCOORD2) {
-                vec2_to_vec2h(vtx->texcoord2, *(vec2h*)d);
-                d += 4;
-            }
-
-            if (vertex_format & OBJ_VERTEX_TEXCOORD3) {
-                vec2_to_vec2h(vtx->texcoord3, *(vec2h*)d);
-                d += 4;
-            }
-
-            if (vertex_format & OBJ_VERTEX_COLOR0) {
-                vec4_to_vec4h(vtx->color0, *(vec4h*)d);
-                d += 8;
-            }
-
-            if (vertex_format & OBJ_VERTEX_BONE_DATA) {
-                vec4_to_vec4u16(vtx->bone_weight * 65535.0f, *(vec4u16*)d);
-                d += 8;
-
-                *(vec4i16*)d = vtx->bone_index;
-                d += 8;
-            }
-        }
-        break;
-    case 2:
-        for (int32_t i = num_vertex; i > 0; i--, vtx++) {
-            if (vertex_format & OBJ_VERTEX_POSITION) {
-                *(vec3*)d = vtx->position;
-                d += 12;
-            }
-
-            if (vertex_format & OBJ_VERTEX_NORMAL) {
-                vec3i16 normal_int;
-                vec3_to_vec3i16(vtx->normal * 511.0f, normal_int);
-                *(uint32_t*)d = (((uint32_t)0 & 0x03) << 30)
-                    | (((uint32_t)normal_int.z & 0x3FF) << 20)
-                    | (((uint32_t)normal_int.y & 0x3FF) << 10)
-                    | ((uint32_t)normal_int.x & 0x3FF);
-                d += 4;
-            }
-
-            if (vertex_format & OBJ_VERTEX_TANGENT) {
-                vec4i16 tangent_int;
-                vec4_to_vec4i16(vtx->tangent * 511.0f, tangent_int);
-                *(uint32_t*)d = (((uint32_t)clamp_def(tangent_int.w, -1, 1) & 0x03) << 30)
-                    | (((uint32_t)tangent_int.z & 0x3FF) << 20)
-                    | (((uint32_t)tangent_int.y & 0x3FF) << 10)
-                    | ((uint32_t)tangent_int.x & 0x3FF);
-                d += 4;
-            }
-
-            if (vertex_format & OBJ_VERTEX_TEXCOORD0) {
-                vec2_to_vec2h(vtx->texcoord0, *(vec2h*)d);
-                d += 4;
-            }
-
-            if (vertex_format & OBJ_VERTEX_TEXCOORD1) {
-                vec2_to_vec2h(vtx->texcoord1, *(vec2h*)d);
-                d += 4;
-            }
-
-            if (vertex_format & OBJ_VERTEX_TEXCOORD2) {
-                vec2_to_vec2h(vtx->texcoord2, *(vec2h*)d);
-                d += 4;
-            }
-
-            if (vertex_format & OBJ_VERTEX_TEXCOORD3) {
-                vec2_to_vec2h(vtx->texcoord3, *(vec2h*)d);
-                d += 4;
-            }
-
-            if (vertex_format & OBJ_VERTEX_COLOR0) {
-                vec4_to_vec4h(vtx->color0, *(vec4h*)d);
-                d += 8;
-            }
-
-            if (vertex_format & OBJ_VERTEX_BONE_DATA) {
-                vec4i16 bone_weight_int;
-                vec4_to_vec4i16(vtx->bone_weight * 1023.0f, bone_weight_int);
-                *(uint32_t*)d = (((uint32_t)0 & 0x03) << 30)
-                    | (((uint32_t)bone_weight_int.z & 0x3FF) << 20)
-                    | (((uint32_t)bone_weight_int.y & 0x3FF) << 10)
-                    | ((uint32_t)bone_weight_int.x & 0x3FF);
-                d += 4;
-
-                vec4i bone_index;
-                vec4i16_to_vec4i(vtx->bone_index, bone_index);
-                vec4i_to_vec4u8(bone_index, *(vec4u8*)d);
-                d += 4;
-            }
-        }
-        break;
-    }
-    return (void*)d;
-}
-
-#if SHARED_OBJECT_BUFFER
-obj_index_buffer::obj_index_buffer() : mesh_num(), mesh_data(), buffer() {
-#else
-obj_index_buffer::obj_index_buffer() : mesh_num(), mesh_data() {
-#endif
-
-}
-
-bool obj_index_buffer::load(obj* obj) {
-    if (!obj)
-        return false;
-
-    mesh_num = obj->num_mesh;
-    mesh_data = prj::MemoryManager::alloc<obj_mesh_index_buffer>(prj::MemCSystem, obj->num_mesh, "MESHIB");
-    if (!mesh_data)
-        return false;
-
-#if SHARED_OBJECT_BUFFER
-    size_t buffer_size = 0;
-    for (int32_t i = 0; i < mesh_num; i++) {
-        obj_mesh& mesh = obj->mesh_array[i];
-        size_t num_index = 0;
-        for (int32_t j = 0; j < mesh.num_submesh; j++)
-            num_index += mesh.submesh_array[j].num_index;
-        buffer_size += num_index * sizeof(uint16_t);
-    }
-
-    void* index = force_malloc(buffer_size);
-    if (!index && buffer_size) {
-        buffer = 0;
-        unload();
-        return false;
-    }
-
-    void* data = index;
-    for (int32_t i = 0; i < mesh_num; i++) {
-        uint32_t offset = (uint32_t)((size_t)data - (size_t)index);
-        data = obj_mesh_index_buffer::fill_data(data, obj->mesh_array[i]);
-
-        obj_mesh& mesh = obj->mesh_array[i];
-        for (int32_t j = 0; j < mesh.num_submesh; j++)
-            mesh.submesh_array[j].index_offset += offset;
-    }
-
-    buffer = create_index_buffer(buffer_size, index);
-    if (!buffer && buffer_size) {
-        free_def(index);
-        unload();
-        return false;
-    }
-
-    free_def(index);
-
-    for (int32_t i = 0; i < mesh_num; i++)
-        mesh_data[i].buffer = buffer;
-#else
-    for (int32_t i = 0; i < mesh_num; i++)
-        if (!mesh_data[i].load(obj->mesh_array[i]))
-            return false;
-#endif
-    return true;
-}
-
-void obj_index_buffer::unload() {
-    if (mesh_data) {
-#if SHARED_OBJECT_BUFFER
-        free_index_buffer(buffer);
-        buffer = 0;
-#else
-        for (int32_t i = 0; i < mesh_num; i++)
-            mesh_data[i].unload();
-#endif
-        prj::MemoryManager::free(prj::MemCSystem, mesh_data);
-    }
-    mesh_data = 0;
-    mesh_num = 0;
-#if SHARED_OBJECT_BUFFER
-    buffer = 0;
-#endif
-}
-
-#if SHARED_OBJECT_BUFFER
-obj_vertex_buffer::obj_vertex_buffer() : mesh_num(), mesh_data(), buffers() {
-#else
-obj_vertex_buffer::obj_vertex_buffer() : mesh_num(), mesh_data() {
-#endif
-
-}
-
-bool obj_vertex_buffer::load(obj* obj) {
-    if (!obj)
-        return false;
-
-    mesh_num = obj->num_mesh;
-    mesh_data = new obj_mesh_vertex_buffer[obj->num_mesh];
-    if (!mesh_data)
-        return false;
-
-#if SHARED_OBJECT_BUFFER
-    size_t buffer_size = 0;
-    bool double_buffer = false;
-    for (int32_t i = 0; i < mesh_num; i++) {
-        obj_mesh& mesh = obj->mesh_array[i];
-        if (!mesh.num_vertex || !mesh.vertex_array)
-            continue;
-
-        uint32_t size_vertex;
-        switch (mesh.attrib.m.compression) {
-        case 0:
-        default:
-            size_vertex = obj_vertex_format_get_vertex_size(mesh.vertex_format);
-            break;
-        case 1:
-            size_vertex = obj_vertex_format_get_vertex_size_comp1(mesh.vertex_format);
-            break;
-        case 2:
-            size_vertex = obj_vertex_format_get_vertex_size_comp2(mesh.vertex_format);
-            break;
-        }
-        mesh.size_vertex = size_vertex;
-
-        buffer_size += (size_t)size_vertex * mesh.num_vertex;
-        double_buffer |= !!mesh.attrib.m.double_buffer;
-    }
-
-    int32_t count = double_buffer ? 2 : 1;
-
-    void* vertex = prj::MemoryManager::alloc(prj::MemCTemp, buffer_size, "TMP_VTXBUF");
-    if (!vertex && buffer_size) {
-        for (int32_t i = 0; i < count; i++)
-            buffers[i] = 0;
-        unload();
-        return false;
-    }
-
-    void* data = vertex;
-    for (int32_t i = 0; i < mesh_num; i++) {
-        obj_mesh_vertex_buffer& mesh_buffer = mesh_data[i];
-        mesh_buffer.offset = (size_t)data - (size_t)vertex;
-        mesh_buffer.count = count;
-        mesh_buffer.size = (GLsizeiptr)buffer_size;
-
-        data = obj_mesh_vertex_buffer::fill_data(data, obj->mesh_array[i]);
-    }
-
-    for (int32_t i = 0; i < count; i++) {
-        buffers[i] = create_vertex_buffer(buffer_size, vertex);
-        if (!buffers[i] && buffer_size) {
-            prj::MemoryManager::free(prj::MemCTemp, vertex);
-            unload();
-            return false;
-        }
-    }
-
-    prj::MemoryManager::free(prj::MemCTemp, vertex);
-
-    for (int32_t i = 0; i < mesh_num; i++)
-        memcpy(mesh_data[i].buffers, buffers, count * sizeof(GLuint));
-#else
-    for (int32_t i = 0; i < mesh_num; i++)
-        if (!mesh_data[i].load(obj->mesh_array[i]))
-            return false;
-#endif
-    return true;
-}
-
-void obj_vertex_buffer::unload() {
-    if (mesh_data) {
-#if SHARED_OBJECT_BUFFER
-        if (mesh_num)
-            for (int32_t i = 0; i < mesh_data[0].count; i++)
-                free_vertex_buffer(buffers[i]);
-        else
-            for (int32_t i = 0; i < 3; i++)
-                free_vertex_buffer(buffers[i]);
-#else
-        for (int32_t i = 0; i < mesh_num; i++)
-            mesh_data[i].unload();
-#endif
-        delete[] mesh_data;
-    }
-    mesh_data = 0;
-    mesh_num = 0;
-#if SHARED_OBJECT_BUFFER
-    buffers[0] = 0;
-#endif
-}
-
-ObjsetInfo::ObjsetInfo() : obj_loaded(), tex_loaded(), obj_set(),
-tex_num(), tex_data(), set_id(), objvb_num(), objvb(),
-objib_num(), objib(), load_count(), modern() {
-
 }
 
 ObjsetInfo::~ObjsetInfo() {
-    if (tex_data) {
-        texture_array_free(tex_data);
-        tex_data = 0;
-    }
+    free_objdata_indirect_table(this);
+    free_objset_texture(this);
+    free_objset_index_buffer(this);
+    free_objset_vertex_buffer(this);
 
-    ObjsetInfo_index_buffer_free(this);
-    ObjsetInfo_vertex_buffer_free(this);
     alloc_handler.reset();
     while (tex_file_handler.ptr && tex_file_handler.ptr->count)
         tex_file_handler.reset();
@@ -683,6 +144,7 @@ inline int32_t obj_material_texture_type_get_texture_index(
     return -1;
 }
 
+// 0x1405E9250
 void obj_skin_set_matrix_buffer(const obj_skin* s, const mat4* matrices,
     const mat4* ex_data_matrices, mat4* matrix_buffer, const mat4* mat, const mat4& global_mat) {
     if (!s->num_bone)
@@ -778,23 +240,73 @@ void object_material_msgpack_read(const char* path, const char* set_name,
 
                         msgpack* shader_compo = material.read("shader_compo");
                         if (shader_compo) {
-                            mat.shader_compo.m.color = shader_compo->read_bool("color") ? 1 : 0;
-                            mat.shader_compo.m.color_a = shader_compo->read_bool("color_a") ? 1 : 0;
-                            mat.shader_compo.m.color_l1 = shader_compo->read_bool("color_l1") ? 1 : 0;
-                            mat.shader_compo.m.color_l1_a = shader_compo->read_bool("color_l1_a") ? 1 : 0;
-                            mat.shader_compo.m.color_l2 = shader_compo->read_bool("color_l2") ? 1 : 0;
-                            mat.shader_compo.m.color_l2_a = shader_compo->read_bool("color_l2_a") ? 1 : 0;
-                            mat.shader_compo.m.transparency = shader_compo->read_bool("transparency") ? 1 : 0;
-                            mat.shader_compo.m.specular = shader_compo->read_bool("specular") ? 1 : 0;
-                            mat.shader_compo.m.normal_01 = shader_compo->read_bool("normal_01") ? 1 : 0;
-                            mat.shader_compo.m.normal_02 = shader_compo->read_bool("normal_02") ? 1 : 0;
-                            mat.shader_compo.m.envmap = shader_compo->read_bool("envmap") ? 1 : 0;
-                            mat.shader_compo.m.color_l3 = shader_compo->read_bool("color_l3") ? 1 : 0;
-                            mat.shader_compo.m.color_l3_a = shader_compo->read_bool("color_l3_a") ? 1 : 0;
-                            mat.shader_compo.m.translucency = shader_compo->read_bool("translucency") ? 1 : 0;
-                            mat.shader_compo.m.flag_14 = shader_compo->read_bool("flag_14") ? 1 : 0;
-                            mat.shader_compo.m.override_ibl = shader_compo->read_bool("override_ibl") ? 1 : 0;
-                            mat.shader_compo.m.dummy = shader_compo->read_uint32_t("dummy");
+                            msgpack* color = shader_compo->read("color");
+                            if (color)
+                                mat.shader_compo.m.color = color->read_bool() ? 1 : 0;
+
+                            msgpack* color_a = shader_compo->read("color_a");
+                            if (color_a)
+                                mat.shader_compo.m.color_a = color_a->read_bool() ? 1 : 0;
+
+                            msgpack* color_l1 = shader_compo->read("color_l1");
+                            if (color_l1)
+                                mat.shader_compo.m.color_l1 = color_l1->read_bool() ? 1 : 0;
+
+                            msgpack* color_l1_a = shader_compo->read("color_l1_a");
+                            if (color_l1_a)
+                                mat.shader_compo.m.color_l1_a = color_l1_a->read_bool() ? 1 : 0;
+
+                            msgpack* color_l2 = shader_compo->read("color_l2");
+                            if (color_l2)
+                                mat.shader_compo.m.color_l2 = color_l2->read_bool() ? 1 : 0;
+
+                            msgpack* color_l2_a = shader_compo->read("color_l2_a");
+                            if (color_l2_a)
+                                mat.shader_compo.m.color_l2_a = color_l2_a->read_bool() ? 1 : 0;
+
+                            msgpack* transparency = shader_compo->read("transparency");
+                            if (transparency)
+                                mat.shader_compo.m.transparency = transparency->read_bool() ? 1 : 0;
+
+                            msgpack* specular = shader_compo->read("specular");
+                            if (specular)
+                                mat.shader_compo.m.specular = specular->read_bool() ? 1 : 0;
+
+                            msgpack* normal_01 = shader_compo->read("normal_01");
+                            if (normal_01)
+                                mat.shader_compo.m.normal_01 = normal_01->read_bool() ? 1 : 0;
+
+                            msgpack* normal_02 = shader_compo->read("normal_02");
+                            if (normal_02)
+                                mat.shader_compo.m.normal_02 = normal_02->read_bool() ? 1 : 0;
+
+                            msgpack* envmap = shader_compo->read("envmap");
+                            if (envmap)
+                                mat.shader_compo.m.envmap = envmap->read_bool() ? 1 : 0;
+
+                            msgpack* color_l3 = shader_compo->read("color_l3");
+                            if (color_l3)
+                                mat.shader_compo.m.color_l3 = color_l3->read_bool() ? 1 : 0;
+
+                            msgpack* color_l3_a = shader_compo->read("color_l3_a");
+                            if (color_l3_a)
+                                mat.shader_compo.m.color_l3_a = color_l3_a->read_bool() ? 1 : 0;
+
+                            msgpack* translucency = shader_compo->read("translucency");
+                            if (translucency)
+                                mat.shader_compo.m.translucency = translucency->read_bool() ? 1 : 0;
+
+                            msgpack* env_sphere = shader_compo->read({ "env_sphere", "flag_14" });
+                            if (env_sphere)
+                                mat.shader_compo.m.env_sphere = env_sphere->read_bool() ? 1 : 0;
+
+                            msgpack* env_cube = shader_compo->read({ "env_cube", "override_ibl" });
+                            if (env_cube)
+                                mat.shader_compo.m.env_cube = env_cube->read_bool() ? 1 : 0;
+
+                            msgpack* dummy = shader_compo->read("dummy");
+                            if (dummy)
+                                mat.shader_compo.m.dummy = dummy->read_uint32_t();
                         }
 
                         msgpack* _shader_name = material.read("shader_name");
@@ -807,24 +319,66 @@ void object_material_msgpack_read(const char* path, const char* set_name,
 
                         msgpack* shader_info = material.read("shader_info");
                         if (shader_info) {
-                            mat.shader_info.m.vtx_trans_type = (obj_material_vertex_translation_type)
-                                shader_info->read_uint32_t("vtx_trans_type");
-                            mat.shader_info.m.col_src = (obj_material_color_source_type)shader_info->read_uint32_t("col_src");
-                            mat.shader_info.m.is_lgt_diffuse = shader_info->read_bool("is_lgt_diffuse") ? 1 : 0;
-                            mat.shader_info.m.is_lgt_specular = shader_info->read_bool("is_lgt_specular") ? 1 : 0;
-                            mat.shader_info.m.is_lgt_per_pixel = shader_info->read_bool("is_lgt_per_pixel") ? 1 : 0;
-                            mat.shader_info.m.is_lgt_double = shader_info->read_bool("is_lgt_double") ? 1 : 0;
-                            mat.shader_info.m.bump_map_type = (obj_material_bump_map_type)
-                                shader_info->read_uint32_t("bump_map_type");
-                            mat.shader_info.m.fresnel_type = shader_info->read_uint32_t("fresnel_type");
-                            mat.shader_info.m.line_light = shader_info->read_uint32_t("line_light");
-                            mat.shader_info.m.recieve_shadow = shader_info->read_bool("recieve_shadow") ? 1 : 0;
-                            mat.shader_info.m.cast_shadow = shader_info->read_bool("cast_shadow") ? 1 : 0;
-                            mat.shader_info.m.specular_quality = (obj_material_specular_quality)
-                                shader_info->read_uint32_t("specular_quality");
-                            mat.shader_info.m.aniso_direction = (obj_material_aniso_direction)
-                                shader_info->read_uint32_t("aniso_direction");
-                            mat.shader_info.m.dummy = shader_info->read_uint32_t("dummy");
+                            msgpack* vtx_trans_type = shader_info->read("vtx_trans_type");
+                            if (vtx_trans_type)
+                                mat.shader_info.m.vtx_trans_type = (obj_material_vertex_translation_type)
+                                vtx_trans_type->read_uint32_t();
+
+                            msgpack* col_src = shader_info->read("col_src");
+                            if (col_src)
+                                mat.shader_info.m.col_src
+                                = (obj_material_color_source_type)col_src->read_uint32_t("col_src");
+
+                            msgpack* is_lgt_diffuse = shader_info->read("is_lgt_diffuse");
+                            if (is_lgt_diffuse)
+                                mat.shader_info.m.is_lgt_diffuse = is_lgt_diffuse->read_bool() ? 1 : 0;
+
+                            msgpack* is_lgt_specular = shader_info->read("is_lgt_specular");
+                            if (is_lgt_specular)
+                                mat.shader_info.m.is_lgt_specular = is_lgt_specular->read_bool() ? 1 : 0;
+
+                            msgpack* is_lgt_per_pixel = shader_info->read("is_lgt_per_pixel");
+                            if (is_lgt_per_pixel)
+                                mat.shader_info.m.is_lgt_per_pixel = is_lgt_per_pixel->read_bool() ? 1 : 0;
+
+                            msgpack* is_lgt_double = shader_info->read("is_lgt_double");
+                            if (is_lgt_double)
+                                mat.shader_info.m.is_lgt_double = is_lgt_double->read_bool() ? 1 : 0;
+
+                            msgpack* bump_map_type = shader_info->read("bump_map_type");
+                            if (bump_map_type)
+                                mat.shader_info.m.bump_map_type = (obj_material_bump_map_type)
+                                bump_map_type->read_uint32_t();
+
+                            msgpack* fresnel_type = shader_info->read("fresnel_type");
+                            if (fresnel_type)
+                                mat.shader_info.m.fresnel_type = fresnel_type->read_uint32_t();
+
+                            msgpack* line_light = shader_info->read("line_light");
+                            if (line_light)
+                                mat.shader_info.m.line_light = line_light->read_uint32_t();
+
+                            msgpack* receive_shadow = shader_info->read({ "receive_shadow", "recieve_shadow" });
+                            if (receive_shadow)
+                                mat.shader_info.m.receive_shadow = receive_shadow->read_bool() ? 1 : 0;
+
+                            msgpack* cast_shadow = shader_info->read("cast_shadow");
+                            if (cast_shadow)
+                                mat.shader_info.m.cast_shadow = cast_shadow->read_bool() ? 1 : 0;
+
+                            msgpack* specular_quality = shader_info->read("specular_quality");
+                            if (specular_quality)
+                                mat.shader_info.m.specular_quality = (obj_material_specular_quality)
+                                specular_quality->read_uint32_t();
+
+                            msgpack* aniso_direction = shader_info->read("aniso_direction");
+                            if (aniso_direction)
+                                mat.shader_info.m.aniso_direction = (obj_material_aniso_direction)
+                                aniso_direction->read_uint32_t();
+
+                            msgpack* dummy = shader_info->read("dummy");
+                            if (dummy)
+                                mat.shader_info.m.dummy = dummy->read_uint32_t();
                         }
 
                         int32_t num_of_textures = 0;
@@ -840,20 +394,61 @@ void object_material_msgpack_read(const char* path, const char* set_name,
 
                                 msgpack* attrib = tex->read("attrib");
                                 if (attrib) {
-                                    l.attrib.m.repeat_u = attrib->read_bool("repeat_u") ? 1 : 0;
-                                    l.attrib.m.repeat_v = attrib->read_bool("repeat_v") ? 1 : 0;
-                                    l.attrib.m.mirror_u = attrib->read_bool("mirror_u") ? 1 : 0;
-                                    l.attrib.m.mirror_v = attrib->read_bool("mirror_v") ? 1 : 0;
-                                    l.attrib.m.ignore_alpha = attrib->read_bool("ignore_alpha") ? 1 : 0;
-                                    l.attrib.m.blend = attrib->read_uint32_t("blend");
-                                    l.attrib.m.alpha_blend = attrib->read_uint32_t("alpha_blend");
-                                    l.attrib.m.border = attrib->read_bool("border") ? 1 : 0;
-                                    l.attrib.m.clamp2edge = attrib->read_bool("clamp2edge") ? 1 : 0;
-                                    l.attrib.m.filter = attrib->read_uint32_t("filter");
-                                    l.attrib.m.mipmap = attrib->read_uint32_t("mipmap");
-                                    l.attrib.m.mipmap_bias = attrib->read_uint32_t("mipmap_bias");
-                                    l.attrib.m.flag_29 = attrib->read_bool("flag_29") ? 1 : 0;
-                                    l.attrib.m.anisotropic_filter = attrib->read_uint32_t("anisotropic_filter");
+                                    msgpack* repeat_u = attrib->read("repeat_u");
+                                    if (repeat_u)
+                                        l.attrib.m.repeat_u = repeat_u->read_bool() ? 1 : 0;
+
+                                    msgpack* repeat_v = attrib->read("repeat_v");
+                                    if (repeat_v)
+                                        l.attrib.m.repeat_v = repeat_v->read_bool() ? 1 : 0;
+
+                                    msgpack* mirror_u = attrib->read("mirror_u");
+                                    if (mirror_u)
+                                        l.attrib.m.mirror_u = mirror_u->read_bool() ? 1 : 0;
+
+                                    msgpack* mirror_v = attrib->read("mirror_v");
+                                    if (mirror_v)
+                                        l.attrib.m.mirror_v = mirror_v->read_bool() ? 1 : 0;
+
+                                    msgpack* ignore_alpha = attrib->read("ignore_alpha");
+                                    if (ignore_alpha)
+                                        l.attrib.m.ignore_alpha = ignore_alpha->read_bool() ? 1 : 0;
+
+                                    msgpack* blend = attrib->read("blend");
+                                    if (blend)
+                                        l.attrib.m.blend = blend->read_uint32_t();
+
+                                    msgpack* alpha_blend = attrib->read("alpha_blend");
+                                    if (alpha_blend)
+                                        l.attrib.m.alpha_blend = alpha_blend->read_uint32_t();
+
+                                    msgpack* border = attrib->read("border");
+                                    if (border)
+                                        l.attrib.m.border = border->read_bool() ? 1 : 0;
+
+                                    msgpack* clamp2edge = attrib->read("clamp2edge");
+                                    if (clamp2edge)
+                                        l.attrib.m.clamp2edge = clamp2edge->read_bool() ? 1 : 0;
+
+                                    msgpack* filter = attrib->read("filter");
+                                    if (filter)
+                                        l.attrib.m.filter = filter->read_uint32_t();
+
+                                    msgpack* mipmap = attrib->read("mipmap");
+                                    if (mipmap)
+                                        l.attrib.m.mipmap = mipmap->read_uint32_t();
+
+                                    msgpack* mipmap_bias = attrib->read("mipmap_bias");
+                                    if (mipmap_bias)
+                                        l.attrib.m.mipmap_bias = mipmap_bias->read_uint32_t();
+
+                                    msgpack* ignore = attrib->read({ "ignore", "flag_29" });
+                                    if (ignore)
+                                        l.attrib.m.ignore = ignore->read_bool() ? 1 : 0;
+
+                                    msgpack* aniso = attrib->read({ "aniso", "anisotropic_filter" });
+                                    if (aniso)
+                                        l.attrib.m.aniso = aniso->read_uint32_t();
                                 }
 
                                 msgpack* _tex_name = tex->read("tex_name");
@@ -939,24 +534,72 @@ void object_material_msgpack_read(const char* path, const char* set_name,
 
                         msgpack* attrib = material.read("attrib");
                         if (attrib) {
-                            mat.attrib.m.alpha_texture = attrib->read_bool("alpha_texture") ? 1 : 0;
-                            mat.attrib.m.alpha_material = attrib->read_bool("alpha_material") ? 1 : 0;
-                            mat.attrib.m.punch_through = attrib->read_bool("punch_through") ? 1 : 0;
-                            mat.attrib.m.double_sided = attrib->read_bool("double_sided") ? 1 : 0;
-                            mat.attrib.m.normal_dir_light = attrib->read_bool("normal_dir_light") ? 1 : 0;
-                            mat.attrib.m.src_blend_factor = (obj_material_blend_factor)
-                                attrib->read_uint32_t("src_blend_factor");
-                            mat.attrib.m.dst_blend_factor = (obj_material_blend_factor)
-                                attrib->read_uint32_t("dst_blend_factor");
-                            mat.attrib.m.blend_operation = attrib->read_uint32_t("blend_operation");
-                            mat.attrib.m.zbias = attrib->read_uint32_t("zbias");
-                            mat.attrib.m.no_fog = attrib->read_bool("no_fog") ? 1 : 0;
-                            mat.attrib.m.translucent_priority = attrib->read_uint32_t("translucent_priority");
-                            mat.attrib.m.has_fog_height = attrib->read_bool("has_fog_height") ? 1 : 0;
-                            mat.attrib.m.flag_28 = attrib->read_bool("flag_28") ? 1 : 0;
-                            mat.attrib.m.fog_height = attrib->read_bool("fog_height") ? 1 : 0;
-                            mat.attrib.m.flag_30 = attrib->read_bool("flag_30") ? 1 : 0;
-                            mat.attrib.m.flag_31 = attrib->read_bool("flag_31") ? 1 : 0;
+
+                            msgpack* alpha_tex = attrib->read({ "alpha_tex", "alpha_texture" });
+                            if (alpha_tex)
+                                mat.attrib.m.alpha_tex = alpha_tex->read_bool() ? 1 : 0;
+
+                            msgpack* alpha_mat = attrib->read({ "alpha_mat", "alpha_material" });
+                            if (alpha_mat)
+                                mat.attrib.m.alpha_mat = alpha_mat->read_bool() ? 1 : 0;
+
+                            msgpack* punch_through = attrib->read("punch_through");
+                            if (punch_through)
+                                mat.attrib.m.punch_through = punch_through->read_bool() ? 1 : 0;
+
+                            msgpack* double_sided = attrib->read("double_sided");
+                            if (double_sided)
+                                mat.attrib.m.double_sided = double_sided->read_bool() ? 1 : 0;
+
+                            msgpack* normal_dir_light = attrib->read("normal_dir_light");
+                            if (normal_dir_light)
+                                mat.attrib.m.normal_dir_light = normal_dir_light->read_bool() ? 1 : 0;
+
+                            msgpack* src_blend_factor = attrib->read("src_blend_factor");
+                            if (src_blend_factor)
+                                mat.attrib.m.src_blend_factor = (obj_material_blend_factor)
+                                src_blend_factor->read_uint32_t();
+
+                            msgpack* dst_blend_factor = attrib->read("dst_blend_factor");
+                            if (dst_blend_factor)
+                                mat.attrib.m.dst_blend_factor = (obj_material_blend_factor)
+                                dst_blend_factor->read_uint32_t();
+
+                            msgpack* blend_operation = attrib->read("blend_operation");
+                            if (blend_operation)
+                                mat.attrib.m.blend_operation = blend_operation->read_uint32_t();
+
+                            msgpack* zbias = attrib->read("zbias");
+                            if (zbias)
+                                mat.attrib.m.zbias = zbias->read_uint32_t();
+
+                            msgpack* no_z_fog = attrib->read({ "no_z_fog", "no_fog" });
+                            if (no_z_fog)
+                                mat.attrib.m.no_z_fog = no_z_fog->read_bool() ? 1 : 0;
+
+                            msgpack* alpha_prio = attrib->read({ "alpha_prio", "translucent_priority" });
+                            if (alpha_prio)
+                                mat.attrib.m.alpha_prio = alpha_prio->read_uint32_t();
+
+                            msgpack* y_fog = attrib->read({ "y_fog", "has_fog_height" });
+                            if (y_fog)
+                                mat.attrib.m.y_fog = y_fog->read_bool() ? 1 : 0;
+
+                            msgpack* ignore_alpha = attrib->read({ "ignore_alpha", "flag_28" });
+                            if (ignore_alpha)
+                                mat.attrib.m.ignore_alpha = ignore_alpha->read_bool() ? 1 : 0;
+
+                            msgpack* y_fogmap = attrib->read({ "y_fogmap", "fog_height" });
+                            if (y_fogmap)
+                                mat.attrib.m.y_fogmap = y_fogmap->read_bool() ? 1 : 0;
+
+                            msgpack* use_mat_center = attrib->read({ "use_mat_center", "flag_30" });
+                            if (use_mat_center)
+                                mat.attrib.m.use_mat_center = use_mat_center->read_bool() ? 1 : 0;
+
+                            msgpack* dummy = attrib->read({ "dummy", "flag_31" });
+                            if (dummy)
+                                mat.attrib.m.dummy = dummy->read_bool() ? 1 : 0;
                         }
 
                         msgpack* color = material.read("color");
@@ -1170,17 +813,29 @@ void object_material_msgpack_read(const char* path, const char* set_name,
 
                             msgpack* attrib = _sub_mesh.read("attrib");
                             if (attrib) {
-                                msgpack* recieve_shadow = attrib->read("recieve_shadow");
-                                if (recieve_shadow)
-                                    sub_mesh.attrib.m.recieve_shadow = recieve_shadow->read_bool();
+                                msgpack* receive_shadow = attrib->read({ "receive_shadow", "recieve_shadow" });
+                                if (receive_shadow)
+                                    sub_mesh.attrib.m.receive_shadow = receive_shadow->read_bool();
 
                                 msgpack* cast_shadow = attrib->read("cast_shadow");
                                 if (cast_shadow)
                                     sub_mesh.attrib.m.cast_shadow = cast_shadow->read_bool();
 
-                                msgpack* translucent = attrib->read("translucent");
-                                if (translucent)
-                                    sub_mesh.attrib.m.translucent = translucent->read_bool();
+                                msgpack* vertex_alpha = attrib->read({ "vertex_alpha", "translucent" });
+                                if (vertex_alpha)
+                                    sub_mesh.attrib.m.vertex_alpha = vertex_alpha->read_bool();
+
+                                msgpack* hide = attrib->read("hide");
+                                if (hide)
+                                    sub_mesh.attrib.m.hide = hide->read_bool();
+
+                                msgpack* poly_offset = attrib->read("poly_offset");
+                                if (poly_offset)
+                                    sub_mesh.attrib.m.poly_offset = poly_offset->read_uint32_t();
+
+                                msgpack* use_restart_index = attrib->read("use_restart_index");
+                                if (hide)
+                                    sub_mesh.attrib.m.use_restart_index = hide->read_bool();
                             }
                         }
                         break;
@@ -1398,8 +1053,8 @@ void object_material_msgpack_write(const char* path, const char* set_name, uint3
                     shader_compo->append("color_l3", (bool)mat.shader_compo.m.color_l3);
                     shader_compo->append("color_l3_a", (bool)mat.shader_compo.m.color_l3_a);
                     shader_compo->append("translucency", (bool)mat.shader_compo.m.translucency);
-                    shader_compo->append("flag_14", (bool)mat.shader_compo.m.flag_14);
-                    shader_compo->append("override_ibl", (bool)mat.shader_compo.m.override_ibl);
+                    shader_compo->append("env_sphere", (bool)mat.shader_compo.m.env_sphere);
+                    shader_compo->append("env_cube", (bool)mat.shader_compo.m.env_cube);
                     shader_compo->append("dummy", mat.shader_compo.m.dummy);
                 }
 
@@ -1416,7 +1071,7 @@ void object_material_msgpack_write(const char* path, const char* set_name, uint3
                     shader_info->append("bump_map_type", mat.shader_info.m.bump_map_type);
                     shader_info->append("fresnel_type", mat.shader_info.m.fresnel_type);
                     shader_info->append("line_light", mat.shader_info.m.line_light);
-                    shader_info->append("recieve_shadow", (bool)mat.shader_info.m.recieve_shadow);
+                    shader_info->append("receive_shadow", (bool)mat.shader_info.m.receive_shadow);
                     shader_info->append("cast_shadow", (bool)mat.shader_info.m.cast_shadow);
                     shader_info->append("specular_quality", mat.shader_info.m.specular_quality);
                     shader_info->append("aniso_direction", mat.shader_info.m.aniso_direction);
@@ -1447,8 +1102,8 @@ void object_material_msgpack_write(const char* path, const char* set_name, uint3
                             attrib->append("filter", k.attrib.m.filter);
                             attrib->append("mipmap", k.attrib.m.mipmap);
                             attrib->append("mipmap_bias", k.attrib.m.mipmap_bias);
-                            attrib->append("flag_29", (bool)k.attrib.m.flag_29);
-                            attrib->append("anisotropic_filter", k.attrib.m.anisotropic_filter);
+                            attrib->append("ignore", (bool)k.attrib.m.ignore);
+                            attrib->append("aniso", k.attrib.m.aniso);
                         }
 
                         tex.append("tex_name", tex_db->get_texture_name(k.tex_index));
@@ -1526,8 +1181,8 @@ void object_material_msgpack_write(const char* path, const char* set_name, uint3
 
                 msgpack* attrib = material.append("attrib", msgpack_map());
                 if (attrib) {
-                    attrib->append("alpha_texture", (bool)mat.attrib.m.alpha_texture);
-                    attrib->append("alpha_material", (bool)mat.attrib.m.alpha_material);
+                    attrib->append("alpha_tex", (bool)mat.attrib.m.alpha_tex);
+                    attrib->append("alpha_mat", (bool)mat.attrib.m.alpha_mat);
                     attrib->append("punch_through", (bool)mat.attrib.m.punch_through);
                     attrib->append("double_sided", (bool)mat.attrib.m.double_sided);
                     attrib->append("normal_dir_light", (bool)mat.attrib.m.normal_dir_light);
@@ -1535,13 +1190,13 @@ void object_material_msgpack_write(const char* path, const char* set_name, uint3
                     attrib->append("dst_blend_factor", mat.attrib.m.dst_blend_factor);
                     attrib->append("blend_operation", mat.attrib.m.blend_operation);
                     attrib->append("zbias", mat.attrib.m.zbias);
-                    attrib->append("no_fog", (bool)mat.attrib.m.no_fog);
-                    attrib->append("translucent_priority", mat.attrib.m.translucent_priority);
-                    attrib->append("has_fog_height", (bool)mat.attrib.m.has_fog_height);
-                    attrib->append("flag_28", (bool)mat.attrib.m.flag_28);
-                    attrib->append("fog_height", (bool)mat.attrib.m.fog_height);
-                    attrib->append("flag_30", (bool)mat.attrib.m.flag_30);
-                    attrib->append("flag_31", (bool)mat.attrib.m.flag_31);
+                    attrib->append("no_z_fog", (bool)mat.attrib.m.no_z_fog);
+                    attrib->append("alpha_prio", mat.attrib.m.alpha_prio);
+                    attrib->append("y_fog", (bool)mat.attrib.m.y_fog);
+                    attrib->append("ignore_alpha", (bool)mat.attrib.m.ignore_alpha);
+                    attrib->append("y_fogmap", (bool)mat.attrib.m.y_fogmap);
+                    attrib->append("use_mat_center", (bool)mat.attrib.m.use_mat_center);
+                    attrib->append("dummy", (bool)mat.attrib.m.dummy);
                 }
 
                 msgpack* color = material.append("color", msgpack_map());
@@ -1626,8 +1281,12 @@ void object_material_msgpack_write(const char* path, const char* set_name, uint3
 
                         {
                             msgpack attrib = msgpack_map();
-                            attrib.append("recieve_shadow", (bool)sub_mesh.attrib.m.recieve_shadow);
+                            attrib.append("receive_shadow", (bool)sub_mesh.attrib.m.receive_shadow);
                             attrib.append("cast_shadow", (bool)sub_mesh.attrib.m.cast_shadow);
+                            attrib.append("vertex_alpha", (bool)sub_mesh.attrib.m.vertex_alpha);
+                            attrib.append("hide", (bool)sub_mesh.attrib.m.hide);
+                            attrib.append("poly_offset", sub_mesh.attrib.m.poly_offset);
+                            attrib.append("use_restart_index", (bool)sub_mesh.attrib.m.use_restart_index);
                             _sub_mesh.append("attrib", attrib);
                         }
                     }
@@ -1680,379 +1339,609 @@ void object_material_msgpack_write(const char* path, const char* set_name, uint3
 inline void objset_info_storage_init(const object_database* obj_db) {
     for (const object_set_info& i : obj_db->object_set) {
         ObjsetInfo info;
-        info.set_id = i.id;
+        info.id = i.id;
         info.name.assign(i.name);
         objset_info_storage_data.insert({ i.id, info });
     }
     objset_info_storage_data_modern.clear();
 }
 
-inline obj* objset_info_storage_get_obj(object_info obj_info) {
-    auto elem = objset_info_storage_data.find(obj_info.set_id);
-    if (elem != objset_info_storage_data.end()) {
-        obj_set* set = elem->second.obj_set;
-        if (!set)
-            return 0;
-
-        auto elem_obj = elem->second.obj_id_data.find(obj_info.id);
-        if (elem_obj != elem->second.obj_id_data.end())
-            return set->obj_data[elem_obj->second];
-        return 0;
-    }
-
-    auto elem_modern = objset_info_storage_data_modern.find(obj_info.set_id);
-    if (elem_modern != objset_info_storage_data_modern.end()) {
-        obj_set* set = elem_modern->second.obj_set;
-        if (!set)
-            return 0;
-
-        auto elem_obj = elem_modern->second.obj_id_data.find(obj_info.id);
-        if (elem_obj != elem_modern->second.obj_id_data.end())
-            return set->obj_data[elem_obj->second];
-        return 0;
-    }
-    return 0;
+inline void objset_info_storage_free() {
+    objset_info_storage_data.clear();
+    objset_info_storage_data_modern.clear();
 }
 
-inline obj* objset_info_storage_get_obj_by_index(uint32_t set_id, int32_t index) {
-    auto elem = objset_info_storage_data.find(set_id);
-    if (elem != objset_info_storage_data.end()) {
-        obj_set* set = elem->second.obj_set;
-        if (!set)
-            return 0;
-
-        if (index < elem->second.obj_set->obj_num)
-            return elem->second.obj_set->obj_data[index];
-        return 0;
-    }
-
-    auto elem_modern = objset_info_storage_data_modern.find(set_id);
-    if (elem_modern != objset_info_storage_data_modern.end()) {
-        obj_set* set = elem_modern->second.obj_set;
-        if (!set)
-            return 0;
-
-        if (index < elem_modern->second.obj_set->obj_num)
-            return elem_modern->second.obj_set->obj_data[index];
-        return 0;
-    }
-    return 0;
+// 0x140457910
+inline bool check_objset_ready(uint32_t objset_index) {
+    ObjsetInfo* info = get_objset_info(objset_index);
+    if (info)
+        return info->obj_ready && info->tex_ready;
+    return false;
 }
 
-inline ObjsetInfo* objset_info_storage_get_objset_info(uint32_t set_id) {
-    auto elem = objset_info_storage_data.find(set_id);
-    if (elem != objset_info_storage_data.end())
-        return &elem->second;
+// 0x140458040
+bool create_mesh_index_buffer(IndexBuffer& ibhn, obj_mesh& mesh) {
+    uint32_t size = 0;
+    for (int32_t i = 0; i < mesh.num_submesh; i++) {
+        obj_sub_mesh& sub_mesh = mesh.submesh_array[i];
+        if (sub_mesh.index_format == OBJ_INDEX_U16)
+            size += align_val_32((int32_t)(sizeof(uint16_t) * sub_mesh.num_index));
+    }
 
-    auto elem_modern = objset_info_storage_data_modern.find(set_id);
-    if (elem_modern != objset_info_storage_data_modern.end())
-        return &elem_modern->second;
-    return 0;
+    if (!size) {
+        ibhn.ib = 0;
+        return true;
+    }
+
+    void* buf = force_malloc(size);
+    int32_t offset = 0;
+    fill_mesh_index_buffer(buf, mesh, offset);
+
+    ibhn.create(offset, buf);
+    free_def(buf);
+    return true;
 }
 
-inline obj_mesh* objset_info_storage_get_obj_mesh(object_info obj_info, const char* mesh_name) {
-    auto elem = objset_info_storage_data.find(obj_info.set_id);
-    if (elem != objset_info_storage_data.end()) {
-        obj_set* set = elem->second.obj_set;
-        if (!set)
-            return 0;
+#if SHARED_OBJECT_BUFFER
+// Added
+inline void create_mesh_index_buffer(IndexBuffer& ibhn, obj_mesh& mesh, GLuint in_ib) {
+    //ibhn.create(in_ib, size);
+}
+#endif
 
-        auto elem_obj = elem->second.obj_id_data.find(obj_info.id);
-        if (elem_obj != elem->second.obj_id_data.end())
-            return set->obj_data[elem_obj->second]->get_obj_mesh(mesh_name);
-        return 0;
-    }
+// 0x140458280
+bool create_mesh_vertex_buffer(VertexBuffer& vbhn, obj_mesh& mesh, GL::BufferUsage usage) {
+    if (!mesh.num_vertex || !mesh.vertex_array)
+        return false;
 
-    auto elem_modern = objset_info_storage_data_modern.find(obj_info.set_id);
-    if (elem_modern != objset_info_storage_data_modern.end()) {
-        obj_set* set = elem_modern->second.obj_set;
-        if (!set)
-            return 0;
+    uint32_t size_vertex = get_vertex_size(mesh.vertex_format, mesh.attrib.m.compression);
+    void* buf = prj::MemoryManager::alloc(prj::MemCTemp, (size_t)size_vertex * mesh.num_vertex, "TMP_VTXBUF");
+    fill_mesh_vertex_buffer(buf, mesh);
+    mesh.size_vertex = size_vertex;
 
-        auto elem_obj = elem_modern->second.obj_id_data.find(obj_info.id);
-        if (elem_obj != elem_modern->second.obj_id_data.end())
-            return set->obj_data[elem_obj->second]->get_obj_mesh(mesh_name);
-        return 0;
-    }
-    return 0;
+    bool ret = vbhn.create((size_t)size_vertex * mesh.num_vertex,
+        buf, mesh.attrib.m.soft_body ? 2 : 1, usage);
+    prj::MemoryManager::free(prj::MemCTemp, buf);
+    return ret;
 }
 
-inline obj_mesh* objset_info_storage_get_obj_mesh_by_index(object_info obj_info, int32_t index) {
-    auto elem = objset_info_storage_data.find(obj_info.set_id);
-    if (elem != objset_info_storage_data.end()) {
-        obj_set* set = elem->second.obj_set;
-        if (!set)
-            return 0;
+#if SHARED_OBJECT_BUFFER
+// Added
+inline void create_mesh_vertex_buffer(VertexBuffer& vbhn,
+    obj_mesh& mesh, GLuint in_vb, uint32_t& offset) {
+    if (!mesh.num_vertex || !mesh.vertex_array)
+        return;
 
-        auto elem_obj = elem->second.obj_id_data.find(obj_info.id);
-        if (elem_obj != elem->second.obj_id_data.end()) {
-            obj* obj = set->obj_data[elem_obj->second];
-            if (index >= 0 && index < obj->num_mesh)
-                return &obj->mesh_array[index];
-        }
-        return 0;
+    uint32_t size_vertex = get_vertex_size(mesh.vertex_format, mesh.attrib.m.compression);
+    mesh.size_vertex = size_vertex;
+
+    uint32_t size = size_vertex * mesh.num_vertex;
+    vbhn.create(in_vb, size, offset);
+    offset += align_val_32(size);
+}
+#endif
+
+// 0x1404588F0
+bool create_objset_index_buffer(ObjsetInfo* info) {
+    obj_set* set = info->obj_set;
+    info->objib_num = set->obj_num;
+    info->objib = prj::MemoryManager::alloc<ObjIB>(prj::MemCSystem, set->obj_num, "OBJIB");
+    if (!info->objib)
+        return false;
+
+#if SHARED_OBJECT_BUFFER
+    for (int32_t i = 0; i < set->obj_num; i++) {
+        obj* obj = set->obj_data[i];
+        ObjIB& objib = info->objib[i];
+
+        objib.num_ib = obj->num_mesh;
+
+        IndexBuffer* ibhn_array = prj::MemoryManager::alloc<IndexBuffer>(prj::MemCSystem, obj->num_mesh, "MESHIB");
+        if (!ibhn_array)
+            return false;
+
+        objib.ibhn_array = new (ibhn_array) IndexBuffer[obj->num_mesh];
     }
 
-    auto elem_modern = objset_info_storage_data_modern.find(obj_info.set_id);
-    if (elem_modern != objset_info_storage_data_modern.end()) {
-        obj_set* set = elem_modern->second.obj_set;
-        if (!set)
-            return 0;
+    int32_t size = 0;
+    for (int32_t i = 0; i < set->obj_num; i++)
+        calc_object_index_buffer(set->obj_data[i], size);
 
-        auto elem_obj = elem_modern->second.obj_id_data.find(obj_info.id);
-        if (elem_obj != elem_modern->second.obj_id_data.end()) {
-            obj* obj = set->obj_data[elem_obj->second];
-            if (index >= 0 && index < obj->num_mesh)
-                return &obj->mesh_array[index];
-        }
-        return 0;
+    void* buf = prj::MemoryManager::alloc(prj::MemCTemp, size, "TMP_IDXBUF");
+    memset(buf, 0, size);
+    if (!buf)
+        return false;
+
+    int32_t fill_offset = 0;
+    for (int32_t i = 0; i < set->obj_num; i++)
+        fill_object_index_buffer(buf, set->obj_data[i], fill_offset);
+
+    GLuint ib = 0;
+    if (fill_offset > 0) // size is bigger than filled buf
+        ib = create_index_buffer(fill_offset, buf);
+    info->ib = ib;
+
+    if (buf)
+        prj::MemoryManager::free(prj::MemCTemp, buf);
+
+    for (int32_t i = 0; i < set->obj_num; i++) {
+        obj* obj = set->obj_data[i];
+        ObjIB& objib = info->objib[i];
+
+        objib.num_ib = obj->num_mesh;
+        for (int32_t j = 0; j < obj->num_mesh; j++)
+#pragma warning(suppress: 6385)
+            objib.ibhn_array[j].create(ib);
     }
-    return 0;
+#else
+    for (int32_t i = 0; i < set->obj_num; i++)
+        if (!create_object_index_buffer(&info->objib[i], set->obj_data[i]))
+            return false;
+#endif
+    return true;
 }
 
-inline obj_mesh* objset_info_storage_get_obj_mesh_by_object_hash(uint32_t hash, const char* mesh_name) {
-    for (auto& i : objset_info_storage_data) {
-        obj_set* set = i.second.obj_set;
-        if (!set)
-            continue;
+// 0x1404589B0
+bool create_objset_vertex_buffer(ObjsetInfo* info) {
+    obj_set* set = info->obj_set;
+    info->objvb_num = set->obj_num;
+    info->objvb = prj::MemoryManager::alloc<ObjVB>(prj::MemCSystem, set->obj_num, "OBJVB");
+    if (!info->objvb)
+        return false;
 
-        for (int32_t j = 0; j < set->obj_num; j++)
-            if (set->obj_data[j]->hash == hash)
-                return set->obj_data[j]->get_obj_mesh(mesh_name);
-    }
+#if SHARED_OBJECT_BUFFER
+    int32_t size = 0;
+    for (int32_t i = 0; i < set->obj_num; i++)
+        calc_object_vertex_buffer(set->obj_data[i], size);
 
-    for (auto& i : objset_info_storage_data_modern) {
-        obj_set* set = i.second.obj_set;
-        if (!set)
-            continue;
+    void* buf = prj::MemoryManager::alloc(prj::MemCTemp, size, "TMP_VTXBUF");
+    memset(buf, 0, size);
 
-        for (int32_t j = 0; j < set->obj_num; j++)
-            if (set->obj_data[j]->hash == hash)
-                return set->obj_data[j]->get_obj_mesh(mesh_name);
-    }
-    return 0;
+    int32_t fill_offset = 0;
+    for (int32_t i = 0; i < set->obj_num; i++)
+        fill_object_vertex_buffer(buf, set->obj_data[i], fill_offset);
+
+    GLuint vb = 0;
+    if (size > 0)
+        vb = create_vertex_buffer(size, buf);
+    info->vb = vb;
+
+    if (buf)
+        prj::MemoryManager::free(prj::MemCTemp, buf);
+
+    uint32_t offset = 0;
+    for (int32_t i = 0; i < set->obj_num; i++)
+        create_object_vertex_buffer(&info->objvb[i], set->obj_data[i], vb, offset);
+#else
+    for (int32_t i = 0; i < set->obj_num; i++)
+        if (!info->objvb[i].load(set->obj_data[i]))
+            return false;
+#endif
+    return true;
 }
 
-inline obj_mesh* objset_info_storage_get_obj_mesh_by_object_hash_index(uint32_t hash, int32_t index) {
-    for (auto& i : objset_info_storage_data) {
-        obj_set* set = i.second.obj_set;
-        if (!set)
-            continue;
+// 0x140459860
+inline bool find_objdata_index(ObjsetInfoObject& info_object, object_info obj_id) {
+    info_object.info = get_objset_info(obj_id.set_id);
+    if (!info_object.info)
+        return false;
 
-        for (int32_t j = 0; j < set->obj_num; j++) {
-            if (set->obj_data[j]->hash != hash)
-                continue;
+    auto elem = info_object.info->objdb_map.find(obj_id.id);
+    if (elem == info_object.info->objdb_map.end())
+        return false;
 
-            obj* obj = set->obj_data[j];
-            if (index >= 0 && index < obj->num_mesh)
-                return &obj->mesh_array[index];
-            return 0;
-        }
-    }
-
-    for (auto& i : objset_info_storage_data_modern) {
-        obj_set* set = i.second.obj_set;
-        if (!set)
-            continue;
-
-        for (int32_t j = 0; j < set->obj_num; j++) {
-            if (set->obj_data[j]->hash != hash)
-                continue;
-
-            obj* obj = set->obj_data[j];
-            if (index >= 0 && index < obj->num_mesh)
-                return &obj->mesh_array[index];
-            return 0;
-        }
-    }
-    return 0;
+    info_object.index = elem->second;
+    return true;
 }
 
-inline int32_t objset_info_storage_get_obj_mesh_index(object_info obj_info, const char* mesh_name) {
-    auto elem = objset_info_storage_data.find(obj_info.set_id);
-    if (elem != objset_info_storage_data.end()) {
-        obj_set* set = elem->second.obj_set;
-        if (!set)
-            return -1;
-
-        auto elem_obj = elem->second.obj_id_data.find(obj_info.id);
-        if (elem_obj != elem->second.obj_id_data.end())
-            return set->obj_data[elem_obj->second]->get_obj_mesh_index(mesh_name);
-        return 0;
+// 0x140459B40
+void free_objset_index_buffer(ObjsetInfo* info) {
+    if (info->objib) {
+        for (int32_t i = 0; i < info->objib_num; i++)
+            free_object_index_buffer(&info->objib[i]);
+        prj::MemoryManager::free(prj::MemCSystem, info->objib);
     }
 
-    auto elem_modern = objset_info_storage_data_modern.find(obj_info.set_id);
-    if (elem_modern != objset_info_storage_data_modern.end()) {
-        obj_set* set = elem_modern->second.obj_set;
-        if (!set)
-            return -1;
+    info->objib = 0;
+    info->objib_num = 0;
 
-        auto elem_obj = elem_modern->second.obj_id_data.find(obj_info.id);
-        if (elem_obj != elem_modern->second.obj_id_data.end())
-            return set->obj_data[elem_obj->second]->get_obj_mesh_index(mesh_name);
-        return 0;
-    }
-    return -1;
+#if SHARED_OBJECT_BUFFER
+    if (info->ib)
+        free_index_buffer(info->ib);
+    info->ib = 0;
+#endif
 }
 
-inline int32_t objset_info_storage_get_obj_mesh_index_by_hash(uint32_t hash, const char* mesh_name) {
-    for (auto& i : objset_info_storage_data) {
-        obj_set* set = i.second.obj_set;
-        if (!set)
-            continue;
-
-        for (int32_t j = 0; j < set->obj_num; j++)
-            if (set->obj_data[j]->hash == hash)
-                return set->obj_data[j]->get_obj_mesh_index(mesh_name);
+// 0x140459C70
+void free_objset_vertex_buffer(ObjsetInfo* info) {
+    if (info->objvb) {
+        for (int32_t i = 0; i < info->objvb_num; i++)
+            free_object_vertex_buffer(&info->objvb[i]);
+        prj::MemoryManager::free(prj::MemCSystem, info->objvb);
     }
 
-    for (auto& i : objset_info_storage_data_modern) {
-        obj_set* set = i.second.obj_set;
-        if (!set)
-            continue;
+    info->objvb = 0;
+    info->objvb_num = 0;
 
-        for (int32_t j = 0; j < set->obj_num; j++)
-            if (set->obj_data[j]->hash == hash)
-                return set->obj_data[j]->get_obj_mesh_index(mesh_name);
-    }
-    return -1;
+#if SHARED_OBJECT_BUFFER
+    if (info->vb)
+        free_vertex_buffer(info->vb);
+    info->vb = 0;
+#endif
 }
 
-inline const char* objset_info_storage_get_obj_name(object_info obj_info) {
-    obj* obj = objset_info_storage_get_obj(obj_info);
-    if (obj)
-        return obj->name;
-    return 0;
-}
-
-inline obj_set* objset_info_storage_get_obj_set(uint32_t set_id) {
-    auto elem = objset_info_storage_data.find(set_id);
+// 0x140459EC0
+inline obj_set* get_obj_data_header(uint32_t objset_index) {
+    auto elem = objset_info_storage_data.find(objset_index);
     if (elem != objset_info_storage_data.end())
         return elem->second.obj_set;
 
-    auto elem_modern = objset_info_storage_data_modern.find(set_id);
+    auto elem_modern = objset_info_storage_data_modern.find(objset_index);
     if (elem_modern != objset_info_storage_data_modern.end())
         return elem_modern->second.obj_set;
     return 0;
 }
 
-inline size_t objset_info_storage_get_obj_set_count() {
-    return objset_info_storage_data.size() + objset_info_storage_data_modern.size();
-}
-
-inline int32_t objset_info_storage_get_obj_storage_load_count(uint32_t set_id) {
-    auto elem = objset_info_storage_data.find(set_id);
-    if (elem != objset_info_storage_data.end())
-        return elem->second.load_count;
-
-    auto elem_modern = objset_info_storage_data_modern.find(set_id);
-    if (elem_modern != objset_info_storage_data_modern.end())
-        return elem_modern->second.load_count;
+// 0x14045A120
+inline obj_bounding_sphere* get_object_bsphere(object_info obj_id) {
+    obj* obj = get_object_header(obj_id);
+    if (obj)
+        return &obj->bounding_sphere;
     return 0;
 }
 
-inline obj_skin* objset_info_storage_get_obj_skin(object_info obj_info) {
-    auto elem = objset_info_storage_data.find(obj_info.set_id);
-    if (elem != objset_info_storage_data.end()) {
-        obj_set* set = elem->second.obj_set;
-        if (!set)
-            return 0;
-
-        auto elem_obj = elem->second.obj_id_data.find(obj_info.id);
-        if (elem_obj != elem->second.obj_id_data.end())
-            return set->obj_data[elem_obj->second]->skin;
-        return 0;
-    }
-
-    auto elem_modern = objset_info_storage_data_modern.find(obj_info.set_id);
-    if (elem_modern != objset_info_storage_data_modern.end()) {
-        obj_set* set = elem_modern->second.obj_set;
-        if (!set)
-            return 0;
-
-        auto elem_obj = elem_modern->second.obj_id_data.find(obj_info.id);
-        if (elem_obj != elem_modern->second.obj_id_data.end())
-            return set->obj_data[elem_obj->second]->skin;
-        return 0;
+// 0x14045A140
+inline obj* get_object_header(object_info obj_id) {
+    ObjsetInfo* info = get_objset_info(obj_id.set_id);
+    if (info) {
+        obj_set* set = info->obj_set;
+        if (set) {
+            auto elem_obj = info->objdb_map.find(obj_id.id);
+            if (elem_obj != info->objdb_map.end())
+                return set->obj_data[elem_obj->second];
+        }
     }
     return 0;
 }
 
-inline obj_skin_ex_data* objset_info_storage_get_obj_skin_ex_data(object_info obj_info) {
-    obj_skin* skin = objset_info_storage_get_obj_skin(obj_info);
-    if (skin)
-        return skin->ex_data;
-    return 0;
-}
-
-inline obj_index_buffer* objset_info_storage_get_obj_index_buffers(uint32_t set_id) {
-    ObjsetInfo* info = objset_info_storage_get_objset_info(set_id);
-    if (info && info->objib)
-        return info->objib;
-    return 0;
-}
-
-inline obj_mesh_index_buffer* objset_info_storage_get_obj_mesh_index_buffer(object_info obj_info) {
-    ObjsetInfo* info = objset_info_storage_get_objset_info(obj_info.set_id);
+// 0x14045A250
+inline IndexBuffer* get_object_index_buffer(object_info obj_id) {
+    ObjsetInfo* info = get_objset_info(obj_id.set_id);
     if (info && info->obj_set && info->objib) {
-        auto elem = info->obj_id_data.find(obj_info.id);
-        if (elem != info->obj_id_data.end())
-            return info->objib[elem->second].mesh_data;
+        auto elem = info->objdb_map.find(obj_id.id);
+        if (elem != info->objdb_map.end())
+            return info->objib[elem->second].ibhn_array;
     }
     return 0;
 }
 
-inline obj_vertex_buffer* objset_info_storage_get_obj_vertex_buffers(uint32_t set_id) {
-    ObjsetInfo* info = objset_info_storage_get_objset_info(set_id);
-    if (info && info->objvb)
-        return info->objvb;
+// 0x14045A340
+inline const char* get_object_name(object_info obj_id) {
+    obj* obj = get_object_header(obj_id);
+    if (obj)
+        return obj->name;
     return 0;
 }
 
-inline obj_mesh_vertex_buffer* objset_info_storage_get_obj_mesh_vertex_buffer(object_info obj_info) {
-    ObjsetInfo* info = objset_info_storage_get_objset_info(obj_info.set_id);
-    if (info && info->obj_set && info->objvb) {
-        auto elem = info->obj_id_data.find(obj_info.id);
-        if (elem != info->obj_id_data.end())
-            return info->objvb[elem->second].mesh_data;
-    }
-    return 0;
-}
-
-inline std::vector<GLuint>* objset_info_storage_get_obj_set_gentex(uint32_t set_id) {
-    ObjsetInfo* info = objset_info_storage_get_objset_info(set_id);
-    if (info)
-        return &info->gentex;
-    return 0;
-}
-
-inline bool objset_info_storage_get_obj_set_loaded(uint32_t set_id) {
-    ObjsetInfo* info = objset_info_storage_get_objset_info(set_id);
-    if (info)
-        return info->obj_loaded && info->tex_loaded;
-    return false;
-}
-
-inline uint32_t objset_info_storage_get_obj_set_obj_id(uint32_t set_id, int32_t obj_index) {
-    ObjsetInfo* info = objset_info_storage_get_objset_info(set_id);
-    if (!info)
-        return -1;
-
-    obj_set* set = info->obj_set;
-    if (set && obj_index >= 0 && obj_index < set->obj_num)
-        return set->obj_data[obj_index]->id;
-    return -1;
-}
-
-inline int32_t objset_info_storage_get_obj_set_obj_num(uint32_t set_id) {
-    obj_set* set = objset_info_storage_get_obj_set(set_id);
+// 0x14045A3C0
+inline int32_t get_object_num(uint32_t objset_index) {
+    obj_set* set = get_obj_data_header(objset_index);
     if (set)
         return set->obj_num;
     return 0;
 }
 
-inline uint32_t objset_info_storage_get_obj_set_tex_id(uint32_t set_id, int32_t tex_index) {
-    ObjsetInfo* info = objset_info_storage_get_objset_info(set_id);
+// 0x14045A3E0
+inline obj_skin* get_object_skin(object_info obj_id) {
+    auto elem = objset_info_storage_data.find(obj_id.set_id);
+    if (elem != objset_info_storage_data.end()) {
+        obj_set* set = elem->second.obj_set;
+        if (!set)
+            return 0;
+
+        auto elem_obj = elem->second.objdb_map.find(obj_id.id);
+        if (elem_obj != elem->second.objdb_map.end())
+            return set->obj_data[elem_obj->second]->skin;
+        return 0;
+    }
+
+    auto elem_modern = objset_info_storage_data_modern.find(obj_id.set_id);
+    if (elem_modern != objset_info_storage_data_modern.end()) {
+        obj_set* set = elem_modern->second.obj_set;
+        if (!set)
+            return 0;
+
+        auto elem_obj = elem_modern->second.objdb_map.find(obj_id.id);
+        if (elem_obj != elem_modern->second.objdb_map.end())
+            return set->obj_data[elem_obj->second]->skin;
+        return 0;
+    }
+    return 0;
+}
+
+// 0x14045A460
+inline obj_skin_ex_data* get_object_skin_osage_header(object_info obj_id) {
+    obj_skin* skin = get_object_skin(obj_id);
+    if (skin)
+        return skin->ex_data;
+    return 0;
+}
+
+// 0x14045A480
+inline VertexBuffer* get_object_vertex_buffer(object_info obj_id) {
+    ObjsetInfo* info = get_objset_info(obj_id.set_id);
+    if (info && info->obj_set && info->objvb) {
+        auto elem = info->objdb_map.find(obj_id.id);
+        if (elem != info->objdb_map.end())
+            return info->objvb[elem->second].vbhn_array;
+    }
+    return 0;
+}
+
+// 0x14045A750
+inline uint32_t get_objnum_idx2uid(uint32_t objset_index, int32_t obj_index, const object_database* obj_db) {
+    uint32_t set_id = obj_db->get_object_set_id(objset_index);
+    if (set_id != -1) {
+        ObjsetInfo* info = get_objset_info(set_id);
+        if (info) {
+            obj_set* set = info->obj_set;
+            if (set && obj_index >= 0 && obj_index < set->obj_num)
+                return set->obj_data[obj_index]->id;
+        }
+    }
+    return -1;
+}
+
+// 0x14045A8F0
+inline GLuint get_objset_gen_textures_id(uint32_t objset_index, uint32_t uid) {
+    std::vector<GLuint>* gentex_vec = get_objset_gen_textures_vec(objset_index);
+    if (!gentex_vec)
+        return 0;
+
+    ObjsetInfo* info = get_objset_info(objset_index);
+    if (!info)
+        return 0;
+
+    auto elem = info->texidx_map.find(uid);
+    if (elem != info->texidx_map.end())
+        return (*gentex_vec)[elem->second];
+    return 0;
+}
+
+// 0x14045A9E0
+inline std::vector<GLuint>* get_objset_gen_textures_vec(uint32_t objset_index) {
+    ObjsetInfo* info = get_objset_info(objset_index);
+    if (info)
+        return &info->gentex_vec;
+    return 0;
+}
+
+// 0x14045AC00
+inline ObjsetInfo* get_objset_info(uint32_t objset_index) {
+    auto elem = objset_info_storage_data.find(objset_index);
+    if (elem != objset_info_storage_data.end())
+        return &elem->second;
+
+    auto elem_modern = objset_info_storage_data_modern.find(objset_index);
+    if (elem_modern != objset_info_storage_data_modern.end())
+        return &elem_modern->second;
+    return 0;
+}
+
+// 0x14045ADD0
+inline size_t get_objset_num() {
+    return objset_info_storage_data.size() + objset_info_storage_data_modern.size();
+}
+
+// 0x14045ADE0
+inline int32_t get_objset_num_textures(uint32_t objset_index) {
+    ObjsetInfo* info = get_objset_info(objset_index);
+    if (info)
+        return info->tex_num;
+    return 0;
+}
+
+// 0x14045AE20
+inline texture** get_objset_textures(uint32_t objset_index) {
+    ObjsetInfo* info = get_objset_info(objset_index);
+    if (info)
+        return info->textures;
+    return 0;
+}
+
+// 0x140459D90
+inline obj_mesh* get_mesh(object_info obj_id, const char* mesh_name) {
+    auto elem = objset_info_storage_data.find(obj_id.set_id);
+    if (elem != objset_info_storage_data.end()) {
+        obj_set* set = elem->second.obj_set;
+        if (!set)
+            return 0;
+
+        auto elem_obj = elem->second.objdb_map.find(obj_id.id);
+        if (elem_obj != elem->second.objdb_map.end())
+            return set->obj_data[elem_obj->second]->get_obj_mesh(mesh_name);
+        return 0;
+    }
+
+    auto elem_modern = objset_info_storage_data_modern.find(obj_id.set_id);
+    if (elem_modern != objset_info_storage_data_modern.end()) {
+        obj_set* set = elem_modern->second.obj_set;
+        if (!set)
+            return 0;
+
+        auto elem_obj = elem_modern->second.objdb_map.find(obj_id.id);
+        if (elem_obj != elem_modern->second.objdb_map.end())
+            return set->obj_data[elem_obj->second]->get_obj_mesh(mesh_name);
+        return 0;
+    }
+    return 0;
+}
+
+// 0x140459D40
+inline obj_mesh* get_mesh(object_info obj_id, int32_t mesh_index) {
+    auto elem = objset_info_storage_data.find(obj_id.set_id);
+    if (elem != objset_info_storage_data.end()) {
+        obj_set* set = elem->second.obj_set;
+        if (!set)
+            return 0;
+
+        auto elem_obj = elem->second.objdb_map.find(obj_id.id);
+        if (elem_obj != elem->second.objdb_map.end()) {
+            obj* obj = set->obj_data[elem_obj->second];
+            if (mesh_index >= 0 && mesh_index < obj->num_mesh)
+                return &obj->mesh_array[mesh_index];
+        }
+        return 0;
+    }
+
+    auto elem_modern = objset_info_storage_data_modern.find(obj_id.set_id);
+    if (elem_modern != objset_info_storage_data_modern.end()) {
+        obj_set* set = elem_modern->second.obj_set;
+        if (!set)
+            return 0;
+
+        auto elem_obj = elem_modern->second.objdb_map.find(obj_id.id);
+        if (elem_obj != elem_modern->second.objdb_map.end()) {
+            obj* obj = set->obj_data[elem_obj->second];
+            if (mesh_index >= 0 && mesh_index < obj->num_mesh)
+                return &obj->mesh_array[mesh_index];
+        }
+        return 0;
+    }
+    return 0;
+}
+
+// Added
+inline obj_mesh* get_mesh_modern(uint32_t hash, const char* mesh_name) {
+    for (auto& i : objset_info_storage_data) {
+        obj_set* set = i.second.obj_set;
+        if (!set)
+            continue;
+
+        for (int32_t j = 0; j < set->obj_num; j++)
+            if (set->obj_data[j]->hash == hash)
+                return set->obj_data[j]->get_obj_mesh(mesh_name);
+    }
+
+    for (auto& i : objset_info_storage_data_modern) {
+        obj_set* set = i.second.obj_set;
+        if (!set)
+            continue;
+
+        for (int32_t j = 0; j < set->obj_num; j++)
+            if (set->obj_data[j]->hash == hash)
+                return set->obj_data[j]->get_obj_mesh(mesh_name);
+    }
+    return 0;
+}
+
+// Added
+inline obj_mesh* get_mesh_modern(uint32_t hash, int32_t mesh_index) {
+    for (auto& i : objset_info_storage_data) {
+        obj_set* set = i.second.obj_set;
+        if (!set)
+            continue;
+
+        for (int32_t j = 0; j < set->obj_num; j++) {
+            if (set->obj_data[j]->hash != hash)
+                continue;
+
+            obj* obj = set->obj_data[j];
+            if (mesh_index >= 0 && mesh_index < obj->num_mesh)
+                return &obj->mesh_array[mesh_index];
+            return 0;
+        }
+    }
+
+    for (auto& i : objset_info_storage_data_modern) {
+        obj_set* set = i.second.obj_set;
+        if (!set)
+            continue;
+
+        for (int32_t j = 0; j < set->obj_num; j++) {
+            if (set->obj_data[j]->hash != hash)
+                continue;
+
+            obj* obj = set->obj_data[j];
+            if (mesh_index >= 0 && mesh_index < obj->num_mesh)
+                return &obj->mesh_array[mesh_index];
+            return 0;
+        }
+    }
+    return 0;
+}
+
+// 0x140459DE0
+inline int32_t get_mesh_index(object_info obj_id, const char* mesh_name) {
+    auto elem = objset_info_storage_data.find(obj_id.set_id);
+    if (elem != objset_info_storage_data.end()) {
+        obj_set* set = elem->second.obj_set;
+        if (!set)
+            return -1;
+
+        auto elem_obj = elem->second.objdb_map.find(obj_id.id);
+        if (elem_obj != elem->second.objdb_map.end())
+            return set->obj_data[elem_obj->second]->get_obj_mesh_index(mesh_name);
+        return 0;
+    }
+
+    auto elem_modern = objset_info_storage_data_modern.find(obj_id.set_id);
+    if (elem_modern != objset_info_storage_data_modern.end()) {
+        obj_set* set = elem_modern->second.obj_set;
+        if (!set)
+            return -1;
+
+        auto elem_obj = elem_modern->second.objdb_map.find(obj_id.id);
+        if (elem_obj != elem_modern->second.objdb_map.end())
+            return set->obj_data[elem_obj->second]->get_obj_mesh_index(mesh_name);
+        return 0;
+    }
+    return -1;
+}
+
+// Added
+inline int32_t get_mesh_index_modern(uint32_t hash, const char* mesh_name) {
+    for (auto& i : objset_info_storage_data) {
+        obj_set* set = i.second.obj_set;
+        if (!set)
+            continue;
+
+        for (int32_t j = 0; j < set->obj_num; j++)
+            if (set->obj_data[j]->hash == hash)
+                return set->obj_data[j]->get_obj_mesh_index(mesh_name);
+    }
+
+    for (auto& i : objset_info_storage_data_modern) {
+        obj_set* set = i.second.obj_set;
+        if (!set)
+            continue;
+
+        for (int32_t j = 0; j < set->obj_num; j++)
+            if (set->obj_data[j]->hash == hash)
+                return set->obj_data[j]->get_obj_mesh_index(mesh_name);
+    }
+    return -1;
+}
+
+// 0x140459E10 
+inline VertexBuffer* get_mesh_vertex_buffer(object_info obj_id, const char* mesh_name) {
+    int32_t mesh_index = get_mesh_index(obj_id, mesh_name);
+    if (mesh_index == -1)
+        return 0;
+
+    ObjsetInfo* info = get_objset_info(obj_id.set_id);
+    if (!info)
+        return 0;
+
+    auto elem_obj = info->objdb_map.find(obj_id.id);
+    if (elem_obj != info->objdb_map.end())
+        return &info->objvb[elem_obj->second].vbhn_array[mesh_index];
+    return 0;
+}
+
+// 0x14045AFA0
+inline uint32_t get_texnum_idx2uid(uint32_t objset_index, int32_t tex_index) {
+    ObjsetInfo* info = get_objset_info(objset_index);
     if (!info)
         return -1;
 
@@ -2062,85 +1951,18 @@ inline uint32_t objset_info_storage_get_obj_set_tex_id(uint32_t set_id, int32_t 
     return -1;
 }
 
-inline int32_t objset_info_storage_get_obj_set_tex_num(uint32_t set_id) {
-    ObjsetInfo* info = objset_info_storage_get_objset_info(set_id);
-    if (info)
-        return info->tex_num;
-    return 0;
-}
-
-GLuint objset_info_storage_get_obj_set_texture(uint32_t set_id, uint32_t tex_id) {
-    std::vector<GLuint>* gentex = objset_info_storage_get_obj_set_gentex(set_id);
-    if (!gentex)
-        return 0;
-
-    ObjsetInfo* info = objset_info_storage_get_objset_info(set_id);
-    if (!info)
-        return 0;
-
-    auto elem = info->tex_id_data.find(tex_id);
-    if (elem != info->tex_id_data.end())
-        return (*gentex)[elem->second];
-    return 0;
-}
-
-inline texture** objset_info_storage_get_obj_set_textures(uint32_t set_id) {
-    ObjsetInfo* info = objset_info_storage_get_objset_info(set_id);
-    if (info)
-        return info->tex_data;
-    return 0;
-}
-
-int32_t objset_info_storage_load_set(void* data, const object_database* obj_db, const char* name) {
-    const object_set_info* set_info = obj_db->get_object_set_info(name);
+// 0x14045C6A0
+int32_t request_objset(void* data, const object_database* obj_db, uint32_t objset_index) {
+    const object_set_info* set_info = obj_db->get_object_set_info(objset_index);
     if (!set_info)
         return 1;
 
-    ObjsetInfo* info = objset_info_storage_get_objset_info(set_info->id);
+    ObjsetInfo* info = get_objset_info(objset_index);
     if (!info)
         return 1;
 
-    if (info->load_count > 0) {
-        info->load_count++;
-        return 1;
-    }
-
-    const std::string& archive_file_name = set_info->archive_file_name;
-    const std::string& object_file_name = set_info->object_file_name;
-    const std::string& texture_file_name = set_info->texture_file_name;
-    if (!object_file_name.size() || !texture_file_name.size())
-        return 1;
-
-    if (archive_file_name.size()) {
-        info->obj_file_handler.read_file(data, "rom/objset/",
-            archive_file_name.c_str(), object_file_name.c_str(), prj::MemCSystem, false);
-        info->tex_file_handler.read_file(data, "rom/objset/",
-            archive_file_name.c_str(), texture_file_name.c_str(), prj::MemCSystem, false);
-    }
-    else {
-        info->obj_file_handler.read_file(data,
-            "rom/objset/", object_file_name.c_str(), prj::MemCSystem);
-        info->tex_file_handler.read_file(data,
-            "rom/objset/", texture_file_name.c_str(), prj::MemCSystem);
-    }
-
-    info->load_count = 1;
-    info->obj_loaded = false;
-    info->tex_loaded = false;
-    return 0;
-}
-
-int32_t objset_info_storage_load_set(void* data, const object_database* obj_db, uint32_t set_id) {
-    const object_set_info* set_info = obj_db->get_object_set_info(set_id);
-    if (!set_info)
-        return 1;
-
-    ObjsetInfo* info = objset_info_storage_get_objset_info(set_id);
-    if (!info)
-        return 1;
-
-    if (info->load_count > 0) {
-        info->load_count++;
+    if (info->req_cnt > 0) {
+        info->req_cnt++;
         return 1;
     }
 
@@ -2165,13 +1987,54 @@ int32_t objset_info_storage_load_set(void* data, const object_database* obj_db, 
             "rom/objset/", texture_file_name.c_str(), prj::MemCSystem);
     }
 
-    info->load_count = 1;
-    info->obj_loaded = false;
-    info->tex_loaded = false;
+    info->req_cnt = 1;
+    info->obj_ready = false;
+    info->tex_ready = false;
     return 0;
 }
 
-int32_t objset_info_storage_load_set_hash(void* data, uint32_t hash) {
+// Added
+int32_t request_objset(void* data, const object_database* obj_db, const char* name) {
+    const object_set_info* set_info = obj_db->get_object_set_info(name);
+    if (!set_info)
+        return 1;
+
+    ObjsetInfo* info = get_objset_info(set_info->id);
+    if (!info)
+        return 1;
+
+    if (info->req_cnt > 0) {
+        info->req_cnt++;
+        return 1;
+    }
+
+    const std::string& archive_file_name = set_info->archive_file_name;
+    const std::string& object_file_name = set_info->object_file_name;
+    const std::string& texture_file_name = set_info->texture_file_name;
+    if (!object_file_name.size() || !texture_file_name.size())
+        return 1;
+
+    if (archive_file_name.size()) {
+        info->obj_file_handler.read_file(data, "rom/objset/",
+            archive_file_name.c_str(), object_file_name.c_str(), prj::MemCSystem, false);
+        info->tex_file_handler.read_file(data, "rom/objset/",
+            archive_file_name.c_str(), texture_file_name.c_str(), prj::MemCSystem, false);
+    }
+    else {
+        info->obj_file_handler.read_file(data,
+            "rom/objset/", object_file_name.c_str(), prj::MemCSystem);
+        info->tex_file_handler.read_file(data,
+            "rom/objset/", texture_file_name.c_str(), prj::MemCSystem);
+    }
+
+    info->req_cnt = 1;
+    info->obj_ready = false;
+    info->tex_ready = false;
+    return 0;
+}
+
+// Added
+int32_t request_objset_modern(void* data, uint32_t hash) {
     if (!hash || hash == hash_murmurhash_empty)
         return 1;
 
@@ -2179,14 +2042,14 @@ int32_t objset_info_storage_load_set_hash(void* data, uint32_t hash) {
     if (!((data_struct*)data)->get_file("root+/objset/", hash, ".farc", file))
         return 1;
 
-    ObjsetInfo* info = objset_info_storage_get_objset_info(hash);
+    ObjsetInfo* info = get_objset_info(hash);
     if (!info) {
         info = &objset_info_storage_data_modern.insert({ hash, {} }).first->second;
-        info->set_id = hash;
+        info->id = hash;
     }
 
-    if (info->load_count > 0) {
-        info->load_count++;
+    if (info->req_cnt > 0) {
+        info->req_cnt++;
         return 1;
     }
 
@@ -2194,20 +2057,20 @@ int32_t objset_info_storage_load_set_hash(void* data, uint32_t hash) {
 
     info->farc_file_handler.read_file(data, "root+/objset/", file.c_str(), prj::MemCSystem);
 
-    info->load_count = 1;
-    info->obj_loaded = false;
-    info->tex_loaded = false;
+    info->req_cnt = 1;
+    info->obj_ready = false;
+    info->tex_ready = false;
     return 0;
 }
 
-bool objset_info_storage_load_obj_set_check_not_read(uint32_t set_id,
-    object_database* obj_db, texture_database* tex_db) {
-    ObjsetInfo* info = objset_info_storage_get_objset_info(set_id);
+// 0x14045DA60
+bool wait_objset(uint32_t objset_index, object_database* obj_db, texture_database* tex_db) {
+    ObjsetInfo* info = get_objset_info(objset_index);
     if (!info)
         return true;
 
     if (!info->modern) {
-        if (!info->obj_loaded && !info->obj_file_handler.check_not_ready()) {
+        if (!info->obj_ready && !info->obj_file_handler.check_not_ready()) {
             const void* data = info->obj_file_handler.get_data();
             size_t size = info->obj_file_handler.get_size();
             if (!data || !size)
@@ -2223,36 +2086,31 @@ bool objset_info_storage_load_obj_set_check_not_read(uint32_t set_id,
                 return false;
 
             info->obj_file_handler.reset();
-            info->obj_id_data.reserve(set->obj_num);
-            for (int32_t i = 0; i < set->obj_num; i++)
-                info->obj_id_data.push_back(set->obj_data[i]->id, i);
-            info->obj_id_data.sort();
+            make_objdata_indirect_table(info);
 
-            if (!ObjsetInfo_vertex_buffer_load(info)
-                || !ObjsetInfo_index_buffer_load(info))
+            if (!create_objset_vertex_buffer(info)
+                || !create_objset_index_buffer(info))
                 return false;
 
-            ObjsetInfo_vertex_array_load(info);
-            ObjsetInfo_calc_axis_aligned_bounding_box(info);
-            info->obj_loaded = true;
+            create_objset_aabb(info);
+            load_objset_vertex_array(info);
+            info->obj_ready = true;
         }
 
-        if (!info->obj_loaded)
+        if (!info->obj_ready)
             return true;
 
-        if (!info->tex_loaded && !info->tex_file_handler.check_not_ready()) {
-            if (!info->tex_file_handler.get_data())
-                return false;
-            else if (ObjsetInfo_load_textures(info,
-                info->tex_file_handler.get_data(), false))
+        if (!info->tex_ready && !info->tex_file_handler.check_not_ready()) {
+            if (!info->tex_file_handler.get_data()
+                || load_objset_texture(info, info->tex_file_handler.get_data()))
                 return false;
 
-            ObjsetInfo_get_shader_index_texture_index(info);
+            convert_objdata_tex_index(info);
             info->tex_file_handler.reset();
-            info->tex_loaded = true;
+            info->tex_ready = true;
         }
     }
-    else if (!info->obj_loaded && !info->farc_file_handler.check_not_ready()) {
+    else if (!info->obj_ready && !info->farc_file_handler.check_not_ready()) {
         const void* data = info->farc_file_handler.get_data();
         size_t size = info->farc_file_handler.get_size();
         if (!data || !size)
@@ -2305,7 +2163,7 @@ bool objset_info_storage_load_obj_set_check_not_read(uint32_t set_id,
         object_set_info_file* set_info_file = 0;
         if (obj_db_file.ready)
             for (object_set_info_file& m : obj_db_file.object_set)
-                if (m.id == info->set_id) {
+                if (m.id == info->id) {
                     set_info_file = &m;
                     break;
                 }
@@ -2337,285 +2195,163 @@ bool objset_info_storage_load_obj_set_check_not_read(uint32_t set_id,
         object_material_msgpack_read("patch\\AFT\\objset", file.c_str(), set);
 
         info->obj_file_handler.reset();
-        info->obj_id_data.reserve(set->obj_num);
-        for (int32_t i = 0; i < set->obj_num; i++)
-            info->obj_id_data.push_back(set->obj_data[i]->id, i);
-        info->obj_id_data.sort();
+        make_objdata_indirect_table(info);
 
-        if (!ObjsetInfo_vertex_buffer_load(info)
-            || !ObjsetInfo_index_buffer_load(info))
+        if (!create_objset_vertex_buffer(info)
+            || !create_objset_index_buffer(info))
             return false;
 
-        ObjsetInfo_vertex_array_load(info);
-        ObjsetInfo_calc_axis_aligned_bounding_box(info);
-        info->obj_loaded = true;
+        create_objset_aabb(info);
+        load_objset_vertex_array(info);
+        info->obj_ready = true;
 
-        if (ObjsetInfo_load_textures_modern(info, txd->data, txd->size, file.c_str(), tex_db))
+        if (load_objset_texture_modern(info, txd->data, txd->size, file.c_str(), tex_db))
             return false;
 
-        ObjsetInfo_get_shader_index_texture_index(info);
-        info->tex_loaded = true;
+        convert_objdata_tex_index(info);
+        info->tex_ready = true;
         info->farc_file_handler.reset();
     }
 
-    if (info->obj_loaded && info->tex_loaded)
+    if (info->obj_ready && info->tex_ready)
         return false;
     return true;
 }
 
-inline void objset_info_storage_unload_set(const object_database* obj_db, const char* name) {
-    const object_set_info* set_info = obj_db->get_object_set_info(name);
-    if (!set_info)
+// 0x1404599B0
+inline void free_objset(uint32_t objset_index) {
+    ObjsetInfo* info = get_objset_info(objset_index);
+    if (!info || info->req_cnt <= 0)
         return;
 
-    ObjsetInfo* info = objset_info_storage_get_objset_info(set_info->id);
-    if (!info || info->load_count <= 0)
+    if (--info->req_cnt > 0)
         return;
 
-    if (--info->load_count > 0)
-        return;
+    free_objdata_indirect_table(info);
+    free_objset_texture(info);
+    free_objset_index_buffer(info);
+    free_objset_vertex_buffer(info);
 
-    info->obj_id_data.clear();
-    info->tex_id_data.clear();
-    info->gentex.clear();
-
-    texture_array_free(info->tex_data);
-    info->tex_data = 0;
-    info->tex_num = 0;
-
-    ObjsetInfo_index_buffer_free(info);
-    ObjsetInfo_vertex_buffer_free(info);
-    info->load_count = 0;
-    info->tex_loaded = false;
-    info->obj_loaded = false;
-    info->alloc_handler.reset();
-    info->obj_set = 0;
-    info->tex_file_handler.reset();
-    info->obj_file_handler.reset();
-    info->farc_file_handler.reset();
-}
-
-inline void objset_info_storage_unload_set(uint32_t set_id) {
-    ObjsetInfo* info = objset_info_storage_get_objset_info(set_id);
-    if (!info || info->load_count <= 0)
-        return;
-
-    if (--info->load_count > 0)
-        return;
-
-    info->obj_id_data.clear();
-    info->tex_id_data.clear();
-    info->gentex.clear();
-
-    texture_array_free(info->tex_data);
-    info->tex_data = 0;
-    info->tex_num = 0;
-
-    ObjsetInfo_index_buffer_free(info);
-    ObjsetInfo_vertex_buffer_free(info);
-    info->load_count = 0;
-    info->tex_loaded = false;
-    info->obj_loaded = false;
+    info->req_cnt = 0;
+    info->tex_ready = false;
+    info->obj_ready = false;
     info->alloc_handler.reset();
     info->obj_set = 0;
     info->tex_file_handler.reset();
     info->obj_file_handler.reset();
     info->farc_file_handler.reset();
     if (info->modern)
-        objset_info_storage_data_modern.erase(set_id);
+        objset_info_storage_data_modern.erase(objset_index);
 }
 
-inline void objset_info_storage_free() {
-    objset_info_storage_data.clear();
-    objset_info_storage_data_modern.clear();
-}
-
-static GLuint create_index_buffer(size_t size, const void* data) {
-    GLuint buffer = 0;
-    glGenBuffers(1, &buffer);
-    gl_state.bind_element_array_buffer(buffer);
-    if (GLAD_GL_VERSION_4_4)
-        glBufferStorage(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)size, data, 0);
-    else
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)size, data, GL_STATIC_DRAW);
-    gl_state.bind_element_array_buffer(0);
-
-    if (glGetError()) {
-        glDeleteBuffers(1, &buffer);
-        return 0;
-    }
-
-    bufobj_mgr.ib_all_size += (int32_t)size;
-    bufobj_mgr.ib_peak_size = max_def(bufobj_mgr.ib_peak_size, bufobj_mgr.ib_all_size);
-    return buffer;
-}
-
-static GLuint create_vertex_buffer(size_t size, const void* data, GL::BufferUsage usage) {
-    GLuint buffer = 0;
-    glGenBuffers(1, &buffer);
-    gl_state.bind_array_buffer(buffer);
-    if (GLAD_GL_VERSION_4_4 && usage != GL::BUFFER_USAGE_STREAM) {
-        GLbitfield flags = usage == GL::BUFFER_USAGE_DYNAMIC
-            ? GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT : 0;
-        glBufferStorage(GL_ARRAY_BUFFER, (GLsizeiptr)size, data, flags);
-    }
-    else
-        glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)size, data, BufferUsageToGLenum(usage));
-    gl_state.bind_array_buffer(0);
-
-    if (glGetError()) {
-        glDeleteBuffers(1, &buffer);
-        return 0;
-    }
-
-    bufobj_mgr.vb_all_size += (int32_t)size;
-    bufobj_mgr.vb_peak_size = max_def(bufobj_mgr.vb_peak_size, bufobj_mgr.vb_all_size);
-    return buffer;
-}
-
-static void free_index_buffer(GLuint buffer) {
-    if (!buffer)
+// Added
+inline void free_objset(const object_database* obj_db, const char* name) {
+    const object_set_info* set_info = obj_db->get_object_set_info(name);
+    if (!set_info)
         return;
 
-    extern render_context* rctx_ptr;
-    rctx_ptr->disp_manager->remove_index_buffer(buffer);
-
-    GLint size = 0;
-    if (GLAD_GL_VERSION_4_5)
-        glGetNamedBufferParameteriv(buffer, GL_BUFFER_SIZE, &size);
-    else {
-        gl_state.bind_element_array_buffer(buffer);
-        glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
-        gl_state.bind_element_array_buffer(0);
-    }
-
-    bufobj_mgr.ib_all_size -= size;
-
-    glDeleteBuffers(1, &buffer);
-    glGetError();
-}
-
-static void free_vertex_buffer(GLuint buffer) {
-    if (!buffer)
+    ObjsetInfo* info = get_objset_info(set_info->id);
+    if (!info || info->req_cnt <= 0)
         return;
 
-    extern render_context* rctx_ptr;
-    rctx_ptr->disp_manager->remove_vertex_buffer(buffer);
+    if (--info->req_cnt > 0)
+        return;
 
-    GLint size = 0;
-    if (GLAD_GL_VERSION_4_5)
-        glGetNamedBufferParameteriv(buffer, GL_BUFFER_SIZE, &size);
-    else {
-        gl_state.bind_array_buffer(buffer);
-        glGetBufferParameteriv(GL_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
-        gl_state.bind_array_buffer(0);
-    }
+    free_objdata_indirect_table(info);
+    free_objset_texture(info);
+    free_objset_index_buffer(info);
+    free_objset_vertex_buffer(info);
 
-    bufobj_mgr.vb_all_size -= size;
-
-    glDeleteBuffers(1, &buffer);
-    glGetError();
+    info->req_cnt = 0;
+    info->tex_ready = false;
+    info->obj_ready = false;
+    info->alloc_handler.reset();
+    info->obj_set = 0;
+    info->tex_file_handler.reset();
+    info->obj_file_handler.reset();
+    info->farc_file_handler.reset();
 }
 
-static int32_t remove_degenerate_triangle_indices(
-    uint32_t* dst_index_array, const int32_t num_index, uint32_t* src_index_array) {
-    if (!num_index)
-        return 0;
-
-    dst_index_array[0] = src_index_array[0];
-
-    int32_t src_index = 1;
-    int32_t dst_index = 1;
-    int32_t strip_length = 1;
-    while (src_index < num_index - 4)
-        if (src_index_array[src_index] != src_index_array[src_index + 1]) {
-            dst_index_array[dst_index++] = src_index_array[src_index];
-            strip_length++;
-            src_index++;
-        }
-        else if (src_index_array[src_index + 3] == src_index_array[src_index + 4]) {
-            dst_index_array[dst_index++] = src_index_array[src_index];
-            dst_index_array[dst_index++] = 0xFFFFFFFF;
-            dst_index_array[dst_index++] = src_index_array[src_index + 4];
-
-            if (strip_length % 2) {
-                dst_index_array[dst_index++] = src_index_array[src_index + 4];
-                strip_length = 0;
-            }
-            else
-                strip_length = 1;
-            src_index += 5;
-        }
-        else if (src_index_array[src_index - 1] != src_index_array[src_index + 2]
-            || src_index_array[src_index + 1] != src_index_array[src_index + 4]) {
-            dst_index_array[dst_index++] = src_index_array[src_index];
-            dst_index_array[dst_index++] = 0xFFFFFFFF;
-            dst_index_array[dst_index++] = src_index_array[src_index + 3];
-
-            if (!(strip_length % 2)) {
-                dst_index_array[dst_index++] = src_index_array[src_index + 3];
-                strip_length = 0;
-            }
-            else
-                strip_length = 1;
-            src_index += 4;
-        }
-        else {
-            dst_index_array[dst_index++] = src_index_array[src_index];
-            strip_length++;
-            src_index += 5;
-        }
-
-    if (src_index < num_index) {
-        src_index_array += src_index;
-        dst_index_array += dst_index;
-        dst_index += num_index - src_index;
-        while (src_index++ < num_index)
-            *dst_index_array++ = *src_index_array++;
-    }
-    return dst_index;
+// Added
+static int32_t align_val_32(int32_t value) {
+    return value + (32 - value % 32) % 32;
 }
 
-static void ObjsetInfo_calc_axis_aligned_bounding_box(ObjsetInfo* info) {
+// 0x140457260
+static void calc_aabb(obj_axis_aligned_bounding_box& aabb, obj_mesh& mesh, obj_sub_mesh& sub_mesh) {
+    vec3 _min = 9999999.0f;
+    vec3 _max = -100000000.0f;
+
+    uint32_t* index = sub_mesh.index_array;
+    int32_t num_index = sub_mesh.num_index;
+    obj_vertex_data* vertex_array = mesh.vertex_array;
+    if (sub_mesh.index_format == OBJ_INDEX_U16)
+        for (int32_t i = 0; i < num_index; i++, index++) {
+            if (*index == 0xFFFFFFFF)
+                continue;
+
+            vec3 pos = vertex_array[*index].position;
+            _min = vec3::min(_min, pos);
+            _max = vec3::max(_max, pos);
+        }
+    else
+        for (int32_t l = 0; l < num_index; l++, index++) {
+            vec3 pos = vertex_array[*index].position;
+            _min = vec3::min(_min, pos);
+            _max = vec3::max(_max, pos);
+        }
+
+    vec3 center = (_max + _min) * 0.5f;
+    vec3 size = _max - center;
+    aabb.center = center;
+    aabb.size = size;
+}
+
+#if SHARED_OBJECT_BUFFER
+// Added
+inline static void calc_index_buffer(obj_sub_mesh& sub_mesh, int32_t& size) {
+    if (sub_mesh.index_format == OBJ_INDEX_U16) {
+        int32_t _size = sizeof(uint16_t) * sub_mesh.num_index;
+        size += align_val_32(_size);
+    }
+}
+
+// Added
+inline static void calc_mesh_index_buffer(obj_mesh& mesh, int32_t& size) {
+    for (int32_t i = 0; i < mesh.num_submesh; i++)
+        calc_index_buffer(mesh.submesh_array[i], size);
+}
+
+// Added
+inline static int32_t calc_mesh_vertex_buffer(obj_mesh& mesh) {
+    uint32_t vertex_size = get_vertex_size(mesh.vertex_format);
+    return mesh.num_vertex * vertex_size;
+}
+
+// Added
+inline static void calc_object_index_buffer(obj* obj, int32_t& size) {
+    for (int32_t i = 0; i < obj->num_mesh; i++)
+        calc_mesh_index_buffer(obj->mesh_array[i], size);
+}
+
+// Added
+inline static void calc_object_vertex_buffer(obj* obj, int32_t& size) {
+    for (int32_t i = 0; i < obj->num_mesh; i++) {
+        int32_t _size = calc_mesh_vertex_buffer(obj->mesh_array[i]);
+        size += align_val_32(_size);
+    }
+}
+#endif
+
+// 0x140457E40
+static void convert_objdata_tex_index(ObjsetInfo* info) {
     obj_set* set = info->obj_set;
-    for (int32_t i = 0; i < set->obj_num; i++) {
-        obj* obj = set->obj_data[i];
-        for (int32_t j = 0; j < obj->num_mesh; j++) {
-            obj_mesh& mesh = obj->mesh_array[j];
-            for (int32_t k = 0; k < mesh.num_submesh; k++) {
-                vec3 _min =    9999999.0f;
-                vec3 _max = -100000000.0f;
-
-                obj_sub_mesh& sub_mesh = mesh.submesh_array[k];
-                uint32_t* index = sub_mesh.index_array;
-                int32_t num_index = sub_mesh.num_index;
-                obj_vertex_data* vertex_array = mesh.vertex_array;
-                if (sub_mesh.index_format == OBJ_INDEX_U16)
-                    for (int32_t l = 0; l < num_index; l++, index++) {
-                        if (*index == 0xFFFFFFFF)
-                            continue;
-
-                        vec3 pos = vertex_array[*index].position;
-                        _min = vec3::min(_min, pos);
-                        _max = vec3::max(_max, pos);
-                    }
-                else
-                    for (int32_t l = 0; l < num_index; l++, index++) {
-                        vec3 pos = vertex_array[*index].position;
-                        _min = vec3::min(_min, pos);
-                        _max = vec3::max(_max, pos);
-                    }
-
-                vec3 center = (_max + _min) * 0.5f;
-                vec3 size = _max - center;
-                sub_mesh.axis_aligned_bounding_box.center = center;
-                sub_mesh.axis_aligned_bounding_box.size = size;
-            }
-        }
-    }
+    for (int32_t i = 0; i < set->obj_num; i++)
+        convert_objdata_tex_index_internal(info, set->obj_data[i]);
 }
 
-static void ObjsetInfo_get_obj_shader_index_texture_index(ObjsetInfo* info, obj* obj) {
+// 0x140457EA0
+static void convert_objdata_tex_index_internal(ObjsetInfo* info, obj* obj) {
     int32_t num_material = obj->num_material;
     for (int32_t i = 0; i < num_material; i++) {
         obj_material_data& material_data = obj->material_array[i];
@@ -2635,8 +2371,8 @@ static void ObjsetInfo_get_obj_shader_index_texture_index(ObjsetInfo* info, obj*
             texture.tex_index = -1;
             texture.texture_index = 0;
 
-            auto elem = info->tex_id_data.find(tex_index);
-            if (elem != info->tex_id_data.end()) {
+            auto elem = info->texidx_map.find(tex_index);
+            if (elem != info->texidx_map.end()) {
                 texture.tex_index = tex_index;
                 texture.texture_index = elem->second;
             }
@@ -2644,37 +2380,385 @@ static void ObjsetInfo_get_obj_shader_index_texture_index(ObjsetInfo* info, obj*
     }
 }
 
-static void ObjsetInfo_get_shader_index_texture_index(ObjsetInfo* info) {
-    obj_set* set = info->obj_set;
-    for (int32_t i = 0; i < set->obj_num; i++)
-        ObjsetInfo_get_obj_shader_index_texture_index(info, set->obj_data[i]);
+// 0x140457FC0
+static void create_mesh_aabb(obj_mesh& mesh) {
+    for (int32_t i = 0; i < mesh.num_submesh; i++)
+        calc_aabb(mesh.submesh_array[i].axis_aligned_bounding_box, mesh, mesh.submesh_array[i]);
 }
 
-static bool ObjsetInfo_index_buffer_load(ObjsetInfo* info) {
-    obj_set* set = info->obj_set;
-    info->objib_num = set->obj_num;
-    info->objib = prj::MemoryManager::alloc<obj_index_buffer>(prj::MemCSystem, set->obj_num, "OBJIB");
-    if (!info->objib)
-        return true;
+// 0x140458690
+static void create_object_aabb(obj* obj) {
+    for (int32_t i = 0; i < obj->num_mesh; i++)
+        create_mesh_aabb(obj->mesh_array[i]);
+}
 
-    for (int32_t i = 0; i < set->obj_num; i++)
-        if (!info->objib[i].load(set->obj_data[i]))
+// 0x1404586E0
+static bool create_object_index_buffer(ObjIB* objib, obj* obj) {
+    if (!obj)
+        return false;
+
+    objib->num_ib = obj->num_mesh;
+    objib->ibhn_array = prj::MemoryManager::alloc<IndexBuffer>(prj::MemCSystem, obj->num_mesh, "MESHIB");
+    if (!objib->ibhn_array)
+        return false;
+
+    for (int32_t i = 0; i < objib->num_ib; i++)
+        if (!create_mesh_index_buffer(objib->ibhn_array[i], obj->mesh_array[i]))
             return false;
     return true;
 }
 
-static void ObjsetInfo_index_buffer_free(ObjsetInfo* info) {
-    if (info->objib) {
-        for (int32_t i = 0; i < info->objib_num; i++)
-            info->objib[i].unload();
-        prj::MemoryManager::free(prj::MemCSystem, info->objib);
-    }
+// 0x140458790
+static bool create_object_vertex_buffer(ObjVB* objvb, obj* obj) {
+    if (!obj)
+        return false;
 
-    info->objib = 0;
-    info->objib_num = 0;
+    objvb->num_vb = obj->num_mesh;
+    objvb->vbhn_array = new VertexBuffer[obj->num_mesh];
+    if (!objvb->vbhn_array)
+        return false;
+
+    for (int32_t i = 0; i < objvb->num_vb; i++)
+        if (!create_mesh_vertex_buffer(objvb->vbhn_array[i], obj->mesh_array[i]))
+            return false;
+    return true;
 }
 
-static bool ObjsetInfo_load_textures(ObjsetInfo* info, const void* data, bool big_endian) {
+#if SHARED_OBJECT_BUFFER
+// Added
+inline static bool create_object_vertex_buffer(ObjVB* objvb, obj* obj, GLuint in_vb, uint32_t& offset) {
+    if (!obj)
+        return false;
+
+    objvb->num_vb = obj->num_mesh;
+    objvb->vbhn_array = new VertexBuffer[obj->num_mesh];
+    if (!objvb->vbhn_array)
+        return false;
+
+    for (int32_t i = 0; i < obj->num_mesh; i++)
+        create_mesh_vertex_buffer(objvb->vbhn_array[i], obj->mesh_array[i], in_vb, offset);
+    return true;
+}
+#endif
+
+// 0x1404588A0
+static void create_objset_aabb(ObjsetInfo* info) {
+    obj_set* set = info->obj_set;
+    for (int32_t i = 0; i < set->obj_num; i++)
+        create_object_aabb(set->obj_data[i]);
+}
+
+// Added
+inline static void fill_index_buffer(void* buf, obj_sub_mesh& sub_mesh, int32_t& offset) {
+    if (sub_mesh.primitive_type == OBJ_PRIMITIVE_TRIANGLE_STRIP && !sub_mesh.attrib.m.use_restart_index) {
+        uint32_t* index_array = prj::MemoryManager::alloc<uint32_t>(prj::MemCTemp, sub_mesh.num_index, "NEW INDICES");
+        sub_mesh.num_index = rewrite_to_restart_index(
+            index_array, sub_mesh.num_index, sub_mesh.index_array);
+        memmove(sub_mesh.index_array, index_array, sizeof(uint32_t) * sub_mesh.num_index);
+        prj::MemoryManager::free(prj::MemCTemp, index_array);
+    }
+
+    sub_mesh.min_index = 0;
+    sub_mesh.max_index = 0;
+    sub_mesh.index_offset = 0;
+    if (sub_mesh.index_format != OBJ_INDEX_U16)
+        return;
+
+    const uint32_t* index = sub_mesh.index_array;
+    uint16_t* indices = (uint16_t*)buf;
+    for (int32_t j = sub_mesh.num_index; j > 0; j--, index++)
+        *indices++ = (uint16_t)*index;
+
+    uint16_t min_index = 0xFFFF;
+    uint16_t max_index = 0;
+    indices = (uint16_t*)buf;
+    for (int32_t j = sub_mesh.num_index; j > 0; j--) {
+        uint16_t index = *indices++;
+        if (index == 0xFFFF)
+            continue;
+
+        if (min_index > index)
+            min_index = index;
+        if (max_index < index)
+            max_index = index;
+    }
+
+    sub_mesh.min_index = min_index;
+    sub_mesh.max_index = max_index;
+    sub_mesh.index_offset = offset;
+
+    int32_t size = sizeof(uint16_t) * sub_mesh.num_index;
+    offset += align_val_32(size);
+}
+
+// Added
+static void fill_mesh_index_buffer(void* buf, obj_mesh& mesh, int32_t& offset) {
+    for (int32_t i = 0; i < mesh.num_submesh; i++)
+        fill_index_buffer((uint8_t*)buf + offset, mesh.submesh_array[i], offset);
+}
+
+// Added
+static int32_t fill_mesh_vertex_buffer(void* buf, obj_mesh& mesh) {
+    uint32_t size_vertex = get_vertex_size(mesh.vertex_format, mesh.attrib.m.compression);
+    obj_vertex_format vertex_format = mesh.vertex_format;
+    obj_vertex_data* vtx = mesh.vertex_array;
+    int32_t num_vertex = mesh.num_vertex;
+    size_t d = (size_t)buf;
+    switch (mesh.attrib.m.compression) {
+    case 0:
+    default:
+        for (int32_t i = num_vertex; i > 0; i--, vtx++) {
+            if (vertex_format & OBJ_VERTEX_POSITION) {
+                *(vec3*)d = vtx->position;
+                d += 12;
+            }
+
+            if (vertex_format & OBJ_VERTEX_NORMAL) {
+                *(vec3*)d = vtx->normal;
+                d += 12;
+            }
+
+            if (vertex_format & OBJ_VERTEX_TANGENT) {
+                *(vec4*)d = vtx->tangent;
+                d += 16;
+            }
+
+            if (vertex_format & OBJ_VERTEX_BINORMAL) {
+                *(vec3*)d = vtx->binormal;
+                d += 12;
+            }
+
+            if (vertex_format & OBJ_VERTEX_TEXCOORD0) {
+                *(vec2*)d = vtx->texcoord0;
+                d += 8;
+            }
+
+            if (vertex_format & OBJ_VERTEX_TEXCOORD1) {
+                *(vec2*)d = vtx->texcoord1;
+                d += 8;
+            }
+
+            if (vertex_format & OBJ_VERTEX_TEXCOORD2) {
+                *(vec2*)d = vtx->texcoord2;
+                d += 8;
+            }
+
+            if (vertex_format & OBJ_VERTEX_TEXCOORD3) {
+                *(vec2*)d = vtx->texcoord3;
+                d += 8;
+            }
+
+            if (vertex_format & OBJ_VERTEX_COLOR0) {
+                *(vec4*)d = vtx->color0;
+                d += 16;
+            }
+
+            if (vertex_format & OBJ_VERTEX_COLOR1) {
+                *(vec4*)d = vtx->color1;
+                d += 16;
+            }
+
+            if (vertex_format & OBJ_VERTEX_BONE_DATA) {
+                *(vec4*)d = vtx->bone_weight;
+                d += 16;
+                *(vec4i16*)d = vtx->bone_index;
+                d += 8;
+            }
+
+            if (vertex_format & OBJ_VERTEX_UNKNOWN) {
+                *(vec4*)d = vtx->unknown;
+                d += 16;
+            }
+        }
+        break;
+    case 1:
+        for (int32_t i = num_vertex; i > 0; i--, vtx++) {
+            if (vertex_format & OBJ_VERTEX_POSITION) {
+                *(vec3*)d = vtx->position;
+                d += 12;
+            }
+
+            if (vertex_format & OBJ_VERTEX_NORMAL) {
+                vec3_to_vec3i16(vtx->normal * 32767.0f, *(vec3i16*)d);
+                *(int16_t*)(d + 6) = 0;
+                d += 8;
+            }
+
+            if (vertex_format & OBJ_VERTEX_TANGENT) {
+                vec4_to_vec4i16(vtx->tangent * 32767.0f, *(vec4i16*)d);
+                d += 8;
+            }
+
+            if (vertex_format & OBJ_VERTEX_TEXCOORD0) {
+                vec2_to_vec2h(vtx->texcoord0, *(vec2h*)d);
+                d += 4;
+            }
+
+            if (vertex_format & OBJ_VERTEX_TEXCOORD1) {
+                vec2_to_vec2h(vtx->texcoord1, *(vec2h*)d);
+                d += 4;
+            }
+
+            if (vertex_format & OBJ_VERTEX_TEXCOORD2) {
+                vec2_to_vec2h(vtx->texcoord2, *(vec2h*)d);
+                d += 4;
+            }
+
+            if (vertex_format & OBJ_VERTEX_TEXCOORD3) {
+                vec2_to_vec2h(vtx->texcoord3, *(vec2h*)d);
+                d += 4;
+            }
+
+            if (vertex_format & OBJ_VERTEX_COLOR0) {
+                vec4_to_vec4h(vtx->color0, *(vec4h*)d);
+                d += 8;
+            }
+
+            if (vertex_format & OBJ_VERTEX_BONE_DATA) {
+                vec4_to_vec4u16(vtx->bone_weight * 65535.0f, *(vec4u16*)d);
+                d += 8;
+
+                *(vec4i16*)d = vtx->bone_index;
+                d += 8;
+            }
+        }
+        break;
+    case 2:
+        for (int32_t i = num_vertex; i > 0; i--, vtx++) {
+            if (vertex_format & OBJ_VERTEX_POSITION) {
+                *(vec3*)d = vtx->position;
+                d += 12;
+            }
+
+            if (vertex_format & OBJ_VERTEX_NORMAL) {
+                vec3i16 normal_int;
+                vec3_to_vec3i16(vtx->normal * 511.0f, normal_int);
+                *(uint32_t*)d = (((uint32_t)0 & 0x03) << 30)
+                    | (((uint32_t)normal_int.z & 0x3FF) << 20)
+                    | (((uint32_t)normal_int.y & 0x3FF) << 10)
+                    | ((uint32_t)normal_int.x & 0x3FF);
+                d += 4;
+            }
+
+            if (vertex_format & OBJ_VERTEX_TANGENT) {
+                vec4i16 tangent_int;
+                vec4_to_vec4i16(vtx->tangent * 511.0f, tangent_int);
+                *(uint32_t*)d = (((uint32_t)clamp_def(tangent_int.w, -1, 1) & 0x03) << 30)
+                    | (((uint32_t)tangent_int.z & 0x3FF) << 20)
+                    | (((uint32_t)tangent_int.y & 0x3FF) << 10)
+                    | ((uint32_t)tangent_int.x & 0x3FF);
+                d += 4;
+            }
+
+            if (vertex_format & OBJ_VERTEX_TEXCOORD0) {
+                vec2_to_vec2h(vtx->texcoord0, *(vec2h*)d);
+                d += 4;
+            }
+
+            if (vertex_format & OBJ_VERTEX_TEXCOORD1) {
+                vec2_to_vec2h(vtx->texcoord1, *(vec2h*)d);
+                d += 4;
+            }
+
+            if (vertex_format & OBJ_VERTEX_TEXCOORD2) {
+                vec2_to_vec2h(vtx->texcoord2, *(vec2h*)d);
+                d += 4;
+            }
+
+            if (vertex_format & OBJ_VERTEX_TEXCOORD3) {
+                vec2_to_vec2h(vtx->texcoord3, *(vec2h*)d);
+                d += 4;
+            }
+
+            if (vertex_format & OBJ_VERTEX_COLOR0) {
+                vec4_to_vec4h(vtx->color0, *(vec4h*)d);
+                d += 8;
+            }
+
+            if (vertex_format & OBJ_VERTEX_BONE_DATA) {
+                vec4i16 bone_weight_int;
+                vec4_to_vec4i16(vtx->bone_weight * 1023.0f, bone_weight_int);
+                *(uint32_t*)d = (((uint32_t)0 & 0x03) << 30)
+                    | (((uint32_t)bone_weight_int.z & 0x3FF) << 20)
+                    | (((uint32_t)bone_weight_int.y & 0x3FF) << 10)
+                    | ((uint32_t)bone_weight_int.x & 0x3FF);
+                d += 4;
+
+                vec4i bone_index;
+                vec4i16_to_vec4i(vtx->bone_index, bone_index);
+                vec4i_to_vec4u8(bone_index, *(vec4u8*)d);
+                d += 4;
+            }
+        }
+        break;
+    }
+    return size_vertex * num_vertex;
+}
+
+#if SHARED_OBJECT_BUFFER
+// Added
+inline static void fill_object_index_buffer(void* buf, obj* obj, int32_t& offset) {
+    for (int32_t i = 0; i < obj->num_mesh; i++)
+        fill_mesh_index_buffer(buf, obj->mesh_array[i], offset);
+}
+
+// Added
+inline static void fill_object_vertex_buffer(void* buf, obj* obj, int32_t& offset) {
+    for (int32_t i = 0; i < obj->num_mesh; i++) {
+        int32_t size = fill_mesh_vertex_buffer((uint8_t*)buf + offset, obj->mesh_array[i]);
+        offset += align_val_32(size);
+    }
+}
+#endif
+
+// 0x140459940
+static void free_objdata_indirect_table(ObjsetInfo* info) {
+    info->objdb_map.clear();
+    info->texidx_map.clear();
+    info->gentex_vec.clear();
+}
+
+// Inlined
+inline static void free_object_index_buffer(ObjIB* objib) {
+    if (objib->ibhn_array) {
+#if SHARED_OBJECT_BUFFER
+        for (int32_t i = 0; i < objib->num_ib; i++)
+            objib->ibhn_array[i].destroy_shared();
+#else
+        for (int32_t i = 0; i < objib->num_ib; i++)
+            objib->ibhn_array[i].destroy();
+#endif
+        prj::MemoryManager::free(prj::MemCSystem, objib->ibhn_array);
+    }
+    objib->ibhn_array = 0;
+    objib->num_ib = 0;
+}
+
+// Inlined
+inline static void free_object_vertex_buffer(ObjVB* objvb) {
+    if (objvb->vbhn_array) {
+#if SHARED_OBJECT_BUFFER
+        for (int32_t i = 0; i < objvb->num_vb; i++)
+            objvb->vbhn_array[i].destroy_shared();
+#else
+        for (int32_t i = 0; i < num_vb; i++)
+            vbhn_array[i].destroy();
+#endif
+        delete[] objvb->vbhn_array;
+    }
+    objvb->vbhn_array = 0;
+    objvb->num_vb = 0;
+}
+
+// 0x140459C40
+static void free_objset_texture(ObjsetInfo* info) {
+    texture_array_free(info->textures);
+    info->textures = 0;
+    info->tex_num = 0;
+}
+
+// 0x14045B4F0
+static bool load_objset_texture(ObjsetInfo* info, const void* data, bool big_endian) {
     obj_set* set = info->obj_set;
     if (!set || !data)
         return true;
@@ -2685,23 +2769,24 @@ static bool ObjsetInfo_load_textures(ObjsetInfo* info, const void* data, bool bi
         txp_set txp;
         txp.unpack_file(data, big_endian);
         info->tex_num = (int32_t)txp.textures.size();
-        texture_txp_set_load(&txp, &info->tex_data, set->tex_id_data);
+        texture_txp_set_load(&txp, &info->textures, set->tex_id_data);
     }
 
-    info->tex_id_data.reserve(info->tex_num);
-    info->gentex.reserve(info->tex_num);
+    info->texidx_map.reserve(info->tex_num);
+    info->gentex_vec.reserve(info->tex_num);
     uint32_t* tex_id_data = set->tex_id_data;
     int32_t tex_num = info->tex_num;
-    texture** tex_data = info->tex_data;
+    texture** textures = info->textures;
     for (int32_t i = 0; i < tex_num; i++) {
-        info->tex_id_data.push_back(tex_id_data[i], i);
-        info->gentex.push_back(tex_data[i]->glid);
+        info->texidx_map.push_back(tex_id_data[i], i);
+        info->gentex_vec.push_back(textures[i]->glid);
     }
-    info->tex_id_data.sort();
+    info->texidx_map.sort();
     return false;
 }
 
-static bool ObjsetInfo_load_textures_modern(ObjsetInfo* info,
+// Added
+static bool load_objset_texture_modern(ObjsetInfo* info,
     const void* data, size_t size, const char* file, texture_database* tex_db) {
     obj_set* set = info->obj_set;
     if (!set || !data || !size)
@@ -2714,38 +2799,41 @@ static bool ObjsetInfo_load_textures_modern(ObjsetInfo* info,
         txp.unpack_file_modern(data, size, 'MTXD');
         info->tex_num = (int32_t)txp.textures.size();
         object_material_msgpack_read("patch\\AFT\\objset", file, &txp, tex_db, info);
-        texture_txp_set_load(&txp, &info->tex_data, set->tex_id_data);
+        texture_txp_set_load(&txp, &info->textures, set->tex_id_data);
     }
 
-    info->tex_id_data.reserve(info->tex_num);
-    info->gentex.reserve(info->tex_num);
+    info->texidx_map.reserve(info->tex_num);
+    info->gentex_vec.reserve(info->tex_num);
     uint32_t* tex_id_data = set->tex_id_data;
     int32_t tex_num = info->tex_num;
-    texture** tex_data = info->tex_data;
+    texture** textures = info->textures;
     for (int32_t i = 0; i < tex_num; i++) {
-        info->tex_id_data.push_back(tex_id_data[i], i);
-        info->gentex.push_back(tex_data[i]->glid);
+        info->texidx_map.push_back(tex_id_data[i], i);
+        info->gentex_vec.push_back(textures[i]->glid);
     }
-    info->tex_id_data.sort();
+    info->texidx_map.sort();
     return false;
 }
 
-static void ObjsetInfo_vertex_array_load(ObjsetInfo* info) {
+// Added
+static void load_objset_vertex_array(ObjsetInfo* info) {
     obj_set* set = info->obj_set;
-    obj_vertex_buffer* obj_vert_buf = info->objvb;
-    obj_index_buffer* obj_index_buf = info->objib;
+    ObjVB* vbhn_array = info->objvb;
+    ObjIB* ibhn_array = info->objib;
     for (int32_t i = 0; i < set->obj_num; i++) {
         obj* obj = set->obj_data[i];
 
 #if SHARED_OBJECT_BUFFER
-        bool double_buffer = false;
+        bool soft_body = false;
         for (int32_t i = 0; i < obj->num_mesh; i++) {
             obj_mesh& mesh = obj->mesh_array[i];
             if (!mesh.num_vertex || !mesh.vertex_array)
                 continue;
 
-            double_buffer |= !!mesh.attrib.m.double_buffer;
+            soft_body |= !!mesh.attrib.m.soft_body;
         }
+
+        int32_t num_flip = soft_body ? 2 : 1;
 #endif
 
         for (int32_t j = 0; j < obj->num_mesh; j++) {
@@ -2755,134 +2843,106 @@ static void ObjsetInfo_vertex_array_load(ObjsetInfo* info) {
 
             for (int32_t k = 0; k < mesh->num_submesh; k++) {
                 obj_sub_mesh* sub_mesh = &mesh->submesh_array[k];
-                if (sub_mesh->attrib.m.cloth)
+                if (sub_mesh->attrib.m.hide)
                     continue;
 
                 obj_material_data* material = &obj->material_array[sub_mesh->material_index];
 
-#if SHARED_OBJECT_BUFFER
-                for (int32_t l = 0; l < (double_buffer ? 2 : 1); l++) {
-#else
-                for (int32_t l = 0; l < (mesh->attrib.m.double_buffer ? 2 : 1); l++) {
+#if !SHARED_OBJECT_BUFFER
+                int32_t num_flip = mesh->attrib.m.soft_body ? 2 : 1;
 #endif
-                    GLuint vertex_buffer = 0;
-                    size_t vertex_buffer_offset = 0;
-                    if (obj_vert_buf && obj_vert_buf[i].mesh_data) {
-                        vertex_buffer = obj_vert_buf[i].mesh_data[j].get_buffer();
-                        vertex_buffer_offset = obj_vert_buf[i].mesh_data[j].get_offset();
+                for (int32_t l = 0; l < num_flip; l++) {
+                    GLuint vb = 0;
+                    uint32_t vb_offset = 0;
+                    if (vbhn_array && vbhn_array[i].vbhn_array) {
+                        vb = vbhn_array[i].vbhn_array[j].get_glvb();
+                        vb_offset = vbhn_array[i].vbhn_array[j].get_glvb_offset();
                     }
 
-                    GLuint index_buffer = 0;
-                    if (obj_index_buf && obj_index_buf[i].mesh_data)
-                        index_buffer = obj_index_buf[i].mesh_data[j].buffer;
+                    GLuint ib = 0;
+                    if (ibhn_array && ibhn_array[i].ibhn_array)
+                        ib = ibhn_array[i].ibhn_array[j].ib;
 
                     extern render_context* rctx_ptr;
                     rctx_ptr->disp_manager->add_vertex_array(mesh, sub_mesh, material,
-                        vertex_buffer, vertex_buffer_offset, index_buffer, 0, 0);
+                        vb, vb_offset, ib, 0, 0);
 
-                    if (obj_vert_buf && obj_vert_buf[i].mesh_data)
-                        obj_vert_buf[i].mesh_data[j].cycle_index();
+                    if (vbhn_array && vbhn_array[i].vbhn_array)
+                        vbhn_array[i].vbhn_array[j].flip();
                 }
             }
         }
     }
 }
 
-static bool ObjsetInfo_vertex_buffer_load(ObjsetInfo* info) {
+// 0x14045B8B0
+static void make_objdata_indirect_table(ObjsetInfo* info) {
     obj_set* set = info->obj_set;
-    info->objvb_num = set->obj_num;
-    info->objvb = prj::MemoryManager::alloc<obj_vertex_buffer>(prj::MemCSystem, set->obj_num, "OBJVB");
-    if (!info->objvb)
-        return true;
+    if (!set)
+        return;
 
+    info->objdb_map.reserve(set->obj_num);
     for (int32_t i = 0; i < set->obj_num; i++)
-        if (!info->objvb[i].load(set->obj_data[i]))
-            return false;
-    return true;
+        info->objdb_map.push_back(set->obj_data[i]->id, i);
+    info->objdb_map.sort();
 }
 
-static void ObjsetInfo_vertex_buffer_free(ObjsetInfo* info) {
-    if (info->objvb) {
-        for (int32_t i = 0; i < info->objvb_num; i++)
-            info->objvb[i].unload();
-        prj::MemoryManager::free(prj::MemCSystem, info->objvb);
+// 0x14045D3B0
+static int32_t rewrite_to_restart_index(uint32_t* new_indices,
+    const int32_t num_indices, const uint32_t* indices) {
+    if (!num_indices)
+        return 0;
+
+    new_indices[0] = indices[0];
+
+    int32_t src_index = 1;
+    int32_t dst_index = 1;
+    int32_t strip_length = 1;
+    while (src_index < num_indices - 4)
+        if (indices[src_index] != indices[src_index + 1]) {
+            new_indices[dst_index++] = indices[src_index];
+            strip_length++;
+            src_index++;
+        }
+        else if (indices[src_index + 3] == indices[src_index + 4]) {
+            new_indices[dst_index++] = indices[src_index];
+            new_indices[dst_index++] = 0xFFFFFFFF;
+            new_indices[dst_index++] = indices[src_index + 4];
+
+            if (strip_length % 2) {
+                new_indices[dst_index++] = indices[src_index + 4];
+                strip_length = 0;
+            }
+            else
+                strip_length = 1;
+            src_index += 5;
+        }
+        else if (indices[src_index - 1] != indices[src_index + 2]
+            || indices[src_index + 1] != indices[src_index + 4]) {
+            new_indices[dst_index++] = indices[src_index];
+            new_indices[dst_index++] = 0xFFFFFFFF;
+            new_indices[dst_index++] = indices[src_index + 3];
+
+            if (!(strip_length % 2)) {
+                new_indices[dst_index++] = indices[src_index + 3];
+                strip_length = 0;
+            }
+            else
+                strip_length = 1;
+            src_index += 4;
+        }
+        else {
+            new_indices[dst_index++] = indices[src_index];
+            strip_length++;
+            src_index += 5;
+        }
+
+    if (src_index < num_indices) {
+        indices += src_index;
+        new_indices += dst_index;
+        dst_index += num_indices - src_index;
+        while (src_index++ < num_indices)
+            *new_indices++ = *indices++;
     }
-
-    info->objvb = 0;
-    info->objvb_num = 0;
-}
-
-inline static uint32_t obj_vertex_format_get_vertex_size(obj_vertex_format format) {
-    uint32_t size = 0;
-    if (format & OBJ_VERTEX_POSITION)
-        size += 12;
-    if (format & OBJ_VERTEX_NORMAL)
-        size += 12;
-    if (format & OBJ_VERTEX_TANGENT)
-        size += 16;
-    if (format & OBJ_VERTEX_BINORMAL)
-        size += 12;
-    if (format & OBJ_VERTEX_TEXCOORD0)
-        size += 8;
-    if (format & OBJ_VERTEX_TEXCOORD1)
-        size += 8;
-    if (format & OBJ_VERTEX_TEXCOORD2)
-        size += 8;
-    if (format & OBJ_VERTEX_TEXCOORD3)
-        size += 8;
-    if (format & OBJ_VERTEX_COLOR0)
-        size += 16;
-    if (format & OBJ_VERTEX_COLOR1)
-        size += 16;
-    if (format & OBJ_VERTEX_BONE_DATA)
-        size += 24;
-    if (format & OBJ_VERTEX_UNKNOWN)
-        size += 16;
-    return size;
-}
-
-inline static uint32_t obj_vertex_format_get_vertex_size_comp1(obj_vertex_format format) {
-    uint32_t size = 0;
-    if (format & OBJ_VERTEX_POSITION)
-        size += 12;
-    if (format & OBJ_VERTEX_NORMAL)
-        size += 8;
-    if (format & OBJ_VERTEX_TANGENT)
-        size += 8;
-    if (format & OBJ_VERTEX_TEXCOORD0)
-        size += 4;
-    if (format & OBJ_VERTEX_TEXCOORD1)
-        size += 4;
-    if (format & OBJ_VERTEX_TEXCOORD2)
-        size += 4;
-    if (format & OBJ_VERTEX_TEXCOORD3)
-        size += 4;
-    if (format & OBJ_VERTEX_COLOR0)
-        size += 8;
-    if (format & OBJ_VERTEX_BONE_DATA)
-        size += 16;
-    return size;
-}
-
-inline static uint32_t obj_vertex_format_get_vertex_size_comp2(obj_vertex_format format) {
-    uint32_t size = 0;
-    if (format & OBJ_VERTEX_POSITION)
-        size += 12;
-    if (format & OBJ_VERTEX_NORMAL)
-        size += 4;
-    if (format & OBJ_VERTEX_TANGENT)
-        size += 4;
-    if (format & OBJ_VERTEX_TEXCOORD0)
-        size += 4;
-    if (format & OBJ_VERTEX_TEXCOORD1)
-        size += 4;
-    if (format & OBJ_VERTEX_TEXCOORD2)
-        size += 4;
-    if (format & OBJ_VERTEX_TEXCOORD3)
-        size += 4;
-    if (format & OBJ_VERTEX_COLOR0)
-        size += 8;
-    if (format & OBJ_VERTEX_BONE_DATA)
-        size += 8;
-    return size;
+    return dst_index;
 }
