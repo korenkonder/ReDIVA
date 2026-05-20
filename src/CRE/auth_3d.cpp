@@ -7923,7 +7923,6 @@ namespace auth_3d_detail {
     template <class T, class U, typename... Args>
     void list_load(T& in_c, const SceneFile& in_file, const U& in_a, Args... args) {
         if (in_a.size()) {
-            size_t index = 0;
             in_c.resize(in_a.size());
             for (size_t i = 0; i < in_a.size(); i++)
                 in_c[i].load(in_file, in_a[i], args...);
@@ -7933,7 +7932,6 @@ namespace auth_3d_detail {
     template <class T, class U, typename... Args>
     void list_store(const T& in_c, const SceneFile& in_file, U& out_a, Args... args) {
         if (in_c.size()) {
-            size_t index = 0;
             out_a.resize(in_c.size());
             for (size_t i = 0; i < in_c.size(); i++)
                 in_c[i].store(in_file, out_a[i], args...);
