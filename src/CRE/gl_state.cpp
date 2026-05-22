@@ -261,10 +261,10 @@ void gl_state_struct::write_array_buffer(GLuint buffer, GLintptr offset, GLsizei
         return;
 
     if (GLAD_GL_VERSION_4_5)
-        glNamedBufferSubData(buffer, (GLsizeiptr)offset, (GLsizeiptr)size, data);
+        glNamedBufferSubData(buffer, offset, size, data);
     else {
         bind_array_buffer(buffer);
-        glBufferSubData(GL_ARRAY_BUFFER, (GLsizeiptr)offset, (GLsizeiptr)size, data);
+        glBufferSubData(GL_ARRAY_BUFFER, offset, size, data);
     }
 }
 
@@ -273,10 +273,10 @@ void gl_state_struct::write_element_array_buffer(GLuint buffer, GLintptr offset,
         return;
 
     if (GLAD_GL_VERSION_4_5)
-        glNamedBufferSubData(buffer, (GLsizeiptr)offset, (GLsizeiptr)size, data);
+        glNamedBufferSubData(buffer, offset, size, data);
     else {
         bind_element_array_buffer(buffer);
-        glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)offset, (GLsizeiptr)size, data);
+        glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, offset, size, data);
     }
 }
 
@@ -285,10 +285,10 @@ void gl_state_struct::write_uniform_buffer(GLuint buffer, GLintptr offset, GLsiz
         return;
 
     if (GLAD_GL_VERSION_4_5)
-        glNamedBufferSubData(buffer, (GLsizeiptr)offset, (GLsizeiptr)size, data);
+        glNamedBufferSubData(buffer, offset, size, data);
     else {
         bind_uniform_buffer(buffer);
-        glBufferSubData(GL_UNIFORM_BUFFER, (GLsizeiptr)offset, (GLsizeiptr)size, data);
+        glBufferSubData(GL_UNIFORM_BUFFER, offset, size, data);
     }
 }
 
@@ -297,9 +297,9 @@ void gl_state_struct::write_shader_storage_buffer(GLuint buffer, GLintptr offset
         return;
 
     if (GLAD_GL_VERSION_4_5)
-        glNamedBufferSubData(buffer, (GLsizeiptr)offset, (GLsizeiptr)size, data);
+        glNamedBufferSubData(buffer, offset, size, data);
     else {
         bind_shader_storage_buffer(buffer);
-        glBufferSubData(GL_SHADER_STORAGE_BUFFER, (GLsizeiptr)offset, (GLsizeiptr)size, data);
+        glBufferSubData(GL_SHADER_STORAGE_BUFFER, offset, size, data);
     }
 }
