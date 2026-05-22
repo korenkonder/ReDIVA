@@ -63,46 +63,46 @@ struct EffectStorage {
             p_gl_rend_st.draw_arrays_instanced(mode, first, 6, count / 6);
     }
 
-    inline void* MapMemory(gl_state_struct& gl_st) {
+    inline void* map_buffer(gl_state_struct& gl_st) {
         if (GLAD_GL_VERSION_4_3)
-            return ssbo.MapMemory(gl_st);
+            return gl_st.map_shader_storage_buffer(ssbo);
         else
-            return vbo.MapMemory(gl_st);
+            return gl_st.map_array_buffer(vbo);
     }
 
-    inline void* MapMemory(p_gl_rend_state& p_gl_rend_st) {
+    inline void* map_buffer(p_gl_rend_state& p_gl_rend_st) {
         if (GLAD_GL_VERSION_4_3)
-            return ssbo.MapMemory(p_gl_rend_st);
+            return p_gl_rend_st.map_shader_storage_buffer(ssbo);
         else
-            return vbo.MapMemory(p_gl_rend_st);
+            return p_gl_rend_st.map_array_buffer(vbo);
     }
 
-    inline void UnmapMemory(gl_state_struct& gl_st) {
+    inline void unmap_buffer(gl_state_struct& gl_st) {
         if (GLAD_GL_VERSION_4_3)
-            ssbo.UnmapMemory(gl_st);
+            gl_st.unmap_shader_storage_buffer(ssbo);
         else
-            vbo.UnmapMemory(gl_st);
+            gl_st.unmap_array_buffer(vbo);
     }
 
-    inline void UnmapMemory(p_gl_rend_state& p_gl_rend_st) {
+    inline void unmap_buffer(p_gl_rend_state& p_gl_rend_st) {
         if (GLAD_GL_VERSION_4_3)
-            ssbo.UnmapMemory(p_gl_rend_st);
+            p_gl_rend_st.unmap_shader_storage_buffer(ssbo);
         else
-            vbo.UnmapMemory(p_gl_rend_st);
+            p_gl_rend_st.unmap_array_buffer(vbo);
     }
 
-    inline void WriteMemory(gl_state_struct& gl_st, size_t offset, size_t size, const void* data) {
+    inline void write_buffer(gl_state_struct& gl_st, size_t offset, size_t size, const void* data) {
         if (GLAD_GL_VERSION_4_3)
-            ssbo.WriteMemory(gl_st, offset, size, data);
+            gl_st.write_shader_storage_buffer(ssbo, offset, size, data);
         else
-            vbo.WriteMemory(gl_st, offset, size, data);
+            gl_st.write_array_buffer(vbo, offset, size, data);
     }
 
-    inline void WriteMemory(p_gl_rend_state& p_gl_rend_st, size_t offset, size_t size, const void* data) {
+    inline void write_buffer(p_gl_rend_state& p_gl_rend_st, size_t offset, size_t size, const void* data) {
         if (GLAD_GL_VERSION_4_3)
-            ssbo.WriteMemory(p_gl_rend_st, offset, size, data);
+            p_gl_rend_st.write_shader_storage_buffer(ssbo, offset, size, data);
         else
-            vbo.WriteMemory(p_gl_rend_st, offset, size, data);
+            p_gl_rend_st.write_array_buffer(vbo, offset, size, data);
     }
 };
 
@@ -1372,7 +1372,7 @@ void leaf_particle_draw(render_data_context& rend_data_ctx, const cam_data& cam)
     rend_data_ctx.get_scene_light(&shader_data.g_light_env_stage_diffuse,
         &shader_data.g_light_env_stage_specular,
         &shader_data.g_lit_dir, &shader_data.g_lit_luce, 0, 0);
-    leaf_particle_scene_ubo.WriteMemory(rend_data_ctx.state, shader_data);
+    rend_data_ctx.state.write_uniform_buffer(leaf_particle_scene_ubo, shader_data);
 
     rend_data_ctx.state.active_bind_texture_2d(0, tex->glid);
     shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_LEAF_PT);
@@ -1410,7 +1410,7 @@ void rain_particle_draw(render_data_context& rend_data_ctx, const cam_data& cam)
     scene_shader_data.g_proj[3] = temp.row3;
     scene_shader_data.g_range_scale = { range_scale.x, range_scale.y, range_scale.z, 0.0f };
     scene_shader_data.g_range_offset = { range_offset.x, range_offset.y, range_offset.z, 0.0f };
-    rain_particle_scene_ubo.WriteMemory(rend_data_ctx.state, scene_shader_data);
+    rend_data_ctx.state.write_uniform_buffer(rain_particle_scene_ubo, scene_shader_data);
 
     rend_data_ctx.state.enable_blend();
     rend_data_ctx.state.set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -1441,7 +1441,7 @@ void rain_particle_draw(render_data_context& rend_data_ctx, const cam_data& cam)
         batch_shader_data.g_pos_offset = { pos_offset.x, pos_offset.y, pos_offset.z, 0.075f };
         batch_shader_data.g_tangent = { tangent.x, tangent.y, tangent.z, tangent_sign };
         batch_shader_data.g_color = color;
-        rain_particle_batch_ubo.WriteMemory(rend_data_ctx.state, batch_shader_data);
+        rend_data_ctx.state.write_uniform_buffer(rain_particle_batch_ubo, batch_shader_data);
         rain_storage.Draw(rend_data_ctx.state, GL_TRIANGLES, first, count);
     }
     rend_data_ctx.state.bind_vertex_array(0);
@@ -1458,7 +1458,7 @@ void particle_draw(render_data_context& rend_data_ctx, const cam_data& cam) {
     if (!count)
         return;
 
-    ptcl_vbo.WriteMemory(rend_data_ctx.state, 0, sizeof(particle_vertex_data) * count, ptcl_vertex_data);
+    rend_data_ctx.state.write_array_buffer(ptcl_vbo, 0, sizeof(particle_vertex_data) * count, ptcl_vertex_data);
 
     const light_data& light_chara = rctx_ptr->light_set[LIGHT_SET_MAIN].lights[LIGHT_CHARA];
 
@@ -1472,7 +1472,7 @@ void particle_draw(render_data_context& rend_data_ctx, const cam_data& cam) {
     rctx_ptr->camera->get_view_point(shader_data.g_view_pos);
     light_chara.get_diffuse(shader_data.g_light_env_chara_diffuse);
     light_chara.get_specular(shader_data.g_light_env_chara_specular);
-    particle_scene_ubo.WriteMemory(rend_data_ctx.state, shader_data);
+    rend_data_ctx.state.write_uniform_buffer(particle_scene_ubo, shader_data);
 
     shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_PARTICL);
     rend_data_ctx.state.bind_uniform_buffer_base(0, particle_scene_ubo);
@@ -1520,12 +1520,12 @@ void snow_particle_draw(render_data_context& rend_data_ctx, const cam_data& cam)
     snow_scene.g_range_offset.x = snow->offset_gpu.x - snow->range_gpu.x * 0.5f;
     snow_scene.g_range_offset.y = snow->offset_gpu.y;
     snow_scene.g_range_offset.z = snow->offset_gpu.z - snow->range_gpu.z * 0.5f;
-    snow_particle_scene_ubo.WriteMemory(rend_data_ctx.state, snow_scene);
+    rend_data_ctx.state.write_uniform_buffer(snow_particle_scene_ubo, snow_scene);
 
     snow_particle_batch_shader_data snow_batch = {};
     snow_batch.g_color = snow->color;
     snow_batch.start_vertex_location.x = 0;
-    snow_particle_batch_ubo.WriteMemory(rend_data_ctx.state, snow_batch);
+    rend_data_ctx.state.write_uniform_buffer(snow_particle_batch_ubo, snow_batch);
 
     rend_data_ctx.state.active_bind_texture_2d(0, tex->glid);
     rend_data_ctx.state.active_bind_texture_2d(1, rctx_ptr->render.rend_texture[0].get_depth_texture_glid());
@@ -1550,7 +1550,7 @@ void snow_particle_draw(render_data_context& rend_data_ctx, const cam_data& cam)
     point_attenuation = powf(tanf(cam.get_fov() * 0.5f) * 3.4f, 2.0f) * 0.06f;
 
     snow_scene.g_state_point_attenuation = { 0.0f, 0.0f, point_attenuation, 0.0f };
-    snow_particle_scene_ubo.WriteMemory(rend_data_ctx.state, snow_scene);
+    rend_data_ctx.state.write_uniform_buffer(snow_particle_scene_ubo, snow_scene);
 
     snow_gpu_storage.Bind(rend_data_ctx.state, 0);
 
@@ -1567,7 +1567,7 @@ void snow_particle_draw(render_data_context& rend_data_ctx, const cam_data& cam)
         snow_batch.g_pos_offset = { pos_offset.x, pos_offset.y, pos_offset.z, 0.0f };
         snow_batch.g_color = color;
         snow_batch.start_vertex_location.x = first;
-        snow_particle_batch_ubo.WriteMemory(rend_data_ctx.state, snow_batch);
+        rend_data_ctx.state.write_uniform_buffer(snow_particle_batch_ubo, snow_batch);
 
         snow_gpu_storage.Draw(rend_data_ctx.state, GL_TRIANGLES, 0, count);
         first += count;
@@ -2365,7 +2365,7 @@ void EffectFogRing::calc_vert() {
     float_t density = this->density;
     fog_ring_data* ptcl_data = this->ptcl_data;
 
-    fog_ring_vertex_data* ptcl_vtx_data = (fog_ring_vertex_data*)storage.MapMemory(gl_state);
+    fog_ring_vertex_data* ptcl_vtx_data = (fog_ring_vertex_data*)storage.map_buffer(gl_state);
     if (!ptcl_vtx_data) {
         num_vtx = 0;
         return;
@@ -2384,7 +2384,7 @@ void EffectFogRing::calc_vert() {
         ptcl_vtx_data->size = size;
     }
 
-    storage.UnmapMemory(gl_state);
+    storage.unmap_buffer(gl_state);
 
     num_vtx = (int32_t)(num_ptcls * 6LL);
 }
@@ -4237,7 +4237,7 @@ void water_particle::draw(render_data_context& rend_data_ctx, const cam_data& ca
     if (count <= 0)
         return;
 
-    storage.WriteMemory(rend_data_ctx.state, 0, sizeof(water_particle_vertex_data) * count, ptcl_data.data());
+    storage.write_buffer(rend_data_ctx.state, 0, sizeof(water_particle_vertex_data) * count, ptcl_data.data());
 
     water_particle_scene_shader_data scene_shader_data = {};
     mat4 temp;
@@ -4257,7 +4257,7 @@ void water_particle::draw(render_data_context& rend_data_ctx, const cam_data& ca
     scene_shader_data.g_size_in_projection.y = (float_t)(1.0 / 720.0);
     scene_shader_data.g_size_in_projection.z = 1.0;
     scene_shader_data.g_size_in_projection.w = 60.0;
-    water_particle_scene_ubo.WriteMemory(rend_data_ctx.state, scene_shader_data);
+    rend_data_ctx.state.write_uniform_buffer(water_particle_scene_ubo, scene_shader_data);
 
     rend_data_ctx.state.disable_cull_face();
     shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_W_PTCL);
@@ -5218,7 +5218,7 @@ void star_catalog_milky_way::draw(render_data_context& rend_data_ctx,
     scene_shader_data.g_transform[1] = temp.row1;
     scene_shader_data.g_transform[2] = temp.row2;
     scene_shader_data.g_transform[3] = temp.row3;
-    scene_ubo.WriteMemory(rend_data_ctx.state, scene_shader_data);
+    rend_data_ctx.state.write_uniform_buffer(scene_ubo, scene_shader_data);
 
     rend_data_ctx.state.enable_cull_face();
     rend_data_ctx.state.disable_blend();
@@ -5312,7 +5312,7 @@ void star_catalog::draw(render_data_context& rend_data_ctx, const cam_data& cam)
     scene_shader_data.g_transform[1] = temp.row1;
     scene_shader_data.g_transform[2] = temp.row2;
     scene_shader_data.g_transform[3] = temp.row3;
-    scene_ubo.WriteMemory(rend_data_ctx.state, scene_shader_data);
+    rend_data_ctx.state.write_uniform_buffer(scene_ubo, scene_shader_data);
 
     rend_data_ctx.shader_flags.arr[U_STAR] = 0;
     shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_STAR);
@@ -5333,7 +5333,7 @@ void star_catalog::draw(render_data_context& rend_data_ctx, const cam_data& cam)
             modifiers.pos_scale, modifiers.pos_scale * modifiers.offset_scale
         };
         batch_shader_data.g_thresholds = { modifiers.threshold * modifiers.pos_scale, 0.0f, 0.0f, 0.0f };
-        batch_ubo.WriteMemory(rend_data_ctx.state, batch_shader_data);
+        rend_data_ctx.state.write_uniform_buffer(batch_ubo, batch_shader_data);
 
         rend_data_ctx.state.bind_uniform_buffer_base(0, scene_ubo);
         rend_data_ctx.state.bind_uniform_buffer_base(1, batch_ubo);
@@ -5789,7 +5789,7 @@ static void draw_ripple_particles(render_data_context& rend_data_ctx,
     if (data->count > 5000)
         return;
 
-    vec3* vtx_data = (vec3*)ripple_emit_storage.MapMemory(rend_data_ctx.state);
+    vec3* vtx_data = (vec3*)ripple_emit_storage.map_buffer(rend_data_ctx.state);
     if (!vtx_data)
         return;
 
@@ -5799,7 +5799,7 @@ static void draw_ripple_particles(render_data_context& rend_data_ctx,
     for (size_t i = data->count; i; i--, vtx_data++, position++, color++)
         *vtx_data = { position->x, -position->z, (float_t)color->a * (float_t)(1.0 / 255.0) };
 
-    ripple_emit_storage.UnmapMemory(rend_data_ctx.state);
+    ripple_emit_storage.unmap_buffer(rend_data_ctx.state);
 
     int32_t size = (int32_t)(data->size + 0.5f);
 
@@ -5822,7 +5822,7 @@ static void draw_ripple_particles(render_data_context& rend_data_ctx,
         1.0f / (float_t)width,
         1.0f / (float_t)height,
         0.0f, 0.0f };
-    ripple_emit_scene_ubo.WriteMemory(rend_data_ctx.state, shader_data);
+    rend_data_ctx.state.write_uniform_buffer(ripple_emit_scene_ubo, shader_data);
 
     rend_data_ctx.shader_flags.arr[U_RIPPLE] = data->ripple_uniform;
     rend_data_ctx.shader_flags.arr[U_RIPPLE_EMIT] = data->ripple_emit_uniform;
@@ -5996,7 +5996,8 @@ static int32_t leaf_particle_disp(render_data_context& rend_data_ctx) {
     normal[2] = sub_1406427A0(vec3(-0.2f, -0.2f, 1.0f), vec3(0.0f, 1.0f, 0.0f)).first;
     normal[3] = sub_1406427A0(vec3( 0.4f, -0.4f, 1.0f), vec3(0.0f, 1.0f, 0.0f)).first;
 
-    leaf_particle_vertex_data* vtx_data =  (leaf_particle_vertex_data*)leaf_ptcl_vbo.MapMemory(rend_data_ctx.state);
+    leaf_particle_vertex_data* vtx_data
+        = (leaf_particle_vertex_data*)rend_data_ctx.state.map_array_buffer(leaf_ptcl_vbo);
     if (!vtx_data)
         return 0;
 
@@ -6074,7 +6075,7 @@ static int32_t leaf_particle_disp(render_data_context& rend_data_ctx) {
         }
     }
 
-    leaf_ptcl_vbo.UnmapMemory(rend_data_ctx.state);
+    rend_data_ctx.state.unmap_array_buffer(leaf_ptcl_vbo);
     return vtx_count;
 }
 
@@ -6644,7 +6645,7 @@ static void snow_particle_ctrl() {
                 snow_particle_data_kill_fallen(snow_ptcl_fallen, true);
         }
 
-    snow_particle_vertex_data* vtx_data = (snow_particle_vertex_data*)snow_storage.MapMemory(gl_state);
+    snow_particle_vertex_data* vtx_data = (snow_particle_vertex_data*)snow_storage.map_buffer(gl_state);
     if (vtx_data) {
         particle_data* snow_ptcl = snow_ptcl_data;
         for (int32_t i = snow->num_snow; i; i--, snow_ptcl++, vtx_data++) {
@@ -6653,9 +6654,9 @@ static void snow_particle_ctrl() {
             vtx_data->alpha = snow_ptcl->alpha;
         }
     }
-    snow_storage.UnmapMemory(gl_state);
+    snow_storage.unmap_buffer(gl_state);
 
-    snow_particle_vertex_data* fallen_vtx_data = (snow_particle_vertex_data*)snow_fallen_storage.MapMemory(gl_state);
+    snow_particle_vertex_data* fallen_vtx_data = (snow_particle_vertex_data*)snow_fallen_storage.map_buffer(gl_state);
     if (fallen_vtx_data) {
         particle_data* snow_ptcl_fallen = snow_ptcl_fallen_data;
         for (size_t i = snow_ptcl_fallen_count; i; i--, snow_ptcl_fallen++, fallen_vtx_data++) {
@@ -6664,7 +6665,7 @@ static void snow_particle_ctrl() {
             fallen_vtx_data->alpha = snow_ptcl_fallen->alpha;
         }
     }
-    snow_fallen_storage.UnmapMemory(gl_state);
+    snow_fallen_storage.unmap_buffer(gl_state);
 }
 
 static void snow_particle_data_init() {
@@ -6803,11 +6804,11 @@ static void ripple_propagate_sub(render_data_context& rend_data_ctx,
         (float_t)width / (float_t)(width - 2), (float_t)height / (float_t)(height - 2)
     };
     ripple_scene.g_texcoord = { 1.0f, 0.0f, 0.0f, 0.0f };
-    ripple_scene_ubo.WriteMemory(rend_data_ctx.state, ripple_scene);
+    rend_data_ctx.state.write_uniform_buffer(ripple_scene_ubo, ripple_scene);
 
     ripple_batch_shader_data ripple_batch = {};
     ripple_batch.g_params = { params.wake_attn, 0.0f, 0.0f, 0.0f };
-    ripple_batch_ubo.WriteMemory(rend_data_ctx.state, ripple_batch);
+    rend_data_ctx.state.write_uniform_buffer(ripple_batch_ubo, ripple_batch);
 
     rend_data_ctx.state.bind_vertex_array(rctx_ptr->common_vao);
     shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_RIPPLE);

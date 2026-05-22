@@ -1734,7 +1734,7 @@ namespace spr {
             gl_state.bind_vertex_array(0);
         }
 
-        vbo.WriteMemory(gl_state, 0, vertex_buffer.size(), vertex_buffer.data());
+        gl_state.write_element_array_buffer(vbo, 0, vertex_buffer.size(), vertex_buffer.data());
 
         if (ebo_index_count < index_buffer.size()) {
             while (ebo_index_count < index_buffer.size())
@@ -1753,7 +1753,7 @@ namespace spr {
             gl_state.bind_element_array_buffer(0);
         }
 
-        ebo.WriteMemory(gl_state, 0, sizeof(uint32_t) * index_buffer.size(), index_buffer.data());
+        gl_state.write_element_array_buffer(ebo, 0, sizeof(uint32_t) * index_buffer.size(), index_buffer.data());
 
         gl_state.bind_array_buffer(0);
         gl_state.bind_element_array_buffer(0);
@@ -1955,7 +1955,7 @@ namespace spr {
                 1.0f / (float_t)overlay_tex->height, 0.0f, 0.0f
             };
             mat4_transpose(&view_projection, &shader_data.g_transform);
-            rctx_ptr->sprite_scene_ubo.WriteMemory(rend_data_ctx.state, shader_data);
+            rend_data_ctx.state.write_uniform_buffer(rctx_ptr->sprite_scene_ubo, shader_data);
             rend_data_ctx.state.bind_uniform_buffer_base(0, rctx_ptr->sprite_scene_ubo);
 
             for (uint32_t j = SPR_PRIO_MAX; j; j--, obj_list++)

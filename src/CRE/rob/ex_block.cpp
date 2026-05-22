@@ -4331,8 +4331,8 @@ static void modify_cloth_object(obj_mesh* mesh, VertexBuffer* vb,
         return;
 
     vb->flip();
-    GL::ArrayBuffer glvb = vb->get_glvb();
-    size_t data = (size_t)glvb.MapMemory(gl_state);
+    GLuint glvb = vb->get_glvb();
+    size_t data = (size_t)gl_state.map_array_buffer(glvb);
     if (!data)
         return;
 
@@ -4468,5 +4468,5 @@ static void modify_cloth_object(obj_mesh* mesh, VertexBuffer* vb,
         break;
     }
 
-    glvb.UnmapMemory(gl_state);
+    gl_state.unmap_array_buffer(glvb);
 }

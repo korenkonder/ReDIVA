@@ -2886,7 +2886,7 @@ static void glass_eye_set(p_gl_rend_state& p_gl_rend_st, glass_eye_struct* glass
     glass_eye_batch.g_tex_scale.w = glass_eye->lens_depth;
 
     extern render_context* rctx_ptr;
-    rctx_ptr->glass_eye_batch_ubo.WriteMemory(p_gl_rend_st, glass_eye_batch);
+    p_gl_rend_st.write_uniform_buffer(rctx_ptr->glass_eye_batch_ubo, glass_eye_batch);
     p_gl_rend_st.bind_uniform_buffer_base(3, rctx_ptr->glass_eye_batch_ubo);
 }
 

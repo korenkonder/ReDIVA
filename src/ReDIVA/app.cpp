@@ -1242,7 +1242,7 @@ static void render_context_disp(render_context* rctx) {
         shader_data.g_vp[3] = mat.row3;
         shader_data.g_texture_lod.x = ibl_index == 1 ? 1.0f : 0.0f;
         shader_data.g_texture_lod.y = 1.0f / (float_t)ibl_scale;
-        rctx_ptr->glitter_batch_ubo.WriteMemory(post_rend_data_ctx.state, shader_data);
+        post_rend_data_ctx.state.write_uniform_buffer(rctx_ptr->glitter_batch_ubo, shader_data);
 
         post_rend_data_ctx.state.bind_uniform_buffer_base(3, rctx_ptr->glitter_batch_ubo);
         shaders_dev.set(post_rend_data_ctx.state, post_rend_data_ctx.shader_flags, SHADER_DEV_CUBEMAP_DISPLAY);

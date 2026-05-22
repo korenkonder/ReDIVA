@@ -18110,8 +18110,8 @@ void rob_chara_age_age_object::disp(render_context* rctx, size_t id,
 
     vb.flip();
 
-    GL::ArrayBuffer glvb = vb.get_glvb();
-    size_t vtx_data = (size_t)glvb.MapMemory(gl_state);
+    GLuint glvb = vb.get_glvb();
+    size_t vtx_data = (size_t)gl_state.map_array_buffer(glvb);
     if (!vtx_data)
         return;
 
@@ -18120,7 +18120,7 @@ void rob_chara_age_age_object::disp(render_context* rctx, size_t id,
         memmove((void*)(vtx_data + vertex_array_size * i),
             (void*)((size_t)vertex_data + vertex_array_size * v44[i].second), vertex_array_size);
 
-    glvb.UnmapMemory(gl_state);
+    gl_state.unmap_array_buffer(glvb);
 
     mesh.num_vertex = disp_count * num_vertex;
     sub_mesh.num_index = disp_count * num_index;

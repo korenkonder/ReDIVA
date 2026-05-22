@@ -7969,7 +7969,7 @@ void x_pv_game::post() {
         quad.g_color = 1.0f;
         quad.g_texture_lod = 0.0f;
 
-        rctx_ptr->quad_ubo.WriteMemory(rend_data_ctx.state, quad);
+        rend_data_ctx.state.write_uniform_buffer(rctx_ptr->quad_ubo, quad);
         rend_data_ctx.state.bind_uniform_buffer_base(0, rctx_ptr->quad_ubo);
         rend_data_ctx.state.bind_vertex_array(rctx_ptr->common_vao);
         rend_data_ctx.state.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);

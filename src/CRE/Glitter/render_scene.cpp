@@ -5,6 +5,7 @@
 
 #include "glitter.hpp"
 #include "../gl_rend_state.hpp"
+#include "../gl_state.hpp"
 #include "../render_context.hpp"
 #include "../shader.hpp"
 #include "../shader_ft.hpp"
@@ -307,7 +308,8 @@ namespace Glitter {
         rend_group->disp = disp;
 
 #if !SHARED_GLITTER_BUFFER
-        rend_group->vbo.WriteMemory(gl_state, 0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
+        gl_state.write_array_buffer(rend_group->vbo,
+            0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
 #endif
     }
 
@@ -458,7 +460,8 @@ namespace Glitter {
         rend_group->disp = disp;
 
 #if !SHARED_GLITTER_BUFFER
-        rend_group->vbo.WriteMemory(gl_state, 0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
+        gl_state.write_array_buffer(rend_group->vbo,
+            0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
 #endif
     }
 
@@ -652,7 +655,8 @@ namespace Glitter {
         rend_group->disp = disp;
 
 #if !SHARED_GLITTER_BUFFER
-        rend_group->vbo.WriteMemory(gl_state, 0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
+        gl_state.write_array_buffer(rend_group->vbo,
+            0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
 #endif
     }
 
@@ -875,7 +879,8 @@ namespace Glitter {
         rend_group->disp = disp;
 
 #if !SHARED_GLITTER_BUFFER
-        rend_group->vbo.WriteMemory(gl_state, 0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
+        gl_state.write_array_buffer(rend_group->vbo,
+            0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
 #endif
     }
 
@@ -986,7 +991,7 @@ namespace Glitter {
         shader_data.g_glitter_blend_color = 1.0f;
         shader_data.g_state_material_diffuse = 0.0f;
         shader_data.g_state_material_emission = { emission, emission, emission, 1.0f };
-        rctx_ptr->glitter_batch_ubo.WriteMemory(rend_data_ctx.state, shader_data);
+        rend_data_ctx.state.write_uniform_buffer(rctx_ptr->glitter_batch_ubo, shader_data);
 
         GLenum blend_src;
         GLenum blend_dst;
@@ -1303,7 +1308,8 @@ namespace Glitter {
         rend_group->disp = disp;
 
 #if !SHARED_GLITTER_BUFFER
-        rend_group->vbo.WriteMemory(gl_state, 0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
+        gl_state.write_array_buffer(rend_group->vbo,
+            0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
 #endif
     }
 
@@ -1452,7 +1458,8 @@ namespace Glitter {
         rend_group->disp = disp;
 
 #if !SHARED_GLITTER_BUFFER
-        rend_group->vbo.WriteMemory(gl_state, 0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
+        gl_state.write_array_buffer(rend_group->vbo,
+            0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
 #endif
     }
 
@@ -1639,7 +1646,8 @@ namespace Glitter {
         rend_group->disp = disp;
 
 #if !SHARED_GLITTER_BUFFER
-        rend_group->vbo.WriteMemory(gl_state, 0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
+        gl_state.write_array_buffer(rend_group->vbo,
+            0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
 #endif
     }
 
@@ -1853,7 +1861,8 @@ namespace Glitter {
         rend_group->disp = disp;
 
 #if !SHARED_GLITTER_BUFFER
-        rend_group->vbo.WriteMemory(gl_state, 0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
+        gl_state.write_array_buffer(rend_group->vbo,
+            0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
 #endif
     }
 
@@ -1980,7 +1989,7 @@ namespace Glitter {
         shader_data.g_glitter_blend_color = 1.0f;
         shader_data.g_state_material_diffuse = 0.0f;
         shader_data.g_state_material_emission = { emission, emission, emission, 1.0f };
-        rctx_ptr->glitter_batch_ubo.WriteMemory(rend_data_ctx.state, shader_data);
+        rend_data_ctx.state.write_uniform_buffer(rctx_ptr->glitter_batch_ubo, shader_data);
 
         GLenum blend_src;
         GLenum blend_dst;

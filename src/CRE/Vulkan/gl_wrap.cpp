@@ -146,11 +146,14 @@ namespace Vulkan {
     static GLenum gl_wrap_manager_check_framebuffer_status(GLenum target);
     static void gl_wrap_manager_clear(GLbitfield mask);
     static void gl_wrap_manager_clear_buffer(GLenum buffer, GLint drawbuffer, const GLfloat* value);
+    static void gl_wrap_manager_clear_buffer(GLenum buffer, GLint drawbuffer, const GLint* value);
     static void gl_wrap_manager_clear_color(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha);
     static void gl_wrap_manager_clear_depth(GLfloat depth);
     static void gl_wrap_manager_clear_stencil(GLint s);
     static void gl_wrap_manager_clear_named_framebuffer(GLuint framebuffer,
         GLenum buffer, GLint drawbuffer, const GLfloat* value);
+    static void gl_wrap_manager_clear_named_framebuffer(GLuint framebuffer,
+        GLenum buffer, GLint drawbuffer, const GLint* value);
     static void gl_wrap_manager_color_mask(GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha);
     static void gl_wrap_manager_compressed_tex_image_2d(GLenum target, GLint level,
         GLenum internal_format, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const void* data);
@@ -1461,6 +1464,7 @@ namespace Vulkan {
         glCheckFramebufferStatus = gl_wrap_manager_check_framebuffer_status;
         glClear = gl_wrap_manager_clear;
         glClearBufferfv = gl_wrap_manager_clear_buffer;
+        glClearBufferiv = gl_wrap_manager_clear_buffer;
         glClearColor = gl_wrap_manager_clear_color;
         glClearDepthf = gl_wrap_manager_clear_depth;
         glClearStencil = gl_wrap_manager_clear_stencil;
@@ -4289,6 +4293,10 @@ namespace Vulkan {
         gl_wrap_manager_clear_named_framebuffer(gl_state.draw_framebuffer_binding, buffer, drawbuffer, value);
     }
 
+    static void gl_wrap_manager_clear_buffer(GLenum buffer, GLint drawbuffer, const GLint* value) {
+        gl_wrap_manager_clear_named_framebuffer(gl_state.draw_framebuffer_binding, buffer, drawbuffer, value);
+    }
+
     static void gl_wrap_manager_clear_color(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha) {
         gl_state.clear_color.x = red;
         gl_state.clear_color.y = green;
@@ -4388,7 +4396,100 @@ namespace Vulkan {
         case GL_DEPTH: {
             VkClearDepthStencilValue clear_depth_stencil_value;
             clear_depth_stencil_value.depth = value[0];
-            clear_depth_stencil_value.stencil = 0;
+            clear_depth_stencil_value.stencil = gl_state.clear_stencil;
+            vkCmdClearDepthStencilImage(Vulkan::current_command_buffer, image,
+                new_layout, &clear_depth_stencil_value, 1, &range);
+        } break;
+        }
+        Vulkan::Image::PipelineBarrierSingle(Vulkan::current_command_buffer, image,
+            aspect_mask, 0, 0, new_layout, old_layout);
+    }
+
+    static void gl_wrap_manager_clear_named_framebuffer(GLuint framebuffer,
+        GLenum buffer, GLint drawbuffer, const GLint* value) {
+        VkImageAspectFlags aspect_mask;
+        switch (buffer) {
+        case GL_COLOR:
+            aspect_mask = VK_IMAGE_ASPECT_COLOR_BIT;
+            if (drawbuffer < 0 || drawbuffer >= Vulkan::MAX_COLOR_ATTACHMENTS) {
+                gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
+                return;
+            }
+            break;
+        case GL_STENCIL:
+            aspect_mask = VK_IMAGE_ASPECT_STENCIL_BIT;
+            if (drawbuffer) {
+                gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
+                return;
+            }
+            break;
+        default:
+            gl_wrap_manager_ptr->push_error(GL_INVALID_OPERATION);
+            return;
+        }
+
+        gl_framebuffer* vk_fbo = gl_framebuffer::get(framebuffer);
+        if (framebuffer && !vk_fbo) {
+            gl_wrap_manager_ptr->push_error(GL_INVALID_OPERATION);
+            return;
+        }
+
+        VkImage image;
+        VkImageLayout old_layout;
+
+        if (!vk_fbo) {
+            if (buffer != GL_COLOR)
+                return;
+
+            image = Vulkan::current_swapchain_image;
+            old_layout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+        }
+        else {
+            if (buffer == GL_STENCIL) {
+                GLuint texture = vk_fbo->depth_attachment;
+                if (!texture)
+                    return;
+
+                Vulkan::Image& vk_image = gl_texture::get(texture)->image;
+                image = vk_image;
+                old_layout = vk_image.GetImageLayout(0, 0);
+            }
+            else {
+                GLuint texture = vk_fbo->get_draw_buffer_texture(drawbuffer);
+                if (!texture)
+                    return;
+
+                Vulkan::Image& vk_image = gl_texture::get(texture)->image;
+                image = vk_image;
+                old_layout = vk_image.GetImageLayout(0, 0);
+            }
+        }
+
+        VkImageSubresourceRange range;
+        range.aspectMask = aspect_mask;
+        range.baseMipLevel = 0;
+        range.levelCount = 1;
+        range.baseArrayLayer = 0;
+        range.layerCount = 1;
+
+        const VkImageLayout new_layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+
+        Vulkan::Image::PipelineBarrierSingle(Vulkan::current_command_buffer, image,
+            aspect_mask, 0, 0, old_layout, new_layout);
+        switch (buffer) {
+        case GL_COLOR: {
+            VkClearColorValue clear_color_value;
+            clear_color_value.float32[0] = (float_t)value[0];
+            clear_color_value.float32[1] = (float_t)value[1];
+            clear_color_value.float32[2] = (float_t)value[2];
+            clear_color_value.float32[3] = (float_t)value[3];
+            vkCmdClearColorImage(Vulkan::current_command_buffer, image,
+                new_layout, &clear_color_value, 1, &range);
+        } break;
+        case GL_STENCIL: {
+            VkClearDepthStencilValue clear_depth_stencil_value;
+            clear_depth_stencil_value.depth = gl_state.clear_depth;
+            clear_depth_stencil_value.stencil = value[0];
             vkCmdClearDepthStencilImage(Vulkan::current_command_buffer, image,
                 new_layout, &clear_depth_stencil_value, 1, &range);
         } break;

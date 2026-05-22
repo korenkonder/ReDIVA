@@ -431,10 +431,10 @@ void render_data::init() {
     inv_view_mat = mat4_identity;
 
     if (GLAD_GL_VERSION_4_3)
-        buffer_skinning.WriteMemory(gl_state,
+        gl_state.write_shader_storage_buffer(buffer_skinning,
             0, sizeof(obj_skinning_data), &buffer_skinning_data);
     else
-        buffer_skinning_ubo.WriteMemory(gl_state,
+        gl_state.write_uniform_buffer(buffer_skinning_ubo,
             0, sizeof(obj_skinning_data), &buffer_skinning_data);
 }
 
@@ -495,10 +495,10 @@ void render_data::set_skinning_data(p_gl_rend_state& p_gl_rend_st, const mat4* m
         }
 
         if (GLAD_GL_VERSION_4_3)
-            buffer_skinning.WriteMemory(p_gl_rend_st,
+            p_gl_rend_st.write_shader_storage_buffer(buffer_skinning,
                 0, sizeof(vec4) * 3 * count, &buffer_skinning_data);
         else
-            buffer_skinning_ubo.WriteMemory(p_gl_rend_st,
+            p_gl_rend_st.write_uniform_buffer(buffer_skinning_ubo,
                 0, sizeof(vec4) * 3 * count, &buffer_skinning_data);
     }
 }
@@ -507,12 +507,12 @@ void render_data::set_state(p_gl_rend_state& p_gl_rend_st) {
     shaders_ft.set(p_gl_rend_st, shader_flags, shader_index);
 
     if (flags & RENDER_DATA_SHADER_UPDATE) {
-        buffer_shader.WriteMemory(p_gl_rend_st, buffer_shader_data);
+        p_gl_rend_st.write_uniform_buffer(buffer_shader, buffer_shader_data);
         enum_and(flags, ~RENDER_DATA_SHADER_UPDATE);
     }
 
     if (flags & RENDER_DATA_SCENE_UPDATE) {
-        buffer_scene.WriteMemory(p_gl_rend_st, buffer_scene_data);
+        p_gl_rend_st.write_uniform_buffer(buffer_scene, buffer_scene_data);
         enum_and(flags, ~RENDER_DATA_SCENE_UPDATE);
     }
 
@@ -559,7 +559,7 @@ void render_data::set_state(p_gl_rend_state& p_gl_rend_st) {
         buffer_batch_data.g_joint_inverse[1] = temp.row1;
         buffer_batch_data.g_joint_inverse[2] = temp.row2;
 
-        buffer_batch.WriteMemory(p_gl_rend_st, buffer_batch_data);
+        p_gl_rend_st.write_uniform_buffer(buffer_batch, buffer_batch_data);
         enum_and(flags, ~RENDER_DATA_BATCH_UPDATE);
     }
 
@@ -767,11 +767,11 @@ void render_data_context::set_batch_worlds(const mat4& mat) {
 
 void render_data_context::set_glitter_render_data_state() {
     data.buffer_shader_data.set_shader_flags(data.shader_flags.arr);
-    data.buffer_shader.WriteMemory(state, data.buffer_shader_data);
+    state.write_uniform_buffer(data.buffer_shader, data.buffer_shader_data);
     state.bind_uniform_buffer_base(0, data.buffer_shader);
 
     if (data.flags & RENDER_DATA_SCENE_UPDATE) {
-        data.buffer_scene.WriteMemory(state, data.buffer_scene_data);
+        state.write_uniform_buffer(data.buffer_scene, data.buffer_scene_data);
         enum_and(data.flags, ~RENDER_DATA_SCENE_UPDATE);
     }
     state.bind_uniform_buffer_base(1, data.buffer_scene);
@@ -1670,7 +1670,7 @@ void render_context::pre_proc() {
                 const size_t align = size - i.offset;
                 if (align)
                     memset((void*)((size_t)i.data + i.offset), 0, align);
-                i.buffer.WriteMemory(gl_state, 0, size, i.data);
+                gl_state.write_uniform_buffer(i.buffer, 0, size, i.data);
             }
 
         for (render_context::shared_uniform_buffer& i : shared_uniform_buffers) {
@@ -1681,7 +1681,7 @@ void render_context::pre_proc() {
             const size_t align = size - i.offset;
             if (align)
                 memset((void*)((size_t)i.data + i.offset), 0, align);
-            i.buffer.WriteMemory(gl_state, 0, size, i.data);
+            gl_state.write_uniform_buffer(i.buffer, 0, size, i.data);
         }
 
         for (render_context::texture_skinning_buffer& i : texture_skinning_buffers) {
