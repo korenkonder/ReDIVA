@@ -30,20 +30,22 @@ enum render_scale {
 struct app_init_struct {
     vec2i res;
     int32_t scale_index;
+    int32_t max_minor_ver;
     bool vulkan;
     const wchar_t* config_path;
 
-    inline app_init_struct() : scale_index(), vulkan(), config_path() {
+    inline app_init_struct() : scale_index(), max_minor_ver(), vulkan(), config_path() {
 
     }
 
-    inline app_init_struct(bool vulkan, const wchar_t* config_path = 0)
-        : scale_index(), vulkan(vulkan), config_path(config_path) {
+    inline app_init_struct(int32_t max_minor_ver, bool vulkan, const wchar_t* config_path = 0)
+        : scale_index(), max_minor_ver(max_minor_ver), vulkan(vulkan), config_path(config_path) {
 
     }
 
-    inline app_init_struct(vec2i res, int32_t scale_index, bool vulkan, const wchar_t* config_path = 0)
-        : res(res), scale_index(scale_index), vulkan(vulkan), config_path(config_path) {
+    inline app_init_struct(vec2i res, int32_t scale_index,
+        int32_t max_minor_ver, bool vulkan, const wchar_t* config_path = 0)
+        : res(res), scale_index(scale_index), max_minor_ver(max_minor_ver), vulkan(vulkan), config_path(config_path) {
 
     }
 };

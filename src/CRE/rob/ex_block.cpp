@@ -1949,11 +1949,11 @@ void RobCloth::set_data(const obj_skin_ex_node_cloth* cldata,
         return;
 
     for (int32_t i = 0; i < 2; i++) {
-        if (!mesh[i].num_vertex || !mesh[i].vertex_array || !ib[i].ib)
+        if (!mesh[i].num_vertex || !mesh[i].vertex_array || !ib[i].get_glib())
             continue;
 
-        VertexBuffer* vbhn_array = &vb[i];
-        IndexBuffer* ibhn_array = &ib[i];
+        VertexBuffer* vbhn = &vb[i];
+        IndexBuffer* ibhn = &ib[i];
 
         obj_mesh* mesh = &this->mesh[i];
         for (int32_t j = 0; j < mesh->num_submesh; j++) {
@@ -1961,9 +1961,9 @@ void RobCloth::set_data(const obj_skin_ex_node_cloth* cldata,
             for (int32_t k = 0; k < (mesh->attrib.m.soft_body ? 2 : 1); k++) {
                 extern render_context* rctx_ptr;
                 rctx_ptr->disp_manager->add_vertex_array(mesh, &mesh->submesh_array[j], material,
-                    vbhn_array->get_glvb(), vbhn_array->get_glvb_offset(), ibhn_array->ib, 0, 0);
+                    vbhn->get_glvb(), vbhn->get_glvb_offset(), ibhn->get_glib(), 0, 0);
 
-                vbhn_array->flip();
+                vbhn->flip();
             }
         }
     }
@@ -4324,6 +4324,7 @@ static void make_direction_matrix(mat4& mat, const vec3& v0, const vec3& v1) {
     mat4_set(&axis, -s, c, &mat);
 }
 
+// 0x14021CF00
 static void modify_cloth_object(obj_mesh* mesh, VertexBuffer* vb,
     CLOTH_VERTEX* vtxarg, float_t sgn, int32_t num_idx, uint16_t* idxtbl, bool do_ura) {
     if (!mesh || !vb || (mesh->vertex_format

@@ -109,7 +109,8 @@ void gl_state_struct::get() {
     glGetIntegerv(GL_ELEMENT_ARRAY_BUFFER_BINDING, (GLint*)&element_array_buffer_binding);
 
     glGetIntegerv(GL_UNIFORM_BUFFER_BINDING, (GLint*)&uniform_buffer_binding);
-    glGetIntegerv(GL_SHADER_STORAGE_BUFFER_BINDING, (GLint*)&shader_storage_buffer_binding);
+    if (GLAD_GL_VERSION_4_3)
+        glGetIntegerv(GL_SHADER_STORAGE_BUFFER_BINDING, (GLint*)&shader_storage_buffer_binding);
 }
 
 void* gl_state_struct::map_array_buffer(GLuint buffer) {

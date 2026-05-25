@@ -2772,18 +2772,18 @@ namespace mdl {
             return false;
 
         std::vector<GLuint>* textures = get_objset_gen_textures_vec(obj_info.set_id);
-        VertexBuffer* obj_vert_buffer = get_object_vertex_buffer(obj_info);
-        IndexBuffer* ObjIB = get_object_index_buffer(obj_info);
+        VertexBuffer* vbhn_array = get_object_vertex_buffer(obj_info);
+        IndexBuffer* ibhn_array = get_object_index_buffer(obj_info);
 
         ::obj* obj_morph = 0;
-        VertexBuffer* obj_morph_vert_buffer = 0;
+        VertexBuffer* morph_vbhn_array = 0;
         if (morph.object.set_id != -1) {
             obj_morph = get_object_header(morph.object);
-            obj_morph_vert_buffer = get_object_vertex_buffer(morph.object);
+            morph_vbhn_array = get_object_vertex_buffer(morph.object);
         }
 
-        return entry_obj(obj, mat, obj_vert_buffer, ObjIB,
-            textures, blend_color, bone_mat, obj_morph, obj_morph_vert_buffer,
+        return entry_obj(obj, mat, vbhn_array, ibhn_array,
+            textures, blend_color, bone_mat, obj_morph, morph_vbhn_array,
             instances_count, instances_mat, func, func_data, enable_bone_mat);
     }
 

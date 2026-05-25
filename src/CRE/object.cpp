@@ -1382,13 +1382,6 @@ bool create_mesh_index_buffer(IndexBuffer& ibhn, obj_mesh& mesh) {
     return true;
 }
 
-#if SHARED_OBJECT_BUFFER
-// Added
-inline void create_mesh_index_buffer(IndexBuffer& ibhn, obj_mesh& mesh, GLuint in_ib) {
-    //ibhn.create(in_ib, size);
-}
-#endif
-
 // 0x140458280
 bool create_mesh_vertex_buffer(VertexBuffer& vbhn, obj_mesh& mesh, GL::BufferUsage usage) {
     if (!mesh.num_vertex || !mesh.vertex_array)
@@ -1923,7 +1916,7 @@ inline int32_t get_mesh_index_modern(uint32_t hash, const char* mesh_name) {
     return -1;
 }
 
-// 0x140459E10 
+// 0x140459E10
 inline VertexBuffer* get_mesh_vertex_buffer(object_info obj_id, const char* mesh_name) {
     int32_t mesh_index = get_mesh_index(obj_id, mesh_name);
     if (mesh_index == -1)

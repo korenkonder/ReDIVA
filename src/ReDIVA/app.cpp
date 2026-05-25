@@ -473,6 +473,11 @@ int32_t app_main(const app_init_struct& ais) {
                 glDebugMessageCallback(render_debug_output, 0);
                 glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, 0, GL_TRUE);
             }
+            else if (GLAD_GL_ARB_debug_output) {
+                glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB);
+                glDebugMessageCallbackARB(render_debug_output, 0);
+                glDebugMessageControlARB(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, 0, GL_TRUE);
+            }
 #endif
 
             const char* vendor_string = (const char*)glGetString(GL_VENDOR);
@@ -692,7 +697,7 @@ static bool app_init(const app_init_struct& ais) {
         window = glfwCreateWindow(width, height, application_name, maximized ? monitor : 0, 0);
 #ifdef USE_OPENGL
     else {
-        int32_t minor = 6;
+        int32_t minor = ais.max_minor_ver;
         window = 0;
         while (!window && minor >= 1) {
             glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);

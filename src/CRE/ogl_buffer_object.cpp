@@ -189,14 +189,14 @@ GLenum VertexBuffer::get_target() const {
 }
 
 // 0x1404616F0
-GLuint create_index_buffer(uint32_t size, const void* data) {
+GLuint create_index_buffer(uint32_t size, const void* buf) {
     GLuint ib = 0;
     glGenBuffers(1, &ib);
     gl_state.bind_element_array_buffer(ib);
     if (GLAD_GL_VERSION_4_4)
-        glBufferStorage(GL_ELEMENT_ARRAY_BUFFER, size, data, 0);
+        glBufferStorage(GL_ELEMENT_ARRAY_BUFFER, size, buf, 0);
     else
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, size, buf, GL_STATIC_DRAW);
     gl_state.bind_element_array_buffer(0);
 
     if (glGetError()) {
@@ -233,17 +233,17 @@ void free_index_buffer(GLuint ib) {
 }
 
 // 0x1404617B0
-GLuint create_vertex_buffer(uint32_t size, const void* data, GL::BufferUsage usage) {
+GLuint create_vertex_buffer(uint32_t size, const void* buf, GL::BufferUsage usage) {
     GLuint vb = 0;
     glGenBuffers(1, &vb);
     gl_state.bind_array_buffer(vb);
     if (GLAD_GL_VERSION_4_4 && usage != GL::BUFFER_USAGE_STREAM) {
         GLbitfield flags = usage == GL::BUFFER_USAGE_DYNAMIC
             ? GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT : 0;
-        glBufferStorage(GL_ARRAY_BUFFER, size, data, flags);
+        glBufferStorage(GL_ARRAY_BUFFER, size, buf, flags);
     }
     else
-        glBufferData(GL_ARRAY_BUFFER, size, data, BufferUsageToGLenum(usage));
+        glBufferData(GL_ARRAY_BUFFER, size, buf, GL::BufferUsageToGLenum(usage));
     gl_state.bind_array_buffer(0);
 
     if (glGetError()) {

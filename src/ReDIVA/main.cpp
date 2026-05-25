@@ -212,11 +212,14 @@ int32_t wmain(int32_t argc, wchar_t** argv) {
         return 0;
     }
 
+    int32_t max_minor_ver = 2;
     bool vulkan = false;
     const wchar_t* config_path = 0;
     if (argc >= 2)
         for (int32_t i = 1; i < argc; i++) {
-            if (!wcscmp(argv[i], L"--vulkan"))
+            if (!wcscmp(argv[i], L"--max-minor-ver") && i + 1 < argc)
+                max_minor_ver = _wtoi(argv[++i]);
+            else if (!wcscmp(argv[i], L"--vulkan"))
                 vulkan = true;
             else if (!wcscmp(argv[i], L"--config") && i + 1 < argc)
                 config_path = argv[++i];
@@ -239,7 +242,7 @@ int32_t wmain(int32_t argc, wchar_t** argv) {
     __cpuidex(cpuidex_data, 7, 0);
     cpu_caps_avx2 = !!(cpuidex_data[1] & (1 << 5));
 
-    app_main({ vulkan, config_path });
+    app_main({ max_minor_ver, vulkan, config_path });
 
     timeEndPeriod(1);
     return 0;

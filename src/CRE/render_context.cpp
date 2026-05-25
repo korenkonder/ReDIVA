@@ -34,6 +34,9 @@ static const GLuint MORPH_TEXCOORD0_INDEX = 13;
 static const GLuint MORPH_TEXCOORD1_INDEX = 14;
 static const GLuint      BONE_INDEX_INDEX = 15;
 
+uint32_t render_context::max_uniform_block_size = 0;
+uint32_t render_context::max_storage_block_size = 0;
+
 draw_state_stats::draw_state_stats() : sub_mesh_count(), sub_mesh_no_mat_count(),
 sub_mesh_cheap_count(), field_C(), field_10(), draw_count(), draw_triangle_count(), field_1C() {
 
@@ -948,11 +951,11 @@ void render_context::shared_storage_buffer::destroy() {
 }
 
 size_t render_context::shared_storage_buffer::fill_data(const void* data, size_t size, size_t buffer_size) {
-    size_t offset = align_val(this->offset, sv_min_storage_buffer_alignment);
-    if (offset != this->offset)
-        memset((void*)((size_t)this->data + this->offset), 0, offset - this->offset);
+    size_t offset = this->offset;
     memcpy((void*)((size_t)this->data + offset), data, size);
-    this->offset = offset + size;
+    this->offset = align_val(offset + size, sv_min_storage_buffer_alignment);
+    if (this->offset != offset)
+        memset((void*)((size_t)this->data + (offset + size)), 0, this->offset - (offset + size));
     end = max_def(end, offset + buffer_size);
     return offset;
 }
@@ -982,11 +985,11 @@ void render_context::shared_uniform_buffer::destroy() {
 }
 
 size_t render_context::shared_uniform_buffer::fill_data(const void* data, size_t size, size_t buffer_size) {
-    size_t offset = align_val(this->offset, sv_min_uniform_buffer_alignment);
-    if (offset != this->offset)
-        memset((void*)((size_t)this->data + this->offset), 0, offset - this->offset);
+    size_t offset = this->offset;
     memcpy((void*)((size_t)this->data + offset), data, size);
-    this->offset = offset + size;
+    this->offset = align_val(offset + size, sv_min_uniform_buffer_alignment);
+    if (this->offset != offset)
+        memset((void*)((size_t)this->data + (offset + size)), 0, this->offset - (offset + size));
     end = max_def(end, offset + buffer_size);
     return offset;
 }
@@ -1254,9 +1257,10 @@ sprite_width(), sprite_height(), screen_x_offset(), screen_y_offset(), screen_wi
     glSamplerParameteri(sampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
     glSamplerParameterf(sampler, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16.0f);
 
-    max_uniform_block_size = min_def((uint32_t)sv_max_uniform_buffer_size, 64u * 1024);
+    if (!max_uniform_block_size)
+        max_uniform_block_size = min_def((uint32_t)sv_max_uniform_buffer_size, 64u * 1024);
 
-    if (GLAD_GL_VERSION_4_3)
+    if (GLAD_GL_VERSION_4_3 && !max_storage_block_size)
         max_storage_block_size = min_def((uint32_t)sv_max_storage_buffer_size, 1024u * 1024);
 }
 

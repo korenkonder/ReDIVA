@@ -613,15 +613,15 @@ struct render_context {
     int32_t screen_width;
     int32_t screen_height;
 
-    uint32_t max_uniform_block_size = 0;
-    uint32_t max_storage_block_size = 0;
-
     std::vector<render_context::shared_storage_buffer> shared_storage_buffers;
     std::unordered_map<size_t, shared_buffer_entry> shared_storage_buffer_entries;
     std::vector<render_context::shared_uniform_buffer> shared_uniform_buffers;
     std::unordered_map<size_t, shared_buffer_entry> shared_uniform_buffer_entries;
     std::vector<render_context::texture_skinning_buffer> texture_skinning_buffers;
     std::unordered_map<size_t, texture_skinning_buffer_entry> texture_skinning_buffer_entries;
+
+    static uint32_t max_uniform_block_size;
+    static uint32_t max_storage_block_size;
 
     render_context();
     ~render_context();

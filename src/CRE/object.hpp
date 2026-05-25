@@ -91,9 +91,6 @@ extern void objset_info_storage_free();
 extern bool check_objset_ready(uint32_t objset_index);
 
 extern bool create_mesh_index_buffer(IndexBuffer& ibhn, obj_mesh& mesh);
-#if SHARED_OBJECT_BUFFER
-extern void create_mesh_index_buffer(IndexBuffer& ibhn, obj_mesh& mesh, GLuint in_ib); // Added
-#endif
 extern bool create_mesh_vertex_buffer(VertexBuffer& vbhn,
     obj_mesh& mesh, GL::BufferUsage usage = GL::BUFFER_USAGE_STATIC);
 #if SHARED_OBJECT_BUFFER

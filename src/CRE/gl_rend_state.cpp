@@ -720,6 +720,8 @@ inline void gl_rend_state::active_texture(int32_t index) {
 inline void gl_rend_state::begin_event(const char* message, int32_t length) {
     if (GLAD_GL_VERSION_4_3)
         glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, (GLsizei)length, message);
+    else if (GLAD_GL_EXT_debug_marker)
+        glPushGroupMarkerEXT((GLsizei)length, message);
 }
 
 inline void gl_rend_state::begin_query(GLenum target, GLuint id) {
@@ -1122,6 +1124,8 @@ inline void gl_rend_state::enable_stencil_test() {
 inline void gl_rend_state::end_event() {
     if (GLAD_GL_VERSION_4_3)
         glPopDebugGroup();
+    else if (GLAD_GL_EXT_debug_marker)
+        glPopGroupMarkerEXT();
 }
 
 inline void gl_rend_state::end_query(GLenum target) {
@@ -1217,14 +1221,16 @@ void gl_rend_state::get() {
         glGetInteger64i_v(GL_UNIFORM_BUFFER_SIZE, i, (GLint64*)&uniform_buffer_sizes[i]);
     }
 
-    shader_storage_buffer_start_index = 14;
-    shader_storage_buffer_end_index = -1;
+    if (GLAD_GL_VERSION_4_3) {
+        shader_storage_buffer_start_index = 14;
+        shader_storage_buffer_end_index = -1;
 
-    glGetIntegerv(GL_SHADER_STORAGE_BUFFER_BINDING, (GLint*)&shader_storage_buffer_binding);
-    for (GLuint i = 0; i < 14; i++) {
-        glGetIntegeri_v(GL_SHADER_STORAGE_BUFFER_BINDING, i, (GLint*)&shader_storage_buffer_bindings[i]);
-        glGetInteger64i_v(GL_SHADER_STORAGE_BUFFER_START, i, (GLint64*)&shader_storage_buffer_offsets[i]);
-        glGetInteger64i_v(GL_SHADER_STORAGE_BUFFER_SIZE, i, (GLint64*)&shader_storage_buffer_sizes[i]);
+        glGetIntegerv(GL_SHADER_STORAGE_BUFFER_BINDING, (GLint*)&shader_storage_buffer_binding);
+        for (GLuint i = 0; i < 14; i++) {
+            glGetIntegeri_v(GL_SHADER_STORAGE_BUFFER_BINDING, i, (GLint*)&shader_storage_buffer_bindings[i]);
+            glGetInteger64i_v(GL_SHADER_STORAGE_BUFFER_START, i, (GLint64*)&shader_storage_buffer_offsets[i]);
+            glGetInteger64i_v(GL_SHADER_STORAGE_BUFFER_SIZE, i, (GLint64*)&shader_storage_buffer_sizes[i]);
+        }
     }
 
     glGetBooleanv(GL_COLOR_WRITEMASK, color_mask);
@@ -1869,7 +1875,7 @@ inline void gl_rend_state::update_uniform_buffer() {
 }
 
 inline void gl_rend_state::update_shader_storage_buffer() {
-    if (update_flags & GL_REND_STATE_UPDATE_SHADER_STORAGE_BUFFER) {
+    if (GLAD_GL_VERSION_4_3 && (update_flags & GL_REND_STATE_UPDATE_SHADER_STORAGE_BUFFER)) {
         for (int32_t index = shader_storage_buffer_start_index;
             index <= shader_storage_buffer_end_index; index++) {
             if (curr_shader_storage_buffer_bindings[index] == shader_storage_buffer_bindings[index]
