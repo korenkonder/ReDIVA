@@ -318,7 +318,9 @@ void object_material_msgpack_read(const char* path, const char* set_name,
 
                             if (shader_name == "BLINN" && mat.shader_info.m.is_lgt_diffuse
                                 && mat.shader_info.m.is_lgt_specular && mat.shader_compo.m.normal_01
-                                || shader_name == "ITEM" || shader_name == "STAGE" || shader_name == "WATER01") {
+                                || shader_name == "CLOTH" || shader_name == "HAIR"
+                                || shader_name == "ITEM" || shader_name == "SKIN"
+                                || shader_name == "STAGE" || shader_name == "TIGHTS" || shader_name == "WATER01") {
                                 for (size_t l = 0; l < obj->num_mesh; l++) {
                                     bool generate_tangents = false;
                                     obj_mesh& mesh = obj->mesh_array[l];
