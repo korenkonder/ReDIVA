@@ -270,6 +270,8 @@ struct gl_rend_state {
     void set_viewport(GLint x, GLint y, GLsizei width, GLsizei height);
     void tex_sub_image_2d(GLenum target, GLint level, GLint xoffset, GLint yoffset,
         GLsizei width, GLsizei height, GLenum format, GLenum type, const void* pixels);
+    void texture_sub_image_2d(GLuint texture, GLint level, GLint xoffset, GLint yoffset,
+        GLsizei width, GLsizei height, GLenum format, GLenum type, const void* pixels);
     void unmap_array_buffer(GLuint buffer);
     void unmap_element_array_buffer(GLuint buffer);
     void unmap_uniform_buffer(GLuint buffer);
@@ -657,13 +659,18 @@ void p_gl_rend_state::set_viewport(const gl_rend_state_rect& rect) {
     ptr.set_viewport(rect);
 }
 
+void p_gl_rend_state::set_viewport(GLint x, GLint y, GLsizei width, GLsizei height) {
+    ptr.set_viewport(x, y, width, height);
+}
+
 void p_gl_rend_state::tex_sub_image_2d(GLenum target, GLint level, GLint xoffset, GLint yoffset,
     GLsizei width, GLsizei height, GLenum format, GLenum type, const void* pixels) {
     ptr.tex_sub_image_2d(target, level, xoffset, yoffset, width, height, format, type, pixels);
 }
 
-void p_gl_rend_state::set_viewport(GLint x, GLint y, GLsizei width, GLsizei height) {
-    ptr.set_viewport(x, y, width, height);
+void p_gl_rend_state::texture_sub_image_2d(GLuint texture, GLint level, GLint xoffset, GLint yoffset,
+    GLsizei width, GLsizei height, GLenum format, GLenum type, const void* pixels) {
+    ptr.texture_sub_image_2d(texture, level, xoffset, yoffset, width, height, format, type, pixels);
 }
 
 void p_gl_rend_state::use_program(GLuint program) {
@@ -1629,6 +1636,12 @@ inline void gl_rend_state::tex_sub_image_2d(GLenum target, GLint level, GLint xo
     GLsizei width, GLsizei height, GLenum format, GLenum type, const void* pixels) {
     update_curr_active_texture();
     glTexSubImage2D(target, level, xoffset, yoffset, width, height, format, type, pixels);
+    enum_or(flags, GL_REND_STATE_EXECUTE);
+}
+
+inline void gl_rend_state::texture_sub_image_2d(GLuint texture, GLint level, GLint xoffset, GLint yoffset,
+    GLsizei width, GLsizei height, GLenum format, GLenum type, const void* pixels) {
+    glTextureSubImage2D(texture, level, xoffset, yoffset, width, height, format, type, pixels);
     enum_or(flags, GL_REND_STATE_EXECUTE);
 }
 
