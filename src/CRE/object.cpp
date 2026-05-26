@@ -315,6 +315,24 @@ void object_material_msgpack_read(const char* path, const char* set_name,
                             size_t name_length = min_def(sizeof(mat.shader.name) - 1, shader_name.size());
                             memcpy_s(mat.shader.name, sizeof(mat.shader.name) - 1, shader_name.c_str(), name_length);
                             memset(mat.shader.name + name_length, 0, sizeof(mat.shader.name) - name_length);
+
+                            if (shader_name == "BLINN" && mat.shader_info.m.is_lgt_diffuse
+                                && mat.shader_info.m.is_lgt_specular && mat.shader_compo.m.normal_01
+                                || shader_name == "ITEM" || shader_name == "STAGE" || shader_name == "WATER01") {
+                                for (size_t l = 0; l < obj->num_mesh; l++) {
+                                    bool generate_tangents = false;
+                                    obj_mesh& mesh = obj->mesh_array[l];
+                                    for (size_t m = 0; m < mesh.num_submesh; m++) {
+                                        obj_sub_mesh& sub_mesh = mesh.submesh_array[m];
+                                        if (sub_mesh.material_index == k) {
+                                            generate_tangents = true;
+                                            break;
+                                        }
+                                    }
+                                    if (generate_tangents)
+                                        mesh.generate_tangents();
+                                }
+                            }
                         }
 
                         msgpack* shader_info = material.read("shader_info");

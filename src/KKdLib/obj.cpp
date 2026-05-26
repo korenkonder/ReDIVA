@@ -117,7 +117,6 @@ static void obj_material_texture_enrs_table_init();
 static void obj_material_texture_enrs_table_free(void);
 
 static void obj_vertex_add_bone_weight(vec4& bone_weight, vec4i16& bone_index, int16_t index, float_t weight);
-static void obj_vertex_generate_tangents(obj_mesh* mesh);
 static void obj_vertex_validate_bone_data(vec4& bone_weight, vec4i16& bone_index);
 
 static void obj_move_data(obj* obj_dst, const obj* obj_src,
@@ -384,6 +383,161 @@ size_vertex(), num_vertex(), vertex_array(), attrib(), reserved(), name() {
 
 }
 
+static void calculate_tangent(obj_vertex_data* vtx,
+    vec3* tangents, vec3* bitangents, uint32_t a, uint32_t b, uint32_t c) {
+    obj_vertex_data* vtx_a = &vtx[a];
+    obj_vertex_data* vtx_b = &vtx[b];
+    obj_vertex_data* vtx_c = &vtx[c];
+
+    vec3 pos_a = vtx_c->position - vtx_a->position;
+    vec3 pos_b = vtx_b->position - vtx_a->position;
+
+    vec2 uv_a = vtx_c->texcoord0 - vtx_a->texcoord0;
+    vec2 uv_b = vtx_b->texcoord0 - vtx_a->texcoord0;
+
+    vec3 tangent = pos_a * uv_b.y - pos_b * uv_a.y;
+    vec3 bitangent = pos_b * uv_a.x - pos_a * uv_b.x;
+
+    if (uv_a.x * uv_b.y - uv_a.y * uv_b.x <= 0.0f) {
+        tangent = -tangent;
+        bitangent = -bitangent;
+    }
+
+    tangents[a] += tangent;
+    tangents[b] += tangent;
+    tangents[c] += tangent;
+
+    bitangents[a] += bitangent;
+    bitangents[b] += bitangent;
+    bitangents[c] += bitangent;
+}
+
+void obj_mesh::generate_tangents() {
+    if (!(vertex_format & OBJ_VERTEX_NORMAL) || vertex_format & OBJ_VERTEX_TANGENT
+        || !(vertex_format & OBJ_VERTEX_TEXCOORD0))
+        return;
+
+    vec3* tangents = force_malloc<vec3>(num_vertex);
+    vec3* bitangents = force_malloc<vec3>(num_vertex);
+
+    obj_vertex_data* vtx = vertex_array;
+    for (int32_t i = 0; i < num_submesh; i++) {
+        obj_sub_mesh* sub_mesh = &submesh_array[i];
+        if (!sub_mesh->index_array || !sub_mesh->num_index
+            || (sub_mesh->primitive_type != OBJ_PRIMITIVE_TRIANGLES
+                && sub_mesh->primitive_type != OBJ_PRIMITIVE_TRIANGLE_STRIP))
+            continue;
+
+        uint32_t* start = sub_mesh->index_array;
+        uint32_t* end = sub_mesh->index_array + sub_mesh->num_index;
+
+        bool triangle_strip = sub_mesh->primitive_type == OBJ_PRIMITIVE_TRIANGLE_STRIP;
+        if (!triangle_strip) {
+            while (start < end) {
+                uint32_t a = *start++;
+                uint32_t b = *start++;
+                uint32_t c = *start++;
+                calculate_tangent(vtx, tangents, bitangents, a, b, c);
+            }
+        }
+        else {
+            bool direction = true;
+
+            uint32_t a = *start++;
+            uint32_t b = *start++;
+
+            while (start < end) {
+                uint32_t c = *start++;
+
+                if (c == -1) {
+                    a = *start++;
+                    b = *start++;
+                    direction = true;
+                }
+                else {
+                    direction ^= true;
+                    if (a != b && b != c && c != a) {
+                        if (!direction)
+                            calculate_tangent(vtx, tangents, bitangents, a, b, c);
+                        else
+                            calculate_tangent(vtx, tangents, bitangents, a, c, b);
+                    }
+
+                    a = b;
+                    b = c;
+                }
+            }
+        }
+    }
+
+    for (int32_t i = 0; i < num_vertex; i++) {
+        vec3 normal = vtx[i].normal;
+
+        vec3 tangent = vec3::normalize(tangents[i]);
+        vec3 bitangent = vec3::normalize(bitangents[i]);
+
+        tangent = vec3::normalize(tangent - normal * vec3::dot(tangent, normal));
+        bitangent = vec3::normalize(bitangent - normal * vec3::dot(bitangent, normal));
+
+        vec3 binormal = vec3::normalize(vec3::cross(normal, tangent));
+
+        float_t dir_check = vec3::dot(binormal, bitangent);
+
+        *(vec3*)&vtx[i].tangent = tangent;
+        vtx[i].tangent.w = dir_check > 0.0f ? 1.0f : -1.0f;
+        tangents[i] = tangent;
+        bitangents[i] = bitangent;
+    }
+
+    for (int32_t i = 0; i < num_vertex; i++) {
+        vec3 position = vtx[i].position;
+        vec3 tangent = tangents[i];
+
+        if (tangent != 0.0f)
+            continue;
+
+        int32_t nearest_vtx_idx = -1;
+        float_t current_distance = FLT_MAX;
+
+        for (int32_t j = 0; j < num_vertex; j++) {
+            vec3 position_to_compare = vtx[j].position;
+            vec3 tangent_to_compare = tangents[j];
+
+            if (i == j || tangent_to_compare == 0.0f)
+                continue;
+
+            float_t distance = vec3::distance_squared(position, position_to_compare);
+
+            if (current_distance >= distance) {
+                nearest_vtx_idx = j;
+                current_distance = distance;
+            }
+        }
+
+        if (nearest_vtx_idx != -1)
+            vtx[i].tangent = vtx[nearest_vtx_idx].tangent;
+        else {
+            vec3 normal = vtx[i].normal;
+
+            vec3 temp1 = vec3::cross(normal, { 0.0f, 1.0f, 0.0f });
+            vec3 temp2 = vec3::cross(normal, { 1.0f, 0.0f, 0.0f });
+
+            float_t temp3 = vec3::length_squared(temp1);
+            float_t temp4 = vec3::length_squared(temp2);
+
+            vec3 tangent = vec3::normalize(temp3 > temp4 ? temp1 : temp2);
+
+            *(vec3*)&vtx[i].tangent = tangent;
+            vtx[i].tangent.w = 1.0f;
+        }
+    }
+
+    free_def(tangents);
+    free_def(bitangents);
+
+    enum_or(vertex_format, OBJ_VERTEX_TANGENT);
+}
+
 obj_skin_ex_node_transform::obj_skin_ex_node_transform() : parent_name() {
 
 }
@@ -613,165 +767,6 @@ static void obj_vertex_add_bone_weight(vec4& bone_weight, vec4i16& bone_index, i
         bone_index.w = index;
         bone_weight.w = weight;
     }
-}
-
-static void calculate_tangent(obj_vertex_data* vtx,
-    vec3* tangents, vec3* bitangents, uint32_t a, uint32_t b, uint32_t c) {
-    obj_vertex_data* vtx_a = &vtx[a];
-    obj_vertex_data* vtx_b = &vtx[b];
-    obj_vertex_data* vtx_c = &vtx[c];
-
-    vec3 pos_a = vtx_c->position - vtx_a->position;
-    vec3 pos_b = vtx_b->position - vtx_a->position;
-
-    vec2 uv_a = vtx_c->texcoord0 - vtx_a->texcoord0;
-    vec2 uv_b = vtx_b->texcoord0 - vtx_a->texcoord0;
-
-    vec3 tangent = pos_a * uv_b.y - pos_b * uv_a.y;
-    vec3 bitangent = pos_b * uv_a.x - pos_a * uv_b.x;
-
-    if (uv_a.x * uv_b.y - uv_a.y * uv_b.x <= 0.0f) {
-        tangent = -tangent;
-        bitangent = -bitangent;
-    }
-
-    tangents[a] += tangent;
-    tangents[b] += tangent;
-    tangents[c] += tangent;
-
-    bitangents[a] += bitangent;
-    bitangents[b] += bitangent;
-    bitangents[c] += bitangent;
-}
-
-static void obj_vertex_generate_tangents(obj_mesh* mesh) {
-    if (!(mesh->vertex_format & OBJ_VERTEX_NORMAL)
-        || mesh->vertex_format & OBJ_VERTEX_TANGENT
-        || !(mesh->vertex_format & OBJ_VERTEX_TEXCOORD0))
-        return;
-
-    int32_t num_vertex = mesh->num_vertex;
-
-    vec3* tangents = force_malloc<vec3>(num_vertex);
-    vec3* bitangents = force_malloc<vec3>(num_vertex);
-
-    obj_vertex_data* vtx = mesh->vertex_array;
-    int32_t num_submesh = mesh->num_submesh;
-    for (int32_t i = 0; i < num_submesh; i++) {
-        obj_sub_mesh* sub_mesh = &mesh->submesh_array[i];
-        if (!sub_mesh->index_array || !sub_mesh->num_index
-            || (sub_mesh->primitive_type != OBJ_PRIMITIVE_TRIANGLES
-                && sub_mesh->primitive_type != OBJ_PRIMITIVE_TRIANGLE_STRIP))
-            continue;
-
-        uint32_t* start = sub_mesh->index_array;
-        uint32_t* end = sub_mesh->index_array + sub_mesh->num_index;
-
-        bool triangle_strip = sub_mesh->primitive_type == OBJ_PRIMITIVE_TRIANGLE_STRIP;
-        if (!triangle_strip) {
-            while (start < end) {
-                uint32_t a = *start++;
-                uint32_t b = *start++;
-                uint32_t c = *start++;
-                calculate_tangent(vtx, tangents, bitangents, a, b, c);
-            }
-        }
-        else {
-            bool direction = true;
-
-            uint32_t a = *start++;
-            uint32_t b = *start++;
-
-            while (start < end) {
-                uint32_t c = *start++;
-
-                if (c == -1) {
-                    a = *start++;
-                    b = *start++;
-                    direction = true;
-                }
-                else {
-                    direction ^= true;
-                    if (a != b && b != c && c != a) {
-                        if (!direction)
-                            calculate_tangent(vtx, tangents, bitangents, a, b, c);
-                        else
-                            calculate_tangent(vtx, tangents, bitangents, a, c, b);
-                    }
-
-                    a = b;
-                    b = c;
-                }
-            }
-        }
-    }
-
-    for (int32_t i = 0; i < num_vertex; i++) {
-        vec3 normal = vtx[i].normal;
-
-        vec3 tangent = vec3::normalize(tangents[i]);
-        vec3 bitangent = vec3::normalize(bitangents[i]);
-
-        tangent = vec3::normalize(tangent - normal * vec3::dot(tangent, normal));
-        bitangent = vec3::normalize(bitangent - normal * vec3::dot(bitangent, normal));
-
-        vec3 binormal = vec3::normalize(vec3::cross(normal, tangent));
-
-        float_t dir_check = vec3::dot(binormal, bitangent);
-
-        *(vec3*)&vtx[i].tangent = tangent;
-        vtx[i].tangent.w = dir_check > 0.0f ? 1.0f : -1.0f;
-        tangents[i] = tangent;
-        bitangents[i] = bitangent;
-    }
-
-    for (int32_t i = 0; i < num_vertex; i++) {
-        vec3 position = vtx[i].position;
-        vec3 tangent = tangents[i];
-
-        if (tangent != 0.0f)
-            continue;
-
-        int32_t nearest_vtx_idx = -1;
-        float_t current_distance = FLT_MAX;
-
-        for (int32_t j = 0; j < num_vertex; j++) {
-            vec3 position_to_compare = vtx[j].position;
-            vec3 tangent_to_compare = tangents[j];
-
-            if (i == j || tangent_to_compare == 0.0f)
-                continue;
-
-            float_t distance = vec3::distance_squared(position, position_to_compare);
-
-            if (current_distance >= distance) {
-                nearest_vtx_idx = j;
-                current_distance = distance;
-            }
-        }
-
-        if (nearest_vtx_idx != -1)
-            vtx[i].tangent = vtx[nearest_vtx_idx].tangent;
-        else {
-            vec3 normal = vtx[i].normal;
-
-            vec3 temp1 = vec3::cross(normal, { 0.0f, 1.0f, 0.0f });
-            vec3 temp2 = vec3::cross(normal, { 1.0f, 0.0f, 0.0f });
-
-            float_t temp3 = vec3::length_squared(temp1);
-            float_t temp4 = vec3::length_squared(temp2);
-
-            vec3 tangent = vec3::normalize(temp3 > temp4 ? temp1 : temp2);
-
-            *(vec3*)&vtx[i].tangent = tangent;
-            vtx[i].tangent.w = 1.0f;
-        }
-    }
-
-    free_def(tangents);
-    free_def(bitangents);
-
-    enum_or(mesh->vertex_format, OBJ_VERTEX_TANGENT);
 }
 
 static void obj_vertex_validate_bone_data(vec4& bone_weight, vec4i16& bone_index) {
@@ -1738,7 +1733,7 @@ static void obj_classic_read_model_mesh(obj_mesh* mesh,
 
     obj_classic_read_vertex(mesh, alloc, s, mh.vertex,
         base_offset, mh.num_vertex, mh.format);
-    //obj_vertex_generate_tangents(mesh);
+    //mesh->generate_tangents();
 }
 
 static void obj_classic_read_model_sub_mesh(obj_sub_mesh* sub_mesh,
@@ -4997,7 +4992,7 @@ static void obj_modern_read_model_mesh(obj_mesh* mesh,
 
     obj_modern_read_vertex(mesh, alloc, *s_ovtx, mh.vertex,
         mh.vertex_format_index, mh.num_vertex, mh.size_vertex);
-    //obj_vertex_generate_tangents(mesh);
+    //mesh->generate_tangents();
 }
 
 static void obj_modern_read_model_sub_mesh(obj_sub_mesh* sub_mesh,

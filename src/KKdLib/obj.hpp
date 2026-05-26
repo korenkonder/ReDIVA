@@ -414,6 +414,8 @@ struct obj_mesh {
     char name[0x40];
 
     obj_mesh();
+
+    void generate_tangents();
 };
 
 struct obj_skin_ex_node_transform {
