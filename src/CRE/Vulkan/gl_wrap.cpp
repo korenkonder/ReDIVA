@@ -547,13 +547,13 @@ namespace Vulkan {
 
     }
 
-    inline static bool get_use_binding(uniform_name use_uniform,
+    inline static bool get_use_binding(UniformName use_uniform,
         const shader_table* shader, const uint32_t* unival_arr) {
         if (use_uniform == U_INVALID)
             return true;
 
         const int32_t num_uniform = shader->num_uniform;
-        const uniform_name* _use_uniform = shader->use_uniform;
+        const UniformName* _use_uniform = shader->use_uniform;
         for (int32_t i = 0; i < num_uniform; i++)
             if (use_uniform == _use_uniform[i] && unival_arr[i])
                 return true;

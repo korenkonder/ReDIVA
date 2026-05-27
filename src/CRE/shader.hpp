@@ -45,7 +45,7 @@ struct shader_description {
     shader_description_type type;
     int32_t binding;
     int32_t data;
-    uniform_name use_uniform;
+    UniformName use_uniform;
 };
 
 struct shader_sub_table {
@@ -64,7 +64,7 @@ struct shader_table {
     int32_t num_sub;
     const shader_sub_table* sub;
     int32_t num_uniform;
-    const uniform_name* use_uniform;
+    const UniformName* use_uniform;
 };
 
 struct shader;
@@ -96,7 +96,7 @@ struct shader {
     int32_t num_sub;
     shader_sub* sub;
     int32_t num_uniform;
-    const uniform_name* use_uniform;
+    const UniformName* use_uniform;
     PFNSHADERBINDFUNCPROC bind_func;
 
     int32_t bind(struct p_gl_rend_state& p_gl_rend_st,

@@ -725,7 +725,7 @@ namespace rndr {
                 else
                     rend_data_ctx.state.active_bind_texture_2d(14, rctx->empty_texture_2d->glid);
 
-                rend_data_ctx.shader_flags.arr[U_WATER_REFLECT] = 0;
+                rend_data_ctx.shader_flags.arr[U_TEX_REFLECTMAP] = 0;
 
                 rctx->sss_data->set_texture(rend_data_ctx.state, 3);
 
@@ -960,11 +960,11 @@ namespace rndr {
             refl_tex = &get_render_texture(0);
             refl_tex->bind_texture(rend_data_ctx.state, 15);
             rend_data_ctx.state.active_bind_texture_2d(15, refl_tex->get_texture_glid());
-            rend_data_ctx.shader_flags.arr[U_WATER_REFLECT] = 1;
+            rend_data_ctx.shader_flags.arr[U_TEX_REFLECTMAP] = 1;
         }
         else {
             rend_data_ctx.state.active_bind_texture_2d(15, rctx->empty_texture_2d->glid);
-            rend_data_ctx.shader_flags.arr[U_WATER_REFLECT] = 0;
+            rend_data_ctx.shader_flags.arr[U_TEX_REFLECTMAP] = 0;
         }
 
         rctx->sss_data->set_texture(rend_data_ctx.state, 1);
@@ -1703,7 +1703,7 @@ static void draw_pass_reflect_full(render_data_context& rend_data_ctx, rndr::Ren
         else
             rend_data_ctx.state.active_bind_texture_2d(14, rctx->empty_texture_2d->glid);
 
-        rend_data_ctx.shader_flags.arr[U_WATER_REFLECT] = 0;
+        rend_data_ctx.shader_flags.arr[U_TEX_REFLECTMAP] = 0;
 
         rctx->sss_data->set_texture(rend_data_ctx.state, 3);
 

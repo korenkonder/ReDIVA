@@ -685,7 +685,7 @@ void shader_set_data::load(struct farc* f, bool ignore_cache,
             int32_t num_sub = shader->num_sub;
             const shader_sub_table* sub_table = shaders_table[i].sub;
             shader_sub* sub = shader->sub;
-            const uniform_name* use_uniform = shader->use_uniform;
+            const UniformName* use_uniform = shader->use_uniform;
             for (int32_t j = 0; j < num_sub; j++, sub++, sub_table++) {
                 sub->sub_index = sub_table->sub_index;
                 sub->vp_unival_max = sub_table->vp_unival_max;

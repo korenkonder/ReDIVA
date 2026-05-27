@@ -1531,7 +1531,7 @@ void snow_particle_draw(render_data_context& rend_data_ctx, const cam_data& cam)
     rend_data_ctx.state.active_bind_texture_2d(1, rctx_ptr->render.rend_texture[0].get_depth_texture_glid());
     rend_data_ctx.state.bind_vertex_array(rctx_ptr->common_vao);
 
-    rend_data_ctx.shader_flags.arr[U_SNOW_PARTICLE] = 0;
+    rend_data_ctx.shader_flags.arr[U_SNOW_TYPE] = 0;
     shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_SNOW_PT);
     rend_data_ctx.state.bind_uniform_buffer_base(0, snow_particle_scene_ubo);
     rend_data_ctx.state.bind_uniform_buffer_base(1, snow_particle_batch_ubo);
@@ -1542,7 +1542,7 @@ void snow_particle_draw(render_data_context& rend_data_ctx, const cam_data& cam)
     snow_fallen_storage.Bind(rend_data_ctx.state, 0);
     snow_fallen_storage.Draw(rend_data_ctx.state, GL_TRIANGLES, 0, (GLsizei)(snow_ptcl_fallen_count * 6));
 
-    rend_data_ctx.shader_flags.arr[U_SNOW_PARTICLE] = 1;
+    rend_data_ctx.shader_flags.arr[U_SNOW_TYPE] = 1;
     shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_SNOW_PT);
     rend_data_ctx.state.bind_uniform_buffer_base(0, snow_particle_scene_ubo);
     rend_data_ctx.state.bind_uniform_buffer_base(1, snow_particle_batch_ubo);
@@ -5824,7 +5824,7 @@ static void draw_ripple_particles(render_data_context& rend_data_ctx,
         0.0f, 0.0f };
     rend_data_ctx.state.write_uniform_buffer(ripple_emit_scene_ubo, shader_data);
 
-    rend_data_ctx.shader_flags.arr[U_RIPPLE] = data->ripple_uniform;
+    rend_data_ctx.shader_flags.arr[U_TEX_FORMAT] = data->ripple_uniform;
     rend_data_ctx.shader_flags.arr[U_RIPPLE_EMIT] = data->ripple_emit_uniform;
 
     rend_data_ctx.state.begin_event("EffectRipple::Impl::draw_ripple_particles");
@@ -6779,9 +6779,9 @@ static void ripple_propagate(render_data_context& rend_data_ctx,
     dst->begin_render(rend_data_ctx.state);
     if (dst->get_texture()->internal_format == GL_RGBA32F
         || dst->get_texture()->internal_format == GL_RGBA16F)
-        rend_data_ctx.shader_flags.arr[U_RIPPLE] = 1;
+        rend_data_ctx.shader_flags.arr[U_TEX_FORMAT] = 1;
     else
-        rend_data_ctx.shader_flags.arr[U_RIPPLE] = 0;
+        rend_data_ctx.shader_flags.arr[U_TEX_FORMAT] = 0;
     ripple_propagate_sub(rend_data_ctx, dst->get_texture(), curr->get_texture(), prev->get_texture(), params);
     dst->end_render(rend_data_ctx.state);
 }

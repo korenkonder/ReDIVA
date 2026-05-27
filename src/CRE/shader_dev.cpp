@@ -132,20 +132,20 @@ static const shader_description cubemap_display_fpt_desc[] = {
 #undef SHADER_DESCRIPTION_EFFECT_TEXTURE_SAMPLER
 #pragma endregion
 
-static const uniform_name CONVERT_YCBCR_BT709_uniform[] = {
+static const UniformName CONVERT_YCBCR_BT709_uniform[] = {
     U_INVALID,
 };
 
-static const uniform_name CONVERT_ALPHA_uniform[] = {
+static const UniformName CONVERT_ALPHA_uniform[] = {
     U_INVALID,
 };
 
-static const uniform_name CONVERT_RGB_uniform[] = {
+static const UniformName CONVERT_RGB_uniform[] = {
     U_INVALID,
 };
 
 #if DISPLAY_IBL
-static const uniform_name CUBEMAP_DISPLAY_uniform[] = {
+static const UniformName CUBEMAP_DISPLAY_uniform[] = {
     U_INVALID,
 };
 #endif
@@ -191,7 +191,7 @@ static const shader_sub_table CUBEMAP_DISPLAY_table[] = {
     SHADER_DEV_##n, \
     sizeof(n##_table) / sizeof(shader_sub_table), \
     n##_table, \
-    n##_uniform[0] > 0 ? sizeof(n##_uniform) / sizeof(uniform_name) : 0, \
+    n##_uniform[0] > 0 ? sizeof(n##_uniform) / sizeof(UniformName) : 0, \
     n##_uniform, \
 }
 

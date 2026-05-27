@@ -1825,7 +1825,7 @@ inline void gl_rend_state::update_read_framebuffer() {
             glBindFramebuffer(GL_READ_FRAMEBUFFER, read_framebuffer_binding);
             if (read_framebuffer_binding) {
                 GLenum status = glCheckFramebufferStatus(GL_READ_FRAMEBUFFER);
-                if (status != GL_FRAMEBUFFER_COMPLETE)
+                if (status != GL_FRAMEBUFFER_COMPLETE && status != GL_NO_ERROR)
                     printf_debug("GL Error: Bind Read Framebuffer Status - 0x%04X\n", status);
                 gl_get_error_print();
             }
@@ -1841,7 +1841,7 @@ inline void gl_rend_state::update_draw_framebuffer() {
             glBindFramebuffer(GL_DRAW_FRAMEBUFFER, draw_framebuffer_binding);
             if (draw_framebuffer_binding) {
                 GLenum status = glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER);
-                if (status != GL_FRAMEBUFFER_COMPLETE)
+                if (status != GL_FRAMEBUFFER_COMPLETE && status != GL_NO_ERROR)
                     printf_debug("GL Error: Bind Draw Framebuffer Status - 0x%04X\n", status);
                 gl_get_error_print();
             }

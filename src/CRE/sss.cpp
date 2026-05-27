@@ -48,7 +48,7 @@ void sss_data::apply_filter(struct render_data_context& rend_data_ctx) {
         textures[0].begin_render(rend_data_ctx.state);
         rend_data_ctx.state.set_viewport(0, 0, 640, 360);
         rndr::Render* rend = &rctx->render;
-        rend_data_ctx.shader_flags.arr[U_REDUCE] = 0;
+        rend_data_ctx.shader_flags.arr[U_REDUCE_TEX] = 0;
         shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_REDUCE);
         RenderTexture& rt = reflect_draw
             ? rctx->render_manager->get_render_texture(0)

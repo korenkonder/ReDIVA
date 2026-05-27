@@ -1274,7 +1274,7 @@ static void render_context_disp(render_context* rctx) {
         post_rend_data_ctx.state.bind_framebuffer(0);
         post_rend_data_ctx.state.active_bind_texture_2d(0, rctx->screen_buffer.get_texture_glid());
         post_rend_data_ctx.shader_flags.arr[U_ALPHA_MASK] = 0;
-        post_rend_data_ctx.shader_flags.arr[U_REDUCE] = 0;
+        post_rend_data_ctx.shader_flags.arr[U_REDUCE_TEX] = 0;
         shaders_ft.set(post_rend_data_ctx.state, post_rend_data_ctx.shader_flags, SHADER_FT_REDUCE);
         rctx->render.draw_quad(post_rend_data_ctx, rctx->sprite_width, rctx->sprite_height,
             1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
