@@ -3086,12 +3086,12 @@ float_t rob_chara::get_face_depth() const {
     return item.get_face_depth();
 }
 
-float_t rob_chara::get_pos_scale(ROB_COLLI_ID colli_id, vec3& center) {
-    if (colli_id < 0 || colli_id >= ROB_COLLI_ID_MAX)
+float_t rob_chara::get_pos_scale(CB cb, vec3& center) {
+    if (cb < 0 || cb >= CB_NUM)
         return 0.0f;
 
-    center = rob_base.collision.cb_hit[colli_id].ball.c;
-    return rob_base.collision.cb_hit[colli_id].ball.r;
+    center = rob_base.collision.cb_hit[cb].ball.c;
+    return rob_base.collision.cb_hit[cb].ball.r;
 }
 
 // 0x140532090
@@ -3170,7 +3170,7 @@ void rob_chara::init_colli_every_frame() {
     prj::BallCollision* cb_rob = collision.cb_rob;
     prj::BallCollision* cb_stg = collision.cb_stg;
 
-    for (int32_t i = 0; i < ROB_COLLI_ID_MAX; i++, cb_hit++, cb_rob++, cb_stg++) {
+    for (int32_t i = 0; i < CB_NUM; i++, cb_hit++, cb_rob++, cb_stg++) {
         if (max_ypos < cb_hit->ball.c.y) {
             max_ypos = cb_hit->ball.c.y;
             max_idx = i;
@@ -3868,7 +3868,7 @@ void rob_chara::ctrl_rob_disp_main() {
     disp->set_opd_blend_data(&bone_data->motion_loaded);
 
     vec3 pos = 0.0f;
-    get_pos_scale(ROB_COLLI_ID_KOSHI, pos);
+    get_pos_scale(CB_KOSI, pos);
     disp->position = pos;
     RobDisp_ctrl(disp);
     if (check_for_ageageagain_module()) {
@@ -5624,7 +5624,7 @@ void rob_chara::calc_rob_colli_matrix() {
     const RobCollisionData* colli = rob_data->colli_data;
     const RobCollisionData* push_colli = rob_data->push_colli_data;
     mat4 m;
-    for (int32_t i = 0; i < ROB_COLLI_ID_MAX; i++) {
+    for (int32_t i = 0; i < CB_NUM; i++) {
         mat4_mul_translate(bone_data->get_mats_mat(colli->bone), &colli->trans, &m);
         *mat = m;
 
@@ -6843,17 +6843,17 @@ void RobMhPp::func_31(
 
 static int32_t sub_140533440(int32_t a1) {
     static const uint8_t byte_140A2D538[] = {
-       ROB_COLLI_ID_KOSHI, ROB_COLLI_ID_MUNE_L, ROB_COLLI_ID_MUNE_R, ROB_COLLI_ID_KUBI, ROB_COLLI_ID_KAO,
-       ROB_COLLI_ID_KATA_L1, ROB_COLLI_ID_KATA_L2, ROB_COLLI_ID_UDE_L1, ROB_COLLI_ID_UDE_L2, ROB_COLLI_ID_TE_L,
-       ROB_COLLI_ID_KATA_R1, ROB_COLLI_ID_KATA_R2, ROB_COLLI_ID_UDE_R1, ROB_COLLI_ID_UDE_R2, ROB_COLLI_ID_TE_R,
-       ROB_COLLI_ID_MOMO_L1, ROB_COLLI_ID_MOMO_L2, ROB_COLLI_ID_SUNE_L1,
-       ROB_COLLI_ID_SUNE_L2, ROB_COLLI_ID_ASI_L, ROB_COLLI_ID_TOE_L,
-       ROB_COLLI_ID_MOMO_R1, ROB_COLLI_ID_MOMO_R2, ROB_COLLI_ID_SUNE_R1,
-       ROB_COLLI_ID_SUNE_R2, ROB_COLLI_ID_ASI_R, ROB_COLLI_ID_TOE_R,
+       CB_KOSI, CB_MUNE1, CB_MUNE2, CB_KUBI, CB_KAO,
+       CB_KATA_L1, CB_KATA_L2, CB_UDE_L1, CB_UDE_L2, CB_TE_L,
+       CB_KATA_R1, CB_KATA_R2, CB_UDE_R1, CB_UDE_R2, CB_TE_R,
+       CB_MOMO_L1, CB_MOMO_L2, CB_SUNE_L1,
+       CB_SUNE_L2, CB_ASI_L, CB_TOE_L,
+       CB_MOMO_R1, CB_MOMO_R2, CB_SUNE_R1,
+       CB_SUNE_R2, CB_ASI_R, CB_TOE_R,
     };
 
     int32_t v3 = a1 & 0xF800001F;
-    for (int32_t i = 0; i < ROB_COLLI_ID_MAX; i++)
+    for (int32_t i = 0; i < CB_NUM; i++)
         if (a1 & (1 << i))
             v3 |= 1 << byte_140A2D538[i];
     return v3;
@@ -6887,7 +6887,7 @@ void RobMhPp::func_32(
         if (!(v10 & (1 << i)))
             continue;
 
-        for (int32_t j = 0; j < ROB_COLLI_ID_MAX; j++) {
+        for (int32_t j = 0; j < CB_NUM; j++) {
             if (!(v5 & (1 << j)))
                 continue;
 

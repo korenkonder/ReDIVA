@@ -728,10 +728,50 @@ enum BONE_NODE {
     BONE_NODE_MAX                     = 0xC9,
 };
 
+enum CB {
+    CB_NONE = -1,
+
+    CB_KOSI = 0,
+    CB_MUNE1,
+    CB_MUNE2,
+    CB_KUBI,
+    CB_KAO,
+    CB_KATA_R1,
+    CB_KATA_R2,
+    CB_UDE_R1,
+    CB_UDE_R2,
+    CB_TE_R,
+    CB_KATA_L1,
+    CB_KATA_L2,
+    CB_UDE_L1,
+    CB_UDE_L2,
+    CB_TE_L,
+    CB_MOMO_R1,
+    CB_MOMO_R2,
+    CB_SUNE_R1,
+    CB_SUNE_R2,
+    CB_ASI_R,
+    CB_TOE_R,
+    CB_MOMO_L1,
+    CB_MOMO_L2,
+    CB_SUNE_L1,
+    CB_SUNE_L2,
+    CB_ASI_L,
+    CB_TOE_L,
+    CB_NUM,
+};
+
 enum CCmdYkType {
     CCMD_YK_TYPE_NON = 0,
     CCMD_YK_TYPE_R,
     CCMD_YK_TYPE_L,
+};
+
+enum ColliBallType {
+    CB_TYPE_HIT = 0,
+    CB_TYPE_ROB,
+    CB_TYPE_STG,
+    CB_TYPE_MAX,
 };
 
 enum Expr_type {
@@ -1793,40 +1833,6 @@ enum ReviseType {
     REVISE_GUARD2,
     REVISE_RISE_SLOW,
     REVISE_TYPE_MAX,
-};
-
-// Pure assumption
-enum ROB_COLLI_ID {
-    ROB_COLLI_ID_DUMMY = -1,
-
-    ROB_COLLI_ID_KOSHI = 0,
-    ROB_COLLI_ID_MUNE_L,
-    ROB_COLLI_ID_MUNE_R,
-    ROB_COLLI_ID_KUBI,
-    ROB_COLLI_ID_KAO,
-    ROB_COLLI_ID_KATA_R1,
-    ROB_COLLI_ID_KATA_R2,
-    ROB_COLLI_ID_UDE_R1,
-    ROB_COLLI_ID_UDE_R2,
-    ROB_COLLI_ID_TE_R,
-    ROB_COLLI_ID_KATA_L1,
-    ROB_COLLI_ID_KATA_L2,
-    ROB_COLLI_ID_UDE_L1,
-    ROB_COLLI_ID_UDE_L2,
-    ROB_COLLI_ID_TE_L,
-    ROB_COLLI_ID_MOMO_R1,
-    ROB_COLLI_ID_MOMO_R2,
-    ROB_COLLI_ID_SUNE_R1,
-    ROB_COLLI_ID_SUNE_R2,
-    ROB_COLLI_ID_ASI_R,
-    ROB_COLLI_ID_TOE_R,
-    ROB_COLLI_ID_MOMO_L1,
-    ROB_COLLI_ID_MOMO_L2,
-    ROB_COLLI_ID_SUNE_L1,
-    ROB_COLLI_ID_SUNE_L2,
-    ROB_COLLI_ID_ASI_L,
-    ROB_COLLI_ID_TOE_L,
-    ROB_COLLI_ID_MAX,
 };
 
 enum ROB_ID {
@@ -4699,9 +4705,9 @@ struct RobMotData {
     prj::BitArray<17> revise_flag;
     uint32_t rob_cam_flag;
     RobTarget target;
-    bool colliball_flag[3][ROB_COLLI_ID_MAX];
-    float_t colliball_ratio[3][ROB_COLLI_ID_MAX];
-    float_t colliball_timer[3][ROB_COLLI_ID_MAX];
+    bool colliball_flag[3][CB_NUM];
+    float_t colliball_ratio[3][CB_NUM];
+    float_t colliball_timer[3][CB_NUM];
     prj::BitArray<41> touch_nage_mask;
     float_t arm_adjust_next_value;  // X
     float_t arm_adjust_prev_value;  // X
@@ -4845,21 +4851,21 @@ struct RobCollision {
     float_t sink_wall;
     int32_t wall_idx;
     vec3 wall_hit_pos;
-    mat4 mat[ROB_COLLI_ID_MAX];
-    mat4 push_mat[ROB_COLLI_ID_MAX];
-    prj::BallCollision cb_hit[ROB_COLLI_ID_MAX];
-    prj::BallCollision cb_rob[ROB_COLLI_ID_MAX];
-    prj::BallCollision cb_stg[ROB_COLLI_ID_MAX];
-    pos_scale field_1AA0[ROB_COLLI_ID_MAX];
-    float_t field_1BE4[ROB_COLLI_ID_MAX];
+    mat4 mat[CB_NUM];
+    mat4 push_mat[CB_NUM];
+    prj::BallCollision cb_hit[CB_NUM];
+    prj::BallCollision cb_rob[CB_NUM];
+    prj::BallCollision cb_stg[CB_NUM];
+    pos_scale field_1AA0[CB_NUM];
+    float_t field_1BE4[CB_NUM];
     prj::vector_pair<int64_t, float_t> field_1C50;
     int64_t field_1C68;
     int64_t field_1C70;
     int64_t field_1C78;
     int64_t field_1C80;
-    int32_t field_1C88[ROB_COLLI_ID_MAX];
-    int32_t field_1CF4[ROB_COLLI_ID_MAX];
-    int32_t field_1D60[ROB_COLLI_ID_MAX];
+    int32_t field_1C88[CB_NUM];
+    int32_t field_1CF4[CB_NUM];
+    int32_t field_1D60[CB_NUM];
     int32_t field_1DCC;
     int32_t field_1DD0;
     int32_t field_1DD4;
@@ -5040,7 +5046,7 @@ public:
     const vec3* get_gpos() const;
     object_info get_rob_data_face_object(int32_t index);
     float_t get_face_depth() const;
-    float_t get_pos_scale(ROB_COLLI_ID colli_id, vec3& center);
+    float_t get_pos_scale(CB cb, vec3& center);
     const RobData* get_rob_data() const;
     const RobInit* get_rob_init() const;
     void init_colli_every_frame();

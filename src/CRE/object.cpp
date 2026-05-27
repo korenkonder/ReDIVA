@@ -105,45 +105,6 @@ ObjsetInfo::~ObjsetInfo() {
         farc_file_handler.reset();
 }
 
-inline int32_t obj_material_texture_type_get_texcoord_index(
-    obj_material_texture_type type, int32_t index) {
-    switch (type) {
-    case OBJ_MATERIAL_TEXTURE_COLOR:
-    case OBJ_MATERIAL_TEXTURE_ENVIRONMENT_SPHERE: // XHD
-        if (index < 2)
-            return index;
-    case OBJ_MATERIAL_TEXTURE_NORMAL:
-    case OBJ_MATERIAL_TEXTURE_SPECULAR:
-        return 0;
-    case OBJ_MATERIAL_TEXTURE_TRANSLUCENCY:
-    case OBJ_MATERIAL_TEXTURE_TRANSPARENCY:
-        return 1;
-    }
-    return -1;
-}
-
-inline int32_t obj_material_texture_type_get_texture_index(
-    obj_material_texture_type type, int32_t base_index) {
-    switch (type) {
-    case OBJ_MATERIAL_TEXTURE_COLOR:
-    case OBJ_MATERIAL_TEXTURE_ENVIRONMENT_SPHERE: // XHD
-        if (base_index < 2)
-            return base_index;
-    case OBJ_MATERIAL_TEXTURE_NORMAL:
-        return 2;
-    case OBJ_MATERIAL_TEXTURE_SPECULAR:
-        return 3;
-    case OBJ_MATERIAL_TEXTURE_TRANSLUCENCY:
-        return 1;
-    case OBJ_MATERIAL_TEXTURE_TRANSPARENCY:
-        return 4;
-    //case OBJ_MATERIAL_TEXTURE_ENVIRONMENT_SPHERE: // AFT
-    case OBJ_MATERIAL_TEXTURE_ENVIRONMENT_CUBE:
-        return 5;
-    }
-    return -1;
-}
-
 // 0x1405E9250
 void obj_skin_set_matrix_buffer(const obj_skin* s, const mat4* matrices,
     const mat4* ex_data_matrices, mat4* matrix_buffer, const mat4* mat, const mat4& global_mat) {
@@ -341,13 +302,13 @@ void object_material_msgpack_read(const char* path, const char* set_name,
                         if (shader_info) {
                             msgpack* vtx_trans_type = shader_info->read("vtx_trans_type");
                             if (vtx_trans_type)
-                                mat.shader_info.m.vtx_trans_type = (obj_material_vertex_translation_type)
+                                mat.shader_info.m.vtx_trans_type = (MaterialAttributeVertexTransType)
                                 vtx_trans_type->read_uint32_t();
 
                             msgpack* col_src = shader_info->read("col_src");
                             if (col_src)
                                 mat.shader_info.m.col_src
-                                = (obj_material_color_source_type)col_src->read_uint32_t("col_src");
+                                = (MaterialAttributeColorSourceType)col_src->read_uint32_t("col_src");
 
                             msgpack* is_lgt_diffuse = shader_info->read("is_lgt_diffuse");
                             if (is_lgt_diffuse)
@@ -366,17 +327,22 @@ void object_material_msgpack_read(const char* path, const char* set_name,
                                 mat.shader_info.m.is_lgt_double = is_lgt_double->read_bool() ? 1 : 0;
 
                             msgpack* bump_map_type = shader_info->read("bump_map_type");
-                            if (bump_map_type)
-                                mat.shader_info.m.bump_map_type = (obj_material_bump_map_type)
-                                bump_map_type->read_uint32_t();
+                            if (bump_map_type) {
+                                mat.shader_info.m.bump_map_type
+                                    = (MaterialAttributeBumpMapType)bump_map_type->read_uint32_t();
+                            }
 
                             msgpack* fresnel_type = shader_info->read("fresnel_type");
-                            if (fresnel_type)
-                                mat.shader_info.m.fresnel_type = fresnel_type->read_uint32_t();
+                            if (fresnel_type) {
+                                mat.shader_info.m.fresnel_type
+                                    = (MaterialAttributeFresnelType)fresnel_type->read_uint32_t();
+                            }
 
                             msgpack* line_light = shader_info->read("line_light");
-                            if (line_light)
-                                mat.shader_info.m.line_light = line_light->read_uint32_t();
+                            if (line_light) {
+                                mat.shader_info.m.line_light
+                                    = (MaterialAttributeLineLightType)line_light->read_uint32_t();
+                            }
 
                             msgpack* receive_shadow = shader_info->read({ "receive_shadow", "recieve_shadow" });
                             if (receive_shadow)
@@ -387,14 +353,16 @@ void object_material_msgpack_read(const char* path, const char* set_name,
                                 mat.shader_info.m.cast_shadow = cast_shadow->read_bool() ? 1 : 0;
 
                             msgpack* specular_quality = shader_info->read("specular_quality");
-                            if (specular_quality)
-                                mat.shader_info.m.specular_quality = (obj_material_specular_quality)
-                                specular_quality->read_uint32_t();
+                            if (specular_quality) {
+                                mat.shader_info.m.specular_quality
+                                    = (MaterialAttributeSpecularQuality)specular_quality->read_uint32_t();
+                            }
 
                             msgpack* aniso_direction = shader_info->read("aniso_direction");
-                            if (aniso_direction)
-                                mat.shader_info.m.aniso_direction = (obj_material_aniso_direction)
-                                aniso_direction->read_uint32_t();
+                            if (aniso_direction) {
+                                mat.shader_info.m.aniso_direction
+                                    = (MaterialAttributeAnisoDirection)aniso_direction->read_uint32_t();
+                            }
 
                             msgpack* dummy = shader_info->read("dummy");
                             if (dummy)
@@ -479,10 +447,10 @@ void object_material_msgpack_read(const char* path, const char* set_name,
 
                                 msgpack* shader_info = tex->read("shader_info");
                                 if (shader_info) {
-                                    l.shader_info.m.tex_type = (obj_material_texture_type)
+                                    l.shader_info.m.tex_type = (TextureAttributeTextureType)
                                         shader_info->read_uint32_t("tex_type");
                                     l.shader_info.m.uv_idx = shader_info->read_uint32_t("uv_idx");
-                                    l.shader_info.m.texcoord_trans = (obj_material_texture_coordinate_translation_type)
+                                    l.shader_info.m.texcoord_trans = (TextureAttributeTextureCoordTransType)
                                         shader_info->read_uint32_t("texcoord_trans");
                                     l.shader_info.m.dummy = shader_info->read_uint32_t("dummy");
                                 }
@@ -577,12 +545,12 @@ void object_material_msgpack_read(const char* path, const char* set_name,
 
                             msgpack* src_blend_factor = attrib->read("src_blend_factor");
                             if (src_blend_factor)
-                                mat.attrib.m.src_blend_factor = (obj_material_blend_factor)
+                                mat.attrib.m.src_blend_factor = (MaterialAttributeBlendFactor)
                                 src_blend_factor->read_uint32_t();
 
                             msgpack* dst_blend_factor = attrib->read("dst_blend_factor");
                             if (dst_blend_factor)
-                                mat.attrib.m.dst_blend_factor = (obj_material_blend_factor)
+                                mat.attrib.m.dst_blend_factor = (MaterialAttributeBlendFactor)
                                 dst_blend_factor->read_uint32_t();
 
                             msgpack* blend_operation = attrib->read("blend_operation");

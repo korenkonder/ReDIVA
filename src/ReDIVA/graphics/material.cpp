@@ -639,7 +639,7 @@ void MaterialDw::AnisoDirectionCallback(dw::ListBox* data) {
     obj_material_data* material_data = material_dw->GetMaterial();
     if (material_data)
         material_data->material.shader_info.m.aniso_direction
-        = (obj_material_aniso_direction)data->list->selected_item;
+        = (MaterialAttributeAnisoDirection)data->list->selected_item;
 }
 
 void MaterialDw::AnisoFilterCallback(dw::Slider* data) {
@@ -710,7 +710,7 @@ void MaterialDw::DstBlendFactorCallback(dw::ListBox* data) {
     obj_material_data* material_data = material_dw->GetMaterial();
     if (material_data)
         material_data->material.attrib.m.dst_blend_factor
-            = (obj_material_blend_factor)data->list->selected_item;
+            = (MaterialAttributeBlendFactor)data->list->selected_item;
 }
 
 void MaterialDw::EmissionACallback(dw::Slider* data) {
@@ -745,7 +745,7 @@ void MaterialDw::FresnelCallback(dw::Slider* data) {
     MaterialDw* material_dw = (MaterialDw*)data->callback_data.v64;
     obj_material_data* material_data = material_dw->GetMaterial();
     if (material_data)
-        material_data->material.shader_info.m.fresnel_type = (int32_t)data->GetValue();
+        material_data->material.shader_info.m.fresnel_type = (MaterialAttributeFresnelType)data->GetValue();
 }
 
 void MaterialDw::IntensityCallback(dw::Slider* data) {
@@ -759,7 +759,7 @@ void MaterialDw::LineLightCallback(dw::Slider* data) {
     MaterialDw* material_dw = (MaterialDw*)data->callback_data.v64;
     obj_material_data* material_data = material_dw->GetMaterial();
     if (material_data)
-        material_data->material.shader_info.m.line_light = (int32_t)data->GetValue();
+        material_data->material.shader_info.m.line_light = (MaterialAttributeLineLightType)data->GetValue();
 }
 
 void MaterialDw::MipmapBiasCallback(dw::Slider* data) {
@@ -853,12 +853,14 @@ void MaterialDw::ResetCallback(dw::Widget* data) {
     material.color.shininess = material_dw->shininess->GetValue();
     material.color.intensity = material_dw->intensity->GetValue();
     material.bump_depth = material_dw->bump_depth->GetValue();
-    material.shader_info.m.fresnel_type = (int32_t)material_dw->fresnel->GetValue();
-    material.shader_info.m.line_light = (int32_t)material_dw->line_light->GetValue();
+    material.shader_info.m.fresnel_type
+        = (MaterialAttributeFresnelType)material_dw->fresnel->GetValue();
+    material.shader_info.m.line_light
+        = (MaterialAttributeLineLightType)material_dw->line_light->GetValue();
     material.shader_info.m.specular_quality
-        = (obj_material_specular_quality)material_dw->specular_quality->list->selected_item;
+        = (MaterialAttributeSpecularQuality)material_dw->specular_quality->list->selected_item;
     material.shader_info.m.aniso_direction
-        = (obj_material_aniso_direction)material_dw->aniso_direction->list->selected_item;
+        = (MaterialAttributeAnisoDirection)material_dw->aniso_direction->list->selected_item;
     switch (material_dw->double_sided->list->selected_item) {
     case 0:
         material.attrib.m.double_sided = 0;
@@ -868,9 +870,9 @@ void MaterialDw::ResetCallback(dw::Widget* data) {
         break;
     }
     material.attrib.m.src_blend_factor
-        = (obj_material_blend_factor)material_dw->src_blend_factor->list->selected_item;
+        = (MaterialAttributeBlendFactor)material_dw->src_blend_factor->list->selected_item;
     material.attrib.m.dst_blend_factor
-        = (obj_material_blend_factor)material_dw->dst_blend_factor->list->selected_item;
+        = (MaterialAttributeBlendFactor)material_dw->dst_blend_factor->list->selected_item;
     material.attrib.m.zbias = (int32_t)material_dw->zbias->GetValue();
     material.texdata[0].attrib.m.mipmap_bias = (int32_t)material_dw->mipmap_bias->GetValue();
     material.texdata[0].attrib.m.aniso = (int32_t)material_dw->aniso_filter->GetValue();
@@ -902,7 +904,7 @@ void MaterialDw::SpecularQualityCallback(dw::ListBox* data) {
     obj_material_data* material_data = material_dw->GetMaterial();
     if (material_data)
         material_data->material.shader_info.m.specular_quality
-            = (obj_material_specular_quality)data->list->selected_item;
+            = (MaterialAttributeSpecularQuality)data->list->selected_item;
 }
 
 void MaterialDw::SpecularRCallback(dw::Slider* data) {
@@ -917,7 +919,7 @@ void MaterialDw::SrcBlendFactorCallback(dw::ListBox* data) {
     obj_material_data* material_data = material_dw->GetMaterial();
     if (material_data)
         material_data->material.attrib.m.src_blend_factor
-            = (obj_material_blend_factor)data->list->selected_item;
+            = (MaterialAttributeBlendFactor)data->list->selected_item;
 }
 
 void MaterialDw::TransparencyCallback(dw::Slider* data) {

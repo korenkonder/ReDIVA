@@ -9,8 +9,16 @@
 #include "../static_var.hpp"
 #include "../texture.hpp"
 
+enum MaterialLightingType {
+    MAT_SHADER_LIGHTING_LAMBERT = 0,
+    MAT_SHADER_LIGHTING_CONSTANT,
+    MAT_SHADER_LIGHTING_PHONG,
+};
+
+static MaterialLightingType get_lighting_type(const obj_material_shader_attrib* attrib);
+
 static bool draw_object_blend_set(render_data_context& rend_data_ctx,
-    const mdl::ObjSubMeshArgs* args, obj_material_shader_lighting_type lighting_type);
+    const mdl::ObjSubMeshArgs* args, MaterialLightingType lighting_type);
 static bool draw_object_blend_set_check_use_default_blend(int32_t index);
 static void draw_object_chara_color_fog_set(render_data_context& rend_data_ctx,
     const mdl::ObjSubMeshArgs* args, bool disable_fog);
@@ -20,7 +28,7 @@ static void draw_object_material_reset_default(
 static void draw_object_material_set_cheap(
     render_data_context& rend_data_ctx, const mdl::ObjSubMeshArgs* args);
 static void draw_object_material_set_default(render_data_context& rend_data_ctx,
-    const mdl::ObjSubMeshArgs* args, bool use_shader);
+    const mdl::ObjSubMeshArgs* args, bool shader_sw);
 static void draw_object_material_set_parameter(
     render_data_context& rend_data_ctx, const obj_material_data* mat_data);
 static void draw_object_material_set_uniform(render_data_context& rend_data_ctx,
@@ -33,6 +41,10 @@ static void draw_object_vertex_attrib_set_default(
     render_data_context& rend_data_ctx, const mdl::ObjSubMeshArgs* args);
 static void draw_object_vertex_attrib_set_cheap(
     render_data_context& rend_data_ctx, const mdl::ObjSubMeshArgs* args);
+
+static int32_t get_tex_unit(TextureAttributeTextureType tex_type, int32_t tex_unit);
+int32_t get_texcoord(TextureAttributeTextureType tex_type, int32_t index);
+static int32_t get_uniform_blend(const obj_texture_attrib* attrib);
 
 extern render_context* rctx_ptr;
 
@@ -166,8 +178,7 @@ namespace mdl {
         const ObjSubMeshArgs* args, const cam_data& cam, const mat4* mat) {
         const obj_material_data* material = args->material;
         draw_object_vertex_attrib_set_cheap(rend_data_ctx, args);
-        obj_material_shader_lighting_type lighting_type
-            = material->material.shader_info.get_lighting_type();
+        MaterialLightingType lighting_type = get_lighting_type(&material->material.shader_info);
         bool disable_fog = draw_object_blend_set(rend_data_ctx, args, lighting_type);
         draw_object_chara_color_fog_set(rend_data_ctx, args, disable_fog);
         draw_object_material_set_cheap(rend_data_ctx, args);
@@ -299,7 +310,7 @@ namespace mdl {
             uint32_t texture_id = -1;
             if (!material->material.shader_compo.m.transparency) {
                 for (int32_t i = 0; i < 8; i++, texdata++)
-                    if (texdata->shader_info.m.tex_type == OBJ_MATERIAL_TEXTURE_COLOR) {
+                    if (texdata->shader_info.m.tex_type == TEX_SHDATTR_TEXTURE_COLOR) {
                         texture_id = texdata->tex_index;
                         break;
                     }
@@ -307,7 +318,7 @@ namespace mdl {
             }
             else {
                 for (int32_t i = 0; i < 8; i++, texdata++)
-                    if (texdata->shader_info.m.tex_type == OBJ_MATERIAL_TEXTURE_TRANSPARENCY) {
+                    if (texdata->shader_info.m.tex_type == TEX_SHDATTR_TEXTURE_TRNSP_MAP) {
                         if (texdata->attrib.m.ignore) {
                             texture_id = texdata->tex_index;
                         }
@@ -408,7 +419,7 @@ namespace mdl {
         switch (material->material.shader.index) {
         case SHADER_FT_CLOTH:
             if (!rctx_ptr->render_manager->npr_param && material->material.color.ambient.w < 1.0f
-                && material->material.shader_info.m.aniso_direction == OBJ_MATERIAL_ANISO_DIRECTION_NORMAL)
+                && material->material.shader_info.m.aniso_direction == MAT_SHDATTR_ANISO_DIRECTION_NORMAL)
                 chara = true;
             break;
         case SHADER_FT_TIGHTS:
@@ -470,7 +481,7 @@ inline void model_mat_face_camera_view(const cam_data& cam, const mat4* src, mat
 }
 
 static bool draw_object_blend_set(render_data_context& rend_data_ctx,
-    const mdl::ObjSubMeshArgs* args, obj_material_shader_lighting_type lighting_type) {
+    const mdl::ObjSubMeshArgs* args, MaterialLightingType lighting_type) {
     static const GLenum blend_factor_table[] = {
         GL_ZERO,
         GL_ONE,
@@ -508,9 +519,9 @@ static bool draw_object_blend_set(render_data_context& rend_data_ctx,
             if (shader_index == -1) {
                 shader_index = material->material.shader.index;
                 if (shader_index == SHADER_FT_BLINN) {
-                    if (lighting_type == OBJ_MATERIAL_SHADER_LIGHTING_CONSTANT)
+                    if (lighting_type == MAT_SHADER_LIGHTING_CONSTANT)
                         shader_index = SHADER_FT_CONSTANT;
-                    if (lighting_type == OBJ_MATERIAL_SHADER_LIGHTING_LAMBERT)
+                    if (lighting_type == MAT_SHADER_LIGHTING_LAMBERT)
                         shader_index = SHADER_FT_LAMBERT;
                 }
             }
@@ -653,11 +664,10 @@ static void draw_object_material_set_cheap(
 }
 
 static void draw_object_material_set_default(render_data_context& rend_data_ctx,
-    const mdl::ObjSubMeshArgs* args, bool use_shader) {
+    const mdl::ObjSubMeshArgs* args, bool shader_sw) {
     const std::vector<GLuint>* textures = args->textures;
     const obj_material_data* material = args->material;
-    obj_material_shader_lighting_type lighting_type =
-        material->material.shader_info.get_lighting_type();
+    MaterialLightingType lighting_type = get_lighting_type(&material->material.shader_info);
     bool disable_fog = draw_object_blend_set(rend_data_ctx, args, lighting_type);
     draw_object_material_set_uniform(rend_data_ctx, material, false);
     if (!rctx_ptr->draw_state->rend_data[rend_data_ctx.index].shadow)
@@ -694,38 +704,38 @@ static void draw_object_material_set_default(render_data_context& rend_data_ctx,
         if (tex_id == -1)
             continue;
 
-        int32_t tex_index = obj_material_texture_type_get_texture_index(texdata->shader_info.m.tex_type, j);
-        if (tex_index < 0)
+        int32_t tex_unit = get_tex_unit(texdata->shader_info.m.tex_type, j);
+        if (tex_unit < 0)
             continue;
 
-        obj_material_texture_type tex_type = texdata->shader_info.m.tex_type;
-        if (tex_type == OBJ_MATERIAL_TEXTURE_COLOR)
+        TextureAttributeTextureType tex_type = texdata->shader_info.m.tex_type;
+        if (tex_type == TEX_SHDATTR_TEXTURE_COLOR)
             j++;
 
         if (texdata->attrib.m.ignore) {
             switch (tex_type) {
-            case OBJ_MATERIAL_TEXTURE_NORMAL:
+            case TEX_SHDATTR_TEXTURE_NORMAL_MAP:
                 rend_data_ctx.shader_flags.arr[U_NORMAL] = 0;
                 break;
-            case OBJ_MATERIAL_TEXTURE_SPECULAR:
+            case TEX_SHDATTR_TEXTURE_SPECULAR_MAP:
                 rend_data_ctx.shader_flags.arr[U_SPECULAR] = 0;
                 break;
-            case OBJ_MATERIAL_TEXTURE_TRANSLUCENCY:
+            case TEX_SHDATTR_TEXTURE_TRNSL_MAP:
                 rend_data_ctx.shader_flags.arr[U_TRANSLUCENCY] = 0;
                 break;
-            case OBJ_MATERIAL_TEXTURE_TRANSPARENCY:
+            case TEX_SHDATTR_TEXTURE_TRNSP_MAP:
                 rend_data_ctx.shader_flags.arr[U_TRANSPARENCY] = 0;
                 break;
             }
             continue;
         }
 
-        if (tex_type == OBJ_MATERIAL_TEXTURE_ENVIRONMENT_CUBE) {
-            rend_data_ctx.state.active_bind_texture_cube_map(tex_index, tex_id);
-            rend_data_ctx.state.bind_sampler(tex_index, 0);
+        if (tex_type == TEX_SHDATTR_TEXTURE_ENV_CUBE) {
+            rend_data_ctx.state.active_bind_texture_cube_map(tex_unit, tex_id);
+            rend_data_ctx.state.bind_sampler(tex_unit, 0);
         }
         else {
-            rend_data_ctx.state.active_bind_texture_2d(tex_index, tex_id);
+            rend_data_ctx.state.active_bind_texture_2d(tex_unit, tex_id);
 
             int32_t wrap_s;
             if (texdata->attrib.m.mirror_u)
@@ -744,13 +754,13 @@ static void draw_object_material_set_default(render_data_context& rend_data_ctx,
                 wrap_t = 0;
 
             texture* tex = texture_manager_get_texture(texture_id);
-            rend_data_ctx.state.bind_sampler(tex_index, rctx_ptr->samplers[(wrap_t * 3 + wrap_s) * 2
+            rend_data_ctx.state.bind_sampler(tex_unit, rctx_ptr->samplers[(wrap_t * 3 + wrap_s) * 2
                 + (!tex || tex->max_mipmap_level > 0 ? 1 : 0)]);
         }
 
         if (material->material.shader.index == SHADER_FT_SKY) {
             uniform_name uni_type = U_TEX_0_TYPE;
-            if (tex_index == 1)
+            if (tex_unit == 1)
                 uni_type = U_TEX_1_TYPE;
 
             texture* tex = texture_manager_get_texture(texdata->tex_index);
@@ -764,8 +774,8 @@ static void draw_object_material_set_default(render_data_context& rend_data_ctx,
                 rend_data_ctx.shader_flags.arr[uni_type] = 1;
         }
 
-        if (tex_index >= 0 && tex_index <= 1)
-            rend_data_ctx.shader_flags.arr[U_TEXTURE_BLEND] = texdata->attrib.get_blend();
+        if (tex_unit >= 0 && tex_unit < 2)
+            rend_data_ctx.shader_flags.arr[U_TEXTURE_BLEND] = get_uniform_blend(&texdata->attrib);
     }
 
     if (material->material.attrib.m.double_sided) {
@@ -786,7 +796,7 @@ static void draw_object_material_set_default(render_data_context& rend_data_ctx,
     vec4 specular = { 0.0f, 0.0f, 0.0f, 1.0f };
 
     float_t line_light;
-    if (lighting_type == OBJ_MATERIAL_SHADER_LIGHTING_PHONG) {
+    if (lighting_type == MAT_SHADER_LIGHTING_PHONG) {
         specular = material->material.color.specular;
 
         float_t luma = vec3::dot(*(vec3*)&specular, { 0.30f, 0.59f, 0.11f });
@@ -810,7 +820,7 @@ static void draw_object_material_set_default(render_data_context& rend_data_ctx,
     vec4 texture_color_offset;
     vec4 texture_specular_coefficients;
     vec4 texture_specular_offset;
-    if (lighting_type != OBJ_MATERIAL_SHADER_LIGHTING_CONSTANT) {
+    if (lighting_type != MAT_SHADER_LIGHTING_CONSTANT) {
         if (material->material.shader.index == SHADER_FT_GLASEYE)
             material_shininess = 10.0f;
         else {
@@ -853,16 +863,16 @@ static void draw_object_material_set_default(render_data_context& rend_data_ctx,
         specular, fresnel_coefficients, texture_color_coefficients, texture_color_offset,
         texture_specular_coefficients, texture_specular_offset, shininess);
 
-    if (!use_shader)
+    if (!shader_sw)
         rend_data_ctx.set_shader(SHADER_FT_SIMPLE);
     else if (rctx_ptr->draw_state->rend_data[rend_data_ctx.index].shader_index != -1)
         rend_data_ctx.set_shader(rctx_ptr->draw_state->rend_data[rend_data_ctx.index].shader_index);
     else if (material->material.shader.index != -1) {
         if (material->material.shader.index != SHADER_FT_BLINN)
             rend_data_ctx.set_shader(material->material.shader.index);
-        else if (lighting_type == OBJ_MATERIAL_SHADER_LIGHTING_LAMBERT)
+        else if (lighting_type == MAT_SHADER_LIGHTING_LAMBERT)
             rend_data_ctx.set_shader(SHADER_FT_LAMBERT);
-        else if (lighting_type == OBJ_MATERIAL_SHADER_LIGHTING_PHONG)
+        else if (lighting_type == MAT_SHADER_LIGHTING_PHONG)
             rend_data_ctx.set_shader(SHADER_FT_BLINN);
         else
             rend_data_ctx.set_shader(SHADER_FT_CONSTANT);
@@ -953,7 +963,7 @@ static void draw_object_material_set_uniform(render_data_context& rend_data_ctx,
     if (shader_compo.env_cube)
         rend_data_ctx.shader_flags.arr[U_ENV_MAP] = 1;
 
-    if (shader_info.aniso_direction != OBJ_MATERIAL_ANISO_DIRECTION_NORMAL)
+    if (shader_info.aniso_direction != MAT_SHDATTR_ANISO_DIRECTION_NORMAL)
         rend_data_ctx.shader_flags.arr[U_ANISO] = shader_info.aniso_direction;
 
     if (v4 == 1)
@@ -1010,7 +1020,7 @@ static void draw_object_vertex_attrib_set_cheap(
         uint32_t tex_index = material->material.texdata[0].tex_index;
 
         mats[0] = material->material.texdata[0].tex_coord_mat;
-        if (material->material.texdata[0].shader_info.m.tex_type == OBJ_MATERIAL_TEXTURE_COLOR)
+        if (material->material.texdata[0].shader_info.m.tex_type == TEX_SHDATTR_TEXTURE_COLOR)
             for (int32_t j = 0; j < args->texture_transform_count; j++)
                 if (args->texture_transform_array[j].texid == tex_index) {
                     mats[0] = args->texture_transform_array[j].mat;
@@ -1056,12 +1066,11 @@ static void draw_object_vertex_attrib_set_default(
         if (texdata->tex_index == -1)
             continue;
 
-        int32_t texcoord_index = obj_material_texture_type_get_texcoord_index(
-            texdata->shader_info.m.tex_type, j);
+        int32_t texcoord_index = get_texcoord(texdata->shader_info.m.tex_type, j);
         if (texcoord_index < 0)
             continue;
 
-        if (texdata->shader_info.m.tex_type == OBJ_MATERIAL_TEXTURE_COLOR)
+        if (texdata->shader_info.m.tex_type == TEX_SHDATTR_TEXTURE_COLOR)
             j++;
 
         l++;
@@ -1072,7 +1081,7 @@ static void draw_object_vertex_attrib_set_default(
         uint32_t texture_id = texdata->tex_index;
 
         mats[texcoord_index] = texdata->tex_coord_mat;
-        if (texdata->shader_info.m.tex_type == OBJ_MATERIAL_TEXTURE_COLOR)
+        if (texdata->shader_info.m.tex_type == TEX_SHDATTR_TEXTURE_COLOR)
             for (int32_t k = 0; k < args->texture_transform_count; k++)
                 if (args->texture_transform_array[k].texid == texture_id) {
                     mats[texcoord_index] = args->texture_transform_array[k].mat;
@@ -1107,4 +1116,67 @@ static void draw_object_vertex_attrib_set_default(
         rend_data_ctx.shader_flags.arr[U_INSTANCE] = 1;
     else
         rend_data_ctx.shader_flags.arr[U_INSTANCE] = 0;*/
+}
+
+// 0x140440E00
+static MaterialLightingType get_lighting_type(const obj_material_shader_attrib* attrib) {
+    if (!attrib->m.is_lgt_diffuse && !attrib->m.is_lgt_specular)
+        return MAT_SHADER_LIGHTING_CONSTANT;
+    else if (!attrib->m.is_lgt_specular)
+        return MAT_SHADER_LIGHTING_LAMBERT;
+    else
+        return MAT_SHADER_LIGHTING_PHONG;
+}
+
+// 0x140440E40
+static int32_t get_tex_unit(TextureAttributeTextureType tex_type, int32_t tex_unit) {
+    switch (tex_type) {
+    case TEX_SHDATTR_TEXTURE_COLOR:
+    case TEX_SHDATTR_TEXTURE_ENV_SPHERE: // XHD
+        if (tex_unit < 2)
+            return tex_unit;
+    case TEX_SHDATTR_TEXTURE_NORMAL_MAP:
+        return 2;
+    case TEX_SHDATTR_TEXTURE_SPECULAR_MAP:
+        return 3;
+    case TEX_SHDATTR_TEXTURE_TRNSL_MAP:
+        return 1;
+    case TEX_SHDATTR_TEXTURE_TRNSP_MAP:
+        return 4;
+    //case TEX_SHDATTR_TEXTURE_ENV_SPHERE: // AFT
+    case TEX_SHDATTR_TEXTURE_ENV_CUBE:
+        return 5;
+    }
+    return -1;
+}
+
+// 0x140440EB0
+int32_t get_texcoord(TextureAttributeTextureType tex_type, int32_t index) {
+    switch (tex_type) {
+    case TEX_SHDATTR_TEXTURE_COLOR:
+    case TEX_SHDATTR_TEXTURE_ENV_SPHERE: // XHD
+        if (index < 2)
+            return index;
+    case TEX_SHDATTR_TEXTURE_NORMAL_MAP:
+    case TEX_SHDATTR_TEXTURE_SPECULAR_MAP:
+        return 0;
+    case TEX_SHDATTR_TEXTURE_TRNSL_MAP:
+    case TEX_SHDATTR_TEXTURE_TRNSP_MAP:
+        return 1;
+    }
+    return -1;
+}
+
+// 0x140440EE0
+static int32_t get_uniform_blend(const obj_texture_attrib* attrib) {
+    switch (attrib->m.blend) {
+    case 4:
+        return 2;
+    case 6:
+        return 1;
+    case 16:
+        return 3;
+    default:
+        return 0;
+    }
 }

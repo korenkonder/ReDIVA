@@ -38,6 +38,8 @@ static const GLuint      BONE_INDEX_INDEX = 15;
 
 static void sub_140436760(const cam_data& cam);
 
+extern int32_t get_texcoord(TextureAttributeTextureType tex_type, int32_t index);
+
 RobSkinCol::RobSkinCol() : type() {
 
 }
@@ -1092,14 +1094,13 @@ namespace mdl {
             if (i.tex_index == -1)
                 continue;
 
-            int32_t texcoord_index = obj_material_texture_type_get_texcoord_index(
-                i.shader_info.m.tex_type, color_tex_index);
+            int32_t texcoord_index = get_texcoord(i.shader_info.m.tex_type, color_tex_index);
             if (texcoord_index < 0)
                 continue;
 
             texcoord_array[texcoord_index] = sub_mesh->uv_index[&i - material->material.texdata];
 
-            if (i.shader_info.m.tex_type == OBJ_MATERIAL_TEXTURE_COLOR)
+            if (i.shader_info.m.tex_type == TEX_SHDATTR_TEXTURE_COLOR)
                 color_tex_index++;
         }
 
@@ -3047,14 +3048,13 @@ namespace mdl {
             if (i.tex_index == -1)
                 continue;
 
-            int32_t texcoord_index = obj_material_texture_type_get_texcoord_index(
-                i.shader_info.m.tex_type, color_tex_index);
+            int32_t texcoord_index = get_texcoord(i.shader_info.m.tex_type, color_tex_index);
             if (texcoord_index < 0)
                 continue;
 
             texcoord_array[texcoord_index] = sub_mesh->uv_index[&i - material->material.texdata];
 
-            if (i.shader_info.m.tex_type == OBJ_MATERIAL_TEXTURE_COLOR)
+            if (i.shader_info.m.tex_type == TEX_SHDATTR_TEXTURE_COLOR)
                 color_tex_index++;
         }
 
@@ -3783,8 +3783,8 @@ static void sub_140436760(const cam_data& cam) {
             continue;
         }
 
-        if (i->args.sub_mesh.material->material.attrib.m.src_blend_factor == OBJ_MATERIAL_BLEND_ZERO
-            && i->args.sub_mesh.material->material.attrib.m.dst_blend_factor == OBJ_MATERIAL_BLEND_ONE
+        if (i->args.sub_mesh.material->material.attrib.m.src_blend_factor == MAT_ATTR_BLEND_ZERO
+            && i->args.sub_mesh.material->material.attrib.m.dst_blend_factor == MAT_ATTR_BLEND_ONE
             && aabb->size.y > 2.0f && aabb->size.y < 2.5f) {
             if (strcmp(mesh->name, "STGD2NS064_EFF_DISPLAY_MZ_000") && strcmp(mesh->name, "STGD2NS064_EFF_RAY_B_MZ_000"))
                 continue;

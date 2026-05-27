@@ -329,28 +329,6 @@ obj_bounding_sphere::obj_bounding_sphere(vec3 center, float_t radius) {
     this->radius = radius;
 }
 
-obj_material_shader_lighting_type obj_material_shader_attrib::get_lighting_type() const {
-    if (!m.is_lgt_diffuse && !m.is_lgt_specular)
-        return OBJ_MATERIAL_SHADER_LIGHTING_CONSTANT;
-    else if (!m.is_lgt_specular)
-        return OBJ_MATERIAL_SHADER_LIGHTING_LAMBERT;
-    else
-        return OBJ_MATERIAL_SHADER_LIGHTING_PHONG;
-}
-
-int32_t obj_texture_attrib::get_blend() const {
-    switch (m.blend) {
-    case 4:
-        return 2;
-    case 6:
-        return 1;
-    case 16:
-        return 3;
-    default:
-        return 0;
-    }
-}
-
 obj_material_texture_data::obj_material_texture_data() : attrib(),
 tex_index(), shader_info(), ex_shader(), weight(), reserved() {
 

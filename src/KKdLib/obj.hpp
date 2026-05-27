@@ -11,80 +11,134 @@
 #include "mat.hpp"
 #include "vec.hpp"
 
+enum MaterialAttributeAnisoDirection : uint32_t {
+    MAT_SHDATTR_ANISO_DIRECTION_DEFAULT = 0,
+
+    MAT_SHDATTR_ANISO_DIRECTION_NORMAL = 0,
+    MAT_SHDATTR_ANISO_DIRECTION_U,
+    MAT_SHDATTR_ANISO_DIRECTION_V,
+    MAT_SHDATTR_ANISO_DIRECTION_RADIAL,
+    MAT_SHDATTR_ANISO_DIRECTION_MAX,
+};
+
+enum MaterialAttributeBlendFactor : uint32_t {
+    MAT_ATTR_BLEND_DEFAULT = 0,
+
+    MAT_ATTR_BLEND_ZERO = 0,
+    MAT_ATTR_BLEND_ONE,
+    MAT_ATTR_BLEND_SRC_COLOR,
+    MAT_ATTR_BLEND_INVERSE_SRC_COLOR,
+    MAT_ATTR_BLEND_SRC_ALPHA,
+    MAT_ATTR_BLEND_INVERSE_SRC_ALPHA,
+    MAT_ATTR_BLEND_DST_ALPHA,
+    MAT_ATTR_BLEND_INVERSE_DST_ALPHA,
+    MAT_ATTR_BLEND_DST_COLOR,
+    MAT_ATTR_BLEND_INVERSE_DST_COLOR,
+    MAT_ATTR_BLEND_ALPHA_SATURATE,
+    MAT_ATTR_BLEND_MAX,
+};
+
+enum MaterialAttributeBumpMapType : uint32_t {
+    MAT_SHDATTR_BUMP_DEFAULT = 0,
+
+    MAT_SHDATTR_BUMP_NONE = 0,
+    MAT_SHDATTR_BUMP_DOT,
+    MAT_SHDATTR_BUMP_ENV,
+    MAT_SHDATTR_BUMP_MAX,
+};
+
+enum MaterialAttributeColorSourceType : uint32_t {
+    MAT_SHDATTR_COL_SRC_DEFAULT = 0,
+
+    MAT_SHDATTR_COL_SRC_MATCOL = 0,
+    MAT_SHDATTR_COL_SRC_VTXCOL,
+    MAT_SHDATTR_COL_SRC_VTXMORPH,
+    MAT_SHDATTR_COL_SRC_MAX,
+};
+
+enum MaterialAttributeFresnelType : uint32_t {
+    MAT_SHDATTR_FRESNEL_DEFAULT = 0,
+
+    MAT_SHDATTR_FRESNEL_NONE = 0,
+    MAT_SHDATTR_FRESNEL_TYPE1,
+    MAT_SHDATTR_FRESNEL_TYPE2,
+    MAT_SHDATTR_FRESNEL_TYPE3,
+    MAT_SHDATTR_FRESNEL_TYPE4,
+    MAT_SHDATTR_FRESNEL_TYPE5,
+    MAT_SHDATTR_FRESNEL_TYPE6,
+    MAT_SHDATTR_FRESNEL_TYPE7,
+    MAT_SHDATTR_FRESNEL_TYPE8,
+    MAT_SHDATTR_FRESNEL_TYPE9,
+    MAT_SHDATTR_FRESNEL_TYPE10,
+    MAT_SHDATTR_FRESNEL_TYPE11,
+    MAT_SHDATTR_FRESNEL_TYPE12,
+    MAT_SHDATTR_FRESNEL_TYPE13,
+    MAT_SHDATTR_FRESNEL_TYPE14,
+    MAT_SHDATTR_FRESNEL_TYPE15,
+    MAT_SHDATTR_FRESNEL_MAX,
+};
+
+enum MaterialAttributeLineLightType : uint32_t {
+    MAT_SHDATTR_LINELIGHT_DEFAULT = 0,
+
+    MAT_SHDATTR_LINELIGHT_NONE = 0,
+    MAT_SHDATTR_LINELIGHT_TYPE1,
+    MAT_SHDATTR_LINELIGHT_TYPE2,
+    MAT_SHDATTR_LINELIGHT_TYPE3,
+    MAT_SHDATTR_LINELIGHT_TYPE4,
+    MAT_SHDATTR_LINELIGHT_TYPE5,
+    MAT_SHDATTR_LINELIGHT_TYPE6,
+    MAT_SHDATTR_LINELIGHT_TYPE7,
+    MAT_SHDATTR_LINELIGHT_TYPE8,
+    MAT_SHDATTR_LINELIGHT_TYPE9,
+    MAT_SHDATTR_LINELIGHT_MAX,
+};
+
+enum MaterialAttributeSpecularQuality : uint32_t {
+    MAT_SHDATTR_SPECULAR_QUALITY_DEFAULT = 0,
+
+    MAT_SHDATTR_SPECULAR_QUALITY_LOW = 0,
+    MAT_SHDATTR_SPECULAR_QUALITY_HIGH,
+    MAT_SHDATTR_SPECULAR_QUALITY_MAX,
+};
+
+enum TextureAttributeTextureCoordTransType : uint32_t {
+    TEX_SHDATTR_TEXCOORD_TRANS_DEFAULT = 0,
+
+    TEX_SHDATTR_TEXCOORD_TRANS_NONE = 0,
+    TEX_SHDATTR_TEXCOORD_TRANS_UV,
+    TEX_SHDATTR_TEXCOORD_TRANS_ENV_SPHERE,
+    TEX_SHDATTR_TEXCOORD_TRANS_ENV_CUBE,
+    TEX_SHDATTR_TEXCOORD_TRANS_MAX,
+};
+
+enum TextureAttributeTextureType : uint32_t {
+    TEX_SHDATTR_TEXTURE_DEFAULT = 0,
+
+    TEX_SHDATTR_TEXTURE_NONE = 0,
+    TEX_SHDATTR_TEXTURE_COLOR,
+    TEX_SHDATTR_TEXTURE_NORMAL_MAP,
+    TEX_SHDATTR_TEXTURE_SPECULAR_MAP,
+    TEX_SHDATTR_TEXTURE_HEIGHT_MAP,
+    TEX_SHDATTR_TEXTURE_REFLECT_MAP,
+    TEX_SHDATTR_TEXTURE_TRNSL_MAP,
+    TEX_SHDATTR_TEXTURE_TRNSP_MAP,
+    TEX_SHDATTR_TEXTURE_ENV_SPHERE,
+    TEX_SHDATTR_TEXTURE_ENV_CUBE,
+    TEX_SHDATTR_TEXTURE_TRANS_MAX,
+};
+
+enum MaterialAttributeVertexTransType : uint32_t {
+    MAT_SHDATTR_VERTEX_TRANS_DEFAULT = 0,
+    MAT_SHDATTR_VERTEX_TRANS_ENVELOPE,
+    MAT_SHDATTR_VERTEX_TRANS_MORPHING,
+    MAT_SHDATTR_VERTEX_TRANS_MAX,
+};
+
 enum obj_index_format : uint32_t {
     OBJ_INDEX_U8  = 0x00,
     OBJ_INDEX_U16 = 0x01,
     OBJ_INDEX_U32 = 0x02,
-};
-
-enum obj_material_aniso_direction : uint32_t {
-    OBJ_MATERIAL_ANISO_DIRECTION_NORMAL = 0,
-    OBJ_MATERIAL_ANISO_DIRECTION_U      = 1,
-    OBJ_MATERIAL_ANISO_DIRECTION_V      = 2,
-    OBJ_MATERIAL_ANISO_DIRECTION_RADIAL = 3,
-};
-
-enum obj_material_blend_factor : uint32_t {
-    OBJ_MATERIAL_BLEND_ZERO              = 0,
-    OBJ_MATERIAL_BLEND_ONE               = 1,
-    OBJ_MATERIAL_BLEND_SRC_COLOR         = 2,
-    OBJ_MATERIAL_BLEND_INVERSE_SRC_COLOR = 3,
-    OBJ_MATERIAL_BLEND_SRC_ALPHA         = 4,
-    OBJ_MATERIAL_BLEND_INVERSE_SRC_ALPHA = 5,
-    OBJ_MATERIAL_BLEND_DST_ALPHA         = 6,
-    OBJ_MATERIAL_BLEND_INVERSE_DST_ALPHA = 7,
-    OBJ_MATERIAL_BLEND_DST_COLOR         = 8,
-    OBJ_MATERIAL_BLEND_INVERSE_DST_COLOR = 9,
-    OBJ_MATERIAL_BLEND_ALPHA_SATURATE = 10,
-};
-
-enum obj_material_bump_map_type : uint32_t {
-    OBJ_MATERIAL_BUMP_MAP_NONE = 0,
-    OBJ_MATERIAL_BUMP_MAP_DOT  = 1,
-    OBJ_MATERIAL_BUMP_MAP_ENV  = 2,
-};
-
-enum obj_material_color_source_type : uint32_t {
-    OBJ_MATERIAL_COLOR_SOURCE_MATERIAL_COLOR = 0,
-    OBJ_MATERIAL_COLOR_SOURCE_VERTEX_COLOR   = 1,
-    OBJ_MATERIAL_COLOR_SOURCE_VERTEX_MORPH   = 2,
-};
-
-enum obj_material_shader_lighting_type : uint32_t {
-    OBJ_MATERIAL_SHADER_LIGHTING_LAMBERT  = 0x00,
-    OBJ_MATERIAL_SHADER_LIGHTING_CONSTANT = 0x01,
-    OBJ_MATERIAL_SHADER_LIGHTING_PHONG    = 0x02,
-};
-
-enum obj_material_specular_quality : uint32_t {
-    OBJ_MATERIAL_SPECULAR_QUALITY_LOW  = 0,
-    OBJ_MATERIAL_SPECULAR_QUALITY_HIGH = 1,
-};
-
-enum obj_material_texture_type : uint32_t {
-    OBJ_MATERIAL_TEXTURE_NONE               = 0x00,
-    OBJ_MATERIAL_TEXTURE_COLOR              = 0x01,
-    OBJ_MATERIAL_TEXTURE_NORMAL             = 0x02,
-    OBJ_MATERIAL_TEXTURE_SPECULAR           = 0x03,
-    OBJ_MATERIAL_TEXTURE_HEIGHT             = 0x04,
-    OBJ_MATERIAL_TEXTURE_REFLECTION         = 0x05,
-    OBJ_MATERIAL_TEXTURE_TRANSLUCENCY       = 0x06,
-    OBJ_MATERIAL_TEXTURE_TRANSPARENCY       = 0x07,
-    OBJ_MATERIAL_TEXTURE_ENVIRONMENT_SPHERE = 0x08,
-    OBJ_MATERIAL_TEXTURE_ENVIRONMENT_CUBE   = 0x09,
-};
-
-enum obj_material_texture_coordinate_translation_type : uint32_t {
-    OBJ_MATERIAL_TEXTURE_COORDINATE_TRANSLATION_NONE   = 0x00,
-    OBJ_MATERIAL_TEXTURE_COORDINATE_TRANSLATION_UV     = 0x01,
-    OBJ_MATERIAL_TEXTURE_COORDINATE_TRANSLATION_SPHERE = 0x02,
-    OBJ_MATERIAL_TEXTURE_COORDINATE_TRANSLATION_CUBE   = 0x03,
-};
-
-enum obj_material_vertex_translation_type : uint32_t {
-    OBJ_MATERIAL_VERTEX_TRANSLATION_DEFAULT  = 0,
-    OBJ_MATERIAL_VERTEX_TRANSLATION_ENVELOPE = 1,
-    OBJ_MATERIAL_VERTEX_TRANSLATION_MORPHING = 2,
 };
 
 enum obj_primitive_type : uint32_t {
@@ -194,27 +248,25 @@ union obj_shader_compo {
 };
 
 struct obj_material_shader_attrib_member {
-    obj_material_vertex_translation_type vtx_trans_type : 2;
-    obj_material_color_source_type col_src : 2;
+    MaterialAttributeVertexTransType vtx_trans_type : 2;
+    MaterialAttributeColorSourceType col_src : 2;
     uint32_t is_lgt_diffuse : 1;
     uint32_t is_lgt_specular : 1;
     uint32_t is_lgt_per_pixel : 1;
     uint32_t is_lgt_double : 1;
-    obj_material_bump_map_type bump_map_type : 2;
-    uint32_t fresnel_type : 4;
-    uint32_t line_light : 4;
+    MaterialAttributeBumpMapType bump_map_type : 2;
+    MaterialAttributeFresnelType fresnel_type : 4;
+    MaterialAttributeLineLightType line_light : 4;
     uint32_t receive_shadow : 1;
     uint32_t cast_shadow : 1;
-    obj_material_specular_quality specular_quality : 1;
-    obj_material_aniso_direction aniso_direction : 2;
+    MaterialAttributeSpecularQuality specular_quality : 1;
+    MaterialAttributeAnisoDirection aniso_direction : 2;
     uint32_t dummy : 9;
 };
 
 union obj_material_shader_attrib {
     obj_material_shader_attrib_member m;
     uint32_t w;
-
-    obj_material_shader_lighting_type get_lighting_type() const;
 };
 
 struct obj_texture_attrib_member {
@@ -237,14 +289,12 @@ struct obj_texture_attrib_member {
 union obj_texture_attrib {
     obj_texture_attrib_member m;
     uint32_t w;
-
-    int32_t get_blend() const;
 };
 
 struct obj_texture_shader_attrib_member {
-    obj_material_texture_type tex_type : 4;
+    TextureAttributeTextureType tex_type : 4;
     int32_t uv_idx : 4;
-    obj_material_texture_coordinate_translation_type texcoord_trans : 3;
+    TextureAttributeTextureCoordTransType texcoord_trans : 3;
     uint32_t dummy : 21;
 };
 
@@ -274,8 +324,8 @@ struct obj_material_attrib_member {
     uint32_t punch_through : 1;
     uint32_t double_sided : 1;
     uint32_t normal_dir_light : 1;
-    obj_material_blend_factor src_blend_factor : 4;
-    obj_material_blend_factor dst_blend_factor : 4;
+    MaterialAttributeBlendFactor src_blend_factor : 4;
+    MaterialAttributeBlendFactor dst_blend_factor : 4;
     uint32_t blend_operation : 3;
     uint32_t zbias : 4;
     uint32_t no_z_fog : 1;
