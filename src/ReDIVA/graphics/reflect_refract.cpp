@@ -46,7 +46,7 @@ ReflectRefractDw::ReflectRefractDw() {
     const reflect_refract_resolution_mode refract_resolution_mode
         = rctx_ptr->render_manager->get_reflect_resolution_mode(); // Intentional!
     const int32_t reflect_blur_num = rctx_ptr->render_manager->reflect_blur_num;
-    const blur_filter_mode reflect_blur_filter = rctx_ptr->render_manager->reflect_blur_filter;
+    const ImgfBoxSampl reflect_blur_filter = rctx_ptr->render_manager->reflect_blur_filter;
 
     SetText("REFLECT/REFRACT");
 
@@ -138,7 +138,7 @@ void ReflectRefractDw::Hide() {
 }
 
 void ReflectRefractDw::ReflectBlurFilterCallback(dw::ListBox* data) {
-    rctx_ptr->render_manager->reflect_blur_filter = (blur_filter_mode)(int32_t)data->list->selected_item;
+    rctx_ptr->render_manager->reflect_blur_filter = (ImgfBoxSampl)(int32_t)data->list->selected_item;
 }
 
 void ReflectRefractDw::ReflectBlurNumCallback(dw::Slider* data) {

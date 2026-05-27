@@ -19,6 +19,7 @@
 #include "../CRE/pv_param.hpp"
 #include "../CRE/random.hpp"
 #include "../CRE/shader_ft.hpp"
+#include "../CRE/shadow.hpp"
 #include "../CRE/sound.hpp"
 #include "../CRE/sprite.hpp"
 #include "../KKdLib/io/file_stream.hpp"
@@ -4286,11 +4287,9 @@ void x_pv_game_pv_data::init(class x_pv_game* pv_game, bool music_play) {
 
     find_change_fields(pv_game->get_data().change_fields);
 
-    Shadow* shad = shadow_ptr_get();
-    if (shad) {
-        shad->blur_filter_enable[0] = true;
-        shad->blur_filter_enable[1] = true;
-    }
+    Shadow* shad = get_shadow();
+    if (shad)
+        shad->reset_enable();
 
     rob_id = ROB_ID_1P;
 }
@@ -7100,11 +7099,9 @@ bool x_pv_game::ctrl() {
 
         get_data().pv_data.init(this, true);
 
-        Shadow* shad = shadow_ptr_get();
-        if (shad) {
-            shad->blur_filter_enable[0] = true;
-            shad->blur_filter_enable[1] = true;
-        }
+        Shadow* shad = get_shadow();
+        if (shad)
+            shad->reset_enable();
 
         state_old = 9;
     } break;
@@ -8293,7 +8290,7 @@ bool x_pv_game::unload() {
     rend.update_res(0, -1);
 
     rctx_ptr->disp_manager->object_culling = true;
-    shadow_ptr_get()->shadow_range_factor = 1.0f;
+    get_shadow()->set_shadow_range(1.0f);
     rctx_ptr->render_manager->set_effect_texture(0);
 
     sound_work_reset_all_se();
@@ -13553,7 +13550,7 @@ static void x_pv_game_write_stage_data_reflect(stream& s, stage_database_file* s
                     = (stage_data_reflect_resolution_mode)reflect->read_int32_t("mode");
                 stage_reflect.reflect_data.blur_num = reflect->read_int32_t("blur_num");
                 stage_reflect.reflect_data.blur_filter
-                    = (stage_data_blur_filter_mode)reflect->read_int32_t("blur_filter");
+                    = (ImgfBoxSampl)reflect->read_int32_t("blur_filter");
             }
             stage_reflect.reflect_full = stage.read_bool("reflect_full");
             break;

@@ -3651,7 +3651,7 @@ public:
     int32_t disp_begin;
     int32_t disp_max;
     uint32_t shadow_flag;
-    SHADOW_GROUP shadow_group;
+    int32_t shadow_group;
     vec3 position;
     std::vector<TexChange> hyoutan_texchg_list;
     object_info hyoutan_obj;

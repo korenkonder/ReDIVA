@@ -2345,19 +2345,3 @@ inline void mat4_look_at(const vec3* eye, const vec3* target, const vec3* up, ma
     *(vec3*)&out_m->row3 = -xyz;
     out_m->row3.w = 1.0f;
 }
-
-inline void mat4_look_at(const vec3* eye, const vec3* target, mat4* out_m) {
-    vec3 up = { 0.0f, 1.0f, 0.0f };
-    vec3 dir;
-    dir = *target - *eye;
-    if (vec3::length_squared(dir) <= 0.000001f) {
-        up.x = 0.0f;
-        up.y = 0.0f;
-        if (dir.z < 0.0f)
-            up.z = 1.0f;
-        else
-            up.z = -1.0f;
-    }
-
-    mat4_look_at(eye, target, &up, out_m);
-}

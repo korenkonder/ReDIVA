@@ -243,7 +243,6 @@ extern void mat4_persp(float_t fov_y, float_t aspect, float_t z_near, float_t z_
 extern void mat4_persp_offset(float_t fov_y, float_t aspect, float_t z_near, float_t z_far,
     const vec2* scale, const vec2* offset, mat4* out_m);
 extern void mat4_look_at(const vec3* eye, const vec3* target, const vec3* up, mat4* out_m);
-extern void mat4_look_at(const vec3* eye, const vec3* target, mat4* out_m);
 
 inline void mat3_rotate_xyz(const vec3* rad, mat3* out_m) {
     mat3_rotate_xyz(rad->x, rad->y, rad->z, out_m);

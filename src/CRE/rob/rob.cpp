@@ -24,6 +24,7 @@
 #include "../pv_expression.hpp"
 #include "../random.hpp"
 #include "../screen_param.hpp"
+#include "../shadow.hpp"
 #include "../stage.hpp"
 #include "../stage_param.hpp"
 #include "../static_var.hpp"
@@ -14008,16 +14009,14 @@ void RobDisp::disp(int32_t rob_id, render_context* rctx) {
     mdl::DispManager& disp_manager = *rctx->disp_manager;
     if (shadow_group != -1) {
         if (shadow_flag & 0x04) {
-            vec3 pos = position;
-            pos.y -= 0.2f;
-            shadow_ptr_get()->positions[shadow_group].push_back(pos);
+            get_shadow()->set_dist_base(shadow_group, &position);
 
-            float_t v9;
+            float_t ground_ypos;
             if (sub_140512F60(this) <= -0.2f)
-                v9 = -0.5f;
+                ground_ypos = -0.5f;
             else
-                v9 = 0.05f;
-            shadow_ptr_get()->field_1C0[shadow_group] = v9;
+                ground_ypos = 0.05f;
+            get_shadow()->set_ground_ypos(shadow_group, ground_ypos);
             disp_manager.set_shadow_group(shadow_group);
             enum_or(flags, mdl::OBJ_SHADOW);
         }
@@ -14115,7 +14114,7 @@ void RobDisp::dest() {
     for (int32_t i = 0; i < RPK_MAX; i++)
         skin_disp[i].dest();
     one_skin = false;
-    shadow_group = (SHADOW_GROUP)-1;
+    shadow_group = -1;
     shadow_flag = 0x05;
     hyoutan_texchg_list.clear();
     hyoutan_obj = {};
@@ -14373,9 +14372,9 @@ void RobDisp::set_shadow(ROB_PARTS_KIND rpk, bool flag) {
 
 // 0x140514170
 void RobDisp::set_shadow_group(int32_t group) {
-    if (group != SHADOW_GROUP_CHARA)
-        group = SHADOW_GROUP_STAGE;
-    shadow_group = (SHADOW_GROUP)group;
+    if (group != 0)
+        group = 1;
+    shadow_group = group;
 }
 
 // 0x1405141B0
@@ -18131,7 +18130,7 @@ void rob_chara_age_age_object::disp(render_context* rctx, size_t id,
         enum_or(flags, mdl::OBJ_CHARA_REFLECT);
     rctx->disp_manager->set_obj_flags(flags);
     rctx->disp_manager->set_chara_color(chara_color);
-    rctx->disp_manager->set_shadow_group(id ? SHADOW_GROUP_STAGE : SHADOW_GROUP_CHARA);
+    rctx->disp_manager->set_shadow_group(id ? 1 : 0);
     rctx->disp_manager->entry_obj_by_obj(mat4_identity, &obj, &get_obj_set_texture(), &vb, &ib, 0, 1.0f);
 }
 

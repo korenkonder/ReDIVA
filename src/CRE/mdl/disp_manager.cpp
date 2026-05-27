@@ -101,8 +101,8 @@ namespace mdl {
         int32_t slices, int32_t stacks, float_t radius);
 
     ObjSubMeshArgs::ObjSubMeshArgs() : sub_mesh(), mesh(), material(), textures(), mat_count(), mats(),
-        vb(), vb_offset(), ib(), set_blend_color(), chara_color(), self_shadow(),
-        shadow(), morph_vb(), morph_vb_offset(), morph_weight(), texture_pattern_count(),
+        vb(), vb_offset(), ib(), set_blend_color(), chara_color(), receive_shadow(),
+        shadow_group(), morph_vb(), morph_vb_offset(), morph_weight(), texture_pattern_count(),
         texture_transform_count(), instances_count(), instances_mat(), func(), func_data() {
 
     }
@@ -345,12 +345,12 @@ namespace mdl {
 
         args->chara_color = disp_manager->chara_color;
         if (disp_manager->obj_flags & OBJ_4)
-            args->self_shadow = 1;
+            args->receive_shadow = RECEIVE_SHADOW_ENABLE;
         else if (disp_manager->obj_flags & mdl::OBJ_8)
-            args->self_shadow = 2;
+            args->receive_shadow = RECEIVE_SHADOW_DISABLE;
         else
-            args->self_shadow = 0;
-        args->shadow = disp_manager->shadow_group;
+            args->receive_shadow = RECEIVE_SHADOW_DEFAULT;
+        args->shadow_group = disp_manager->shadow_group;
         args->texture_color_coefficients = disp_manager->texture_color_coefficients;
         args->texture_color_coefficients.w = disp_manager->wet_param;
         args->texture_color_offset = disp_manager->texture_color_offset;
@@ -2993,7 +2993,7 @@ namespace mdl {
         return obj_flags;
     }
 
-    SHADOW_GROUP DispManager::get_shadow_group() {
+    int32_t DispManager::get_shadow_group() {
         return shadow_group;
     }
 
@@ -3248,9 +3248,9 @@ namespace mdl {
         morph.object = object;
     }
 
-    void DispManager::set_shadow_group(SHADOW_GROUP value) {
-        if (value >= 0 || value == SHADOW_GROUP_MAX)
-            shadow_group = value;
+    void DispManager::set_shadow_group(int32_t group) {
+        if (group >= 0 && group <= 2)
+            shadow_group = group;
     }
 
     void DispManager::set_texture_color_coefficients(const vec4& value) {

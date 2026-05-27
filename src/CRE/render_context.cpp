@@ -8,6 +8,7 @@
 #include "gl_rend_state.hpp"
 #include "gl_state.hpp"
 #include "shader_ft.hpp"
+#include "shadow.hpp"
 #include "sound.hpp"
 #include "sprite.hpp"
 #include "task.hpp"
@@ -1388,7 +1389,7 @@ void render_context::disp() {
     camera->update();
     render_manager->cam.get(camera);
     app::disp_task();
-    shadow_ptr_get()->ctrl();
+    render_manager->calc_shadow();
     spr::SPR_TARGET target = spr::getTarget();
     //spr::setTarget(spr::SPR_TARGET_CSBACK);
     spr::setTarget(spr::SPR_TARGET_FRONT);
@@ -1446,7 +1447,7 @@ void render_context::init() {
 
     RenderTexture& render_buffer = render.rend_texture[0];
     RenderTexture& reflect_buffer = render_manager->get_render_texture(0);
-    RenderTexture& shadow_buffer = shadow_ptr_get()->render_textures[1];
+    RenderTexture& shadow_buffer = get_shadow()->get_rtex(1);
     init_copy_buffer(reflect_buffer, this->reflect_buffer);
     init_copy_buffer(render_buffer, this->render_buffer);
     init_copy_buffer(shadow_buffer, this->shadow_buffer);

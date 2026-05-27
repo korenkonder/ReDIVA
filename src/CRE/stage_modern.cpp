@@ -11,6 +11,7 @@
 #include "effect.hpp"
 #include "light_param.hpp"
 #include "render_context.hpp"
+#include "shadow.hpp"
 
 namespace stage_detail {
     static void TaskStageModern_CtrlInner(stage_detail::TaskStageModern* a1);
@@ -31,13 +32,6 @@ namespace stage_detail {
     static void TaskStageModern_TaskWindAppend(stage_detail::TaskStageModern* a1);
     static void TaskStageModern_Unload(stage_detail::TaskStageModern* a1);
 }
-
-static bool object_bounding_sphere_check_visibility_shadow(
-    const obj_bounding_sphere* sphere, const mat4* view, const mat4* mat);
-static bool object_bounding_sphere_check_visibility_shadow_chara(
-    const obj_bounding_sphere* sphere, const mat4* view);
-static bool object_bounding_sphere_check_visibility_shadow_stage(
-    const obj_bounding_sphere* sphere, const mat4* view);
 
 static bool stage_modern_ctrl(stage_modern* s, void* data, object_database* obj_db, texture_database* tex_db);
 static void stage_modern_disp(stage_modern* s);
@@ -447,41 +441,6 @@ static void stage_detail::TaskStageModern_Unload(stage_detail::TaskStageModern* 
     }
 }
 
-static bool object_bounding_sphere_check_visibility_shadow(
-    const obj_bounding_sphere* sphere, const mat4* view, const mat4* mat) {
-    vec3 center;
-    mat4_transform_point(mat, &sphere->center, &center);
-    mat4_transform_point(view, &center, &center);
-    float_t radius = sphere->radius;
-
-    Shadow* shad = shadow_ptr_get();
-    float_t shadow_range = shad->get_shadow_range();
-    if ((center.x + radius) < -shadow_range
-        || (center.x - radius) > shadow_range
-        || (center.y + radius) < -shadow_range
-        || (center.y - radius) > shadow_range
-        || (center.z - radius) > -shad->z_near
-        || (center.z + radius) < -shad->z_far)
-        return false;
-    return true;
-}
-
-static bool object_bounding_sphere_check_visibility_shadow_chara(
-    const obj_bounding_sphere* sphere, const mat4* view) {
-    mat4 mat;
-    Shadow* shad = shadow_ptr_get();
-    mat4_look_at(&shad->view_point[0], &shad->interest[0], &mat);
-    return object_bounding_sphere_check_visibility_shadow(sphere, view, &mat);
-}
-
-static bool object_bounding_sphere_check_visibility_shadow_stage(
-    const obj_bounding_sphere* sphere, const mat4* view) {
-    mat4 mat;
-    Shadow* shad = shadow_ptr_get();
-    mat4_look_at(&shad->view_point[1], &shad->interest[1], &mat);
-    return object_bounding_sphere_check_visibility_shadow(sphere, view, &mat);
-}
-
 static bool stage_modern_ctrl(stage_modern* s, void* data, object_database* obj_db, texture_database* tex_db) {
     if (s->state >= 1 && s->state <= 5) {
         stage_modern_load(s, data, obj_db, tex_db);
@@ -538,11 +497,9 @@ static void stage_modern_disp_shadow(stage_modern* s) {
 static void stage_modern_disp_shadow_object(object_info object, const mat4& mat) {
     mdl::DispManager& disp_manager = *rctx_ptr->disp_manager;
 
-    for (int32_t i = SHADOW_GROUP_CHARA; i < SHADOW_GROUP_MAX; i++) {
-        disp_manager.set_shadow_group((SHADOW_GROUP)i);
-        disp_manager.set_culling_func(i == SHADOW_GROUP_CHARA
-            ? object_bounding_sphere_check_visibility_shadow_chara
-            : object_bounding_sphere_check_visibility_shadow_stage);
+    for (int32_t i = 0; i < 2; i++) {
+        disp_manager.set_shadow_group(i);
+        get_shadow()->set_cull_func(i);
         disp_manager.set_obj_flags((mdl::ObjFlags)(mdl::OBJ_NO_TRANSLUCENCY | mdl::OBJ_SHADOW_OBJECT));
         disp_manager.entry_obj_by_object_info(mat, object);
     }

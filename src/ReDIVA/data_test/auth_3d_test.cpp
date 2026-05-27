@@ -12,6 +12,7 @@
 #include "../../CRE/debug_print.hpp"
 #include "../../CRE/effect.hpp"
 #include "../../CRE/render_context.hpp"
+#include "../../CRE/shadow.hpp"
 #include "../../CRE/stage.hpp"
 #include "../dw.hpp"
 #include "../input_state.hpp"
@@ -618,7 +619,7 @@ bool Auth3dTestTask::init() {
     obj_sets.clear();
     obj_sets.shrink_to_fit();
 
-    shadow_ptr_get()->self_shadow = true;
+    get_shadow()->set_self_shadow_sw(true);
     clear_color = 0x00999999;
 
     auth_3d_test_window_init();
@@ -711,7 +712,7 @@ bool Auth3dTestTask::dest() {
     data_event_listener.data.dest();
     auth_3d_test_window->Hide();
     clear_color = color_black;
-    shadow_ptr_get()->self_shadow = true;
+    get_shadow()->set_self_shadow_sw(true);
     if (category.size())
         auth_3d_detail::category_free(category.c_str());
     category.clear();
@@ -1414,7 +1415,7 @@ Auth3dTestWindow::SelectionButtonShadowType::~SelectionButtonShadowType() {
 void Auth3dTestWindow::SelectionButtonShadowType::Callback(dw::SelectionListener::CallbackData* data) {
     dw::Button* button = dynamic_cast<dw::Button*>(data->widget);
     if (button)
-        shadow_ptr_get()->self_shadow = !!button->callback_data.i64;
+        get_shadow()->set_self_shadow_sw(button->callback_data.i64);
 }
 
 Auth3dTestWindow::SelectionButtonSave::SelectionButtonSave() {

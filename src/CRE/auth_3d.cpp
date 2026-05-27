@@ -22,9 +22,10 @@
 #include "effect.hpp"
 #include "object.hpp"
 #include "pv_db.hpp"
-#include "task.hpp"
+#include "shadow.hpp"
 #include "sound.hpp"
 #include "stage.hpp"
+#include "task.hpp"
 
 namespace auth_3d_detail {
     class TaskAuth3d : public app::Task {
@@ -2336,7 +2337,7 @@ namespace auth_3d_detail {
             enum_or(flag, in_scene.trnsl_state);
 
         disp_manager.set_obj_flags(flag);
-        disp_manager.set_shadow_group(SHADOW_GROUP_CHARA);
+        disp_manager.set_shadow_group(0);
 
         mat4 mat = mat4_identity;
         if (in_scene.M_assign_rob_id >= 0 && in_scene.M_assign_rob_id < ROB_ID_MAX) {
@@ -2348,21 +2349,17 @@ namespace auth_3d_detail {
                     ? &rob_chr->rob_base.adjust.item_mat
                     : &rob_chr->rob_base.adjust.mat, &mat);
                 if (in_scene.M_assign_rob_id)
-                    disp_manager.set_shadow_group(SHADOW_GROUP_STAGE);
+                    disp_manager.set_shadow_group(1);
             }
         }
         else if (flag & mdl::OBJ_SHADOW) {
-            disp_manager.set_shadow_group(SHADOW_GROUP_STAGE);
+            disp_manager.set_shadow_group(1);
 
             const mat4& root_matrix = get_root_matrix();
 
-            Shadow* shad = shadow_ptr_get();
-            if (shad) {
-                vec3 pos;
-                mat4_get_translation(&root_matrix, &pos);
-                pos.y -= 0.2f;
-                shad->positions[SHADOW_GROUP_STAGE].push_back(pos);
-            }
+            vec3 pos;
+            mat4_get_translation(&root_matrix, &pos);
+            get_shadow()->set_dist_base(1, &pos);
         }
 
         if (mats.size())
@@ -2370,7 +2367,7 @@ namespace auth_3d_detail {
                 obj_uid, 0, 0, in_scene.trnsl, mats.data(), 0, 0, mat);
 
         disp_manager.set_obj_flags();
-        disp_manager.set_shadow_group(SHADOW_GROUP_CHARA);
+        disp_manager.set_shadow_group(0);
 
         for (Object*& i : child_object_list)
             i->disp(in_scene, rctx);
@@ -3405,10 +3402,10 @@ namespace auth_3d_detail {
                 continue;
 
             mdl::ObjFlags flag = mdl::OBJ_SSS;
-            SHADOW_GROUP shadow_group = SHADOW_GROUP_CHARA;
+            int32_t shadow_group = 0;
             if (in_scene.M_shadow || i.shadow) {
                 enum_or(flag, mdl::OBJ_4 | mdl::OBJ_SHADOW);
-                shadow_group = SHADOW_GROUP_STAGE;
+                shadow_group = 1;
             }
             if (in_scene.trnsl < 1.0f)
                 enum_or(flag, in_scene.trnsl_state);
@@ -3416,17 +3413,16 @@ namespace auth_3d_detail {
             disp_manager.set_obj_flags(flag);
             disp_manager.set_shadow_group(shadow_group);
 
-            Shadow* shad = shadow_ptr_get();
+            Shadow* shad = get_shadow();
             if (shad && (flag & mdl::OBJ_SHADOW)) {
-                disp_manager.set_shadow_group(SHADOW_GROUP_STAGE);
+                disp_manager.set_shadow_group(1);
 
                 mat4 mat;
                 mat4_mul(&i.motion_transform.matrix, &root_matrix, &mat);
 
                 vec3 pos;
                 mat4_get_translation(&mat, &pos);
-                pos.y -= 0.2f;
-                shad->positions[shadow_group].push_back(pos);
+                get_shadow()->set_dist_base(1, &pos);
             }
 
             if (i.mats.size())
@@ -3435,7 +3431,7 @@ namespace auth_3d_detail {
         }
 
         disp_manager.set_obj_flags();
-        disp_manager.set_shadow_group(SHADOW_GROUP_CHARA);
+        disp_manager.set_shadow_group(0);
     }
 
     // 0x1401CAE40
@@ -3613,7 +3609,7 @@ namespace auth_3d_detail {
                     ? &rob_chr->rob_base.adjust.item_mat
                     : &rob_chr->rob_base.adjust.mat, &m);
                 mat4_mul(&matrix, &m, &matrix);
-                disp_manager.set_shadow_group(in_scene.M_assign_rob_id ? SHADOW_GROUP_STAGE : SHADOW_GROUP_CHARA);
+                disp_manager.set_shadow_group(in_scene.M_assign_rob_id ? 1 : 0);
             }
         }
 

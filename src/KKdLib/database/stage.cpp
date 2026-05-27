@@ -533,7 +533,7 @@ static void stage_database_file_classic_read_inner(stage_database_file* stage_da
             stage->reflect = true;
             stage->reflect_data.mode = (stage_data_reflect_resolution_mode)s.read_uint32_t();
             stage->reflect_data.blur_num = s.read_int32_t();
-            stage->reflect_data.blur_filter = (stage_data_blur_filter_mode)s.read_uint32_t();
+            stage->reflect_data.blur_filter = (ImgfBoxSampl)s.read_uint32_t();
             s.position_pop();
         }
         else

@@ -6,135 +6,424 @@
 #include "shadow.hpp"
 #include "gl_state.hpp"
 #include "render_context.hpp"
-
-Shadow* shadow_ptr;
-
-extern render_context* rctx_ptr;
+#include "shader_ft.hpp"
 
 #define MIN_SHADOW_RANGE (1.2f)
 #define SHADOW_RANGE_SEPARATE (MIN_SHADOW_RANGE * 2.0f)
 
-static void sub_1405E60E0(Shadow* shad);
-static void sub_1405E63D0(Shadow* shad);
-static void sub_1405E6840(Shadow* shad);
-static void sub_1405E6910(Shadow* shad);
-static void sub_1405E6B70(Shadow* shad);
+struct ShadowTexParam {
+    GLenum target;
+    int32_t width;
+    int32_t height;
+    int32_t level;
+    GLenum pixel_format;
+    GLenum depth_format;
+};
 
-Shadow::Shadow() : curr_render_textures(), shadow_range(), shadow_range_factor(), field_1C0(), field_1C8(),
-index(), z_half_range(), near_blur(), blur_filter(), far_blur(), field_2BC(), distance(), field_2C4(),
-z_near(), z_far(), field_2D0(), field_2D4(), field_2D8(), field_2DC(), field_2E0(), shadow_ambient(),
-show_texture(), num_shadow(), shadow_enable(), self_shadow(), blur_filter_enable(), separate() {
-    reset();
-}
+// 0x14CC587B8
+static Shadow* g_shadow;
 
-Shadow::~Shadow() {
-    free();
-}
+extern render_context* rctx_ptr;
 
-void Shadow::calc_proj_view_mat(cam_data& cam, const vec3& view_point,
-    const vec3& interest, float_t range, float_t offset, float_t scale) {
-    cam.set_view_point(view_point);
-    cam.set_interest(interest);
+// 0x140A81E00
+static const ShadowTexParam shadow_tex_param_table[] = {
+    { GL_TEXTURE_2D, 0x800, 0x800, 0, GL_RGBA8, GL_DEPTH_COMPONENT32F },
+    { GL_TEXTURE_2D, 0x200, 0x200, 3, GL_RGBA8, GL_ZERO },
+    { GL_TEXTURE_2D, 0x200, 0x200, 3, GL_RGBA8, GL_ZERO },
+    { GL_TEXTURE_2D, 0x800, 0x800, 0, GL_R32F , GL_ZERO },
+    { GL_TEXTURE_2D, 0x800, 0x800, 0, GL_R32F , GL_ZERO },
+    { GL_TEXTURE_2D, 0x200, 0x200, 0, GL_R32F , GL_ZERO },
+    { GL_TEXTURE_2D, 0x200, 0x200, 0, GL_R32F , GL_ZERO },
+};
 
-    vec3 up = { 0.0f, 1.0f, 0.0f };
-    const vec3 dir = interest - view_point;
-    if (vec3::length_squared(dir) <= 0.000001f) {
-        up.x = 0.0f;
-        up.y = 0.0f;
-        if (dir.z < 0.0f)
-            up.z = 1.0f;
-        else
-            up.z = -1.0f;
+static void dbg_draw_texture(float_t x, float_t y,
+    float_t width, float_t height, GLuint texture);
+static void dbg_draw_texture_uv(float_t x, float_t y,
+    float_t width, float_t height, float_t s, float_t t, GLuint texture);
+static void dbg_draw_texture_uv_mm(float_t x, float_t y,
+    float_t width, float_t height, float_t s, float_t t, int32_t level, GLuint texture);
+static void M_calc_light_up(vec3* light_up, const vec3* light_pos, const vec3* light_target);
+
+// 0x1405E8690
+void Shadow::init_members() {
+    m_view_region = MIN_SHADOW_RANGE;
+    m_shadow_range = 1.0f;
+
+    for (int32_t i = 0; i < 2; i++) {
+        m_light_pos[i] = 1.0f;
+        m_light_target[i] = 0.0f;
+        m_ground_ypos[i] = 0.0f;
+        m_proj_dist_base_range[i] = 0.0f;
+        m_enable_group[i] = false;
+        m_enable[i] = true;
+        m_proj_dist_base_vec[i].clear();
+        m_group[i] = i;
     }
-    cam.set_up(up);
+
+    rtex_shadowmap = 0;
+    for (RenderTexture*& i : rtex_soft)
+        i = 0;
+
+    m_view_mtx = mat4_identity;
+    m_iview_mtx = mat4_identity;
+
+    m_proj_near_repeat = 1;
+    m_proj_near_sampl = IMGF_BOX_SAMPL_9;
+    m_proj_far_repeat = 1;
+    m_proj_far_sampl = IMGF_BOX_SAMPL_16;
+
+    m_proj_dist_attn = 4.0f;
+    m_proj_dist_attn_offset = 0.4f;
+    m_shadowmap_near_clip = 0.1f;
+    m_shadowmap_far_clip = 20.0f;
+    m_polyoffset_factor = 1.4f;
+    m_polyoffset_unit = 10000.0f;
+    m_esm_exponent = 80.0f;
+    m_gauss_sigma = 2.0f;
+    m_gauss_offset = 0.05f;
+    m_shadow_ambient = 0.4f;
+    m_num_group = 0;
+    m_light_dir = vec3(0.0f, -1.0f, -1.0f) * (1.0f / sqrtf(2.0f));
+    m_enable_show_textures = false;
+    m_enable_self_shadow = true;
+    m_separate = false;
+    m_shadow_depth_range = (m_shadowmap_far_clip - m_shadowmap_near_clip) * 0.5f;
+}
+
+// 0x1405E7820
+bool Shadow::check_culling0(const obj_bounding_sphere* sphere, const mat4* view) {
+    Shadow* shad = get_shadow();
+    mat4 lview;
+    vec3 light_up;
+    M_calc_light_up(&light_up, &shad->m_light_pos[0], &shad->m_light_target[0]);
+    mat4_look_at(&shad->m_light_pos[0], &shad->m_light_target[0], &light_up, &lview);
+    return check_culling_sub(sphere, view, &lview);
+}
+
+// 0x1405E78C0
+bool Shadow::check_culling1(const obj_bounding_sphere* sphere, const mat4* view) {
+    Shadow* shad = get_shadow();
+    mat4 lview;
+    vec3 light_up;
+    M_calc_light_up(&light_up, &shad->m_light_pos[1], &shad->m_light_target[1]);
+    mat4_look_at(&shad->m_light_pos[1], &shad->m_light_target[1], &light_up, &lview);
+    return check_culling_sub(sphere, view, &lview);
+}
+
+// 0x1405E7960
+bool Shadow::check_culling_sub(const obj_bounding_sphere* sphere, const mat4* view, const mat4* lview) {
+    vec3 center;
+    mat4_transform_point(view, &sphere->center, &center);
+    mat4_transform_point(lview, &center, &center);
+    float_t radius = sphere->radius;
+
+    Shadow* shad = get_shadow();
+    float_t distance = shad->get_distance();
+    if ((center.x + radius) < -distance
+        || (center.x - radius) > distance
+        || (center.y + radius) < -distance
+        || (center.y - radius) > distance
+        || (center.z - radius) > -shad->m_shadowmap_near_clip
+        || (center.z + radius) < -shad->m_shadowmap_far_clip)
+        return false;
+    return true;
+}
+
+// 0x1405E8B90
+void Shadow::set_light_view_proj_mtx(cam_data& cam, const vec3* light_pos,
+    const vec3* light_target, float_t range, float_t offset, float_t scale) {
+    mat4 temp;
+    mat4_translate(offset, 0.0f, 0.0f, &temp);
+
+    mat4 proj;
+    mat4_ortho(-range, range, -range, range, m_shadowmap_near_clip, m_shadowmap_far_clip, &proj);
+    mat4_mul(&proj, &temp, &proj);
+
+    vec3 light_up;
+    M_calc_light_up(&light_up, light_pos, light_target);
+
+    cam.set_view_point(*light_pos);
+    cam.set_interest(*light_target);
+    cam.set_up(light_up);
 
     cam.calc_view_mat();
-    cam.set_min_distance(z_near);
-    cam.set_max_distance(z_far);
+    cam.set_min_distance(m_shadowmap_near_clip);
+    cam.set_max_distance(m_shadowmap_far_clip);
     cam.calc_ortho_proj_mat(-range, range, -range, range, scale, { offset, 0.0f });
     cam.calc_view_proj_mat();
 }
 
-void Shadow::clear_textures(p_gl_rend_state& p_gl_rend_st) {
-    for (int32_t i = 1; i < 3; i++)
-        for (int32_t j = 0; j < 4; j++) {
-            curr_render_textures[i]->begin_render(p_gl_rend_st, j);
-            p_gl_rend_st.clear_color(1.0f, 1.0f, 1.0f, 1.0f);
-            p_gl_rend_st.clear(GL_COLOR_BUFFER_BIT);
-        }
-    p_gl_rend_st.bind_framebuffer(0);
+// 0x1405E76D0
+void Shadow::calc_tex_mtx(const vec3* light_pos,
+    const vec3* light_target, float_t range, float_t offset, mat4* tex_mtx) {
+    mat4 temp;
+    mat4_translate(0.5f, 0.5f, 0.5f, &temp);
+    mat4_scale_rot(&temp, 0.5f, 0.5f, 0.5f, &temp);
+    mat4_mul_translate(&temp, offset, 0.0f, 0.0f, &temp);
+
+    mat4 proj;
+    mat4_ortho(-range, range, -range, range, m_shadowmap_near_clip, m_shadowmap_far_clip, &proj);
+    mat4_mul(&proj, &temp, &proj);
+
+    mat4 view;
+    vec3 light_up;
+    M_calc_light_up(&light_up, light_pos, light_target);
+    mat4_look_at(light_pos, light_target, &light_up, &view);
+    mat4_mul(&view, &proj, tex_mtx);
 }
 
-void Shadow::ctrl() {
-    for (int32_t i = 0; i < 2; i++)
-        shadow_enable[i] = false;
+// 0x1405E60E0
+void Shadow::calc_dist_base() {
+    for (int32_t i = 0; i < 2; i++) {
+        m_proj_dist_base[i] = 0.0f;
+        m_proj_dist_base_range[i] = 0.0f;
 
-    if (rctx_ptr->render_manager->shadow) {
-        view_mat[0] = rctx_ptr->camera->view;
-        view_mat[1] = rctx_ptr->camera->inv_view;
+        if (!m_enable_group[i])
+            continue;
 
-        light_data& light_chara = rctx_ptr->light_set[LIGHT_SET_MAIN].lights[LIGHT_CHARA];
+        size_t num_pos_group = m_proj_dist_base_vec[i].size();
+        if (!num_pos_group)
+            continue;
 
-        vec3 position;
-        light_chara.get_position(position);
-        float_t length = vec3::length(position);
-        if (length < 0.000001f)
-            direction = { 0.0f, 1.0f, 0.0f };
-        else
-            direction = -position * (1.0f / length);
+        vec3 dist_base = 0.0f;
+        for (const vec3& pos : m_proj_dist_base_vec[i])
+            dist_base += pos;
+        dist_base *= 1.0f / (float_t)num_pos_group;
 
-        for (int32_t i = 0; i < 2; i++)
-            if (rctx_ptr->disp_manager->get_obj_count((mdl::ObjType)((int32_t)mdl::OBJ_TYPE_SHADOW_CHARA + i)))
-                shadow_enable[i] = true;
+        float_t dist_base_range = 0.0f;
+        for (const vec3& pos : m_proj_dist_base_vec[i]) {
+            const vec3 pos_diff = dist_base - pos;
+            float_t range = vec3::distance(m_light_dir * vec3::dot(pos_diff, m_light_dir), pos_diff);
+            range = max_def(range - 0.25f, 0.0f);
+            dist_base_range = max_def(dist_base_range, range);
+        }
+        m_proj_dist_base[i] = dist_base;
+        m_proj_dist_base_range[i] = dist_base_range;
     }
 
-    sub_1405E6840(this);
+    for (std::vector<vec3>& i : m_proj_dist_base_vec)
+        i.clear();
 }
 
-void Shadow::free() {
-    for (RenderTexture& i : render_textures)
-        i.destroy();
+// 0x1405E63D0
+void Shadow::calc_light_coord() {
+    if (m_num_group <= 0)
+        return;
 
-    reset();
+    vec3 light_pos = 0.0f;
+    vec3 light_target = 0.0f;
+    for (int32_t i = 0; i < 2; i++) {
+        if (!m_enable_group[i])
+            continue;
+
+        const vec3 calc_light_pos = m_proj_dist_base[i] - m_light_dir * m_shadow_depth_range;
+        const float_t light_pos_dist = vec3::distance_squared(m_light_pos[i], calc_light_pos);
+        const float_t pos_target_dist = vec3::distance_squared(m_light_target[i], m_proj_dist_base[i]);
+        if (sqrt(light_pos_dist) > 0.1f || sqrt(pos_target_dist) > 0.1f) {
+            m_light_pos[i] = calc_light_pos;
+            m_light_target[i] = m_proj_dist_base[i];
+        }
+
+        light_pos += m_light_pos[i];
+        light_target += m_light_target[i];
+    }
+
+    m_avg_light_pos = light_pos * (1.0f / (float_t)m_num_group);
+    m_avg_light_target = light_target * (1.0f / (float_t)m_num_group);
 }
 
-float_t Shadow::get_shadow_range() {
-    return shadow_range * shadow_range_factor;
+// 0x1405E6910
+void Shadow::calc_shadowmap_region() {
+    const float_t base_range = max_def(m_proj_dist_base_range[0], m_proj_dist_base_range[1]);
+    m_separate = false;
+    m_view_region = base_range + MIN_SHADOW_RANGE;
+    m_group[0] = 0;
+    m_group[1] = 1;
+
+    if (m_num_group < 2)
+        return;
+
+    const vec3 target_diff_0 = m_proj_dist_base[0] - m_avg_light_target;
+    const vec3 target_diff_1 = m_proj_dist_base[1] - m_avg_light_target;
+
+    float_t range = vec3::distance(m_light_dir * vec3::dot(target_diff_0, m_light_dir), target_diff_0);
+    range = max_def(range - 0.25f, 0.0f);
+
+    const float_t view_region = base_range + (MIN_SHADOW_RANGE + range);
+    m_view_region = view_region;
+
+    const float_t view_region_separate = base_range + SHADOW_RANGE_SEPARATE;
+    if (view_region > view_region_separate) {
+        m_view_region = view_region_separate;
+        m_separate = true;
+    }
+
+    if (vec3::dot(target_diff_0, m_light_dir) < vec3::dot(target_diff_1, m_light_dir)) {
+        m_group[0] = 1;
+        m_group[1] = 0;
+    }
 }
 
-int32_t Shadow::init() {
-    struct shadow_texture_init_params {
-        int32_t width;
-        int32_t height;
-        int32_t max_level;
-        GLenum color_format;
-        GLenum depth_format;
-    } init_params[] = {
-        { 0x800, 0x800, 0, GL_RGBA8, GL_DEPTH_COMPONENT32F },
-        { 0x200, 0x200, 3, GL_RGBA8, GL_ZERO },
-        { 0x200, 0x200, 3, GL_RGBA8, GL_ZERO },
-        { 0x800, 0x800, 0, GL_R32F , GL_ZERO },
-        { 0x800, 0x800, 0, GL_R32F , GL_ZERO },
-        { 0x200, 0x200, 0, GL_R32F , GL_ZERO },
-        { 0x200, 0x200, 0, GL_R32F , GL_ZERO },
-    };
+// 0x1405E6B70
+void Shadow::calc_shadowmap_region_multi() {
+    vec3 x_axis;
+    vec3 z_axis;
+    if ((float_t)(m_light_dir.y * m_light_dir.y) < 0.99f) {
+        x_axis = vec3::cross(m_light_dir, vec3(0.0f, 1.0f, 0.0f));
+        z_axis = vec3::cross(x_axis, m_light_dir);
+        x_axis = vec3::normalize(x_axis);
+        z_axis = vec3::normalize(z_axis);
+    }
+    else {
+        x_axis = vec3(1.0f, 0.0f, 0.0f);
+        z_axis = vec3(0.0f, 0.0f, 1.0f);
+    }
 
-    shadow_texture_init_params* init_param = init_params;
-    for (int32_t i = 0; i < 7; i++, init_param++)
-        if (render_textures[i].create_texture(init_param->width, init_param->height,
-            init_param->max_level, init_param->color_format, init_param->depth_format) < 0)
+    // calc_dist_base
+    for (int32_t i = 0; i < 2; i++) {
+        m_proj_dist_base[i] = 0.0f;
+        m_proj_dist_base_range[i] = 0.0f;
+
+        if (!m_enable_group[i])
+            continue;
+
+        size_t num_pos_group = m_proj_dist_base_vec[i].size();
+        if (!num_pos_group)
+            continue;
+
+        vec3 dist_base = 0.0f;
+        for (const vec3& pos : m_proj_dist_base_vec[i])
+            dist_base += pos;
+        dist_base *= 1.0f / (float_t)num_pos_group;
+
+        float_t dist_base_range = 0.0f;
+        for (const vec3& pos : m_proj_dist_base_vec[i]) {
+            const vec3 pos_diff = dist_base - pos;
+            const float_t x_range = vec3::dot(pos_diff, x_axis);
+            const float_t z_range = vec3::dot(pos_diff, z_axis);
+            dist_base_range = max_def(dist_base_range, max_def(fabsf(x_range), fabsf(z_range)));
+        }
+        m_proj_dist_base[i] = dist_base;
+        m_proj_dist_base_range[i] = dist_base_range;
+    }
+
+    // calc_light_coord
+    if (m_num_group > 0) {
+        for (int32_t i = 0; i < 2; i++) {
+            if (!m_enable_group[i])
+                continue;
+
+            const vec3 calc_light_pos = m_proj_dist_base[i] - m_light_dir * m_shadow_depth_range;
+            const float_t light_pos_dist = vec3::distance_squared(m_light_pos[i], calc_light_pos);
+            const float_t pos_target_dist = vec3::distance_squared(m_light_target[i], m_proj_dist_base[i]);
+            if (sqrtf(light_pos_dist) > 0.1f || sqrtf(pos_target_dist) > 0.1f) {
+                m_light_pos[i] = calc_light_pos;
+                m_light_target[i] = m_proj_dist_base[i];
+            }
+        }
+
+        size_t num_pos = 0;
+        vec3 light_pos = 0.0f;
+        vec3 light_target = 0.0f;
+        for (int32_t i = 0; i < 2; i++)
+            if (m_enable_group[i]) {
+                size_t num_pos_group = m_proj_dist_base_vec[i].size();
+                num_pos += num_pos_group;
+                light_pos += m_light_pos[i] * (float_t)num_pos_group;
+                light_target += m_light_target[i] * (float_t)num_pos_group;
+            }
+
+        m_avg_light_pos = light_pos * (1.0f / (float_t)num_pos);
+        m_avg_light_target = light_target * (1.0f / (float_t)num_pos);
+    }
+
+    // calc_shadowmap_region
+    const float_t base_range = max_def(m_proj_dist_base_range[0], m_proj_dist_base_range[1]);
+    m_separate = false;
+    m_view_region = base_range + MIN_SHADOW_RANGE;
+    m_group[0] = 0;
+    m_group[1] = 1;
+
+    if (m_num_group >= 2) {
+        float_t x_range_neg = 0.0f;
+        float_t z_range_neg = 0.0f;
+        float_t x_range_pos = 0.0f;
+        float_t z_range_pos = 0.0f;
+        for (int32_t i = 0; i < 2; i++) {
+            if (!m_enable_group[i])
+                continue;
+
+            for (const vec3& pos : m_proj_dist_base_vec[i]) {
+                vec3 target_diff = pos - m_avg_light_target;
+
+                const float_t x_range = vec3::dot(x_axis, target_diff);
+                if (x_range_neg > x_range)
+                    x_range_neg = x_range;
+                else if (x_range_pos < x_range)
+                    x_range_pos = x_range;
+
+                const float_t z_range = vec3::dot(z_axis, target_diff);
+                if (z_range_neg > z_range)
+                    z_range_neg = z_range;
+                else if (z_range_pos < z_range)
+                    z_range_pos = z_range;
+            }
+        }
+
+        const float_t range = max_def(max_def(max_def(-x_range_neg, x_range_pos), -z_range_neg), z_range_pos);
+
+        const float_t view_region = range + MIN_SHADOW_RANGE;
+        m_view_region = view_region;
+
+        const float_t view_region_separate = base_range + SHADOW_RANGE_SEPARATE;
+        if (view_region > view_region_separate) {
+            m_view_region = view_region_separate;
+            m_separate = true;
+        }
+
+        if (vec3::dot(m_light_dir, m_proj_dist_base[0] - m_avg_light_target)
+            < vec3::dot(m_light_dir, m_proj_dist_base[1] - m_avg_light_target)) {
+            m_group[0] = 1;
+            m_group[1] = 0;
+        }
+    }
+
+    for (std::vector<vec3>& i : m_proj_dist_base_vec)
+        i.clear();
+}
+
+// 0x1405E5820
+Shadow::Shadow() : rtex_shadowmap(), rtex_soft(), m_view_region(), m_shadow_range(), m_ground_ypos(),
+m_proj_dist_base_range(), m_group(), m_shadow_depth_range(), m_proj_dist_attn(), m_proj_dist_attn_offset(),
+m_shadowmap_near_clip(), m_shadowmap_far_clip(), m_polyoffset_factor(), m_polyoffset_unit(),
+m_esm_exponent(), m_gauss_sigma(), m_gauss_offset(), m_shadow_ambient(), m_enable_show_textures(),
+m_num_group(), m_enable_group(), m_enable_self_shadow(), m_enable(), m_separate() {
+    init_members();
+}
+
+// 0x1405E5930
+Shadow::~Shadow() {
+    destroy();
+}
+
+// 0x1405E7BA0
+int32_t Shadow::create() {
+    const ShadowTexParam* param = shadow_tex_param_table;
+    for (int32_t i = 0; i < 7; i++, param++)
+        if (rtex_table[i].create_texture(
+            (int32_t)(float_t)param->width, (int32_t)(float_t)param->height,
+            param->level, param->pixel_format, param->depth_format) < 0)
             return -1;
 
     for (int32_t i = 0; i < 3; i++) {
-        gl_state.bind_texture_2d(render_textures[i].get_texture_glid());
+        gl_state.bind_texture_2d(rtex_table[i].get_texture_glid());
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16.0f);
         static const vec4 border_color = 1.0f;
         glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, (GLfloat*)&border_color);
     }
 
-    gl_state.bind_texture_2d(render_textures[0].get_depth_texture_glid());
+    gl_state.bind_texture_2d(rtex_table[0].get_depth_texture_glid());
     GLint swizzle[] = { GL_RED, GL_RED, GL_RED, GL_ONE };
     glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
     gl_state.bind_texture_2d(0);
@@ -142,297 +431,385 @@ int32_t Shadow::init() {
     return 0;
 }
 
-void Shadow::reset() {
-    shadow_range = MIN_SHADOW_RANGE;
-    shadow_range_factor = 1.0f;
+// 0x1405E8350
+void Shadow::destroy() {
+    for (RenderTexture& i : rtex_table)
+        i.destroy();
 
-    for (int32_t i = 0; i < 2; i++) {
-        view_point[i] = 1.0f;
-        field_1C0[i] = 0.0f;
-        field_1C8[i] = 0.0f;
-        index[i] = i;
-    }
+    init_members();
+}
 
-    for (RenderTexture*& i : curr_render_textures)
-        i = 0;
+// 0x1405E8B70
+void Shadow::set_light_dir(const vec3* dir) {
+    m_light_dir = *dir;
+}
 
-    view_mat[0] = mat4_identity;
-    view_mat[1] = mat4_identity;
-    blur_filter = BLUR_FILTER_9;
-    near_blur = 1;
-    field_2BC = 2;
-    far_blur = 1;
-    distance = 4.0f;
-    field_2C4 = 0.4f;
-    z_near = 0.1f;
-    z_far = 20.0f;
-    field_2D0 = 1.4f;
-    field_2D4 = 10000.0f;
-    field_2D8 = 80.0f;
-    field_2DC = 2.0f;
-    field_2E0 = 0.05f;
-    shadow_ambient = 0.4f;
-    num_shadow = 0;
-    direction = vec3(0.0f, -1.0f, -1.0f) * (1.0f / sqrtf(2.0f));
-    show_texture = false;
-    self_shadow = true;
-    separate = false;
-    z_half_range = (z_far - z_near) * 0.5f;
+// 0x1405E83A0
+void Shadow::enable_group(int32_t group) {
+    m_enable_group[group] = true;
+}
+
+// 0x1405E8A20
+void Shadow::set_dist_base(int32_t group, const vec3* pos) {
+    if (group >= 0 && group < 2)
+        m_proj_dist_base_vec[group].push_back(vec3(pos->x, pos->y - 0.2f, pos->z));
+}
+
+// Missing
+const vec3* Shadow::get_dist_base(int32_t group) const {
+    if (group >= 0 && group < 2)
+        return &m_proj_dist_base[group];
+    return 0;
+}
+
+// 0x1405E8C70
+void Shadow::set_view_mtx(const mat4* view_mtx) {
+    m_view_mtx = *view_mtx;
+    mat4_invert_fast(view_mtx, &m_iview_mtx);
+}
+
+// 0x1405E89F0
+void Shadow::set_dist_attn(float_t dist_attn) {
+    if (fabs(dist_attn) > 0.000001f)
+        m_proj_dist_attn = dist_attn;
+    else
+        m_proj_dist_attn = 1.0f;
+}
+
+// 0x1405E8C50
+void Shadow::set_polyoffset(float_t polyoffset_factor, float_t polyoffset_unit) {
+    m_polyoffset_factor = polyoffset_factor;
+    m_polyoffset_unit = polyoffset_unit;
+}
+
+// 0x1405E8660
+void Shadow::get_polyoffset(float_t* polyoffset_factor, float_t* polyoffset_unit) {
+    if (polyoffset_factor)
+        *polyoffset_factor = m_polyoffset_factor;
+    if (polyoffset_unit)
+        *polyoffset_unit = m_polyoffset_unit;
 }
 
 // 0x1405E5A90
-void Shadow::set_curr_render_textures(int32_t index[2]) {
-    if (index) {
-        index[0] = this->index[0];
-        index[1] = this->index[1];
+void Shadow::begin_make_shadow_textures(int32_t group[2]) {
+    if (group) {
+        group[0] = m_group[0];
+        group[1] = m_group[1];
     }
 
-    curr_render_textures[0] = &render_textures[0];
-    curr_render_textures[1] = &render_textures[1];
-    curr_render_textures[2] = &render_textures[2];
+    rtex_shadowmap = &get_rtex(0);
+    rtex_soft[0] = &get_rtex(1);
+    rtex_soft[1] = &get_rtex(2);
 }
 
-void Shadow::set_distance(float_t value) {
-    if (fabs(value) > 0.000001f)
-        distance = value;
-    else
-        distance = 1.0f;
+// 0x1405E83B0
+void Shadow::end_make_shadow_textures(p_gl_rend_state& p_gl_rend_st) {
+    shader::unbind(p_gl_rend_st);
+    p_gl_rend_st.bind_framebuffer(0);
 }
 
-void shadow_ptr_init() {
-    shadow_ptr = new Shadow;
-}
+// 0x1405E5AD0
+void Shadow::begin_make_silhouette_map(render_data_context& rend_data_ctx,
+    struct cam_data& cam, int32_t group, int32_t index) {
+    render_context* rctx = rctx_ptr;
+    rtex_shadowmap->begin_render(rend_data_ctx.state);
+    texture* tex = rtex_shadowmap->get_texture();
+    rend_data_ctx.state.set_viewport(1, 1, tex->width - 2, tex->width - 2);
+    rend_data_ctx.state.enable_depth_test();
+    rend_data_ctx.state.clear_color(1.0f, 1.0f, 1.0f, 1.0f);
+    if (!index)
+        rend_data_ctx.state.clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    else if (m_separate)
+        rend_data_ctx.state.clear(GL_COLOR_BUFFER_BIT);
 
-Shadow* shadow_ptr_get() {
-    return shadow_ptr;
-}
-
-void shadow_ptr_free() {
-    if (shadow_ptr) {
-        delete shadow_ptr;
-        shadow_ptr = 0;
+    float_t shadow_range = get_distance();
+    float_t offset;
+    const vec3* light_targe;
+    const vec3* light_pos;
+    if (m_separate) {
+        offset = group ? 0.5f : -0.5f;
+        light_targe = &m_light_target[group];
+        light_pos = &m_light_pos[group];
     }
+    else {
+        offset = 0.0f;
+        light_targe = &m_avg_light_target;
+        light_pos = &m_avg_light_pos;
+    }
+
+    const float_t scale = (float_t)(tex->width / 2) / (float_t)((tex->width - 2) / 2);
+    set_light_view_proj_mtx(cam, light_pos, light_targe, shadow_range, offset, scale);
+    rctx->draw_state->rend_data[rend_data_ctx.index].shader_index = SHADER_FT_SIL;
+    rend_data_ctx.shader_flags.arr[U_DEPTH] = 0;
 }
 
-static void sub_1405E60E0(Shadow* shad) {
-    for (int32_t i = 0; i < 2; i++) {
-        shad->position[i] = 0.0f;
-        shad->field_1C8[i] = 0.0f;
+extern void apply_blur_filter_sub(render_data_context& rend_data_ctx, RenderTexture* dst, RenderTexture* src,
+    ImgfBoxSampl filter, const vec2 res_scale, const vec4 scale, const vec4 offset);
+extern void apply_esm_filter(render_data_context& rend_data_ctx,
+    RenderTexture* dst, RenderTexture* buf, RenderTexture* src,
+    float_t sigma, float_t offset, bool enable_lit_proj);
+extern void apply_esm_min_filter(render_data_context& rend_data_ctx,
+    RenderTexture* dst, RenderTexture* buf, RenderTexture* src);
 
-        if (!shad->shadow_enable[i] || !shad->positions[i].size())
-            continue;
+// 0x1405E83D0
+void Shadow::end_make_silhouette_map(render_data_context& rend_data_ctx, int32_t group, int32_t index) {
+    render_context* rctx = rctx_ptr;
+    rend_data_ctx.state.disable_depth_test();
 
-        vec3 position = 0.0f;
-        for (vec3& j : shad->positions[i])
-            position += j;
+    rctx->draw_state->rend_data[rend_data_ctx.index].shader_index = -1;
+    if (index == m_num_group - 1) {
+        apply_esm_filter(rend_data_ctx, &get_rtex(3), &get_rtex(4), rtex_shadowmap,
+            m_gauss_sigma, m_gauss_offset / (m_shadow_depth_range * 2.0f), false);
+        apply_esm_min_filter(rend_data_ctx, &get_rtex(5), &get_rtex(6), &get_rtex(3));
+    }
 
-        float_t position_count = (float_t)(int64_t)shad->positions[i].size();
-        if (position_count < 0.0f)
-            position_count += (float_t)UINT64_MAX;
-        position *= 1.0f / position_count;
+    RenderTexture* rend_tex = rtex_soft[group];
+    RenderTexture& rend_buf_tex = rctx_ptr->shadow_buffer;
 
-        float_t v15 = 0.0f;
-        for (vec3& j : shad->positions[i]) {
-            vec3 position_diff = position - j;
-            float_t v23 = vec3::dot(position_diff, shad->direction);
-            float_t v24 = vec3::distance(shad->direction * v23, position_diff);
-            v15 = max_def(v15, max_def(v24 - 0.25f, 0.0f));
+    image_filter_scale(rend_data_ctx, rend_tex, rtex_shadowmap->get_texture());
+
+    if (m_enable[group]) {
+        for (int32_t i = m_proj_near_repeat, j = 0; i > 0; i--, j++) {
+            apply_blur_filter_sub(rend_data_ctx, &rend_buf_tex, rend_tex,
+                m_proj_near_sampl, 1.0f, 1.0f, 0.0f);
+            image_filter_scale(rend_data_ctx, rend_tex, rend_buf_tex.get_texture());
         }
-        shad->position[i] = position;
-        shad->field_1C8[i] = v15;
     }
+    else {
+        rend_buf_tex.begin_render(rend_data_ctx.state);
+        rend_data_ctx.state.clear_color(1.0f, 1.0f, 1.0f, 1.0f);
+        rend_data_ctx.state.clear(GL_COLOR_BUFFER_BIT);
+    }
+    rend_buf_tex.end_render(rend_data_ctx.state);
 
-    for (std::vector<vec3>& i : shad->positions)
-        i.clear();
+    if (GLAD_GL_VERSION_4_5)
+        rend_data_ctx.state.generate_texture_mipmap(rend_tex->get_texture_glid());
+    else {
+        rend_data_ctx.state.bind_texture_2d(rend_tex->get_texture_glid());
+        rend_data_ctx.state.generate_mipmap(GL_TEXTURE_2D);
+        rend_data_ctx.state.bind_texture_2d(0);
+    }
 }
 
-static void sub_1405E63D0(Shadow* shad) {
-    if (shad->num_shadow <= 0)
+// 0x1405E5CA0
+void Shadow::bind_shadow(render_data_context& rend_data_ctx, render_context* rctx) {
+    float_t esm_param;
+    if (m_enable_self_shadow && m_num_group > 0) {
+        rend_data_ctx.state.active_bind_texture_2d(19, get_rtex(3).get_texture_glid());
+        rend_data_ctx.state.active_bind_texture_2d(20, get_rtex(5).get_texture_glid());
+        rend_data_ctx.state.active_texture(0);
+        esm_param = (m_esm_exponent * m_shadow_depth_range * 2.0f) * 1.442695f;
+        rend_data_ctx.set_self_shadow(true);
+    }
+    else {
+        rend_data_ctx.state.active_bind_texture_2d(19, rctx->empty_texture_2d->glid);
+        rend_data_ctx.state.active_bind_texture_2d(20, rctx->empty_texture_2d->glid);
+        rend_data_ctx.state.active_texture(0);
+        esm_param = 0.0f;
+        rend_data_ctx.set_self_shadow(false);
+    }
+
+    rend_data_ctx.state.bind_sampler(19, rctx->render_samplers[0]);
+    rend_data_ctx.state.bind_sampler(20, rctx->render_samplers[0]);
+
+    mat4 mats[2];
+    mats[0] = mat4_identity;
+    mats[1] = mat4_identity;
+    vec4 shadow_ambient;
+    vec4 shadow_ambient1;
+    if (m_num_group > 0) {
+        rctx->draw_state->rend_data[rend_data_ctx.index].shadow = true;
+        rend_data_ctx.shader_flags.arr[U_STAGE_SHADOW2] = m_num_group > 1 ? 1 : 0;
+
+        float_t distance = get_distance();
+        for (int32_t i = 0; i < 2; i++) {
+            float_t offset;
+            vec3* target;
+            vec3* pos;
+            if (m_separate) {
+                offset = i ? 0.5f : -0.5f;
+
+                target = &m_light_target[i];
+                pos = &m_light_pos[i];
+            }
+            else {
+                offset = 0.0f;
+                target = &m_avg_light_target;
+                pos = &m_avg_light_pos;
+            }
+
+            calc_tex_mtx(pos, target, distance, offset, &mats[i]);
+        }
+
+        int32_t index = 0;
+        for (int32_t i = 0; i < 2; i++)
+            if (m_enable_group[i]) {
+                rend_data_ctx.state.active_bind_texture_2d(6 + index, rtex_soft[i]->get_texture_glid());
+                index++;
+            }
+
+        for (; index < 2; index++)
+            rend_data_ctx.state.active_bind_texture_2d(6 + index, rctx->empty_texture_2d->glid);
+        rend_data_ctx.state.active_texture(0);
+
+        light_set* set = &rctx->light_set[LIGHT_SET_MAIN];
+        light_data* data = &set->lights[LIGHT_SHADOW];
+
+        vec4 ambient;
+        if (data->get_type() == LIGHT_PARALLEL)
+            data->get_ambient(ambient);
+        else
+            *(vec3*)&ambient.x = m_shadow_ambient;
+
+        shadow_ambient = { ambient.x, ambient.y, ambient.z, 1.0f };
+        shadow_ambient1 = { 1.0f - ambient.x, 1.0f - ambient.y, 1.0f - ambient.z, 0.0f };
+    }
+    else {
+        rctx->draw_state->rend_data[rend_data_ctx.index].shadow = false;
+
+        for (int32_t i = 0; i < 2; i++)
+            rtex_soft[i]->bind_texture(rend_data_ctx.state, 6 + i);
+        rend_data_ctx.state.active_texture(0);
+
+        shadow_ambient = 1.0f;
+        shadow_ambient1 = 0.0f;
+    }
+
+    rend_data_ctx.set_scene_shadow_params(esm_param, mats, shadow_ambient, shadow_ambient1);
+
+    rend_data_ctx.state.bind_sampler(6, 0);
+    rend_data_ctx.state.bind_sampler(7, 0);
+}
+
+// 0x1405E8D40
+void Shadow::unbind_shadow(render_data_context& rend_data_ctx, render_context* rctx) {
+    rend_data_ctx.state.active_bind_texture_2d(6, rctx->empty_texture_2d->glid);
+    rend_data_ctx.state.active_bind_texture_2d(7, rctx->empty_texture_2d->glid);
+    rend_data_ctx.set_self_shadow(false);
+    rend_data_ctx.set_shadow(false);
+}
+
+// 0x1405E7AF0
+void Shadow::clear(p_gl_rend_state& p_gl_rend_st) {
+    for (int32_t i = 0; i < 2; i++)
+        for (int32_t j = 0; j < 4; j++) {
+            rtex_soft[i]->begin_render(p_gl_rend_st, j);
+            p_gl_rend_st.clear_color(1.0f, 1.0f, 1.0f, 1.0f);
+            p_gl_rend_st.clear(GL_COLOR_BUFFER_BIT);
+        }
+    p_gl_rend_st.bind_framebuffer(0);
+}
+
+// 0x1405E89B0
+void Shadow::reset_group() {
+    for (int32_t i = 0; i < 2; i++)
+        m_enable_group[i] = false;
+}
+
+// 0x1405E80C0
+void Shadow::dbg_show_textures() {
+    if (!m_enable_show_textures)
         return;
 
-    vec3 view_point = 0.0f;
-    vec3 interest = 0.0f;
-    for (int32_t i = 0; i < 2; i++) {
-        if (!shad->shadow_enable[i])
-            continue;
+    GLuint gltex_self_work = rtex_shadowmap->get_texture_glid();
+    dbg_draw_texture_uv_mm(0.0f, 0.0f, 256.0f, 256.0f, 1.0f, 1.0f, 0, gltex_self_work);
 
-        const vec3 v11 = shad->position[i] - shad->direction * shad->z_half_range;
-        const float_t v9 = vec3::distance(shad->view_point[i], v11);
-        const float_t v12 = vec3::distance(shad->interest[i], shad->position[i]);
-        if (v9 > 0.1f || v12 > 0.1f) {
-            shad->view_point[i] = v11;
-            shad->interest[i] = shad->position[i];
-        }
+    GLuint gltex_self0 = rtex_soft[0]->get_texture_glid();
+    dbg_draw_texture_uv_mm(  0.0f, 256.0f, 128.0f, 128.0f, 1.0f, 1.0f, 0, gltex_self0);
+    dbg_draw_texture_uv_mm(128.0f, 256.0f,  64.0f,  64.0f, 1.0f, 1.0f, 1, gltex_self0);
+    dbg_draw_texture_uv_mm(192.0f, 256.0f,  32.0f,  32.0f, 1.0f, 1.0f, 2, gltex_self0);
+    dbg_draw_texture_uv_mm(224.0f, 256.0f,  16.0f,  16.0f, 1.0f, 1.0f, 3, gltex_self0);
 
-        view_point += shad->view_point[i];
-        interest += shad->interest[i];
-    }
-
-    shad->view_point_shared = view_point * (1.0f / (float_t)shad->num_shadow);
-    shad->interest_shared = interest * (1.0f / (float_t)shad->num_shadow);
+    GLuint gltex_self1 = rtex_soft[1]->get_texture_glid();
+    dbg_draw_texture_uv_mm(256.0f, 256.0f, 128.0f, 128.0f, 1.0f, 1.0f, 0, gltex_self1);
+    dbg_draw_texture_uv_mm(384.0f, 256.0f,  64.0f,  64.0f, 1.0f, 1.0f, 1, gltex_self1);
+    dbg_draw_texture_uv_mm(448.0f, 256.0f,  32.0f,  32.0f, 1.0f, 1.0f, 2, gltex_self1);
+    dbg_draw_texture_uv_mm(480.0f, 256.0f,  16.0f,  16.0f, 1.0f, 1.0f, 3, gltex_self1);
 }
 
-static void sub_1405E6840(Shadow* shad) {
+// 0x1405E89C0
+void Shadow::set_cull_func(int32_t group) {
+    if (group >= 0 && group < 2) {
+        if (!group)
+            rctx_ptr->disp_manager->set_culling_func(check_culling0);
+        else
+            rctx_ptr->disp_manager->set_culling_func(check_culling1);
+    }
+}
+
+// 0x1405E6840
+void Shadow::calc_shadowmap() {
     int32_t count = 0;
-    shad->num_shadow = 0;
+    m_num_group = 0;
     for (int32_t i = 0; i < 2; i++) {
-        if (shad->shadow_enable[i] && shad->positions[i].size()) {
-            ++shad->num_shadow;
-            count += (int32_t)shad->positions->size();
+        if (m_enable_group[i] && m_proj_dist_base_vec[i].size()) {
+            m_num_group++;
+            count += (int32_t)m_proj_dist_base_vec[i].size();
         }
         else
-            shad->shadow_enable[i] = false;
+            m_enable_group[i] = false;
     }
 
     if (count < 3) {
-        sub_1405E60E0(shad);
-        sub_1405E63D0(shad);
-        sub_1405E6910(shad);
+        calc_dist_base();
+        calc_light_coord();
+        calc_shadowmap_region();
     }
     else
-        sub_1405E6B70(shad);
+        calc_shadowmap_region_multi();
 }
 
-static void sub_1405E6910(Shadow* shad) {
-    const float_t v2 = max_def(shad->field_1C8[0], shad->field_1C8[1]);
-    shad->separate = false;
-    shad->shadow_range = v2 + MIN_SHADOW_RANGE;
-    shad->index[0] = 0;
-    shad->index[1] = 1;
+// 0x1405E8640
+float_t Shadow::get_distance() const {
+    return m_view_region * m_shadow_range;
+}
 
-    if (shad->num_shadow < 2)
-        return;
-
-    const vec3 v12 = shad->position[0] - shad->interest_shared;
-    const vec3 v14 = shad->position[1] - shad->interest_shared;
-    float_t v16 = vec3::distance((shad->direction * vec3::dot(v12, shad->direction)), v12);
-    v16 = max_def(v16 - 0.25f, 0.0f);
-
-    if (v2 + MIN_SHADOW_RANGE + v16 > v2 + SHADOW_RANGE_SEPARATE) {
-        shad->shadow_range = v2 + SHADOW_RANGE_SEPARATE;
-        shad->separate = true;
-    }
-    else
-        shad->shadow_range = v2 + MIN_SHADOW_RANGE + v16;
-
-    if (vec3::dot(v12, shad->direction) < vec3::dot(v14, shad->direction)) {
-        shad->index[0] = 1;
-        shad->index[1] = 0;
+// 0x1405E8610
+void finish_shadow() {
+    if (g_shadow) {
+        delete g_shadow;
+        g_shadow = 0;
     }
 }
 
-static void sub_1405E6B70(Shadow* shad) {
-    vec3 v3;
-    vec3 v86;
-    if (shad->direction.y * shad->direction.y < 0.99f) {
-        v86 = vec3::cross(shad->direction, vec3(0.0f, 1.0f, 0.0f));
-        v3 = vec3::cross(v86, shad->direction);
-        v86 = vec3::normalize(v86);
-        v3 = vec3::normalize(v3);
-    }
-    else {
-        v3 = { 0.0f, 0.0f, 1.0f };
-        v86 = { 1.0f, 0.0f, 0.0f };
-    }
+// 0x1405E8680
+Shadow* get_shadow() {
+    return g_shadow;
+}
 
-    for (int32_t i = 0; i < 2; i++) {
-        shad->position[i] = 0.0f;
-        shad->field_1C8[i] = 0.0f;
+// 0x1405E8890
+void init_shadow() {
+    g_shadow = new Shadow;
+}
 
-        if (!shad->shadow_enable[i] || !shad->positions[i].size())
-            continue;
+// 0x1405E7D40
+static void dbg_draw_texture(float_t x, float_t y,
+    float_t width, float_t height, GLuint texture) {
+    dbg_draw_texture_uv_mm(x, y, width, height, 1.0f, 1.0f, 0, texture);
+}
 
-        vec3 v22 = 0.0f;
-        for (vec3& j : shad->positions[i])
-            v22 += j;
+// 0x1405E7D80
+static void dbg_draw_texture_uv(float_t x, float_t y,
+    float_t width, float_t height, float_t s, float_t t, GLuint texture) {
+    dbg_draw_texture_uv_mm(x, y, width, height, s, t, 0, texture);
+}
 
-        float_t v29 = (float_t)(int64_t)shad->positions[i].size();
-        if (v29 < 0.0f)
-            v29 += (float_t)UINT64_MAX;
-        v22 *= 1.0f / v29;
+// 0x1405E7DC0
+static void dbg_draw_texture_uv_mm(float_t x, float_t y,
+    float_t width, float_t height, float_t s, float_t t, int32_t level, GLuint texture) {
+    // NOT IMPL!
+}
 
-        float_t v30 = 0.0f;
-        for (vec3& j : shad->positions[i]) {
-            const vec3 v35 = v22 - j;
-            const float_t v39 = fabsf(vec3::dot(v35, v86));
-            const float_t v38 = fabsf(vec3::dot(v35, v3));
-            v30 = max_def(v30, max_def(v38, v39));
-        }
-        shad->position[i] = v22;
-        shad->field_1C8[i] = v30;
-    }
-
-    if (shad->num_shadow > 0) {
-        vec3 view_point = 0.0f;
-        vec3 interest = 0.0f;
-        for (int32_t i = 0; i < 2; i++) {
-            if (!shad->shadow_enable[i])
-                continue;
-
-            const vec3 v41 = shad->position[0] - shad->direction * shad->z_half_range;
-            const float_t v42 = vec3::distance(shad->view_point[0], v41);
-            const float_t v45 = vec3::distance(shad->interest[0], shad->position[0]);
-            if (v42 > 0.1f || v45 > 0.1f) {
-                shad->view_point[0] = v41;
-                shad->interest[0] = shad->position[0];
-            }
-
-            view_point += shad->view_point[i];
-            interest += shad->interest[i];
-        }
-
-        shad->view_point_shared = view_point * (1.0f / (float_t)shad->num_shadow);
-        shad->interest_shared = interest * (1.0f / (float_t)shad->num_shadow);
-    }
-
-    const float_t v67 = max_def(shad->field_1C8[0], shad->field_1C8[1]);
-    shad->separate = 0;
-    shad->shadow_range = v67 + MIN_SHADOW_RANGE;
-    shad->index[0] = 0;
-    shad->index[1] = 1;
-
-    if (shad->num_shadow >= 2) {
-        float_t v2 = 0.0f;
-        float_t v68 = 0.0f;
-        float_t v69 = 0.0f;
-        float_t v70 = 0.0f;
-        for (int32_t i = 0; i < 2; i++) {
-            if (!shad->shadow_enable[i])
-                continue;
-
-            for (vec3& j : shad->positions[i]) {
-                const vec3 interest_diff = j - shad->interest_shared;
-
-                const float_t v77 = vec3::dot(v86, interest_diff);
-                if (v2 > v77)
-                    v2 = v77;
-                else if (v69 < v77)
-                    v69 = v77;
-
-                const float_t v78 = vec3::dot(v3, interest_diff);
-                if (v68 > v78)
-                    v68 = v78;
-                else if (v70 < v78)
-                    v70 = v78;
-            }
-        }
-
-        const float_t v79 = max_def(max_def(max_def(-v2, v69), -v68), v70);
-
-        if (v79 + MIN_SHADOW_RANGE > v67 + SHADOW_RANGE_SEPARATE) {
-            shad->shadow_range = v67 + SHADOW_RANGE_SEPARATE;
-            shad->separate = true;
-        }
+// 0x1405E56B0
+static void M_calc_light_up(vec3* light_up, const vec3* light_pos, const vec3* light_target) {
+    *light_up = { 0.0f, 1.0f, 0.0f };
+    const vec3 dir = *light_target - *light_pos;
+    if (fabsf(dir.x * dir.x + dir.z * dir.z) <= 0.000001f) {
+        light_up->x = 0.0f;
+        light_up->y = 0.0f;
+        if (dir.y < 0.0f)
+            light_up->z = 1.0f;
         else
-            shad->shadow_range = v79 + MIN_SHADOW_RANGE;
-
-        if (vec3::dot(shad->position[0] - shad->interest_shared, shad->direction)
-            < vec3::dot(shad->position[1] - shad->interest_shared, shad->direction)) {
-            shad->index[1] = 0;
-            shad->index[0] = 1;
-        }
+            light_up->z = -1.0f;
     }
-
-    for (std::vector<vec3>& i : shad->positions)
-        i.clear();
 }

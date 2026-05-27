@@ -21,25 +21,20 @@
 #include "render_context.hpp"
 #include "render_texture.hpp"
 #include "shader_ft.hpp"
+#include "shadow.hpp"
 #include "sprite.hpp"
 #include "static_var.hpp"
 #include "texture.hpp"
 
 extern render_context* rctx_ptr;
 
-static void draw_pass_shadow_begin_make_shadowmap(Shadow* shad,
-    render_data_context& rend_data_ctx, cam_data& cam, int32_t index, int32_t a3);
-static void draw_pass_shadow_end_make_shadowmap(Shadow* shad,
-    render_data_context& rend_data_ctx, int32_t index, int32_t a3);
-static void apply_esm_filter(render_data_context& rend_data_ctx,
+void apply_esm_filter(render_data_context& rend_data_ctx,
     RenderTexture* dst, RenderTexture* buf, RenderTexture* src,
-    float_t sigma, float_t far_texel_offset, bool enable_lit_proj);
-static void apply_esm_min_filter(render_data_context& rend_data_ctx,
+    float_t sigma, float_t offset, bool enable_lit_proj);
+void apply_esm_min_filter(render_data_context& rend_data_ctx,
     RenderTexture* dst, RenderTexture* buf, RenderTexture* src);
 static bool litproj_clear(render_data_context& rend_data_ctx, light_proj* litproj, cam_data& cam);
 static int32_t draw_pass_3d_get_translucent_count(render_context* rctx);
-static void draw_pass_3d_shadow_reset(render_data_context& rend_data_ctx, render_context* rctx);
-static void draw_pass_3d_shadow_set(render_data_context& rend_data_ctx, Shadow* shad, render_context* rctx);
 extern void draw_pass_3d_translucent(render_data_context& rend_data_ctx,
     render_context* rctx, mdl::ObjType opaque,
     mdl::ObjType transparent, mdl::ObjType translucent, cam_data& cam);
@@ -59,8 +54,8 @@ static void draw_pass_3d_translucent_has_objects(
 
 static void draw_pass_reflect_full(render_data_context& rend_data_ctx, rndr::RenderManager* render_manager);
 
-static void apply_blur_filter_sub(render_data_context& rend_data_ctx, RenderTexture* dst, RenderTexture* src,
-    blur_filter_mode filter, const vec2 res_scale, const vec4 scale, const vec4 offset);
+void apply_blur_filter_sub(render_data_context& rend_data_ctx, RenderTexture* dst, RenderTexture* src,
+    ImgfBoxSampl filter, const vec2 res_scale, const vec4 scale, const vec4 offset);
 
 static void render_manager_free_render_textures();
 static void render_manager_init_render_textures(int32_t multisample);
@@ -133,6 +128,34 @@ namespace rndr {
         pre_process.push_back({ type, func, data });
     }
 
+    // 0x140502390
+    void RenderManager::calc_shadow() {
+        shadow_ptr->reset_group();
+
+        if (shadow) {
+            shadow_ptr->set_view_mtx(&rctx_ptr->camera->view);
+
+            light_data& light_chara = rctx_ptr->light_set[LIGHT_SET_MAIN].lights[LIGHT_CHARA];
+
+            vec3 dir;
+            light_chara.get_position(dir);
+            dir = -dir;
+
+            float_t length = vec3::length(dir);
+            if (length < 0.000001f)
+                dir = { 0.0f, 1.0f, 0.0f };
+            else if (length != 0.0)
+                dir *= (1.0f / length);
+            shadow_ptr->set_light_dir(&dir);
+
+            for (int32_t i = 0; i < 2; i++)
+                if (rctx_ptr->disp_manager->get_obj_count((mdl::ObjType)((int32_t)mdl::OBJ_TYPE_SHADOW_CHARA + i)))
+                    shadow_ptr->enable_group(i);
+        }
+
+        shadow_ptr->calc_shadowmap();
+    }
+
     void RenderManager::clear_pre_process(int32_t type) {
         for (auto i = pre_process.begin(); i != pre_process.end(); i++)
             if (i->type == type) {
@@ -177,7 +200,7 @@ namespace rndr {
         silhouette_high = false;
 
         reflect_blur_num = 1;
-        reflect_blur_filter = BLUR_FILTER_4;
+        reflect_blur_filter = IMGF_BOX_SAMPL_4;
         show_ref_map = false;
 
         reflect_type = STAGE_DATA_REFLECT_DISABLE;
@@ -263,7 +286,7 @@ namespace rndr {
         reflect = value;
     }
 
-    void RenderManager::set_reflect_blur(int32_t reflect_blur_num, blur_filter_mode reflect_blur_filter) {
+    void RenderManager::set_reflect_blur(int32_t reflect_blur_num, ImgfBoxSampl reflect_blur_filter) {
         this->reflect_blur_num = reflect_blur_num;
         this->reflect_blur_filter = reflect_blur_filter;
     }
@@ -482,35 +505,34 @@ namespace rndr {
 
         Shadow* shad = shadow_ptr;
         if (shadow && make_shadowmap) {
-            int32_t index[2];
-            shad->set_curr_render_textures(index);
+            int32_t group[2];
+            shad->begin_make_shadow_textures(group);
 
             cam_data cam;
-            for (int32_t i = 0, j = 0; i < 2; i++) {
+            for (int32_t i = 0, index = 0; i < 2; i++) {
                 if (!obj_shadow_count[i])
                     continue;
 
-                draw_pass_shadow_begin_make_shadowmap(shad, rend_data_ctx, cam, index[i], j);
+                shad->begin_make_silhouette_map(rend_data_ctx, cam, group[i], index);
                 rend_data_ctx.set_batch_scene_camera(cam);
-                rctx->disp_manager->draw(rend_data_ctx, (mdl::ObjType)(mdl::OBJ_TYPE_SHADOW_CHARA + index[i]), cam);
+                rctx->disp_manager->draw(rend_data_ctx, (mdl::ObjType)(mdl::OBJ_TYPE_SHADOW_CHARA + group[i]), cam);
                 if (rctx->disp_manager->get_obj_count(
-                    (mdl::ObjType)(mdl::OBJ_TYPE_SHADOW_OBJECT_CHARA + index[i])) > 0) {
+                    (mdl::ObjType)(mdl::OBJ_TYPE_SHADOW_OBJECT_CHARA + group[i])) > 0) {
                     rend_data_ctx.state.set_color_mask(show_stage_shadow
                         ? GL_TRUE : GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
                     rctx->disp_manager->draw(rend_data_ctx,
                         (mdl::ObjType)(mdl::OBJ_TYPE_SHADOW_OBJECT_CHARA + i), cam);
                     rend_data_ctx.state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
                 }
-                draw_pass_shadow_end_make_shadowmap(shad, rend_data_ctx, index[i], j);
-                j++;
+                shad->end_make_silhouette_map(rend_data_ctx, group[i], index);
+                index++;
             }
         }
         else {
-            shad->set_curr_render_textures(0);
-            shad->clear_textures(rend_data_ctx.state);
+            shad->begin_make_shadow_textures(0);
+            shad->clear(rend_data_ctx.state);
         }
-        shader::unbind(rend_data_ctx.state);
-        rend_data_ctx.state.bind_framebuffer(0);
+        shad->end_make_shadow_textures(rend_data_ctx.state);
         rend_data_ctx.state.end_event();
     }
 
@@ -539,9 +561,9 @@ namespace rndr {
                     rctx->light_set[i].data_set(rend_data_ctx, rctx->face, (light_set_id)i);
 
                 if (shadow)
-                    draw_pass_3d_shadow_set(rend_data_ctx, shadow_ptr, rctx);
+                    shadow_ptr->bind_shadow(rend_data_ctx, rctx);
                 else
-                    draw_pass_3d_shadow_reset(rend_data_ctx, rctx);
+                    shadow_ptr->unbind_shadow(rend_data_ctx, rctx);
 
                 cam_data reflect_cam = cam;
                 set_reflect_mat(rend_data_ctx, reflect_cam);
@@ -554,7 +576,7 @@ namespace rndr {
                 rctx->disp_manager->draw(rend_data_ctx, mdl::OBJ_TYPE_SSS, reflect_cam);
                 rend_data_ctx.state.disable_depth_test();
                 rctx->draw_state->rend_data[rend_data_ctx.index].shader_index = -1;
-                draw_pass_3d_shadow_reset(rend_data_ctx, rctx);
+                shadow_ptr->unbind_shadow(rend_data_ctx, rctx);
                 rend_data_ctx.shader_flags.arr[U_NPR] = 0;
 
                 if (npr_param == 1) {
@@ -592,9 +614,9 @@ namespace rndr {
                 rctx->light_set[i].data_set(rend_data_ctx, rctx->face, (light_set_id)i);
 
             if (shadow)
-                draw_pass_3d_shadow_set(rend_data_ctx, shadow_ptr, rctx);
+                shadow_ptr->bind_shadow(rend_data_ctx, rctx);
             else
-                draw_pass_3d_shadow_reset(rend_data_ctx, rctx);
+                shadow_ptr->unbind_shadow(rend_data_ctx, rctx);
 
             rend_data_ctx.set_batch_scene_camera(cam);
 
@@ -605,7 +627,7 @@ namespace rndr {
             rctx->disp_manager->draw(rend_data_ctx, mdl::OBJ_TYPE_SSS, cam);
             rend_data_ctx.state.disable_depth_test();
             rctx->draw_state->rend_data[rend_data_ctx.index].shader_index = -1;
-            draw_pass_3d_shadow_reset(rend_data_ctx, rctx);
+            shadow_ptr->unbind_shadow(rend_data_ctx, rctx);
             rend_data_ctx.shader_flags.arr[U_NPR] = 0;
 
             if (npr_param == 1) {
@@ -694,9 +716,9 @@ namespace rndr {
                 rctx->draw_state->rend_data[rend_data_ctx.index].shader_index = -1;
 
                 if (shadow)
-                    draw_pass_3d_shadow_set(rend_data_ctx, shadow_ptr, rctx);
+                    shadow_ptr->bind_shadow(rend_data_ctx, rctx);
                 else
-                    draw_pass_3d_shadow_reset(rend_data_ctx, rctx);
+                    shadow_ptr->unbind_shadow(rend_data_ctx, rctx);
 
                 if (effect_texture)
                     rend_data_ctx.state.active_bind_texture_2d(14, effect_texture->glid);
@@ -740,7 +762,7 @@ namespace rndr {
                 }
 
                 if (shadow)
-                    draw_pass_3d_shadow_reset(rend_data_ctx, rctx);
+                    shadow_ptr->unbind_shadow(rend_data_ctx, rctx);
                 reflect_draw = false;
             }
             else if (reflect_type == STAGE_DATA_REFLECT_REFLECT_MAP) {
@@ -924,9 +946,9 @@ namespace rndr {
             rctx->fog[i].data_set(rend_data_ctx, (fog_id)i);
 
         if (shadow)
-            draw_pass_3d_shadow_set(rend_data_ctx, shadow_ptr, rctx);
+            shadow_ptr->bind_shadow(rend_data_ctx, rctx);
         else
-            draw_pass_3d_shadow_reset(rend_data_ctx, rctx);
+            shadow_ptr->unbind_shadow(rend_data_ctx, rctx);
 
         if (effect_texture)
             rend_data_ctx.state.active_bind_texture_2d(14, effect_texture->glid);
@@ -1103,7 +1125,7 @@ namespace rndr {
             refl_tex->unbind_texture(rend_data_ctx.state);
 
         if (shadow)
-            draw_pass_3d_shadow_reset(rend_data_ctx, rctx);
+            shadow_ptr->unbind_shadow(rend_data_ctx, rctx);
         pass_sprite_surf(rend_data_ctx);
         shader::unbind(rend_data_ctx.state);
         render->end_render(rend_data_ctx.state);
@@ -1309,9 +1331,9 @@ void render_manager_init_data(int32_t ssaa, int32_t hd_res, int32_t ss_alpha_mas
     render_manager_init_render_textures(1);
     render_manager.render->init_post_process_buffers();
 
-    shadow_ptr_init();
-    render_manager.shadow_ptr = shadow_ptr_get();
-    render_manager.shadow_ptr->init();
+    init_shadow();
+    render_manager.shadow_ptr = get_shadow();
+    render_manager.shadow_ptr->create();
 
     rctx_ptr->sss_data->init();
     gl_get_error_print();
@@ -1322,90 +1344,14 @@ void render_manager_free_data() {
 
     render_manager_free_render_textures();
     render_manager.render->free();
-    shadow_ptr_free();
+    finish_shadow();
     rctx_ptr->sss_data->free();
 }
 
-static void draw_pass_shadow_begin_make_shadowmap(Shadow* shad,
-    render_data_context& rend_data_ctx, cam_data& cam, int32_t index, int32_t a3) {
-    render_context* rctx = rctx_ptr;
-    shad->curr_render_textures[0]->begin_render(rend_data_ctx.state);
-    texture* tex = shad->curr_render_textures[0]->get_texture();
-    rend_data_ctx.state.set_viewport(1, 1, tex->width - 2, tex->width - 2);
-    rend_data_ctx.state.enable_depth_test();
-    rend_data_ctx.state.clear_color(1.0f, 1.0f, 1.0f, 1.0f);
-    if (!a3)
-        rend_data_ctx.state.clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    else if (shad->separate)
-        rend_data_ctx.state.clear(GL_COLOR_BUFFER_BIT);
-
-    float_t shadow_range = shad->get_shadow_range();
-    float_t offset;
-    vec3* interest;
-    vec3* view_point;
-    if (shad->separate) {
-        offset = index ? 0.5f : -0.5f;
-        interest = &shad->interest[index];
-        view_point = &shad->view_point[index];
-    }
-    else {
-        offset = 0.0f;
-        interest = &shad->interest_shared;
-        view_point = &shad->view_point_shared;
-    }
-
-    const float_t scale = (float_t)(tex->width / 2) / (float_t)((tex->width - 2) / 2);
-    shad->calc_proj_view_mat(cam, *view_point, *interest, shadow_range, offset, scale);
-    rctx->draw_state->rend_data[rend_data_ctx.index].shader_index = SHADER_FT_SIL;
-    rend_data_ctx.shader_flags.arr[U_DEPTH] = 0;
-}
-
-static void draw_pass_shadow_end_make_shadowmap(Shadow* shad,
-    render_data_context& rend_data_ctx, int32_t index, int32_t a3) {
-    render_context* rctx = rctx_ptr;
-    rend_data_ctx.state.disable_depth_test();
-
-    rctx->draw_state->rend_data[rend_data_ctx.index].shader_index = -1;
-    if (a3 == shad->num_shadow - 1) {
-        apply_esm_filter(rend_data_ctx, &shad->render_textures[3],
-            &shad->render_textures[4], shad->curr_render_textures[0],
-            shad->field_2DC, shad->field_2E0 / (shad->z_half_range * 2.0f), false);
-        apply_esm_min_filter(rend_data_ctx, &shad->render_textures[5],
-            &shad->render_textures[6], &shad->render_textures[3]);
-    }
-
-    RenderTexture* rend_tex = shad->curr_render_textures[1 + index];
-    RenderTexture& rend_buf_tex = rctx_ptr->shadow_buffer;
-
-    image_filter_scale(rend_data_ctx, rend_tex,
-        shad->curr_render_textures[0]->get_texture());
-
-    if (shad->blur_filter_enable[index]) {
-        for (int32_t i = shad->near_blur, j = 0; i > 0; i--, j++) {
-            apply_blur_filter_sub(rend_data_ctx, &rend_buf_tex, rend_tex,
-                shad->blur_filter, 1.0f, 1.0f, 0.0f);
-            image_filter_scale(rend_data_ctx, rend_tex, rend_buf_tex.get_texture());
-        }
-    }
-    else {
-        rend_buf_tex.begin_render(rend_data_ctx.state);
-        rend_data_ctx.state.clear_color(1.0f, 1.0f, 1.0f, 1.0f);
-        rend_data_ctx.state.clear(GL_COLOR_BUFFER_BIT);
-    }
-    rend_buf_tex.end_render(rend_data_ctx.state);
-
-    if (GLAD_GL_VERSION_4_5)
-        rend_data_ctx.state.generate_texture_mipmap(rend_tex->get_texture_glid());
-    else {
-        rend_data_ctx.state.bind_texture_2d(rend_tex->get_texture_glid());
-        rend_data_ctx.state.generate_mipmap(GL_TEXTURE_2D);
-        rend_data_ctx.state.bind_texture_2d(0);
-    }
-}
-
-static void apply_esm_filter(render_data_context& rend_data_ctx,
+// 0x1403B6560
+void apply_esm_filter(render_data_context& rend_data_ctx,
     RenderTexture* dst, RenderTexture* buf, RenderTexture* src,
-    float_t sigma, float_t far_texel_offset, bool enable_lit_proj) {
+    float_t sigma, float_t offset, bool enable_lit_proj) {
     texture* dst_tex = dst->get_texture();
     texture* buf_tex = buf->get_texture();
     texture* src_tex = dst->get_texture();
@@ -1437,7 +1383,7 @@ static void apply_esm_filter(render_data_context& rend_data_ctx,
     rend_data_ctx.state.set_viewport(0, 0, dst_tex->width, dst_tex->height);
 
     buf->begin_render(rend_data_ctx.state);
-    esm_filter_batch.g_params = { 1.0f / (float_t)dst_tex->width, 0.0f, far_texel_offset, far_texel_offset };
+    esm_filter_batch.g_params = { 1.0f / (float_t)dst_tex->width, 0.0f, offset, offset };
     rend_data_ctx.state.write_uniform_buffer(rctx->esm_filter_batch_ubo, esm_filter_batch);
 
     rend_data_ctx.state.active_bind_texture_2d(0, src_tex->glid);
@@ -1446,7 +1392,7 @@ static void apply_esm_filter(render_data_context& rend_data_ctx,
     rend_data_ctx.state.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
 
     dst->begin_render(rend_data_ctx.state);
-    esm_filter_batch.g_params = { 0.0f, 1.0f / (float_t)dst_tex->height, far_texel_offset, far_texel_offset };
+    esm_filter_batch.g_params = { 0.0f, 1.0f / (float_t)dst_tex->height, offset, offset };
     rend_data_ctx.state.write_uniform_buffer(rctx->esm_filter_batch_ubo, esm_filter_batch);
 
     rend_data_ctx.state.active_bind_texture_2d(0, buf_tex->glid);
@@ -1457,7 +1403,8 @@ static void apply_esm_filter(render_data_context& rend_data_ctx,
     rend_data_ctx.state.end_event();
 }
 
-static void apply_esm_min_filter(render_data_context& rend_data_ctx,
+// 0x1403B6950
+void apply_esm_min_filter(render_data_context& rend_data_ctx,
     RenderTexture* dst, RenderTexture* buf, RenderTexture* src) {
     texture* dst_tex = dst->get_texture();
     texture* buf_tex = buf->get_texture();
@@ -1556,114 +1503,6 @@ static int32_t draw_pass_3d_get_translucent_count(render_context* rctx) {
     count += rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_POST_OPAQUE);
     count += rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_POST_OPAQUE);
     return count;
-}
-
-static void draw_pass_3d_shadow_reset(render_data_context& rend_data_ctx, render_context* rctx) {
-    rend_data_ctx.state.active_bind_texture_2d(6, rctx->empty_texture_2d->glid);
-    rend_data_ctx.state.active_bind_texture_2d(7, rctx->empty_texture_2d->glid);
-    rend_data_ctx.set_self_shadow(false);
-    rend_data_ctx.set_shadow(false);
-}
-
-static void draw_pass_3d_shadow_set(render_data_context& rend_data_ctx, Shadow* shad, render_context* rctx) {
-    float_t esm_param;
-    if (shad->self_shadow && shad->num_shadow > 0) {
-        rend_data_ctx.state.active_bind_texture_2d(19, shad->render_textures[3].get_texture_glid());
-        rend_data_ctx.state.active_bind_texture_2d(20, shad->render_textures[5].get_texture_glid());
-        rend_data_ctx.state.active_texture(0);
-        esm_param = (shad->field_2D8 * shad->z_half_range * 2.0f) * 1.442695f;
-        rend_data_ctx.set_self_shadow(true);
-    }
-    else {
-        rend_data_ctx.state.active_bind_texture_2d(19, rctx->empty_texture_2d->glid);
-        rend_data_ctx.state.active_bind_texture_2d(20, rctx->empty_texture_2d->glid);
-        rend_data_ctx.state.active_texture(0);
-        esm_param = 0.0f;
-        rend_data_ctx.set_self_shadow(false);
-    }
-
-    rend_data_ctx.state.bind_sampler(19, rctx->render_samplers[0]);
-    rend_data_ctx.state.bind_sampler(20, rctx->render_samplers[0]);
-
-    mat4 mats[2];
-    mats[0] = mat4_identity;
-    mats[1] = mat4_identity;
-    vec4 shadow_ambient;
-    vec4 shadow_ambient1;
-    if (shad->num_shadow > 0) {
-        rctx->draw_state->rend_data[rend_data_ctx.index].shadow = true;
-        rend_data_ctx.shader_flags.arr[U_STAGE_SHADOW2] = shad->num_shadow > 1 ? 1 : 0;
-
-        float_t shadow_range = shad->get_shadow_range();
-        for (int32_t i = 0; i < 2; i++) {
-            float_t offset;
-            vec3* interest;
-            vec3* view_point;
-            if (shad->separate) {
-                offset = i ? 0.5f : -0.5f;
-
-                interest = &shad->interest[i];
-                view_point = &shad->view_point[i];
-            }
-            else {
-                offset = 0.0f;
-                interest = &shad->interest_shared;
-                view_point = &shad->view_point_shared;
-            }
-
-            mat4 temp;
-            mat4_translate(0.5f, 0.5f, 0.5f, &temp);
-            mat4_scale_rot(&temp, 0.5f, 0.5f, 0.5f, &temp);
-            mat4_mul_translate(&temp, offset, 0.0f, 0.0f, &temp);
-
-            mat4 proj;
-            mat4_ortho(-shadow_range, shadow_range,
-                -shadow_range, shadow_range, shad->z_near, shad->z_far, &proj);
-            mat4_mul(&proj, &temp, &proj);
-
-            mat4 view;
-            mat4_look_at(view_point, interest, &view);
-            mat4_mul(&view, &proj, &mats[i]);
-        }
-
-        int32_t j = 0;
-        for (int32_t i = 0; i < 2; i++)
-            if (shad->shadow_enable[i]) {
-                rend_data_ctx.state.active_bind_texture_2d(6 + j, shad->curr_render_textures[1 + i]->get_texture_glid());
-                j++;
-            }
-
-        for (; j < 2; j++)
-            rend_data_ctx.state.active_bind_texture_2d(6 + j, rctx->empty_texture_2d->glid);
-        rend_data_ctx.state.active_texture(0);
-
-        light_set* set = &rctx->light_set[LIGHT_SET_MAIN];
-        light_data* data = &set->lights[LIGHT_SHADOW];
-
-        vec4 ambient;
-        if (data->get_type() == LIGHT_PARALLEL)
-            data->get_ambient(ambient);
-        else
-            *(vec3*)&ambient.x = shad->shadow_ambient;
-
-        shadow_ambient = { ambient.x, ambient.y, ambient.z, 1.0f };
-        shadow_ambient1 = { 1.0f - ambient.x, 1.0f - ambient.y, 1.0f - ambient.z, 0.0f };
-    }
-    else {
-        rctx->draw_state->rend_data[rend_data_ctx.index].shadow = false;
-
-        for (int32_t i = 0; i < 2; i++)
-            shad->curr_render_textures[1 + i]->bind_texture(rend_data_ctx.state, 6 + i);
-        rend_data_ctx.state.active_texture(0);
-
-        shadow_ambient = 1.0f;
-        shadow_ambient1 = 0.0f;
-    }
-
-    rend_data_ctx.set_scene_shadow_params(esm_param, mats, shadow_ambient, shadow_ambient1);
-
-    rend_data_ctx.state.bind_sampler(6, 0);
-    rend_data_ctx.state.bind_sampler(7, 0);
 }
 
 static void draw_pass_3d_translucent(render_data_context& rend_data_ctx,
@@ -1855,9 +1694,9 @@ static void draw_pass_reflect_full(render_data_context& rend_data_ctx, rndr::Ren
         rctx->draw_state->rend_data[rend_data_ctx.index].shader_index = -1;
 
         if (render_manager->shadow)
-            draw_pass_3d_shadow_set(rend_data_ctx, render_manager->shadow_ptr, rctx);
+            render_manager->shadow_ptr->bind_shadow(rend_data_ctx, rctx);
         else
-            draw_pass_3d_shadow_reset(rend_data_ctx, rctx);
+            render_manager->shadow_ptr->unbind_shadow(rend_data_ctx, rctx);
 
         if (render_manager->effect_texture)
             rend_data_ctx.state.active_bind_texture_2d(14, render_manager->effect_texture->glid);
@@ -1948,7 +1787,7 @@ static void draw_pass_reflect_full(render_data_context& rend_data_ctx, rndr::Ren
         rend_data_ctx.state.active_bind_texture_2d(15, 0);
 
         if (render_manager->shadow)
-            draw_pass_3d_shadow_reset(rend_data_ctx, rctx);
+            render_manager->shadow_ptr->unbind_shadow(rend_data_ctx, rctx);
         reflect_draw = false;
 
         rend_data_ctx.state.set_cull_face_mode(GL_BACK);
@@ -1975,8 +1814,9 @@ static void draw_pass_reflect_full(render_data_context& rend_data_ctx, rndr::Ren
     rend_data_ctx.state.end_event();
 }
 
-static void apply_blur_filter_sub(render_data_context& rend_data_ctx, RenderTexture* dst, RenderTexture* src,
-    blur_filter_mode filter, const vec2 res_scale, const vec4 scale, const vec4 offset) {
+// Added
+void apply_blur_filter_sub(render_data_context& rend_data_ctx, RenderTexture* dst, RenderTexture* src,
+    ImgfBoxSampl filter, const vec2 res_scale, const vec4 scale, const vec4 offset) {
     if (!dst || !src)
         return;
 
@@ -1995,7 +1835,7 @@ static void apply_blur_filter_sub(render_data_context& rend_data_ctx, RenderText
     rend_data_ctx.state.write_uniform_buffer(rctx->image_filter_scene_ubo, filter_scene);
 
     image_filter_batch_shader_data image_filter_batch = {};
-    if (filter == BLUR_FILTER_32)
+    if (filter == IMGF_BOX_SAMPL_32)
         image_filter_batch.g_color_scale = scale * (float_t)(1.0 / 8.0);
     else
         image_filter_batch.g_color_scale = scale * (float_t)(1.0 / 4.0);
@@ -2003,7 +1843,7 @@ static void apply_blur_filter_sub(render_data_context& rend_data_ctx, RenderText
     image_filter_batch.g_texture_lod = 0.0f;
     rend_data_ctx.state.write_uniform_buffer(rctx->image_filter_batch_ubo, image_filter_batch);
 
-    rend_data_ctx.shader_flags.arr[U_IMAGE_FILTER] = filter == BLUR_FILTER_32 ? 1 : 0;
+    rend_data_ctx.shader_flags.arr[U_IMAGE_FILTER] = filter == IMGF_BOX_SAMPL_32 ? 1 : 0;
     rend_data_ctx.state.bind_vertex_array(rctx->box_vao);
     shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_IMGFILT);
     rend_data_ctx.state.bind_uniform_buffer_base(0, rctx->image_filter_scene_ubo);

@@ -9,6 +9,7 @@
 #include <vector>
 #include "../default.hpp"
 #include "../prj/vector_pair.hpp"
+#include "../image.hpp"
 #include "object.hpp"
 
 enum stage_data_format {
@@ -43,17 +44,10 @@ enum stage_data_reflect_type {
     STAGE_DATA_REFLECT_REFLECT_MAP = 0x02,
 };
 
-enum stage_data_blur_filter_mode {
-    STAGE_DATA_BLUR_FILTER_4  = 0x00,
-    STAGE_DATA_BLUR_FILTER_9  = 0x01,
-    STAGE_DATA_BLUR_FILTER_16 = 0x02,
-    STAGE_DATA_BLUR_FILTER_32 = 0x03,
-};
-
 struct stage_data_reflect {
     stage_data_reflect_resolution_mode mode;
     int32_t blur_num;
-    stage_data_blur_filter_mode blur_filter;
+    ImgfBoxSampl blur_filter;
 };
 
 struct stage_data_refract {

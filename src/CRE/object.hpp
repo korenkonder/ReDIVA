@@ -16,7 +16,6 @@
 #include "GL/buffer.hpp"
 #include "config.hpp"
 #include "file_handler.hpp"
-#include "static_var.hpp"
 #include "texture.hpp"
 
 struct IndexBuffer;

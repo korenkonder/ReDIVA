@@ -8,6 +8,7 @@
 #include "../../CRE/app_system_detail.hpp"
 #include "../../CRE/pv_expression.hpp"
 #include "../../CRE/pv_param.hpp"
+#include "../../CRE/shadow.hpp"
 #include "../information/dw_console.hpp"
 #include "../mask_screen.hpp"
 #include "../task_movie.hpp"
@@ -1323,12 +1324,12 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
 
         playdata->shadow = enable == 1;
 
-        Shadow* shad = shadow_ptr_get();
+        Shadow* shad = get_shadow();
         if (shad)
             if (rob_id == ROB_ID_2P)
-                shad->blur_filter_enable[1] = playdata->shadow;
+                shad->set_enable(1, playdata->shadow);
             else
-                shad->blur_filter_enable[0] = playdata->shadow;
+                shad->set_enable(0, playdata->shadow);
     } break;
     case DSC_FT_EDIT_EYELID: {
         int32_t v337 = data[0];
@@ -1876,9 +1877,9 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
             pv_game->set_data_itmpv_chara_id(rob_id, index, attach == 1);
     } break;
     case DSC_FT_SHADOW_RANGE: {
-        float_t shadow_range_factor = (float_t)data[0] * 0.001f;
+        float_t shadow_range = (float_t)data[0] * 0.001f;
 
-        shadow_ptr_get()->shadow_range_factor = shadow_range_factor;
+        get_shadow()->set_shadow_range(shadow_range);
     } break;
     case DSC_FT_HAND_SCALE: {
         rob_id = (ROB_ID)data[0];
@@ -2462,11 +2463,9 @@ void pv_game_pv_data::init(::pv_game* pv_game, bool music_play) {
         sub_14013C8C0()->difficulty, sub_14013C8C0()->edition);
     find_set_motion(diff);
 
-    Shadow* shad = shadow_ptr_get();
-    if (shad) {
-        shad->blur_filter_enable[0] = true;
-        shad->blur_filter_enable[1] = true;
-    }
+    Shadow* shad = get_shadow();
+    if (shad)
+        shad->reset_enable();
 
     pv_game->data.play_data.lyric_color = 0xFFFFFFFF;
 
@@ -2567,10 +2566,9 @@ void pv_game_pv_data::reset_camera_post_process() {
     rctx_ptr->render.reset_tone_trans(1);
     rctx_ptr->render.reset_saturate_coeff(1, 1);
 
-    Shadow* shad = shadow_ptr_get();
+    Shadow* shad = get_shadow();
     if (shad)
-        for (bool& i : shad->blur_filter_enable)
-            i = true;
+        shad->reset_enable();
 
     branch_mode = false;
 

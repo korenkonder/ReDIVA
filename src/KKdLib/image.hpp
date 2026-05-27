@@ -8,6 +8,13 @@
 #include "default.hpp"
 #include "vec.hpp"
 
+enum ImgfBoxSampl {
+    IMGF_BOX_SAMPL_4 = 0,
+    IMGF_BOX_SAMPL_9,
+    IMGF_BOX_SAMPL_16,
+    IMGF_BOX_SAMPL_32,
+};
+
 struct ImgfColorToneParam {
     vec3 blend_color;
     vec3 offset_color;
