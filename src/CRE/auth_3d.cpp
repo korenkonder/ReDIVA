@@ -8302,11 +8302,11 @@ static void a3da_msgpack_read(const char* path, const char* file, a3d::Scene* au
 
                 bool remove = objhrc.read_bool("remove");
                 if (remove) {
-                    auto k_begin = auth_file->object_list.begin();
-                    auto k_end = auth_file->object_list.end();
+                    auto k_begin = auth_file->object_hrc_list.begin();
+                    auto k_end = auth_file->object_hrc_list.end();
                     for (auto k = k_begin; k != k_end; k++)
                         if (name_hash == hash_string_murmurhash(*k)) {
-                            auth_file->object_list.erase(k);
+                            auth_file->object_hrc_list.erase(k);
                             break;
                         }
 
@@ -8342,11 +8342,11 @@ static void a3da_msgpack_read(const char* path, const char* file, a3d::Scene* au
 
                 bool remove = object.read_bool("remove");
                 if (remove) {
-                    auto k_begin = auth_file->object_hrc_list.begin();
-                    auto k_end = auth_file->object_hrc_list.end();
+                    auto k_begin = auth_file->object_list.begin();
+                    auto k_end = auth_file->object_list.end();
                     for (auto k = k_begin; k != k_end; k++)
                         if (name_hash == hash_string_murmurhash(*k)) {
-                            auth_file->object_hrc_list.erase(k);
+                            auth_file->object_list.erase(k);
                             break;
                         }
 
