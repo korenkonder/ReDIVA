@@ -4,6 +4,8 @@
 */
 
 #include "render.hpp"
+#include "renderer/dof.hpp"
+#include "renderer/transparency.hpp"
 #include "rob/rob.hpp"
 #include "gl_rend_state.hpp"
 #include "gl_state.hpp"
@@ -1557,12 +1559,14 @@ namespace rndr {
         }
     }
 
-    void Render::transparency_combine(render_data_context& rend_data_ctx, RenderTexture* rt, float_t alpha) {
-        transparency->combine(rend_data_ctx, rt, alpha);
+    // 0x1404A93B0
+    void Render::begin_render_transparency(render_data_context& rend_data_ctx, RenderTexture* rt) {
+        transparency->begin_render(rend_data_ctx, rt->get_texture_glid());
     }
 
-    void Render::transparency_copy(render_data_context& rend_data_ctx, RenderTexture* rt) {
-        transparency->copy(rend_data_ctx, rt->get_texture_glid());
+    // 0x1404AE6A0
+    void Render::end_render_transparency(render_data_context& rend_data_ctx, RenderTexture* rt, float_t alpha) {
+        transparency->end_render(rend_data_ctx, rt, alpha);
     }
 
     void Render::update_res(bool set, int32_t base_downsample) {

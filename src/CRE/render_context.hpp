@@ -17,6 +17,7 @@
 #include "light_param/wind.hpp"
 #include "mdl/disp_manager.hpp"
 #include "camera.hpp"
+#include "gl_rend_state.hpp"
 #include "render.hpp"
 #include "render_manager.hpp"
 #include "render_texture.hpp"

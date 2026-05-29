@@ -9,13 +9,17 @@
 #include "../KKdLib/light_param/glow.hpp"
 #include "../KKdLib/vec.hpp"
 #include "GL/uniform_buffer.hpp"
-#include "renderer/dof.hpp"
-#include "renderer/transparency.hpp"
 #include "camera.hpp"
+#include "render_texture.hpp"
 
 struct cam_data;
 struct p_gl_rend_state;
 struct render_data_context;
+
+namespace renderer {
+    class DOF3;
+    class Transparency;
+};
 
 namespace rndr {
     struct Render {
@@ -265,8 +269,8 @@ namespace rndr {
         void set_taa(int32_t value);
         void set_tone_map(tone_map_method value);
         void set_tone_trans(const vec3& start, const vec3& end, int32_t index);
-        void transparency_combine(render_data_context& rend_data_ctx, RenderTexture* rt, float_t alpha);
-        void transparency_copy(render_data_context& rend_data_ctx, RenderTexture* rt);
+        void begin_render_transparency(render_data_context& rend_data_ctx, RenderTexture* rt);
+        void end_render_transparency(render_data_context& rend_data_ctx, RenderTexture* rt, float_t alpha);
         void update_res(bool set, int32_t base_downsample);
 
     private:
