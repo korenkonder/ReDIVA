@@ -426,22 +426,21 @@ namespace rndr {
         ((pos_scale*)&lens_flare_pos)->get_screen_pos_scale(cam.get_view_proj_mat(), position);
 
         float_t v17 = lens_flare_pos.x - (float_t)width * 0.5f;
-        float_t v19 = v5 / (float_t)height * 0.5f;
+        float_t v19 = v5 / ((float_t)height * 0.5f);
         float_t v20 = lens_flare_pos.y - (float_t)height * 0.5f;
 
         float_t v22 = sqrtf((v17 * v19) * (v17 * v19) + (v20 * v19) * (v20 * v19) + 1.0f);
-        float_t v23 = ((float_t)render_width[0] * (flt_1411ACB8C / v5)) * (v22 * v22 * 0.5f)
+        float_t v23 = (v22 * v22 * 0.5f)
+            * ((float_t)render_width[0] * (flt_1411ACB8C / v5))
             * ((float_t)render_height[0] * (flt_1411ACB8C / v5));
         float_t v24 = vec3::distance(position, view_point) * flt_1411ACB84;
-        emission *= 1.0f / (float_t)(1.0f - cosf((float_t)(3.0 * DEG_TO_RAD)));
+        emission *= 1.0f / (1.0f - cosf((float_t)(3.0 * DEG_TO_RAD)));
 
         sun_quad_shader_data shader_data = {};
         shader_data.g_emission = emission;
 
         rend_data_ctx.state.active_bind_texture_2d(0, tex);
         shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_SUN);
-        rend_data_ctx.state.bind_vertex_array(rctx_ptr->common_vao);
-        rend_data_ctx.state.bind_uniform_buffer_base(0, rctx_ptr->sun_quad_ubo);
 
         int32_t query_index = (lens_flare_query_index + 1) % 3;
         lens_flare_query_index = query_index;
@@ -471,6 +470,8 @@ namespace rndr {
         rend_data_ctx.state.write_uniform_buffer(rctx_ptr->sun_quad_ubo, shader_data);
 
         rend_data_ctx.state.begin_query(GL_SAMPLES_PASSED, lens_shaft_query[next_query_index]);
+        rend_data_ctx.state.bind_vertex_array(rctx_ptr->common_vao);
+        rend_data_ctx.state.bind_uniform_buffer_base(0, rctx_ptr->sun_quad_ubo);
         rend_data_ctx.state.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
         rend_data_ctx.state.end_query(GL_SAMPLES_PASSED);
 
@@ -487,6 +488,8 @@ namespace rndr {
         rend_data_ctx.state.write_uniform_buffer(rctx_ptr->sun_quad_ubo, shader_data);
 
         rend_data_ctx.state.begin_query(GL_SAMPLES_PASSED, lens_flare_query[next_query_index]);
+        rend_data_ctx.state.bind_vertex_array(rctx_ptr->common_vao);
+        rend_data_ctx.state.bind_uniform_buffer_base(0, rctx_ptr->sun_quad_ubo);
         rend_data_ctx.state.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
         rend_data_ctx.state.end_query(GL_SAMPLES_PASSED);
 
@@ -525,6 +528,8 @@ namespace rndr {
             shader_data.g_transform[3] = mat.row3;
             rend_data_ctx.state.write_uniform_buffer(rctx_ptr->sun_quad_ubo, shader_data);
 
+            rend_data_ctx.state.bind_vertex_array(rctx_ptr->common_vao);
+            rend_data_ctx.state.bind_uniform_buffer_base(0, rctx_ptr->sun_quad_ubo);
             rend_data_ctx.state.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
 
             rend_data_ctx.state.disable_blend();
