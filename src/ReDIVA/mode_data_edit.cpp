@@ -5,6 +5,7 @@
 
 #include "mode_data_edit.hpp"
 #include "../CRE/render_context.hpp"
+#include "../CRE/render_manager.hpp"
 #include "data_edit/face_anim.hpp"
 #include "data_edit/glitter_editor.hpp"
 #include "data_edit/selector.hpp"

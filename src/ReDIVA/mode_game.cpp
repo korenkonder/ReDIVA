@@ -5,6 +5,7 @@
 
 #include "mode_game.hpp"
 #include "../CRE/render_context.hpp"
+#include "../CRE/render_manager.hpp"
 #include "pv_game/player_data.hpp"
 #include "pv_game/pv_game.hpp"
 #include "mask_screen.hpp"

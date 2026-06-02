@@ -1033,19 +1033,19 @@ void glut_motion_cb(int32_t x, int32_t y) {
     ScreenParam screen_param =  get_screen_param();
 
 #if BAKE_PNG || BAKE_VIDEO
-    int32_t x_offset = 0;
-    int32_t y_offset = 0;
+    int32_t view_x = 0;
+    int32_t view_y = 0;
     float_t x_scale = 1280.0f / (float_t)BAKE_BASE_WIDTH;
     float_t y_scale = 720.0f / (float_t)BAKE_BASE_HEIGHT;
 #else
-    int32_t x_offset = rctx_ptr->screen_x_offset;
-    int32_t y_offset = rctx_ptr->screen_y_offset;
-    float_t x_scale = 1280.0f / (float_t)rctx_ptr->sprite_width;
-    float_t y_scale = 720.0f / (float_t)rctx_ptr->sprite_height;
+    int32_t view_x = rctx_ptr->view_x;
+    int32_t view_y = rctx_ptr->view_y;
+    float_t x_scale = 1280.0f / (float_t)rctx_ptr->view_w;
+    float_t y_scale = 720.0f / (float_t)rctx_ptr->view_h;
 #endif
 
-    x = (int32_t)(((float_t)x - x_offset) * x_scale);
-    y = (int32_t)(((float_t)y - y_offset) * y_scale);
+    x = (int32_t)(((float_t)x - view_x) * x_scale);
+    y = (int32_t)(((float_t)y - view_y) * y_scale);
 
     glut_input.motion_x = x;
     glut_input.motion_y = y;

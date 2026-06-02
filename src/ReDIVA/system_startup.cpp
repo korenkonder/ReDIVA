@@ -7,6 +7,8 @@
 #include "../CRE/app_system_detail.hpp"
 #include "../CRE/auth_2d.hpp"
 #include "../CRE/mdata_manager.hpp"
+#include "../CRE/render_context.hpp"
+#include "../CRE/render_manager.hpp"
 #include "../CRE/sprite.hpp"
 #include "../KKdLib/io/path.hpp"
 #include "pv_game/pv_game.hpp"

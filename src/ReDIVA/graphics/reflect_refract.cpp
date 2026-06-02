@@ -7,6 +7,7 @@
 #include "../../CRE/light_param/face.hpp"
 #include "../../CRE/light_param.hpp"
 #include "../../CRE/render_context.hpp"
+#include "../../CRE/render_manager.hpp"
 #include "../dw.hpp"
 
 extern render_context* rctx_ptr;

@@ -10,7 +10,9 @@
 #include "rob/rob.hpp"
 #include "effect.hpp"
 #include "light_param.hpp"
+#include "render.hpp"
 #include "render_context.hpp"
+#include "render_manager.hpp"
 #include "shadow.hpp"
 
 namespace stage_detail {
@@ -521,15 +523,15 @@ static void stage_modern_free(stage_modern* s) {
 
     rndr::RenderManager* render_manager = rctx_ptr->render_manager;
     if (s->stage_data->render_texture != -1 && s->stage_data->render_texture != hash_murmurhash_empty)
-        rctx_ptr->render.render_texture_free(
+        rctx_ptr->render->remove_fb_copy(
             texture_manager_get_texture(s->stage_data->render_texture), 0);
 
     if (s->stage_data->movie_texture != -1 && s->stage_data->movie_texture != hash_murmurhash_empty)
-        rctx_ptr->render.movie_texture_free(
+        rctx_ptr->render->remove_fb_movie(
             texture_manager_get_texture(s->stage_data->movie_texture));
 
     render_manager->set_shadow_true();
-    rctx_ptr->render.set_cam_blur(0);
+    rctx_ptr->render->set_cam_blur(0);
     npr_cloth_spec_color.w = 1.0f;
     render_manager->reflect_texture_mask = false;
     render_manager->reflect_tone_curve = false;
@@ -576,11 +578,11 @@ static void stage_modern_load(stage_modern* s, void* data, object_database* obj_
             return;
 
         if (s->stage_data->render_texture != -1 && s->stage_data->render_texture != hash_murmurhash_empty)
-            rctx_ptr->render.render_texture_set(
+            rctx_ptr->render->register_fb_copy(
                 texture_manager_get_texture(s->stage_data->render_texture), 0);
 
         if (s->stage_data->movie_texture != -1 && s->stage_data->movie_texture != hash_murmurhash_empty)
-            rctx_ptr->render.movie_texture_set(
+            rctx_ptr->render->register_fb_movie(
                 texture_manager_get_texture(s->stage_data->movie_texture));
         s->state = 6;
     }
@@ -617,7 +619,7 @@ static void stage_modern_set(stage_modern* s, stage_modern* other) {
         render_manager->field_31F = false;
         render_manager->light_stage_ambient = false;
         render_manager->set_shadow_true();
-        rctx_ptr->render.set_cam_blur(0);
+        rctx_ptr->render->set_cam_blur(0);
         npr_cloth_spec_color.w = 1.0f;
         render_manager->set_npr_param(0);
         light_chara_ambient = false;

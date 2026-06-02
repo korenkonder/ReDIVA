@@ -6,10 +6,13 @@
 #pragma once
 
 #include "../KKdLib/default.hpp"
+#include "../KKdLib/image.hpp"
 #include "../KKdLib/time.hpp"
 #include "../KKdLib/vec.hpp"
+#include "camera.hpp"
 #include "gl.hpp"
-#include "render.hpp"
+#include "render_texture.hpp"
+#include "static_var.hpp"
 #include <list>
 
 enum reflect_refract_resolution_mode {
@@ -49,7 +52,10 @@ namespace rndr {
         RND_PASSID_NUM,
     };
 
-    struct RenderManager {
+    class Render;
+
+    class RenderManager {
+    public:
         bool pass_sw[RND_PASSID_NUM];
         Shadow* shadow_ptr;
         bool reflect;
@@ -91,7 +97,7 @@ namespace rndr {
         bool reflect_tone_curve;
         bool field_31F;
         bool light_stage_ambient;
-        bool npr;
+        bool ss4x;
         cam_data cam;
 
         RenderManager();
@@ -148,5 +154,5 @@ namespace rndr {
 extern void image_filter_scale(render_data_context& rend_data_ctx,
     RenderTexture* dst, texture* src, const vec4& scale = 1.0f);
 
-extern void render_manager_init_data(int32_t ssaa, int32_t hd_res, int32_t ss_alpha_mask, bool npr);
-extern void render_manager_free_data();
+extern void rndpass_init(int32_t anti_alias, int32_t min_render, int32_t ss_alpha_mask, bool ss4x);
+extern void rndpass_finish();

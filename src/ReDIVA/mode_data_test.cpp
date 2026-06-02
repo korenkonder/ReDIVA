@@ -6,6 +6,7 @@
 #include "mode_data_test.hpp"
 #include "../CRE/clear_color.hpp"
 #include "../CRE/render_context.hpp"
+#include "../CRE/render_manager.hpp"
 #include "../CRE/stage.hpp"
 #include "data_edit/rob_chara_adjust.hpp"
 #include "data_test/auth_2d_test.hpp"

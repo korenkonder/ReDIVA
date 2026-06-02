@@ -1174,6 +1174,8 @@ inline void gl_rend_state::generate_texture_mipmap(GLuint texture) {
 }
 
 void gl_rend_state::get() {
+    gl_get_error_all_print();
+
     glGetIntegerv(GL_CURRENT_PROGRAM, (GLint*)&program);
 
     GLenum active_texture = GL_TEXTURE0;

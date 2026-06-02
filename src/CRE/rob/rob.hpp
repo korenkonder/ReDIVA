@@ -4800,16 +4800,6 @@ namespace prj {
     };
 }
 
-struct pos_scale {
-    vec2 pos;
-    float_t scale;
-
-    pos_scale();
-
-    float_t get_screen_pos_scale(const mat4& mat,
-        const vec3& pos, float_t scale = 0.0f, bool apply_offset = false);
-};
-
 struct RobColliWall {
     float_t wdist;
     RobAngle wang;
@@ -4856,7 +4846,7 @@ struct RobCollision {
     prj::BallCollision cb_hit[CB_NUM];
     prj::BallCollision cb_rob[CB_NUM];
     prj::BallCollision cb_stg[CB_NUM];
-    pos_scale field_1AA0[CB_NUM];
+    vec3 field_1AA0[CB_NUM];
     float_t field_1BE4[CB_NUM];
     prj::vector_pair<int64_t, float_t> field_1C50;
     int64_t field_1C68;
@@ -5158,7 +5148,7 @@ public:
     void ControlMotionFrameStep();
     void UpdateMotionFrame();
 
-    inline bool check_disp() {
+    inline bool get_disp() {
         return rob_base.flag.bit.disp;
     }
 

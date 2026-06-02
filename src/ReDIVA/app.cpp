@@ -810,12 +810,12 @@ static render_context* render_context_load(const wchar_t* config_path) {
 
     init_mode(MODE_STARTUP, MODE_SUB_MAX);
 
-    render_manager_init_data(0, 0, 0, false);
-    /*render_manager_init_data(
-        stru_140EDA5B0.ssaa,
-        stru_140EDA5B0.hd_res,
-        stru_140EDA5B0.ss_alpha_mask,
-        stru_140EDA5B0.screen_shot_4x == 1);*/
+    rndpass_init(0, 0, 0, false);
+    /*rndpass_init(
+        s_main_info.anti_alias,
+        s_main_info.min_render,
+        s_main_info.ss_alpha_mask,
+        s_main_info.ss_mode == SS_MODE_SIZE_4X);*/
 
     objset_info_storage_init(aft_obj_db);
     stage_param_data_init();
@@ -1267,8 +1267,8 @@ static void render_context_disp(render_context* rctx) {
 #if BAKE_PNG || BAKE_VIDEO
         post_rend_data_ctx.state.set_viewport(0, 0, rctx->screen_width, rctx->screen_height);
 #else
-        post_rend_data_ctx.state.set_viewport(rctx->screen_x_offset, rctx->screen_y_offset,
-            rctx->sprite_width, rctx->sprite_height);
+        post_rend_data_ctx.state.set_viewport(rctx->view_x, rctx->view_y,
+            rctx->view_w, rctx->view_h);
 #endif
 
         post_rend_data_ctx.state.bind_framebuffer(0);
@@ -1276,20 +1276,20 @@ static void render_context_disp(render_context* rctx) {
         post_rend_data_ctx.shader_flags.arr[U_ALPHA_MASK] = 0;
         post_rend_data_ctx.shader_flags.arr[U_REDUCE_TEX] = 0;
         shaders_ft.set(post_rend_data_ctx.state, post_rend_data_ctx.shader_flags, SHADER_FT_REDUCE);
-        rctx->render.draw_quad(post_rend_data_ctx, rctx->sprite_width, rctx->sprite_height,
+        rctx->render->draw_quad(post_rend_data_ctx, rctx->view_w, rctx->view_h,
             1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
     }
 #ifdef USE_OPENGL
     else {
 #if BAKE_PNG || BAKE_VIDEO
         fbo_blit(post_rend_data_ctx.state, rctx->screen_buffer.get_fb(), 0,
-            0, 0, rctx->sprite_width, rctx->sprite_height,
+            0, 0, rctx->view_w, rctx->view_h,
             0, 0, rctx->screen_width, rctx->screen_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 #else
         fbo_blit(post_rend_data_ctx.state, rctx->screen_buffer.get_fb(), 0,
-            0, 0, rctx->sprite_width, rctx->sprite_height,
-            rctx->screen_x_offset, rctx->screen_y_offset,
-            rctx->sprite_width, rctx->sprite_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+            0, 0, rctx->view_w, rctx->view_h,
+            rctx->view_x, rctx->view_y,
+            rctx->view_w, rctx->view_h, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 #endif
     }
 #endif
@@ -1437,7 +1437,7 @@ static void render_context_dispose(render_context* rctx) {
     data_test_sel_free();
     data_edit_sel_free();
 
-    render_manager_free_data();
+    rndpass_finish();
 
     dw_free();
 

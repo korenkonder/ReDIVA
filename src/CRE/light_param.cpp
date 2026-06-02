@@ -8,6 +8,7 @@
 #include "../KKdLib/hash.hpp"
 #include "../KKdLib/str_utils.hpp"
 #include "gl_state.hpp"
+#include "render.hpp"
 #include "render_context.hpp"
 #include "stage_param.hpp"
 
@@ -472,13 +473,13 @@ void light_param_data::set_fog(const light_param_fog* f) {
 }
 
 void light_param_data::set_glow(const light_param_glow* glow) {
-    rndr::Render* rend = &rctx_ptr->render;
+    rndr::Render* rend = rctx_ptr->render;
 
-    rend->set_auto_exposure(true);
-    rend->set_tone_map(TONE_MAP_YCC_EXPONENT);
-    rend->reset_saturate_coeff(0, false);
-    rend->reset_scene_fade(0);
-    rend->reset_tone_trans(0);
+    rend->set_auto_exposure(1);
+    rend->set_tone_map_method(0);
+    rend->set_saturate_coef_default();
+    rend->set_fade_color_default();
+    rend->set_tone_trans_default();
 
     if (glow->has_exposure)
         rend->set_exposure(glow->exposure);
@@ -490,13 +491,13 @@ void light_param_data::set_glow(const light_param_glow* glow) {
         rend->set_saturate_power(glow->saturate_power);
 
     if (glow->has_saturate_coef)
-        rend->set_saturate_coeff(glow->saturate_coef, 0, false);
+        rend->set_saturate_coef(glow->saturate_coef);
 
     if (glow->has_flare)
-        rend->set_lens(glow->flare);
+        rend->set_flare_coef(glow->flare);
 
     if (glow->has_sigma)
-        rend->set_radius(glow->sigma);
+        rend->set_sigma(glow->sigma);
 
     if (glow->has_intensity)
         rend->set_intensity(glow->intensity);
@@ -505,16 +506,15 @@ void light_param_data::set_glow(const light_param_glow* glow) {
         rend->set_auto_exposure(glow->auto_exposure);
 
     if (glow->has_tone_map_method)
-        rend->set_tone_map(glow->tone_map_method);
+        rend->set_tone_map_method(glow->tone_map_method);
 
     if (glow->has_fade_color) {
-        vec4 fade_color = glow->fade_color;
-        rend->set_scene_fade(fade_color, 0);
-        rend->set_scene_fade_blend_func(glow->fade_color_blend_func, 0);
+        rend->set_fade_color(&glow->fade_color);
+        rend->set_fade_blend_func(glow->fade_color_blend_func);
     }
 
     if (glow->has_tone_transform)
-        rend->set_tone_trans(glow->tone_transform_start, glow->tone_transform_end, 0);
+        rend->set_tone_trans(glow->tone_transform_start, glow->tone_transform_end);
 }
 
 void light_param_data::set_ibl(const light_param_ibl* ibl, const light_param_data_storage* storage) {

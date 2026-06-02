@@ -1091,7 +1091,7 @@ namespace Glitter {
             ext_anim_scale.z = 0.0f;
             enum_or(flags, EFFECT_INST_EXT_SCALE);
 
-            if (rob_chr->check_disp() || !(data.ext_anim_x->flags & EFFECT_EXT_ANIM_NO_DRAW_IF_NO_DATA))
+            if (rob_chr->get_disp() || !(data.ext_anim_x->flags & EFFECT_EXT_ANIM_NO_DRAW_IF_NO_DATA))
                 set_flags = true;
             else
                 set_flags = false;

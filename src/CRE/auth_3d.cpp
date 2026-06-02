@@ -22,6 +22,7 @@
 #include "effect.hpp"
 #include "object.hpp"
 #include "pv_db.hpp"
+#include "render.hpp"
 #include "shadow.hpp"
 #include "sound.hpp"
 #include "stage.hpp"
@@ -1053,25 +1054,25 @@ namespace auth_3d_detail {
     // 0x1401CE3E0
     void CameraAuxiliary::ctrl(Scene& in_scene, render_context* rctx) {
         if (has_exposure())
-            rctx->render.set_exposure(exposure);
+            rctx->render->set_exposure(exposure);
         if (has_gamma())
-            rctx->render.set_gamma(gamma);
+            rctx->render->set_gamma(gamma);
         if (has_saturate())
-            rctx->render.set_saturate_coeff(saturate, 0, false);
+            rctx->render->set_saturate_coef(saturate, 0, false);
         if (has_auto_exposure())
-            rctx->render.set_auto_exposure(auto_exposure > 0.0f);
+            rctx->render->set_auto_exposure(auto_exposure > 0.0f);
     }
 
     // 0x1401CFDE0
     void CameraAuxiliary::dest(render_context* rctx) {
         if (has_exposure())
-            rctx->render.set_exposure(2.0f);
+            rctx->render->set_exposure(2.0f);
         if (has_gamma())
-            rctx->render.set_gamma(1.0f);
+            rctx->render->set_gamma(1.0f);
         if (has_saturate())
-            rctx->render.set_saturate_coeff(1.0f, 0, false);
+            rctx->render->set_saturate_coef(1.0f, 0, false);
         if (has_auto_exposure())
-            rctx->render.set_auto_exposure(true);
+            rctx->render->set_auto_exposure(true);
 
         init();
     }
@@ -1623,15 +1624,15 @@ namespace auth_3d_detail {
 
         float_t focus = vec3::distance(model_transform.translation, view_point);
 
-        rctx->render.set_dof_enable(fabsf(model_transform.rotation.z) > 0.000001f);
-        rctx->render.set_dof_data(focus, model_transform.scale.x,
+        rctx->render->enable_dof_set(fabsf(model_transform.rotation.z) > 0.000001f);
+        rctx->render->set_dof_data(focus, model_transform.scale.x,
             model_transform.rotation.x, model_transform.rotation.y);
     }
 
     // 0x1401CFE70
     void Dof::dest(render_context* rctx) {
         if (has_dof)
-            rctx->render.set_dof_enable(false);
+            rctx->render->enable_dof_set(false);
         has_dof = false;
         init();
     }
@@ -1871,7 +1872,7 @@ namespace auth_3d_detail {
             return;
         }
 
-        rctx->render.reset_scene_fade(0);
+        rctx->render->set_fade_color_default();
     }
 
     // 0x1401D1780
@@ -1893,7 +1894,7 @@ namespace auth_3d_detail {
         else
             value.w = 1.0f - t;
 
-        rctx->render.set_scene_fade(value, 0);
+        rctx->render->set_fade_color(&value);
     }
 
     // 0x1401B3AD0
@@ -4196,80 +4197,82 @@ namespace auth_3d_detail {
     // 0x1401CEF00
     void PostProcess::ctrl(Scene& in_scene, render_context* rctx) {
         if (has_lens()) {
-            vec3 lens = rctx->render.get_lens();
+            float_t flare_coef[3];
+            rctx->render->get_flare_coef(flare_coef);
             if (has_lens_flare()) {
                 if (!(backup_flag & FLAG_LENS_FLARE)) {
-                    backup_lens_flare = lens.x;
+                    backup_lens_flare = flare_coef[0];
                     backup_flag |= FLAG_LENS_FLARE;
                 }
-                lens.x = lens_flare;
+                flare_coef[0] = lens_flare;
             }
 
             if (has_lens_shaft()) {
                 if (!(backup_flag & FLAG_LENS_SHAFT)) {
-                    backup_lens_shaft = lens.y;
+                    backup_lens_shaft = flare_coef[1];
                     backup_flag |= FLAG_LENS_SHAFT;
                 }
-                lens.y = lens_shaft;
+                flare_coef[1] = lens_shaft;
             }
 
             if (has_lens_ghost()) {
                 if (!(backup_flag & FLAG_LENS_GHOST)) {
-                    backup_lens_ghost = lens.z;
+                    backup_lens_ghost = flare_coef[2];
                     backup_flag |= FLAG_LENS_GHOST;
                 }
-                lens.z = lens_ghost;
+                flare_coef[2] = lens_ghost;
             }
-            rctx->render.set_lens(lens);
+            rctx->render->set_fade_color(flare_coef);
         }
 
         if (has_radius()) {
             if (!(backup_flag & FLAG_RADIUS)) {
-                *(vec3*)&backup_radius = rctx->render.get_radius();
+                rctx->render->get_sigma((float_t*)&backup_radius);
                 backup_flag |= FLAG_RADIUS;
             }
 
-            rctx->render.set_radius(*(vec3*)&radius.color);
+            rctx->render->set_sigma((float_t*)&radius.color);
         }
 
         if (has_intensity()) {
             if (!(backup_flag & FLAG_INTENSITY)) {
-                *(vec3*)&backup_intensity = rctx->render.get_intensity();
+                rctx->render->get_intensity((float_t*)&backup_intensity);
                 backup_flag |= FLAG_INTENSITY;
             }
 
-            rctx->render.set_intensity(*(vec3*)&intensity.color);
+            rctx->render->set_intensity((float_t*)&intensity.color);
         }
 
         if (has_scene_fade()) {
             if (!(backup_flag & FLAG_SCENE_FADE)) {
-                backup_scene_fade = rctx->render.get_scene_fade();
+                rctx->render->get_fade_color(&backup_scene_fade);
                 backup_flag |= FLAG_SCENE_FADE;
             }
 
-            rctx->render.set_scene_fade(scene_fade.color, 0);
+            rctx->render->set_fade_color(&scene_fade.color);
         }
     }
 
     // 0x1401D0050
     void PostProcess::dest(render_context* rctx) {
         if (backup_flag & (FLAG_LENS_FLARE | FLAG_LENS_SHAFT | FLAG_LENS_GHOST)) {
-            vec3 value = rctx->render.get_lens();
+            float_t flare_coef[3];
+            rctx->render->get_flare_coef(flare_coef);
             if (backup_flag & FLAG_LENS_FLARE)
-                value.x = backup_lens_flare;
+                flare_coef[0] = backup_lens_flare;
             if (backup_flag & FLAG_LENS_SHAFT)
-                value.y = backup_lens_shaft;
+                flare_coef[1] = backup_lens_shaft;
             if (backup_flag & FLAG_LENS_GHOST)
-                value.z = backup_lens_ghost;
-            rctx->render.set_lens(value);
+                flare_coef[2] = backup_lens_ghost;
+            rctx->render->set_fade_color(flare_coef);
         }
 
         if (backup_flag & FLAG_RADIUS)
-            rctx->render.set_radius(*(vec3*)&backup_radius);
+            rctx->render->set_sigma((float_t*)&backup_radius);
         if (backup_flag & FLAG_INTENSITY)
-            rctx->render.set_intensity(*(vec3*)&backup_intensity);
+            rctx->render->set_intensity((float_t*)&backup_intensity);
         if (backup_flag & FLAG_SCENE_FADE)
-            rctx->render.set_scene_fade(backup_scene_fade, 0);
+            rctx->render->set_fade_color(&backup_scene_fade);
     }
 
     // 0x1401DF050

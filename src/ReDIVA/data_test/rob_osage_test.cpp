@@ -888,7 +888,7 @@ void RobOsageTest::disp() {
 
     rob_chara* rob_chr = get_rob_management()->get_rob(rob_id);
     if (rob_chr && !pv_osage_manager_array_get_disp(rob_id)
-        && rob_chr->check_disp() && !rob_chr->check_zero_disp()) {
+        && rob_chr->get_disp() && !rob_chr->check_zero_disp()) {
         disp_coli();
         disp_line();
     }

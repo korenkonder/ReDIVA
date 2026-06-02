@@ -900,7 +900,7 @@ namespace pv_param_task {
         else
             value = vec3::lerp(data.data_prev.color, data.data.color, frame / duration);
 
-        rctx_ptr->render.set_intensity(value);
+        rctx_ptr->render->set_intensity((float_t*)&value);
 
         frame += get_delta_frame();
         if (frame > duration) {
@@ -954,16 +954,16 @@ namespace pv_param_task {
             contrast = lerp_def(data.data_prev.contrast, data.data.contrast, t);
         }
 
-        rctx_ptr->render.set_saturate_coeff(saturation, 1, false);
-        rctx_ptr->render.set_exposure(exposure * 2.0f);
+        rctx_ptr->render->set_saturate_coef(saturation, 1, false);
+        rctx_ptr->render->set_exposure(exposure * 2.0f);
 
-        vec3 tone_trans_start;
-        vec3 tone_trans_end;
-        CalcToneTrans(contrast + gamma.x, tone_trans_start.x, tone_trans_end.x);
-        CalcToneTrans(contrast + gamma.y, tone_trans_start.y, tone_trans_end.y);
-        CalcToneTrans(contrast + gamma.z, tone_trans_start.z, tone_trans_end.z);
+        float_t tone_trans_start[3];
+        float_t tone_trans_end[3];
+        CalcToneTrans(contrast + gamma.x, tone_trans_start[0], tone_trans_end[0]);
+        CalcToneTrans(contrast + gamma.y, tone_trans_start[1], tone_trans_end[1]);
+        CalcToneTrans(contrast + gamma.z, tone_trans_start[2], tone_trans_end[2]);
 
-        rctx_ptr->render.set_tone_trans(tone_trans_start, tone_trans_end, 1);
+        rctx_ptr->render->set_tone_trans(tone_trans_start, tone_trans_end, 1);
 
         frame += get_delta_frame();
         if (frame > duration) {
@@ -1147,7 +1147,7 @@ namespace pv_param_task {
     void PostProcessCtrlDof::Set() {
         bool autofocus = data.data.rob_id != ROB_ID_NULL;
         if (autofocus) {
-            if (!rctx_ptr->render.get_dof_update())
+            if (!rctx_ptr->render->get_dof_update())
                 return;
 
             vec3 trans = 0.0f;
@@ -1167,7 +1167,7 @@ namespace pv_param_task {
             get_autofocus_data(vec3::distance(trans, view_point), cam->get_fov(),
                 enable, data.data.focus, data.data.focus_range,
                 data.data.fuzzing_range, data.data.ratio);
-            rctx_ptr->render.set_dof_enable(enable);
+            rctx_ptr->render->enable_dof_set(enable);
         }
         else if (frame < 0.0f)
             return;
@@ -1196,7 +1196,7 @@ namespace pv_param_task {
             ratio = lerp_def(data.data_prev.ratio, data.data.ratio, t);
         }
 
-        rctx_ptr->render.set_dof_data(focus, focus_range, fuzzing_range, ratio);
+        rctx_ptr->render->set_dof_data(focus, focus_range, fuzzing_range, ratio);
 
         frame += get_delta_frame();
         if (frame > duration) {
@@ -1212,7 +1212,7 @@ namespace pv_param_task {
         data.data = *dof;
 
         if (fabsf(duration) > 0.000001f)
-            rctx_ptr->render.get_dof_data(data.data_prev.focus,
+            rctx_ptr->render->get_dof_data(data.data_prev.focus,
                 data.data_prev.focus_range, data.data_prev.fuzzing_range, data.data_prev.ratio);
         else
             data.data_prev = data.data;

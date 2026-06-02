@@ -8,6 +8,7 @@
 #include "../CRE/data.hpp"
 #include "../CRE/module_table.hpp"
 #include "../CRE/render_context.hpp"
+#include "../CRE/render_manager.hpp"
 #include "../CRE/sound.hpp"
 #include "pv_game/pv_game.hpp"
 #include "am_data.hpp"

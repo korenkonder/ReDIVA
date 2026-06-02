@@ -6,6 +6,7 @@
 #include "post_process.hpp"
 #include "../../CRE/renderer/dof.hpp"
 #include "../../CRE/light_param.hpp"
+#include "../../CRE/render.hpp"
 #include "../../CRE/render_context.hpp"
 #include "../../CRE/stage.hpp"
 #include "../dw.hpp"
@@ -18,7 +19,7 @@ public:
     dw::Slider* exposure_slider;
     dw::Slider* gamma_slider;
     dw::Slider* saturate_power_slider;
-    dw::Slider* saturate_coeff_slider;
+    dw::Slider* saturate_coef_slider;
     dw::ListBox* mag_filter_list;
     dw::Button* taa_button;
     dw::Button* mlaa_button;
@@ -42,19 +43,19 @@ public:
     dw::Button* dof_enable_physical_dof;
     dw::Button* dof_auto_focus;
     dw::Button* show_face_query_button;
-    tone_map_method tone_map;
+    int32_t tone_map_method;
     float_t exposure;
     int32_t auto_exposure;
     float_t gamma;
     int32_t saturate_power;
-    float_t saturate_coeff;
-    int32_t taa;
-    int32_t mlaa;
-    rndr::Render::MagFilterType mag_filter;
+    float_t saturate_coef;
+    int32_t temporal_anti_alias;
+    int32_t morphological_anti_alias;
+    int32_t mag_filter;
     bool set_for_each_cut;
-    vec3 lens;
-    vec3 radius;
-    vec3 intensity;
+    float_t flare_coef[3];
+    float_t sigma[3];
+    float_t intensity[3];
     rndr::Render* rend;
 
     dwPostProcess();
@@ -69,14 +70,14 @@ public:
     static void AutoExposureCallback(dw::Widget* data);
     static void DofCallback(dw::Widget* data);
     static void ExposureCallback(dw::Widget* data);
+    static void FlareCallback(dw::Widget* data);
     static void GammaCallback(dw::Widget* data);
     static void IntensityCallback(dw::Widget* data);
-    static void LensCallback(dw::Widget* data);
     static void LoadCallback(dw::Widget* data);
     static void MagFilterCallback(dw::Widget* data);
     static void MorphologicalAACallback(dw::Widget* data);
     static void RadiusCallback(dw::Widget* data);
-    static void SaturateCoeffCallback(dw::Widget* data);
+    static void SaturateCoefCallback(dw::Widget* data);
     static void SaturatePowerCallback(dw::Widget* data);
     static void SaveCallback(dw::Widget* data);
     static void SetForEachCutCallback(dw::Widget* data);
@@ -89,7 +90,7 @@ public:
     dw::Slider* color_slider[3];
     dw::Slider* alpha_slider;
     dw::ListBox* blend_func_list;
-    vec3 color;
+    float_t color[3];
     float_t alpha;
     int32_t blend_func;
     rndr::Render* rend;
@@ -112,8 +113,8 @@ class dwToneTrans : public dw::Shell {
 public:
     dw::Slider* start_slider[3];
     dw::Slider* end_slider[3];
-    vec3 start;
-    vec3 end;
+    float_t start[3];
+    float_t end[3];
     rndr::Render* rend;
 
     dwToneTrans();
@@ -148,20 +149,20 @@ void dw_post_process_init() {
 
 dwPostProcess::dwPostProcess() {
     data = 0;
-    rend = &rctx_ptr->render;
+    rend = rctx_ptr->render;
 
-    tone_map = rend->get_tone_map();
-    exposure = rend->get_exposure();
-    auto_exposure = rend->get_auto_exposure();
-    gamma = rend->get_gamma();
-    saturate_power = rend->get_saturate_power();
-    saturate_coeff = rend->get_saturate_coeff();
-    taa = rend->get_taa();
-    mlaa = rend->get_mlaa();
-    mag_filter = rend->get_mag_filter();
-    lens = rend->get_lens();
-    radius = rend->get_radius();
-    intensity = rend->get_intensity();
+    rend->get_tone_map_method(&tone_map_method);
+    rend->get_exposure(&exposure);
+    rend->get_auto_exposure(&auto_exposure);
+    rend->get_gamma(&gamma);
+    rend->get_saturate_power(&saturate_power);
+    rend->get_saturate_coef(&saturate_coef);
+    rend->get_temporal_aa(&temporal_anti_alias);
+    rend->get_morphological_aa(&morphological_anti_alias);
+    rend->get_mag_filter(&mag_filter);
+    rend->get_flare_coef(flare_coef);
+    rend->get_sigma(sigma);
+    rend->get_intensity(intensity);
     set_for_each_cut = false;
 
     SetText("POST PROCESS");
@@ -186,12 +187,12 @@ dwPostProcess::dwPostProcess() {
 
     taa_button = new dw::Button(this, dw::CHECKBOX);
     taa_button->SetText("Temporal AA");
-    taa_button->SetValue(!!taa);
+    taa_button->SetValue(!!temporal_anti_alias);
     taa_button->callback = dwPostProcess::TemporalAACallback;
 
     mlaa_button = new dw::Button(this, dw::CHECKBOX);
     mlaa_button->SetText("Morphological AA");
-    mlaa_button->SetValue(!!mlaa);
+    mlaa_button->SetValue(!!morphological_anti_alias);
     mlaa_button->callback = dwPostProcess::MorphologicalAACallback;
 
     const char* set_for_each_cut_text;
@@ -225,7 +226,7 @@ dwPostProcess::dwPostProcess() {
     tone_map_list->AddItem("YCC EXPONENT");
     tone_map_list->AddItem("RGB LINEAR");
     tone_map_list->AddItem("RGB LINEAR2");
-    tone_map_list->SetItemIndex(tone_map);
+    tone_map_list->SetItemIndex(tone_map_method);
     tone_map_list->AddSelectionListener(new dw::SelectionListenerOnHook(dwPostProcess::ToneMapCallback));
 
     exposure_slider = dw::Slider::Create(glow_param_group,
@@ -260,78 +261,60 @@ dwPostProcess::dwPostProcess() {
     saturate_power_slider->format = "%3.1f";
     saturate_power_slider->AddSelectionListener(new dw::SelectionListenerOnHook(dwPostProcess::SaturatePowerCallback));
 
-    saturate_coeff_slider = dw::Slider::Create(glow_param_group,
+    saturate_coef_slider = dw::Slider::Create(glow_param_group,
         dw::Flags(dw::FLAG_800 | dw::HORIZONTAL), 0.0f, 0.0f, 192.0f, glyph_size.y, "Saturate2");
-    saturate_coeff_slider->SetParams(saturate_coeff, 0.0f, 1.0f, 0.2f, 0.01f, 0.1f);
-    saturate_coeff_slider->format = "%4.2f";
-    saturate_coeff_slider->AddSelectionListener(new dw::SelectionListenerOnHook(dwPostProcess::SaturateCoeffCallback));
+    saturate_coef_slider->SetParams(saturate_coef, 0.0f, 1.0f, 0.2f, 0.01f, 0.1f);
+    saturate_coef_slider->format = "%4.2f";
+    saturate_coef_slider->AddSelectionListener(new dw::SelectionListenerOnHook(dwPostProcess::SaturateCoefCallback));
 
     (new dw::Label(glow_param_group))->SetText("FLARE");
 
-    lens_sliders[0] = dw::Slider::Create(glow_param_group,
-        dw::Flags(dw::FLAG_800 | dw::HORIZONTAL), 0.0f, 0.0f, 192.0f, glyph_size.y, "Flare A");
-    lens_sliders[0]->SetParams(lens.x, 0.0f, 1.0f, 0.2f, 0.01f, 0.1f);
-    lens_sliders[0]->format = "%4.2f";
-    lens_sliders[0]->AddSelectionListener(new dw::SelectionListenerOnHook(dwPostProcess::LensCallback));
-    lens_sliders[0]->callback_data.i64 = 0;
+    for (int32_t i = 0; i < 3; i++) {
+        static const char* flare_name[] = {
+            "Flare A",
+            "Shaft A",
+            "Ghost A",
+        };
 
-    lens_sliders[1] = dw::Slider::Create(glow_param_group,
-        dw::Flags(dw::FLAG_800 | dw::HORIZONTAL), 0.0f, 0.0f, 192.0f, glyph_size.y, "Shaft A");
-    lens_sliders[1]->SetParams(lens.y, 0.0f, 1.0f, 0.2f, 0.01f, 0.1f);
-    lens_sliders[1]->format = "%4.2f";
-    lens_sliders[1]->AddSelectionListener(new dw::SelectionListenerOnHook(dwPostProcess::LensCallback));
-    lens_sliders[1]->callback_data.i64 = 1;
-
-    lens_sliders[2] = dw::Slider::Create(glow_param_group,
-        dw::Flags(dw::FLAG_800 | dw::HORIZONTAL), 0.0f, 0.0f, 192.0f, glyph_size.y, "Ghost A");
-    lens_sliders[2]->SetParams(lens.z, 0.0f, 1.0f, 0.2f, 0.01f, 0.1f);
-    lens_sliders[2]->format = "%4.2f";
-    lens_sliders[2]->AddSelectionListener(new dw::SelectionListenerOnHook(dwPostProcess::LensCallback));
-    lens_sliders[2]->callback_data.i64 = 2;
+        lens_sliders[i] = dw::Slider::Create(glow_param_group,
+            dw::Flags(dw::FLAG_800 | dw::HORIZONTAL), 0.0f, 0.0f, 192.0f, glyph_size.y, flare_name[i]);
+        lens_sliders[i]->SetParams(flare_coef[i], 0.0f, 1.0f, 0.2f, 0.01f, 0.1f);
+        lens_sliders[i]->format = "%4.2f";
+        lens_sliders[i]->AddSelectionListener(new dw::SelectionListenerOnHook(dwPostProcess::FlareCallback));
+        lens_sliders[i]->callback_data.i64 = i;
+    }
 
     (new dw::Label(glow_param_group))->SetText("GLARE");
 
-    radius_sliders[0] = dw::Slider::Create(glow_param_group,
-        dw::Flags(dw::FLAG_800 | dw::HORIZONTAL), 0.0f, 0.0f, 192.0f, glyph_size.y, "Radius R");
-    radius_sliders[0]->SetParams(radius.x, 1.0f, 3.0f, 0.5f, 0.1f, 0.1f);
-    radius_sliders[0]->format = "%4.2f";
-    radius_sliders[0]->AddSelectionListener(new dw::SelectionListenerOnHook(dwPostProcess::RadiusCallback));
-    radius_sliders[0]->callback_data.i64 = 0;
+    for (int32_t i = 0; i < 3; i++) {
+        static const char* radius_name[] = {
+            "Radius R",
+            "Radius G",
+            "Radius B",
+        };
 
-    radius_sliders[1] = dw::Slider::Create(glow_param_group,
-        dw::Flags(dw::FLAG_800 | dw::HORIZONTAL), 0.0f, 0.0f, 192.0f, glyph_size.y, "Radius G");
-    radius_sliders[1]->SetParams(radius.y, 1.0f, 3.0f, 0.5f, 0.1f, 0.1f);
-    radius_sliders[1]->format = "%4.2f";
-    radius_sliders[1]->AddSelectionListener(new dw::SelectionListenerOnHook(dwPostProcess::RadiusCallback));
-    radius_sliders[1]->callback_data.i64 = 1;
+        radius_sliders[i] = dw::Slider::Create(glow_param_group,
+            dw::Flags(dw::FLAG_800 | dw::HORIZONTAL), 0.0f, 0.0f, 192.0f, glyph_size.y, radius_name[i]);
+        radius_sliders[i]->SetParams(sigma[i], 1.0f, 3.0f, 0.5f, 0.1f, 0.1f);
+        radius_sliders[i]->format = "%4.2f";
+        radius_sliders[i]->AddSelectionListener(new dw::SelectionListenerOnHook(dwPostProcess::RadiusCallback));
+        radius_sliders[i]->callback_data.i64 = i;
+    }
 
-    radius_sliders[2] = dw::Slider::Create(glow_param_group,
-        dw::Flags(dw::FLAG_800 | dw::HORIZONTAL), 0.0f, 0.0f, 192.0f, glyph_size.y, "Radius B");
-    radius_sliders[2]->SetParams(radius.z, 1.0f, 3.0f, 0.5f, 0.1f, 0.1f);
-    radius_sliders[2]->format = "%4.2f";
-    radius_sliders[2]->AddSelectionListener(new dw::SelectionListenerOnHook(dwPostProcess::RadiusCallback));
-    radius_sliders[2]->callback_data.i64 = 2;
+    for (int32_t i = 0; i < 3; i++) {
+        static const char* intensity_name[] = {
+            "Inten  R",
+            "Inten  G",
+            "Inten  B",
+        };
 
-    intensity_sliders[0] = dw::Slider::Create(glow_param_group,
-        dw::Flags(dw::FLAG_800 | dw::HORIZONTAL), 0.0f, 0.0f, 192.0f, glyph_size.y, "Inten  R");
-    intensity_sliders[0]->SetParams(intensity.x, 0.0f, 2.0f, 0.5f, 0.05f, 0.1f);
-    intensity_sliders[0]->format = "%4.2f";
-    intensity_sliders[0]->AddSelectionListener(new dw::SelectionListenerOnHook(dwPostProcess::IntensityCallback));
-    intensity_sliders[0]->callback_data.i64 = 0;
-
-    intensity_sliders[1] = dw::Slider::Create(glow_param_group,
-        dw::Flags(dw::FLAG_800 | dw::HORIZONTAL), 0.0f, 0.0f, 192.0f, glyph_size.y, "Inten  G");
-    intensity_sliders[1]->SetParams(intensity.y, 0.0f, 2.0f, 0.5f, 0.05f, 0.1f);
-    intensity_sliders[1]->format = "%4.2f";
-    intensity_sliders[1]->AddSelectionListener(new dw::SelectionListenerOnHook(dwPostProcess::IntensityCallback));
-    intensity_sliders[1]->callback_data.i64 = 1;
-
-    intensity_sliders[2] = dw::Slider::Create(glow_param_group,
-        dw::Flags(dw::FLAG_800 | dw::HORIZONTAL), 0.0f, 0.0f, 192.0f, glyph_size.y, "Inten  B");
-    intensity_sliders[2]->SetParams(intensity.z, 0.0f, 2.0f, 0.5f, 0.05f, 0.1f);
-    intensity_sliders[2]->format = "%4.2f";
-    intensity_sliders[2]->AddSelectionListener(new dw::SelectionListenerOnHook(dwPostProcess::IntensityCallback));
-    intensity_sliders[2]->callback_data.i64 = 2;
+        intensity_sliders[i] = dw::Slider::Create(glow_param_group,
+            dw::Flags(dw::FLAG_800 | dw::HORIZONTAL), 0.0f, 0.0f, 192.0f, glyph_size.y, intensity_name[i]);
+        intensity_sliders[i]->SetParams(intensity[i], 0.0f, 2.0f, 0.5f, 0.05f, 0.1f);
+        intensity_sliders[i]->format = "%4.2f";
+        intensity_sliders[i]->AddSelectionListener(new dw::SelectionListenerOnHook(dwPostProcess::IntensityCallback));
+        intensity_sliders[i]->callback_data.i64 = i;
+    }
 
     (new dw::Label(glow_param_group))->SetText("DOF");
 
@@ -456,31 +439,31 @@ void dwPostProcess::Hide() {
 }
 
 void dwPostProcess::ResetData() {
-    rend = &rctx_ptr->render;
+    rend = rctx_ptr->render;
 
-    exposure = rend->get_exposure();
-    auto_exposure = rend->get_auto_exposure();
-    gamma = rend->get_gamma();
-    saturate_power = rend->get_saturate_power();
-    saturate_coeff = rend->get_saturate_coeff();
-    lens = rend->get_lens();
-    radius = rend->get_radius();
-    intensity = rend->get_intensity();
+    rend->get_exposure(&exposure);
+    rend->get_auto_exposure(&auto_exposure);
+    rend->get_gamma(&gamma);
+    rend->get_saturate_power(&saturate_power);
+    rend->get_saturate_coef(&saturate_coef);
+    rend->get_flare_coef(flare_coef);
+    rend->get_sigma(sigma);
+    rend->get_intensity(intensity);
 
     exposure_slider->SetValue(exposure);
     auto_exposure_button->SetValue(auto_exposure != 0);
     gamma_slider->SetValue(gamma);
     saturate_power_slider->SetValue((float_t)saturate_power);
-    saturate_coeff_slider->SetValue(saturate_coeff);
+    saturate_coef_slider->SetValue(saturate_coef);
 
     for (int32_t i = 0; i < 3; i++)
-        lens_sliders[i]->SetValue(((float_t*)&lens)[i]);
+        lens_sliders[i]->SetValue(flare_coef[i]);
 
     for (int32_t i = 0; i < 3; i++)
-        radius_sliders[i]->SetValue(((float_t*)&radius)[i]);
+        radius_sliders[i]->SetValue(sigma[i]);
 
     for (int32_t i = 0; i < 3; i++)
-        intensity_sliders[i]->SetValue(((float_t*)&intensity)[i]);
+        intensity_sliders[i]->SetValue(intensity[i]);
 
     DofReset();
 }
@@ -534,18 +517,18 @@ void dwPostProcess::DofCallback(dw::Widget* data) {
     dof_debug_set(&debug);
 
     const bool enable_dof = dw_post_process->dof_use_ui_params->value;
-    const bool dof_enable_physical_dof = dw_post_process->dof_enable_physical_dof->value;
+    const bool enable_physical_dof = dw_post_process->dof_enable_physical_dof->value;
 
     dw_post_process->dof_enable_dof->SetEnabled(enable_dof);
     dw_post_process->dof_enable_physical_dof->SetEnabled(enable_dof);
-    dw_post_process->dof_auto_focus->SetEnabled(enable_dof && dof_enable_physical_dof);
-    dw_post_process->dof_distance_to_focus->SetEnabled(enable_dof && dof_enable_physical_dof);
-    dw_post_process->dof_focal_length->SetEnabled(enable_dof && dof_enable_physical_dof);
-    dw_post_process->dof_f_number->SetEnabled(enable_dof && dof_enable_physical_dof);
-    dw_post_process->dof_f2_distance_to_focus->SetEnabled(enable_dof && !dof_enable_physical_dof);
-    dw_post_process->dof_f2_focus_range->SetEnabled(enable_dof && !dof_enable_physical_dof);
-    dw_post_process->dof_f2_fuzzing_range->SetEnabled(enable_dof && !dof_enable_physical_dof);
-    dw_post_process->dof_f2_ratio->SetEnabled(enable_dof && !dof_enable_physical_dof);
+    dw_post_process->dof_auto_focus->SetEnabled(enable_dof && enable_physical_dof);
+    dw_post_process->dof_distance_to_focus->SetEnabled(enable_dof && enable_physical_dof);
+    dw_post_process->dof_focal_length->SetEnabled(enable_dof && enable_physical_dof);
+    dw_post_process->dof_f_number->SetEnabled(enable_dof && enable_physical_dof);
+    dw_post_process->dof_f2_distance_to_focus->SetEnabled(enable_dof && !enable_physical_dof);
+    dw_post_process->dof_f2_focus_range->SetEnabled(enable_dof && !enable_physical_dof);
+    dw_post_process->dof_f2_fuzzing_range->SetEnabled(enable_dof && !enable_physical_dof);
+    dw_post_process->dof_f2_ratio->SetEnabled(enable_dof && !enable_physical_dof);
     show_face_query_set(dw_post_process->show_face_query_button->value);
 }
 
@@ -554,6 +537,14 @@ void dwPostProcess::ExposureCallback(dw::Widget* data) {
     if (slider) {
         dw_post_process->exposure = slider->GetValue();
         dw_post_process->rend->set_exposure(dw_post_process->exposure);
+    }
+}
+
+void dwPostProcess::FlareCallback(dw::Widget* data) {
+    dw::Slider* slider = dynamic_cast<dw::Slider*>(data);
+    if (slider) {
+        dw_post_process->flare_coef[slider->callback_data.i32] = slider->GetValue();
+        dw_post_process->rend->set_flare_coef(dw_post_process->flare_coef);
     }
 }
 
@@ -568,16 +559,8 @@ void dwPostProcess::GammaCallback(dw::Widget* data) {
 void dwPostProcess::IntensityCallback(dw::Widget* data) {
     dw::Slider* slider = dynamic_cast<dw::Slider*>(data);
     if (slider) {
-        ((float_t*)&dw_post_process->intensity)[slider->callback_data.i32] = slider->GetValue();
+        dw_post_process->intensity[slider->callback_data.i32] = slider->GetValue();
         dw_post_process->rend->set_intensity(dw_post_process->intensity);
-    }
-}
-
-void dwPostProcess::LensCallback(dw::Widget* data) {
-    dw::Slider* slider = dynamic_cast<dw::Slider*>(data);
-    if (slider) {
-        ((float_t*)&dw_post_process->lens)[slider->callback_data.i32] = slider->GetValue();
-        dw_post_process->rend->set_lens(dw_post_process->lens);
     }
 }
 
@@ -588,7 +571,7 @@ void dwPostProcess::LoadCallback(dw::Widget* data) {
 void dwPostProcess::MagFilterCallback(dw::Widget* data) {
     dw::ListBox* list_box = dynamic_cast<dw::ListBox*>(data);
     if (list_box) {
-        dw_post_process->mag_filter = (rndr::Render::MagFilterType)(int32_t)list_box->list->selected_item;
+        dw_post_process->mag_filter = (int32_t)list_box->list->selected_item;
         dw_post_process->rend->set_mag_filter(dw_post_process->mag_filter);
     }
 }
@@ -596,24 +579,24 @@ void dwPostProcess::MagFilterCallback(dw::Widget* data) {
 void dwPostProcess::MorphologicalAACallback(dw::Widget* data) {
     dw::Button* button = dynamic_cast<dw::Button*>(data);
     if (button) {
-        dw_post_process->mlaa = button->value ? 1 : 0;
-        dw_post_process->rend->set_mlaa(dw_post_process->mlaa);
+        dw_post_process->morphological_anti_alias = button->value ? 1 : 0;
+        dw_post_process->rend->set_morphological_aa(dw_post_process->morphological_anti_alias);
     }
 }
 
 void dwPostProcess::RadiusCallback(dw::Widget* data) {
     dw::Slider* slider = dynamic_cast<dw::Slider*>(data);
     if (slider) {
-        ((float_t*)&dw_post_process->radius)[slider->callback_data.i32] = slider->GetValue();
-        dw_post_process->rend->set_radius(dw_post_process->radius);
+        dw_post_process->sigma[slider->callback_data.i32] = slider->GetValue();
+        dw_post_process->rend->set_sigma(dw_post_process->sigma);
     }
 }
 
-void dwPostProcess::SaturateCoeffCallback(dw::Widget* data) {
+void dwPostProcess::SaturateCoefCallback(dw::Widget* data) {
     dw::Slider* slider = dynamic_cast<dw::Slider*>(data);
     if (slider) {
-        dw_post_process->saturate_coeff = slider->GetValue();
-        dw_post_process->rend->set_saturate_coeff(dw_post_process->saturate_coeff, 0, false);
+        dw_post_process->saturate_coef = slider->GetValue();
+        dw_post_process->rend->set_saturate_coef(dw_post_process->saturate_coef, 0, false);
     }
 }
 
@@ -638,21 +621,21 @@ void dwPostProcess::SetForEachCutCallback(dw::Widget* data) {
 void dwPostProcess::TemporalAACallback(dw::Widget* data) {
     dw::Button* button = dynamic_cast<dw::Button*>(data);
     if (button) {
-        dw_post_process->taa = button->value ? 1 : 0;
-        dw_post_process->rend->set_taa(dw_post_process->taa);
+        dw_post_process->temporal_anti_alias = button->value ? 1 : 0;
+        dw_post_process->rend->set_temporal_aa(dw_post_process->temporal_anti_alias);
     }
 }
 
 void dwPostProcess::ToneMapCallback(dw::Widget* data) {
     dw::ListBox* list_box = dynamic_cast<dw::ListBox*>(data);
     if (list_box) {
-        dw_post_process->tone_map = (tone_map_method)(int32_t)list_box->list->selected_item;
-        dw_post_process->rend->set_tone_map(dw_post_process->tone_map);
+        dw_post_process->tone_map_method = (int32_t)list_box->list->selected_item;
+        dw_post_process->rend->set_tone_map_method(dw_post_process->tone_map_method);
     }
 }
 
 dwSceneFade::dwSceneFade() {
-    rend = &rctx_ptr->render;
+    rend = rctx_ptr->render;
 
     SetText("SCENE FADE");
 
@@ -672,26 +655,20 @@ dwSceneFade::dwSceneFade() {
 
     (new dw::Label(color_comp))->SetText("COLOR ");
 
-    color_slider[0] = dw::Slider::Create(color_comp,
-        dw::Flags(dw::FLAG_800 | dw::HORIZONTAL), 0.0f, 0.0f, 100.0f, glyph_size.y, " R ");
-    color_slider[0]->SetParams(0.0f, 0.0f, 1.0f, 0.1f, 0.01f, 0.1f);
-    color_slider[0]->format = "%4.2f";
-    color_slider[0]->AddSelectionListener(new dw::SelectionListenerOnHook(dwSceneFade::ColorCallback));
-    color_slider[0]->callback_data.i64 = 0;
+    for (int32_t i = 0; i < 3; i++) {
+        static const char* color_name[] = {
+            " R ",
+            " G ",
+            " B ",
+        };
 
-    color_slider[1] = dw::Slider::Create(color_comp,
-        dw::Flags(dw::FLAG_800 | dw::HORIZONTAL), 0.0f, 0.0f, 100.0f, glyph_size.y, " G ");
-    color_slider[1]->SetParams(0.0f, 0.0f, 1.0f, 0.1f, 0.01f, 0.1f);
-    color_slider[1]->format = "%4.2f";
-    color_slider[1]->AddSelectionListener(new dw::SelectionListenerOnHook(dwSceneFade::ColorCallback));
-    color_slider[1]->callback_data.i64 = 1;
-
-    color_slider[2] = dw::Slider::Create(color_comp,
-        dw::Flags(dw::FLAG_800 | dw::HORIZONTAL), 0.0f, 0.0f, 100.0f, glyph_size.y, " B ");
-    color_slider[2]->SetParams(0.0f, 0.0f, 1.0f, 0.1f, 0.01f, 0.1f);
-    color_slider[2]->format = "%4.2f";
-    color_slider[2]->AddSelectionListener(new dw::SelectionListenerOnHook(dwSceneFade::ColorCallback));
-    color_slider[2]->callback_data.i64 = 2;
+        color_slider[i] = dw::Slider::Create(color_comp,
+            dw::Flags(dw::FLAG_800 | dw::HORIZONTAL), 0.0f, 0.0f, 100.0f, glyph_size.y, color_name[i]);
+        color_slider[i]->SetParams(0.0f, 0.0f, 1.0f, 0.1f, 0.01f, 0.1f);
+        color_slider[i]->format = "%4.2f";
+        color_slider[i]->AddSelectionListener(new dw::SelectionListenerOnHook(dwSceneFade::ColorCallback));
+        color_slider[i]->callback_data.i64 = i;
+    }
 
     dw::Composite* blend_func_comp = new dw::Composite(this);
     blend_func_comp->SetLayout(new dw::RowLayout(dw::HORIZONTAL));
@@ -725,21 +702,20 @@ void dwSceneFade::Hide() {
 }
 
 void dwSceneFade::ResetData() {
-    color = rend->get_scene_fade_color();
-    alpha = rend->get_scene_fade_alpha();
-    blend_func = rend->get_scene_fade_blend_func();
+    rend->get_fade_color(color);
+    rend->get_fade_rate(&alpha);
+    rend->get_fade_blend_func(&blend_func);
 
     for (int32_t i = 0; i < 3; i++)
-        color_slider[i]->SetValue(((float_t*)&color)[i]);
-
+        color_slider[i]->SetValue(color[i]);
     alpha_slider->SetValue(alpha);
     blend_func_list->SetItemIndex(blend_func);
 }
 
 void dwSceneFade::SetData() {
-    rend->set_scene_fade_alpha(alpha, 0);
-    rend->set_scene_fade_color(color, 0);
-    rend->set_scene_fade_blend_func(blend_func, 0);
+    rend->set_fade_rate(alpha);
+    rend->set_fade_color(color);
+    rend->set_fade_blend_func(blend_func);
 }
 
 void dwSceneFade::AlphaCallback(dw::Widget* data) {
@@ -759,17 +735,17 @@ void dwSceneFade::BlendFuncCallback(dw::Widget* data) {
 void dwSceneFade::ColorCallback(dw::Widget* data) {
     dw::Slider* slider = dynamic_cast<dw::Slider*>(data);
     if (slider)
-        ((float_t*)&dw_scene_fade->color)[slider->callback_data.i32] = slider->GetValue();
+        dw_scene_fade->color[slider->callback_data.i32] = slider->GetValue();
     dw_scene_fade->SetData();
 }
 
 void dwSceneFade::ResetCallback(dw::Widget* data) {
-    rctx_ptr->render.reset_scene_fade(0);
+    rctx_ptr->render->set_fade_color_default();
     dw_scene_fade->ResetData();
 }
 
 dwToneTrans::dwToneTrans() {
-    rend = &rctx_ptr->render;
+    rend = rctx_ptr->render;
 
     SetText("TONE TRANS");
 
@@ -780,52 +756,40 @@ dwToneTrans::dwToneTrans() {
 
     (new dw::Label(start_comp))->SetText("START ");
 
-    start_slider[0] = dw::Slider::Create(start_comp,
-        dw::Flags(dw::FLAG_800 | dw::HORIZONTAL), 0.0f, 0.0f, 100.0f, glyph_size.y, " R ");
-    start_slider[0]->SetParams(0.0f, 0.0f, 1.0f, 0.1f, 0.01f, 0.1f);
-    start_slider[0]->format = "%4.2f";
-    start_slider[0]->AddSelectionListener(new dw::SelectionListenerOnHook(dwToneTrans::StartCallback));
-    start_slider[0]->callback_data.i64 = 0;
+    for (int32_t i = 0; i < 3; i++) {
+        static const char* start_name[] = {
+            " R ",
+            " G ",
+            " B ",
+        };
 
-    start_slider[1] = dw::Slider::Create(start_comp,
-        dw::Flags(dw::FLAG_800 | dw::HORIZONTAL), 0.0f, 0.0f, 100.0f, glyph_size.y, " G ");
-    start_slider[1]->SetParams(0.0f, 0.0f, 1.0f, 0.1f, 0.01f, 0.1f);
-    start_slider[1]->format = "%4.2f";
-    start_slider[1]->AddSelectionListener(new dw::SelectionListenerOnHook(dwToneTrans::StartCallback));
-    start_slider[1]->callback_data.i64 = 1;
-
-    start_slider[2] = dw::Slider::Create(start_comp,
-        dw::Flags(dw::FLAG_800 | dw::HORIZONTAL), 0.0f, 0.0f, 100.0f, glyph_size.y, " B ");
-    start_slider[2]->SetParams(0.0f, 0.0f, 1.0f, 0.1f, 0.01f, 0.1f);
-    start_slider[2]->format = "%4.2f";
-    start_slider[2]->AddSelectionListener(new dw::SelectionListenerOnHook(dwToneTrans::StartCallback));
-    start_slider[2]->callback_data.i64 = 2;
+        start_slider[i] = dw::Slider::Create(start_comp,
+            dw::Flags(dw::FLAG_800 | dw::HORIZONTAL), 0.0f, 0.0f, 100.0f, glyph_size.y, start_name[i]);
+        start_slider[i]->SetParams(0.0f, 0.0f, 1.0f, 0.1f, 0.01f, 0.1f);
+        start_slider[i]->format = "%4.2f";
+        start_slider[i]->AddSelectionListener(new dw::SelectionListenerOnHook(dwToneTrans::StartCallback));
+        start_slider[i]->callback_data.i64 = i;
+    }
 
     dw::Composite* end_comp = new dw::Composite(this);
     end_comp->SetLayout(new dw::RowLayout(dw::HORIZONTAL));
 
     (new dw::Label(end_comp))->SetText("END   ");
 
-    end_slider[0] = dw::Slider::Create(end_comp,
-        dw::Flags(dw::FLAG_800 | dw::HORIZONTAL), 0.0f, 0.0f, 100.0f, glyph_size.y, " R ");
-    end_slider[0]->SetParams(1.0f, 0.0f, 1.0f, 0.1f, 0.01f, 0.1f);
-    end_slider[0]->format = "%4.2f";
-    end_slider[0]->AddSelectionListener(new dw::SelectionListenerOnHook(dwToneTrans::EndCallback));
-    end_slider[0]->callback_data.i64 = 0;
+    for (int32_t i = 0; i < 3; i++) {
+        static const char* end_name[] = {
+            " R ",
+            " G ",
+            " B ",
+        };
 
-    end_slider[1] = dw::Slider::Create(end_comp,
-        dw::Flags(dw::FLAG_800 | dw::HORIZONTAL), 0.0f, 0.0f, 100.0f, glyph_size.y, " G ");
-    end_slider[1]->SetParams(1.0f, 0.0f, 1.0f, 0.1f, 0.01f, 0.1f);
-    end_slider[1]->format = "%4.2f";
-    end_slider[1]->AddSelectionListener(new dw::SelectionListenerOnHook(dwToneTrans::EndCallback));
-    end_slider[1]->callback_data.i64 = 1;
-
-    end_slider[2] = dw::Slider::Create(end_comp,
-        dw::Flags(dw::FLAG_800 | dw::HORIZONTAL), 0.0f, 0.0f, 100.0f, glyph_size.y, " B ");
-    end_slider[2]->SetParams(1.0f, 0.0f, 1.0f, 0.1f, 0.01f, 0.1f);
-    end_slider[2]->format = "%4.2f";
-    end_slider[2]->AddSelectionListener(new dw::SelectionListenerOnHook(dwToneTrans::EndCallback));
-    end_slider[2]->callback_data.i64 = 2;
+        end_slider[i] = dw::Slider::Create(end_comp,
+            dw::Flags(dw::FLAG_800 | dw::HORIZONTAL), 0.0f, 0.0f, 100.0f, glyph_size.y, end_name[i]);
+        end_slider[i]->SetParams(1.0f, 0.0f, 1.0f, 0.1f, 0.01f, 0.1f);
+        end_slider[i]->format = "%4.2f";
+        end_slider[i]->AddSelectionListener(new dw::SelectionListenerOnHook(dwToneTrans::EndCallback));
+        end_slider[i]->callback_data.i64 = i;
+    }
 
     dw::Composite* reset_comp = new dw::Composite(this);
     reset_comp->SetLayout(new dw::RowLayout(dw::HORIZONTAL));
@@ -850,8 +814,8 @@ void dwToneTrans::ResetData() {
     rend->get_tone_trans(start, end);
 
     for (int32_t i = 0; i < 3; i++) {
-        start_slider[i]->SetValue(((float_t*)&start)[i]);
-        end_slider[i]->SetValue(((float_t*)&end)[i]);
+        start_slider[i]->SetValue(start[i]);
+        end_slider[i]->SetValue(end[i]);
     }
 }
 
@@ -864,14 +828,14 @@ void dwToneTrans::EndCallback(dw::Widget* data) {
     if (slider) {
         float_t value = slider->GetValue();
         int32_t index = slider->callback_data.i32;
-        if (((float_t*)&dw_tone_trans->start)[index] != value)
-            ((float_t*)&dw_tone_trans->end)[index] = value;
+        if (dw_tone_trans->start[index] != value)
+            dw_tone_trans->end[index] = value;
     }
     dw_tone_trans->SetData();
 }
 
 void dwToneTrans::ResetCallback(dw::Widget* data) {
-    rctx_ptr->render.reset_tone_trans(0);
+    rctx_ptr->render->set_tone_trans_default();
     dw_tone_trans->ResetData();
 }
 
@@ -880,8 +844,8 @@ void dwToneTrans::StartCallback(dw::Widget* data) {
     if (slider) {
         float_t value = slider->GetValue();
         int32_t index = slider->callback_data.i32;
-        if (((float_t*)&dw_tone_trans->end)[index] != value)
-            ((float_t*)&dw_tone_trans->start)[index] = value;
+        if (dw_tone_trans->end[index] != value)
+            dw_tone_trans->start[index] = value;
     }
     dw_tone_trans->SetData();
 }

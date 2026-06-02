@@ -11,7 +11,9 @@
 #include "effect.hpp"
 #include "light_param.hpp"
 #include "stage_param.hpp"
+#include "render.hpp"
 #include "render_context.hpp"
+#include "render_manager.hpp"
 #include "shadow.hpp"
 
 namespace stage_detail {
@@ -550,19 +552,13 @@ static void stage_disp(stage* s) {
         disp_manager.entry_obj_by_object_info(t, s->stage_data->object_sky);
     }
 
-    if (s->stage_data->lens_flare_texture != -1 && s->lens_flare) {
+    if (s->stage_data->tex_flare != -1 && s->lens_flare) {
         int32_t object_set_id = s->stage_data->object_set_id;
-        rndr::Render* rend = &rctx_ptr->render;
-        rend->lens_flare_texture = get_objset_gen_textures_id(
-            object_set_id, s->stage_data->lens_flare_texture);
-        if (rend->lens_flare_texture) {
-            rend->lens_shaft_texture = get_objset_gen_textures_id(
-                object_set_id, s->stage_data->lens_shaft_texture);
-            rend->lens_ghost_texture = get_objset_gen_textures_id(
-                object_set_id, s->stage_data->lens_ghost_texture);
-            rend->lens_ghost_count = 16;
-            rend->lens_shaft_inv_scale = s->stage_data->lens_shaft_inv_scale;
-        }
+        GLuint flares[3];
+        flares[0] = get_objset_gen_textures_id(object_set_id, s->stage_data->tex_flare);
+        flares[1] = get_objset_gen_textures_id(object_set_id, s->stage_data->tex_shaft);
+        flares[2] = get_objset_gen_textures_id(object_set_id, s->stage_data->tex_ghost);
+        rctx_ptr->render->draw_sun_request(flares, s->stage_data->shaft_scale, s->stage_data->num_ghosts);
     }
 }
 
@@ -603,15 +599,15 @@ static void stage_free(stage* s) {
 
     rndr::RenderManager* render_manager = rctx_ptr->render_manager;
     if (s->stage_data->render_texture != -1)
-        rctx_ptr->render.render_texture_free(
+        rctx_ptr->render->remove_fb_copy(
             texture_manager_get_texture(s->stage_data->render_texture), 0);
 
     if (s->stage_data->movie_texture != -1)
-        rctx_ptr->render.movie_texture_free(
+        rctx_ptr->render->remove_fb_movie(
             texture_manager_get_texture(s->stage_data->movie_texture));
 
     render_manager->set_shadow_true();
-    rctx_ptr->render.set_cam_blur(0);
+    rctx_ptr->render->set_cam_blur(0);
     npr_cloth_spec_color.w = 1.0f;
     render_manager->reflect_texture_mask = false;
     render_manager->reflect_tone_curve = false;
@@ -663,11 +659,11 @@ static void stage_load(stage* s) {
             return;
 
         if (s->stage_data->render_texture != -1)
-            rctx_ptr->render.render_texture_set(
+            rctx_ptr->render->register_fb_copy(
                 texture_manager_get_texture(s->stage_data->render_texture), 0);
 
         if (s->stage_data->movie_texture != -1)
-            rctx_ptr->render.movie_texture_set(
+            rctx_ptr->render->register_fb_movie(
                 texture_manager_get_texture(s->stage_data->movie_texture));
         s->state = 6;
     }
@@ -706,7 +702,7 @@ static void stage_set(stage* s, stage* other) {
         render_manager->field_31F = false;
         render_manager->light_stage_ambient = false;
         render_manager->set_shadow_true();
-        rctx_ptr->render.set_cam_blur(0);
+        rctx_ptr->render->set_cam_blur(0);
         npr_cloth_spec_color.w = 1.0f;
         render_manager->set_npr_param(0);
         light_chara_ambient = false;

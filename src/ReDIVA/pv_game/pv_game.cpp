@@ -12,9 +12,12 @@
 #include "../../CRE/customize_item_table.hpp"
 #include "../../CRE/effect.hpp"
 #include "../../CRE/hand_item.hpp"
-#include "../../CRE/random.hpp"
 #include "../../CRE/pv_expression.hpp"
 #include "../../CRE/pv_param.hpp"
+#include "../../CRE/random.hpp"
+#include "../../CRE/render.hpp"
+#include "../../CRE/render_context.hpp"
+#include "../../CRE/render_manager.hpp"
 #include "../../CRE/shadow.hpp"
 #include "../../CRE/sound.hpp"
 #include "../../CRE/stage_param.hpp"
@@ -1204,7 +1207,7 @@ void pv_game::change_field(size_t field, ssize_t dsc_time, ssize_t curr_time) {
 
     light_param_data_storage_data_set_pv_cut((int32_t)field);
     rctx_ptr->render_manager->set_npr_param(next_field_data.npr_type);
-    rctx_ptr->render.set_cam_blur(next_field_data.cam_blur);
+    rctx_ptr->render->set_cam_blur(next_field_data.cam_blur);
 
     if (next_field_data.sdw_off)
         rctx_ptr->render_manager->set_shadow_false();
@@ -1823,7 +1826,7 @@ int32_t pv_game::ctrl_end(float_t delta_time) {
             task_mask_screen_fade_out(0.75f, 0);
         }
 
-        rctx_ptr->render.set_exposure(0.0f);
+        rctx_ptr->render->set_exposure(0.0f);
 
         if (data.play_data.get_aet_next_info_disp())
             return 0;
@@ -2750,9 +2753,9 @@ bool pv_game::load() {
         }
 
         if (data.pv->get_performer_count() < 2)
-            rctx_ptr->render.update_res(false, 1);
+            rctx_ptr->render->calc_draw_size(false, 1);
         else
-            rctx_ptr->render.update_res(false, 2);
+            rctx_ptr->render->calc_draw_size(false, 2);
         rctx_ptr->render_manager->set_effect_texture(0);
     } return false;
     case 3: {
@@ -3247,7 +3250,7 @@ bool pv_game::load() {
             for (const pv_db_pv_frame_texture& i : get_pv_db_pv()->frame_texture)
                 if (i.data.size()) {
                     data.has_frame_texture = true;
-                    rctx_ptr->render.frame_texture_reset();
+                    rctx_ptr->render->init_capture();
                     break;
                 }
         }
@@ -3562,13 +3565,14 @@ bool pv_game::load() {
             state = 12;
     } break;
     case 12: {
-        rndr::Render& rend = rctx_ptr->render;
-        int32_t frame_texture_slot = 0;
+        rndr::Render* rend = rctx_ptr->render;
+        int32_t slot = 0;
         for (const pv_db_pv_frame_texture& i : data.pv->frame_texture) {
-            texture* tex = texture_manager_get_texture(aft_tex_db->get_texture_id(i.data.c_str()));
-            if (tex)
-                rend.frame_texture_load(frame_texture_slot, (rndr::Render::FrameTextureType)i.type, tex);
-            frame_texture_slot++;
+            texture* txhd = texture_manager_get_texture(aft_tex_db->get_texture_id(i.data.c_str()));
+            if (txhd)
+                rend->register_fb_man_cap((rndr::Render::CaptureSlot)slot,
+                    (rndr::Render::CaptureType)i.type, txhd);
+            slot++;
         }
 
         /*if (sel_main_get()->check_alive())
@@ -4601,7 +4605,7 @@ bool pv_game::set_pv_param_post_process_color_correction_data(bool set, int32_t 
 }
 
 bool pv_game::set_pv_param_post_process_dof_data(bool set, int32_t id, float_t duration) {
-    rctx_ptr->render.set_dof_enable(set);
+    rctx_ptr->render->enable_dof_set(set);
 
     pv_param::dof& dof = pv_param::post_process_data_get_dof_data(id);
     if (set)
@@ -4690,19 +4694,19 @@ bool pv_game::unload() {
 
         data.field_2CF30 = 4;
 
-        rndr::Render& rend = rctx_ptr->render;
-        int32_t frame_texture_slot = 0;
+        rndr::Render* rend = rctx_ptr->render;
+        int32_t slot = 0;
         for (const pv_db_pv_frame_texture& i : data.pv->frame_texture) {
             if (i.data.size()) {
-                texture* tex = texture_manager_get_texture(aft_tex_db->get_texture_id(i.data.c_str()));
-                if (tex)
-                    rend.frame_texture_unload(frame_texture_slot, tex);
+                texture* txhd = texture_manager_get_texture(aft_tex_db->get_texture_id(i.data.c_str()));
+                if (txhd)
+                    rend->unregister_fb_man_cap((rndr::Render::CaptureSlot)slot, txhd);
             }
-            frame_texture_slot++;
+            slot++;
         }
 
         if (data.has_frame_texture) {
-            rend.frame_texture_free();
+            rend->free_capture();
             data.has_frame_texture = false;
         }
 
@@ -4891,13 +4895,13 @@ bool pv_game::unload() {
 
     light_param_data_storage_data_reset();
 
-    rndr::Render& rend = rctx_ptr->render;
-    rend.reset_saturate_coeff(0, true);
-    rend.set_dof_enable(false);
-    rend.reset_scene_fade(0);
+    rndr::Render* rend = rctx_ptr->render;
+    rend->set_saturate_coef_default(0, true);
+    rend->enable_dof_set(false);
+    rend->set_fade_color_default();
     if (!false/*sub_140192E20()*/)
-        rend.set_taa(1);
-    rend.update_res(0, -1);
+        rend->set_temporal_aa(1);
+    rend->calc_draw_size(0, -1);
 
     rctx_ptr->disp_manager->object_culling = true;
     get_shadow()->set_shadow_range(1.0f);

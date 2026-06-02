@@ -6,6 +6,7 @@
 #include "transparency.hpp"
 #include "../../KKdLib/str_utils.hpp"
 #include "../gl_rend_state.hpp"
+#include "../render.hpp"
 #include "../render_context.hpp"
 #include "../shader_ft.hpp"
 
@@ -56,7 +57,7 @@ namespace renderer {
             shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_REDUCE);
             rend_data_ctx.state.active_bind_texture_2d(0, texture);
             rend_data_ctx.state.bind_sampler(0, rctx_ptr->render_samplers[1]);
-            rctx_ptr->render.draw_quad(rend_data_ctx, m_fbo.get_width(), m_fbo.get_height(),
+            rctx_ptr->render->draw_quad(rend_data_ctx, m_fbo.get_width(), m_fbo.get_height(),
                 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
             rend_data_ctx.state.enable_depth_test();
         }

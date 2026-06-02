@@ -8,6 +8,9 @@
 #include "../../CRE/app_system_detail.hpp"
 #include "../../CRE/pv_expression.hpp"
 #include "../../CRE/pv_param.hpp"
+#include "../../CRE/render.hpp"
+#include "../../CRE/render_context.hpp"
+#include "../../CRE/render_manager.hpp"
 #include "../../CRE/shadow.hpp"
 #include "../information/dw_console.hpp"
 #include "../mask_screen.hpp"
@@ -238,7 +241,7 @@ pv_data_camera::pv_data_camera() : enable(), time() {
     index = -1;
 }
 
-pv_scene_fade::pv_scene_fade() : enable(), time(), duration(), start_alpha(), end_alpha() {
+pv_scene_fade::pv_scene_fade() : enable(), time(), duration(), start_alpha(), end_alpha(), color() {
 
 }
 
@@ -259,8 +262,8 @@ void pv_scene_fade::ctrl(float_t delta_time) {
         end = false;
     }
 
-    rctx_ptr->render.set_scene_fade_color(color, 1);
-    rctx_ptr->render.set_scene_fade_alpha(alpha, 1);
+    rctx_ptr->render->set_fade_color(color, 1);
+    rctx_ptr->render->set_fade_rate(alpha, 1);
 
     if (end)
         reset();
@@ -272,7 +275,9 @@ void pv_scene_fade::reset() {
     duration = 0.0f;
     start_alpha = 0.0f;
     end_alpha = 0.0f;
-    color = 0.0f;
+    color[0] = 0.0f;
+    color[1] = 0.0f;
+    color[2] = 0.0f;
 }
 
 pv_dsc_target::pv_dsc_target() : amplitude(), frequency(), slide_chain_start(),
@@ -1538,36 +1543,36 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         scene_fade.duration = (float_t)data[0] * 0.001f;
         scene_fade.start_alpha = (float_t)data[1] * 0.001f;
         scene_fade.end_alpha = (float_t)data[2] * 0.001f;
-        scene_fade.color.x = (float_t)data[3] * 0.001f;
-        scene_fade.color.y = (float_t)data[4] * 0.001f;
-        scene_fade.color.z = (float_t)data[5] * 0.001f;
+        scene_fade.color[0] = (float_t)data[3] * 0.001f;
+        scene_fade.color[1] = (float_t)data[4] * 0.001f;
+        scene_fade.color[2] = (float_t)data[5] * 0.001f;
 
         scene_fade.enable = true;
         scene_fade.time = 0.0f;
         scene_fade_ctrl(0.0f);
     } break;
     case DSC_FT_TONE_TRANS: {
-        vec3 start;
-        start.x = (float_t)data[0] * 0.001f;
-        start.y = (float_t)data[1] * 0.001f;
-        start.z = (float_t)data[2] * 0.001f;
+        float_t start[3];
+        start[0] = (float_t)data[0] * 0.001f;
+        start[1] = (float_t)data[1] * 0.001f;
+        start[2] = (float_t)data[2] * 0.001f;
 
-        vec3 end;
-        end.x = (float_t)data[3] * 0.001f;
-        end.y = (float_t)data[4] * 0.001f;
-        end.z = (float_t)data[5] * 0.001f;
+        float_t end[3];
+        end[0] = (float_t)data[3] * 0.001f;
+        end[1] = (float_t)data[4] * 0.001f;
+        end[2] = (float_t)data[5] * 0.001f;
 
-        rctx_ptr->render.set_tone_trans(start, end, 1);
+        rctx_ptr->render->set_tone_trans(start, end, 1);
     } break;
     case DSC_FT_SATURATE: {
-        float_t saturate_coeff = (float_t)data[0] * 0.001f;
+        float_t saturate_coef = (float_t)data[0] * 0.001f;
 
-        rctx_ptr->render.set_saturate_coeff(saturate_coeff, 1, false);
+        rctx_ptr->render->set_saturate_coef(saturate_coef, 1, false);
     } break;
     case DSC_FT_FADE_MODE: {
         int32_t blend_func = data[0];
 
-        rctx_ptr->render.set_scene_fade_blend_func(blend_func, 1);
+        rctx_ptr->render->set_fade_blend_func(blend_func, 1);
     } break;
     case DSC_FT_AUTO_BLINK: {
         rob_id = (ROB_ID)data[0];
@@ -1960,13 +1965,13 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         int32_t enable = data[0];
 
         if (pv_game->data.pv)
-            rctx_ptr->render.frame_texture_cont_capture_set(enable == 1);
+            rctx_ptr->render->set_frame_texture_aoto_cap(enable == 1);
     } break;
     case DSC_FT_MAN_CAP: {
         int32_t slot = data[0];
 
         if (pv_game->data.pv && slot >= 0 && slot <= 4)
-            rctx_ptr->render.frame_texture_slot_capture_set(slot + 1);
+            rctx_ptr->render->capture_slot_enable((rndr::Render::CaptureSlot)(1 + slot));
     } break;
     case DSC_FT_TOON: {
         int32_t npr_param = data[0];
@@ -2562,9 +2567,9 @@ void pv_game_pv_data::reset_camera_post_process() {
     cam->set_ignore_fov(false);
     cam->set_fov(32.2673416137695f);
 
-    rctx_ptr->render.reset_scene_fade(1);
-    rctx_ptr->render.reset_tone_trans(1);
-    rctx_ptr->render.reset_saturate_coeff(1, 1);
+    rctx_ptr->render->set_fade_color_default(1);
+    rctx_ptr->render->set_tone_trans_default(1);
+    rctx_ptr->render->set_saturate_coef_default(1, true);
 
     Shadow* shad = get_shadow();
     if (shad)

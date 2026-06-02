@@ -11,6 +11,7 @@
 #include "../gl_state.hpp"
 #include "../ogl_buffer_object.hpp"
 #include "../render_context.hpp"
+#include "../render_manager.hpp"
 #include "../shader_ft.hpp"
 #include "draw_object.hpp"
 

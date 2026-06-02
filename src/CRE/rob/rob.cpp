@@ -23,6 +23,7 @@
 #include "../pv_db.hpp"
 #include "../pv_expression.hpp"
 #include "../random.hpp"
+#include "../render_manager.hpp"
 #include "../screen_param.hpp"
 #include "../shadow.hpp"
 #include "../stage.hpp"
@@ -5182,7 +5183,7 @@ void rob_chara::set_rob_motion(uint32_t motnum, bool mirror, float_t frame,
 
 // 0x140516890
 void rob_chara::set_rob_motion_external(uint32_t motnum) {
-    if (check_disp())
+    if (get_disp())
         set_rob_sys_command(ROB_ACT_MOTION, motnum, 0, false);
 }
 
@@ -5826,7 +5827,7 @@ bool RobManagement::get_colli_check_on() const {
 // 0x140531F50
 bool RobManagement::get_disp_on(ROB_ID id) const  {
     if (is_init(id))
-        return rob_impl[id].check_disp();
+        return rob_impl[id].get_disp();
     return false;
 }
 
@@ -15561,40 +15562,6 @@ prj::BallCollision::BallCollision() : sink(), colli_ball_mask(), org_rad() {
 
 }
 
-pos_scale::pos_scale() : scale() {
-
-}
-
-float_t pos_scale::get_screen_pos_scale(const mat4& mat,
-    const vec3& pos, float_t scale, bool apply_offset) {
-    vec4 v19;
-    *(vec3*)&v19 = pos;
-    v19.w = 1.0f;
-    mat4_transform_vector(&mat, &v19, &v19);
-
-    if (fabsf(v19.w) >= 1.0e-10f) {
-        float_t v11 = v19.y * (1.0f / v19.w);
-        float_t v12 = v19.x * (1.0f / v19.w) + 1.0f;
-        ScreenParam& render_screen_param = get_render_screen_param();
-        float_t v14 = (float_t)(v12 * 0.5f) * (float_t)render_screen_param.width;
-        float_t v15 = (float_t)((1.0f - v11) * 0.5f) * (float_t)render_screen_param.height;
-        if (apply_offset) {
-            ScreenParam& screen_param = get_screen_param();
-            v14 += (float_t)render_screen_param.xoffset;
-            v15 += (float_t)(screen_param.height - render_screen_param.yoffset - render_screen_param.height);
-        }
-        this->pos.x = v14;
-        this->pos.y = v15;
-        this->scale = -v19.w;
-        return fabsf(1.0f / v19.w) * (rctx_ptr->camera->depth * scale);
-    }
-    else {
-        this->pos = 0.0f;
-        this->scale = 0.0f;
-        return 0.0f;
-    }
-}
-
 RobColliWall::RobColliWall() : wdist(), wheight() {
 
 }
@@ -15670,7 +15637,7 @@ void RobCollision::init() {
     for (prj::BallCollision& i : cb_stg)
         i = {};
 
-    for (pos_scale& i : field_1AA0)
+    for (vec3& i : field_1AA0)
         i = {};
 
     for (float_t& i : field_1BE4)
@@ -19630,7 +19597,7 @@ void TaskRobDisp::disp() {
         if (!i || pv_osage_manager_array_get_disp((ROB_ID)i->idnm))
             continue;
 
-        if (i->check_disp() && !i->check_zero_disp())
+        if (i->get_disp() && !i->check_zero_disp())
             i->disp_rob_disp_main();
     }
 }

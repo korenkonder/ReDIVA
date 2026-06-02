@@ -5,6 +5,7 @@
 
 #include "shadow.hpp"
 #include "../../CRE/render_context.hpp"
+#include "../../CRE/render_manager.hpp"
 #include "../../CRE/shadow.hpp"
 #include "../dw.hpp"
 

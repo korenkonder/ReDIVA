@@ -18,8 +18,6 @@
 #include "mdl/disp_manager.hpp"
 #include "camera.hpp"
 #include "gl_rend_state.hpp"
-#include "render.hpp"
-#include "render_manager.hpp"
 #include "render_texture.hpp"
 #include "sss.hpp"
 #include <unordered_map>
@@ -429,6 +427,11 @@ struct render_data {
     void set_shader(uint32_t index);
 };
 
+namespace rndr {
+    class Render;
+    class RenderManager;
+}
+
 struct render_data_context {
     struct fog_params {
         vec4 depth_color;
@@ -552,6 +555,7 @@ struct render_context {
     draw_state* draw_state;
     mdl::DispManager* disp_manager;
     mdl::EtcObjManager* etc_obj_manager;
+    rndr::Render* render;
     rndr::RenderManager* render_manager;
     sss_data* sss_data;
 
@@ -560,7 +564,6 @@ struct render_context {
     light_proj* litproj;
     light_set light_set[LIGHT_SET_MAX];
 
-    rndr::Render render;
     bool chara_reflect;
     bool chara_refract;
 
@@ -607,10 +610,10 @@ struct render_context {
     GLuint render_samplers[4];
     GLuint sprite_samplers[3];
 
-    int32_t sprite_width;
-    int32_t sprite_height;
-    int32_t screen_x_offset;
-    int32_t screen_y_offset;
+    int32_t view_w;
+    int32_t view_h;
+    int32_t view_x;
+    int32_t view_y;
     int32_t screen_width;
     int32_t screen_height;
 
@@ -632,7 +635,7 @@ struct render_context {
     void free();
     void init();
     void resize(int32_t render_width, int32_t render_height,
-        int32_t sprite_width, int32_t sprite_height,
+        int32_t view_w, int32_t view_h,
         int32_t screen_width, int32_t screen_height);
 
     void add_shared_storage_uniform_buffer_data(size_t index,

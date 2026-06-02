@@ -34,7 +34,7 @@ struct dof_debug {
 
 struct dof_pv {
     bool enable;
-    bool update;
+    bool update; // Added
     dof_f2 f2;
 };
 

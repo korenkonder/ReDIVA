@@ -16,7 +16,7 @@ bool cpu_caps_avx;
 bool cpu_caps_f16c;
 bool cpu_caps_avx2;
 
-/*void scan_arguments(int32_t argc, wchar_t** argv) {
+/*void read_arg(int32_t argc, wchar_t** argv) {
     std::vector<std::wstring> arguments;
     arguments.assign(argv + 1, argv + argc);
 
@@ -30,106 +30,106 @@ bool cpu_caps_avx2;
         if (!i->compare(L"--help"))
             show_help = true;
         else if (!i->compare(L"-debug"))
-            stru_140EDA5B0.debug = 1;
+            s_main_info.debug_mode = 1;
         else if (!i->compare(L"-t"))
             sys_am_set_test_mode_starting(true);
         else  if (!i->compare(L"-m")) {
             if (++i == i_end)
                 break;
 
-            stru_140EDA5B0.mode = _wtoi(i->c_str());
+            s_main_info.start_mode = _wtoi(i->c_str());
         }
         else if (!i->compare(L"-s")) {
             if (++i == i_end)
                 break;
 
-            stru_140EDA5B0.sub_mode = _wtoi(i->c_str());
+            s_main_info.start_mode_sub = _wtoi(i->c_str());
         }
         else if (!i->compare(L"-sm") || !i->compare(L"--start-up-mode")) {
             if (++i == i_end)
                 break;
 
             if (i->compare(L"server"))
-                stru_140EDA5B0.start_up_mode = 0;
+                s_main_info.start_up_mode = START_UP_MODE_SERVER;
             else
-                stru_140EDA5B0.start_up_mode = 1;
+                s_main_info.start_up_mode = START_UP_MODE_SATELLITE;
         }
         else if (!i->compare(L"-ve"))
-            stru_140EDA5B0.vsync_emulation = 1;
+            s_main_info.vsync_emu = 1;
         else if (!i->compare(L"-fs") || !i->compare(L"-f"))
-            stru_140EDA5B0.full_screen = 1;
+            s_main_info.full_screen = 1;
         else if (!i->compare(L"-w"))
-            stru_140EDA5B0.full_screen = 0;
+            s_main_info.full_screen = 0;
         else if (!i->compare(L"-aa"))
-            stru_140EDA5B0.ssaa = 1;
+            s_main_info.anti_alias = 1;
         else if (!i->compare(L"-qvga")) {
-            stru_140EDA5B0.res_launch = SCREEN_MODE_QVGA;
-            stru_140EDA5B0.hd_res = 0;
+            s_main_info.screen_mode = SCREEN_MODE_QVGA;
+            s_main_info.min_render = 0;
         }
         else if (!i->compare(L"-vga")) {
-            stru_140EDA5B0.res_launch = SCREEN_MODE_VGA;
-            stru_140EDA5B0.hd_res = 0;
+            s_main_info.screen_mode = SCREEN_MODE_VGA;
+            s_main_info.min_render = 0;
         }
         else if (!i->compare(L"-wvga")) {
-            stru_140EDA5B0.res_launch = SCREEN_MODE_WVGA;
-            stru_140EDA5B0.hd_res = 0;
+            s_main_info.screen_mode = SCREEN_MODE_WVGA;
+            s_main_info.min_render = 0;
         }
         else if (!i->compare(L"-svga")) {
-            stru_140EDA5B0.res_launch = SCREEN_MODE_SVGA;
-            stru_140EDA5B0.hd_res = 0;
+            s_main_info.screen_mode = SCREEN_MODE_SVGA;
+            s_main_info.min_render = 0;
         }
         else if (!i->compare(L"-xga")) {
-            stru_140EDA5B0.res_launch = SCREEN_MODE_XGA;
-            stru_140EDA5B0.hd_res = 0;
+            s_main_info.screen_mode = SCREEN_MODE_XGA;
+            s_main_info.min_render = 0;
         }
         else if (!i->compare(L"-wxga")) {
-            stru_140EDA5B0.res_launch = SCREEN_MODE_WXGA;
-            stru_140EDA5B0.hd_res = 1;
+            s_main_info.screen_mode = SCREEN_MODE_WXGA;
+            s_main_info.min_render = 1;
         }
         else if (!i->compare(L"-wxga_dbd")) {
-            stru_140EDA5B0.res_launch = SCREEN_MODE_WXGA;
-            stru_140EDA5B0.hd_res = 0;
+            s_main_info.screen_mode = SCREEN_MODE_WXGA;
+            s_main_info.min_render = 0;
         }
         else if (!i->compare(L"-uxga")) {
-            stru_140EDA5B0.res_launch = SCREEN_MODE_UXGA;
-            stru_140EDA5B0.hd_res = 0;
+            s_main_info.screen_mode = SCREEN_MODE_UXGA;
+            s_main_info.min_render = 0;
         }
         else if (!i->compare(L"-wuxga")) {
-            stru_140EDA5B0.res_launch = SCREEN_MODE_WUXGA;
-            stru_140EDA5B0.hd_res = 0;
+            s_main_info.screen_mode = SCREEN_MODE_WUXGA;
+            s_main_info.min_render = 0;
         }
         else if (!i->compare(L"-wqxga")) {
-            stru_140EDA5B0.res_launch = SCREEN_MODE_WQXGA;
-            stru_140EDA5B0.hd_res = 0;
+            s_main_info.screen_mode = SCREEN_MODE_WQXGA;
+            s_main_info.min_render = 0;
         }
         else if (!i->compare(L"-hdtv720")) {
-            stru_140EDA5B0.res_launch = SCREEN_MODE_HD;
-            stru_140EDA5B0.hd_res = 1;
+            s_main_info.screen_mode = SCREEN_MODE_HD;
+            s_main_info.min_render = 1;
         }
         else if (!i->compare(L"-hdtv720_dbd")) {
-            stru_140EDA5B0.res_launch = SCREEN_MODE_HD;
-            stru_140EDA5B0.hd_res = 0;
+            s_main_info.screen_mode = SCREEN_MODE_HD;
+            s_main_info.min_render = 0;
         }
         else if (!i->compare(L"-hdtv1080")) {
-            stru_140EDA5B0.res_launch = SCREEN_MODE_FHD;
-            stru_140EDA5B0.hd_res = 0;
+            s_main_info.screen_mode = SCREEN_MODE_FHD;
+            s_main_info.min_render = 0;
         }
         else if (!i->compare(L"-wqhd")) {
-            stru_140EDA5B0.res_launch = SCREEN_MODE_QHD;
-            stru_140EDA5B0.hd_res = 0;
+            s_main_info.screen_mode = SCREEN_MODE_QHD;
+            s_main_info.min_render = 0;
         }
         else if (!i->compare(L"-ss")) {
             if (++i == i_end)
                 break;
 
-            stru_140EDA5B0.screen_shot = 1;
-            stru_140EDA5B0.field_80 = 0;
-            stru_140EDA5B0.field_40.assign(*i);
-            stru_140EDA5B0.field_60.assign(stru_140EDA5B0.field_40);
-            stru_140EDA5B0.ssaa = 1;
+            s_main_info.ss_flag = 1;
+            s_main_info.field_80 = 0;
+            s_main_info.field_40.assign(*i);
+            s_main_info.field_60.assign(s_main_info.field_40);
+            s_main_info.anti_alias = 1;
         }
         else if (!i->compare(L"-no_aa")) {
-            stru_140EDA5B0.ssaa = 0;
+            s_main_info.anti_alias = 0;
             continue;
         }
         else if (!i->compare(L"-ssformat")) {
@@ -137,47 +137,48 @@ bool cpu_caps_avx2;
                 break;
 
             if (!i->compare(L"ppm"))
-                stru_140EDA5B0.ss_format = 0;
+                s_main_info.ss_suffix = SS_SUFFIX_PPM;
             else if (!i->compare(L"bmp"))
-                stru_140EDA5B0.ss_format = 1;
+                s_main_info.ss_suffix = SS_SUFFIX_BMP;
             else if (!i->compare(L"tga"))
-                stru_140EDA5B0.ss_format = 2;
+                s_main_info.ss_suffix = SS_SUFFIX_TGA;
             else if (!i->compare(L"yuy2"))
-                stru_140EDA5B0.ss_format = 3;
+                s_main_info.ss_suffix = SS_SUFFIX_YUY2;
             else if (!i->compare(L"jpg"))
-                stru_140EDA5B0.ss_format = 4;
+                s_main_info.ss_suffix = SS_SUFFIX_JPEG;
         }
         else if (!i->compare(L"-ss4x")) {
             if (++i == i_end)
                 break;
 
-            stru_140EDA5B0.screen_shot = 1;
-            stru_140EDA5B0.field_80 = 0;
-            stru_140EDA5B0.field_40.assign(*i);
-            stru_140EDA5B0.field_60.assign(stru_140EDA5B0.field_40);
-            stru_140EDA5B0.screen_shot_4x = 1;
-            stru_140EDA5B0.ssaa = 1;
+            s_main_info.ss_flag = 1;
+            s_main_info.field_80 = 0;
+            s_main_info.field_40.assign(*i);
+            s_main_info.field_60.assign(s_main_info.field_40);
+            s_main_info.ss_mode = SS_MODE_SIZE_4X;
+            s_main_info.anti_alias = 1;
         }
         else if (!i->compare(L"-ss36x"));
         else if (i->compare(L"-ssalphamask"))
-            stru_140EDA5B0.ss_alpha_mask = 1;
+            s_main_info.ss_alpha_mask = 1;
         else if (!i->compare(L"-fix_pv_timer"))
-            stru_140EDA5B0.fix_pv_timer = 1;
+            s_main_info.fix_pv_timer = 1;
         else if (!i->compare(L"-ps3"))
-            stru_140EDA5B0.ps3 = 1;
+            s_main_info.ps3 = 1;
         else if (!i->compare(L"-dev_rom"))
-            stru_140EDA5B0.dev_rom = 1;
+            s_main_info.dev_rom = 1;
         else if (!i->compare(L"-pv_full_open"))
-            stru_140EDA5B0.pv_full_open = 1;
+            s_main_info.pv_full_open = 1;
         else if (!i->compare(L"-no_local_rom"))
-            stru_140EDA5B0.local_rom = 0;
+            s_main_info.local_rom = 0;
         else if (!i->compare(L"-pcv"))
-            stru_140EDA5B0.pcv = 1;
+            s_main_info.pcv = 1;
     }
 
-    sub_140558EB0(screen_shot_impl_ptr, stru_140EDA5B0.ss_format);
-    if (stru_140EDA5B0.ssaa || stru_140EDA5B0.screen_shot)
-        stru_140EDA5B0.hd_res = 0;
+    screen_shot_impl_ptr->set_format(s_main_info.ss_suffix);
+
+    if (s_main_info.anti_alias || s_main_info.ss_flag)
+        s_main_info.min_render = 0;
 
     if (show_help) {
         printf("Usage: %ls [option]...\n", *argv);
@@ -212,7 +213,7 @@ int32_t wmain(int32_t argc, wchar_t** argv) {
         return 0;
     }
 
-    int32_t max_minor_ver = 2;
+    int32_t max_minor_ver = 6;
     bool vulkan = false;
     const wchar_t* config_path = 0;
     if (argc >= 2)

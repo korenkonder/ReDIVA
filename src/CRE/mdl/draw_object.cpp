@@ -5,6 +5,7 @@
 
 #include "draw_object.hpp"
 #include "../light_param/light.hpp"
+#include "../render_manager.hpp"
 #include "../shader_ft.hpp"
 #include "../static_var.hpp"
 #include "../texture.hpp"

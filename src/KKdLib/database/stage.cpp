@@ -32,50 +32,50 @@ stage_effects_modern::stage_effects_modern() {
     field_20[0] = -1;
 }
 
-stage_data_file::stage_data_file() : id(), object_set_id(), lens_flare_texture(), lens_shaft_texture(),
-lens_ghost_texture(), unknown(), render_texture(), movie_texture(), reflect_type(), refract_enable(),
+stage_data_file::stage_data_file() : id(), object_set_id(), tex_flare(), tex_shaft(), tex_ghost(),
+num_ghosts(), render_texture(), movie_texture(), reflect_type(), refract_enable(),
 reflect(), reflect_data(), refract(), refract_data(), flags(), rect_x(), rect_y(),
 rect_width(), rect_height(), ring_height(), out_height(), effects_init() {
-    lens_shaft_inv_scale = 1.0f;
+    shaft_scale = 1.0f;
 }
 
 stage_data_file::~stage_data_file() {
 
 }
 
-stage_data_modern_file::stage_data_modern_file() : unknown(), render_texture(),
-render_texture_flag(), movie_texture(), movie_texture_flag(), field_04(), field_04_flag(), field_05(),
-field_05_flag(), field_06(), field_06_flag(), field_07(), field_07_flag(), field_08(), field_09(),
+stage_data_modern_file::stage_data_modern_file() : num_ghosts(), render_texture(), render_texture_flag(),
+movie_texture(), movie_texture_flag(), field_04(), field_04_flag(), field_05(), field_05_flag(),
+field_06(), field_06_flag(), field_07(), field_07_flag(), field_08(), field_09(),
 field_10(), field_11(), field_12(), rect_x(), rect_y(), rect_width(),
 rect_height(), ring_height(), out_height(), field_13(), effects_init() {
     hash = hash_murmurhash_empty;
-    lens_shaft_inv_scale = 1.0f;
+    shaft_scale = 1.0f;
 }
 
 stage_data_modern_file::~stage_data_modern_file() {
 
 }
 
-stage_data::stage_data() : id(), object_set_id(), lens_flare_texture(), lens_shaft_texture(),
-lens_ghost_texture(), unknown(), render_texture(), movie_texture(), reflect_type(), refract_enable(),
+stage_data::stage_data() : id(), object_set_id(), tex_flare(), tex_shaft(), tex_ghost(),
+num_ghosts(), render_texture(), movie_texture(), reflect_type(), refract_enable(),
 reflect(), reflect_data(), refract(), refract_data(), flags(), rect_x(), rect_y(),
 rect_width(), rect_height(), ring_height(), out_height(), effects_init() {
     name_hash = hash_murmurhash_empty;
-    lens_shaft_inv_scale = 1.0f;
+    shaft_scale = 1.0f;
 }
 
 stage_data::~stage_data() {
 
 }
 
-stage_data_modern::stage_data_modern() : unknown(), render_texture(),
-render_texture_flag(), movie_texture(), movie_texture_flag(), field_04(), field_04_flag(), field_05(),
-field_05_flag(), field_06(), field_06_flag(), field_07(), field_07_flag(), field_08(), field_09(),
+stage_data_modern::stage_data_modern() : num_ghosts(), render_texture(), render_texture_flag(),
+movie_texture(), movie_texture_flag(), field_04(), field_04_flag(), field_05(), field_05_flag(),
+field_06(), field_06_flag(), field_07(), field_07_flag(), field_08(), field_09(),
 field_10(), field_11(), field_12(), rect_x(), rect_y(), rect_width(),
 rect_height(), ring_height(), out_height(), field_13(), effects_init() {
     hash = hash_murmurhash_empty;
     auth_3d_name_hash = hash_murmurhash_empty;
-    lens_shaft_inv_scale = 1.0f;
+    shaft_scale = 1.0f;
 }
 
 stage_data_modern::~stage_data_modern() {
@@ -322,11 +322,11 @@ void stage_database::add(stage_database_file* stage_data_file) {
         data->object_shadow = i.object_shadow;
         data->object_reflect = i.object_reflect;
         data->object_refract = i.object_refract;
-        data->lens_flare_texture = i.lens_flare_texture;
-        data->lens_shaft_texture = i.lens_shaft_texture;
-        data->lens_ghost_texture = i.lens_ghost_texture;
-        data->lens_shaft_inv_scale = i.lens_shaft_inv_scale;
-        data->unknown = i.unknown;
+        data->tex_flare = i.tex_flare;
+        data->tex_shaft = i.tex_shaft;
+        data->tex_ghost = i.tex_ghost;
+        data->shaft_scale = i.shaft_scale;
+        data->num_ghosts = i.num_ghosts;
         data->render_texture = i.render_texture;
         data->movie_texture = i.movie_texture;
         data->collision_file_path = i.collision_file_path;
@@ -372,8 +372,8 @@ void stage_database::add(stage_database_file* stage_data_file) {
         data->object_shadow = i.object_shadow;
         data->object_reflect = i.object_reflect;
         data->object_refract = i.object_refract;
-        data->lens_shaft_inv_scale = i.lens_shaft_inv_scale;
-        data->unknown = i.unknown;
+        data->shaft_scale = i.shaft_scale;
+        data->num_ghosts = i.num_ghosts;
         data->render_texture = i.render_texture;
         data->render_texture_flag = i.render_texture_flag;
         data->movie_texture = i.movie_texture;
@@ -511,11 +511,11 @@ static void stage_database_file_classic_read_inner(stage_database_file* stage_da
         stage->object_reflect.set_id = s.read_uint16_t();
         stage->object_refract.id = s.read_uint16_t();
         stage->object_refract.set_id = s.read_uint16_t();
-        stage->lens_flare_texture = s.read_uint32_t();
-        stage->lens_shaft_texture = s.read_uint32_t();
-        stage->lens_ghost_texture = s.read_uint32_t();
-        stage->lens_shaft_inv_scale = s.read_float_t();
-        stage->unknown = s.read_uint32_t();
+        stage->tex_flare = s.read_uint32_t();
+        stage->tex_shaft = s.read_uint32_t();
+        stage->tex_ghost = s.read_uint32_t();
+        stage->shaft_scale = s.read_float_t();
+        stage->num_ghosts = s.read_uint32_t();
         stage->render_texture = s.read_uint32_t();
 
         if (stage_data->format > STAGE_DATA_AC)
@@ -776,11 +776,11 @@ static void stage_database_file_classic_write_inner(stage_database_file* stage_d
         s.write_uint16_t((uint16_t)stage->object_reflect.set_id);
         s.write_uint16_t((uint16_t)stage->object_refract.id);
         s.write_uint16_t((uint16_t)stage->object_refract.set_id);
-        s.write_uint32_t(stage->lens_flare_texture);
-        s.write_uint32_t(stage->lens_shaft_texture);
-        s.write_uint32_t(stage->lens_ghost_texture);
-        s.write_float_t(stage->lens_shaft_inv_scale);
-        s.write_uint32_t(stage->unknown);
+        s.write_uint32_t(stage->tex_flare);
+        s.write_uint32_t(stage->tex_shaft);
+        s.write_uint32_t(stage->tex_ghost);
+        s.write_float_t(stage->shaft_scale);
+        s.write_uint32_t(stage->num_ghosts);
         s.write_uint32_t(stage->render_texture);
 
         if (stage_data->format > STAGE_DATA_AC)
@@ -877,8 +877,8 @@ static void stage_database_file_modern_read_inner(stage_database_file* stage_dat
         stage->object_reflect.set_id = s.read_uint32_t_reverse_endianness();
         stage->object_refract.id = s.read_uint32_t_reverse_endianness();
         stage->object_refract.set_id = s.read_uint32_t_reverse_endianness();
-        stage->lens_shaft_inv_scale = s.read_float_t_reverse_endianness();
-        stage->unknown = s.read_uint32_t_reverse_endianness();
+        stage->shaft_scale = s.read_float_t_reverse_endianness();
+        stage->num_ghosts = s.read_uint32_t_reverse_endianness();
         stage->render_texture = s.read_uint32_t_reverse_endianness();
         stage->render_texture_flag = s.read_uint32_t_reverse_endianness();
         stage->movie_texture = s.read_uint32_t_reverse_endianness();

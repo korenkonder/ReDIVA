@@ -1677,16 +1677,16 @@ inline uint32_t get_objnum_idx2uid(uint32_t objset_index, int32_t obj_index, con
 inline GLuint get_objset_gen_textures_id(uint32_t objset_index, uint32_t uid) {
     std::vector<GLuint>* gentex_vec = get_objset_gen_textures_vec(objset_index);
     if (!gentex_vec)
-        return 0;
+        return -1;
 
     ObjsetInfo* info = get_objset_info(objset_index);
     if (!info)
-        return 0;
+        return -1;
 
     auto elem = info->texidx_map.find(uid);
     if (elem != info->texidx_map.end())
         return (*gentex_vec)[elem->second];
-    return 0;
+    return -1;
 }
 
 // 0x14045A9E0

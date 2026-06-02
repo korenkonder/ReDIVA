@@ -18,6 +18,8 @@
 #include "../CRE/pv_expression.hpp"
 #include "../CRE/pv_param.hpp"
 #include "../CRE/random.hpp"
+#include "../CRE/render.hpp"
+#include "../CRE/render_manager.hpp"
 #include "../CRE/shader_ft.hpp"
 #include "../CRE/shadow.hpp"
 #include "../CRE/sound.hpp"
@@ -3409,27 +3411,27 @@ bool x_pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
 
     } break;
     case DSC_X_TONE_TRANS: {
-        vec3 start;
-        start.x = (float_t)data[0] * 0.001f;
-        start.y = (float_t)data[1] * 0.001f;
-        start.z = (float_t)data[2] * 0.001f;
+        float_t start[3];
+        start[0] = (float_t)data[0] * 0.001f;
+        start[1] = (float_t)data[1] * 0.001f;
+        start[2] = (float_t)data[2] * 0.001f;
 
-        vec3 end;
-        end.x = (float_t)data[3] * 0.001f;
-        end.y = (float_t)data[4] * 0.001f;
-        end.z = (float_t)data[5] * 0.001f;
+        float_t end[3];
+        end[0] = (float_t)data[3] * 0.001f;
+        end[1] = (float_t)data[4] * 0.001f;
+        end[2] = (float_t)data[5] * 0.001f;
 
-        rctx_ptr->render.set_tone_trans(start, end, 1);
+        rctx_ptr->render->set_tone_trans(start, end, 1);
     } break;
     case DSC_X_SATURATE: {
-        float_t saturate_coeff = (float_t)data[0] * 0.001f;
+        float_t saturate_coef = (float_t)data[0] * 0.001f;
 
-        rctx_ptr->render.set_saturate_coeff(saturate_coeff, 1, false);
+        rctx_ptr->render->set_saturate_coef(saturate_coef, 1, false);
     } break;
     case DSC_X_FADE_MODE: {
         int32_t blend_func = data[0];
 
-        rctx_ptr->render.set_scene_fade_blend_func(blend_func, 1);
+        rctx_ptr->render->set_fade_blend_func(blend_func, 1);
     } break;
     case DSC_X_AUTO_BLINK: {
 
@@ -4322,8 +4324,8 @@ bool x_pv_game_pv_data::set_pv_param_post_process_color_correction_data(bool set
 }
 
 bool x_pv_game_pv_data::set_pv_param_post_process_dof_data(bool set, int32_t id, float_t duration) {
-    rctx_ptr->render.set_dof_enable(set);
-    rctx_ptr->render.set_dof_update(set);
+    rctx_ptr->render->enable_dof_set(set);
+    rctx_ptr->render->update_dof_set(set);
 
     pv_param::dof& dof = pv_param::post_process_data_get_dof_data(id);
     if (set)
@@ -6491,9 +6493,9 @@ bool x_pv_game::ctrl() {
             }
 
             if (pv_data.play_param->chara.size() < 2)
-                rctx_ptr->render.update_res(false, 1);
+                rctx_ptr->render->calc_draw_size(false, 1);
             else
-                rctx_ptr->render.update_res(false, 2);
+                rctx_ptr->render->calc_draw_size(false, 2);
 
 #if BAKE_PV826
             if (pv_data.pv_id == 826)
@@ -7995,14 +7997,14 @@ void x_pv_game::post() {
 
         rend_data_ctx.state.set_viewport(0, 0, width, height);
         if (nvenc_rgb) {
-            rend_data_ctx.shader_flags.arr[U_REDUCE] = 0;
+            rend_data_ctx.shader_flags.arr[U_REDUCE_TEX] = 0;
             shaders_dev.set(rend_data_ctx.state,
                 rend_data_ctx.shader_flags, SHADER_FT_REDUCE);
         }
         else
             shaders_dev.set(rend_data_ctx.state,
                 rend_data_ctx.shader_flags, SHADER_DEV_CONVERT_ALPHA);
-        rctx_ptr->render.draw_quad(rend_data_ctx, width, height,
+        rctx_ptr->render->draw_quad(rend_data_ctx, width, height,
             1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
 
         if (nvenc_rgb)
@@ -8021,14 +8023,14 @@ void x_pv_game::post() {
     if (dof_cam_data.frame != frame) {
         camera* cam = rctx_ptr->camera;
 
-        bool enable = rctx_ptr->render.get_dof_enable();
+        bool enable = rctx_ptr->render->get_dof_enable();
 
         float_t focus;
         float_t focus_range;
         float_t fuzzing_range;
         float_t ratio;
-        rctx_ptr->render.get_dof_data(focus, focus_range, fuzzing_range, ratio);
-        ratio *= rctx_ptr->render.get_dof_enable() ? 1.0f : 0.0f;
+        rctx_ptr->render->get_dof_data(focus, focus_range, fuzzing_range, ratio);
+        ratio *= rctx_ptr->render->get_dof_enable() ? 1.0f : 0.0f;
 
         vec3 interest;
         vec3 view_point;
@@ -8280,14 +8282,14 @@ bool x_pv_game::unload() {
 
     light_param_data_storage_data_reset();
 
-    rndr::Render& rend = rctx_ptr->render;
-    rend.reset_saturate_coeff(0, true);
-    rend.set_dof_enable(false);
-    rend.set_dof_update(false);
-    rend.reset_scene_fade(0);
+    rndr::Render* rend = rctx_ptr->render;
+    rend->set_saturate_coef_default(0, true);
+    rend->enable_dof_set(false);
+    rend->update_dof_set(false);
+    rend->set_fade_color_default();
 
-    rend.set_taa(1);
-    rend.update_res(0, -1);
+    rend->set_temporal_aa(1);
+    rend->calc_draw_size(false, -1);
 
     rctx_ptr->disp_manager->object_culling = true;
     get_shadow()->set_shadow_range(1.0f);
@@ -9277,8 +9279,7 @@ void obj_set_reflect::pack_file(void** data, size_t* size, bool mmp,
             for (uint32_t i = 0; i < 0x10; i += sizeof(uint32_t))
                 *(uint32_t*)(iv + i) = Random(RANDOM_TYPE_GLOBAL);
 
-
-            prj::Rijndael rijndael(prj::Rijndael_Nb, prj::Rijndael_Nk128, key);
+            prj::Rijndael rijndael(prj::Rijndael_Nb, prj::Rijndael_Nk256, key);
 
             uint8_t _iv[prj::Rijndael_Nlen];
             memcpy(_iv, iv, prj::Rijndael_Nlen);
@@ -13432,11 +13433,11 @@ static void x_pv_game_write_stage_data(int32_t stage_id, const auth_3d_database*
         stage_data->object_shadow = replace_object_info(i.object_shadow, x_stage_obj_db, x_pack_obj_db);
         stage_data->object_reflect = replace_object_info(i.object_reflect, x_stage_obj_db, x_pack_obj_db);
         stage_data->object_refract = replace_object_info(i.object_refract, x_stage_obj_db, x_pack_obj_db);
-        stage_data->lens_flare_texture = -1;
-        stage_data->lens_shaft_texture = -1;
-        stage_data->lens_ghost_texture = -1;
-        stage_data->lens_shaft_inv_scale = 1.0f;
-        stage_data->unknown = 0;
+        stage_data->tex_flare = -1;
+        stage_data->tex_shaft = -1;
+        stage_data->tex_ghost = -1;
+        stage_data->shaft_scale = 1.0f;
+        stage_data->num_ghosts = 0;
 
         stage_data->render_texture = replace_texture_id(i.render_texture, x_stage_tex_db, x_pack_tex_db);
         if (stage_data->render_texture == -1) {

@@ -7,7 +7,9 @@
 #include "rob/rob.hpp"
 #include "camera.hpp"
 #include "reflect_full.hpp"
+#include "render.hpp"
 #include "render_context.hpp"
+#include "render_manager.hpp"
 #include "shader_ft.hpp"
 
 extern render_context* rctx_ptr;
@@ -46,22 +48,22 @@ void sss_data::apply_filter(struct render_data_context& rend_data_ctx) {
     rend_data_ctx.state.active_texture(0);
     if (downsample) {
         textures[0].begin_render(rend_data_ctx.state);
-        rndr::Render* rend = &rctx->render;
-        float_t render_width;
-        float_t render_height;
-        float_t render_post_width;
-        float_t render_post_height;
-        rend->get_render_resolution(&render_width, &render_height, &render_post_width, &render_post_height);
+        rndr::Render* rend = rctx->render;
+        float_t fb_width;
+        float_t fb_height;
+        float_t fb_tex_width;
+        float_t fb_tex_height;
+        rend->get_render_param(&fb_width, &fb_height, &fb_tex_width, &fb_tex_height);
         rend_data_ctx.state.set_viewport(0, 0, 640, 360);
         rend_data_ctx.shader_flags.arr[U_REDUCE_TEX] = 0;
         shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_REDUCE);
         RenderTexture& rt = reflect_draw
             ? rctx->render_manager->get_render_texture(0)
-            : rend->rend_texture[0];
+            : rend->fb_fbo[0];
         rend_data_ctx.state.bind_texture_2d(rt.get_texture_glid());
         rend_data_ctx.state.bind_sampler(0, rctx->render_samplers[0]);
         sss_draw_quad(rend_data_ctx, rt.get_width(), rt.get_height(),
-            render_width / render_post_width, render_height / render_post_height, 1.0f, 1.0f, 1.0f, 1.0f);
+            fb_width / fb_tex_width, fb_height / fb_tex_height, 1.0f, 1.0f, 1.0f, 1.0f);
     }
 
     textures[2].begin_render(rend_data_ctx.state);
@@ -186,18 +188,18 @@ bool sss_data::set(struct render_data_context& rend_data_ctx) {
         return false;
     }
 
-    rndr::Render* rend = &rctx_ptr->render;
-    float_t render_width;
-    float_t render_height;
-    rend->get_render_resolution(&render_width, &render_height, 0, 0);
+    rndr::Render* rend = rctx_ptr->render;
+    float_t fb_width;
+    float_t fb_height;
+    rend->get_render_param(&fb_width, &fb_height, 0, 0);
 
-    if (render_width > 1280.0f)
+    if (fb_width > 1280.0f)
         downsample = false;
     downsample = true; // Added
 
     if (downsample) {
-        rend->rend_texture[0].begin_render(rend_data_ctx.state);
-        rend_data_ctx.state.set_viewport(0, 0, (int32_t)render_width, (int32_t)render_height);
+        rend->fb_fbo[0].begin_render(rend_data_ctx.state);
+        rend_data_ctx.state.set_viewport(0, 0, (int32_t)fb_width, (int32_t)fb_height);
     }
     else {
         textures[0].begin_render(rend_data_ctx.state);
@@ -286,6 +288,6 @@ static void sss_calc_coef(const double_t step, const int32_t size,
 static void sss_draw_quad(render_data_context& rend_data_ctx,
     int32_t width, int32_t height, float_t s, float_t t,
     float_t param_x, float_t param_y, float_t param_z, float_t param_w) {
-    rctx_ptr->render.draw_quad(rend_data_ctx, width, height,
+    rctx_ptr->render->draw_quad(rend_data_ctx, width, height,
         s, t, 0.0f, 0.0f, 1.0f, param_x, param_y, param_z, param_w);
 }

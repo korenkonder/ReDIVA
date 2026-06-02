@@ -160,3 +160,10 @@ struct cam_data {
     void set_up(const vec3& value);
     void set_view_point(const vec3& value);
 };
+
+extern void project_screen(const mat4* vpmat, float_t fv,
+    vec2* pos2d, const vec3* pos3d, bool with_render_offset);
+extern void project_screen(const mat4* vpmat, float_t fv,
+    vec2* pos2d, const vec3* pos3d, float_t r, bool with_render_offset);
+extern float_t calc_screen_pos_r(const mat4* vpmat, float_t fv,
+    vec3* dst, const vec3* src, float_t r, bool with_render_offset);

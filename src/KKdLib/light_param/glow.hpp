@@ -8,13 +8,6 @@
 #include "../default.hpp"
 #include "../vec.hpp"
 
-enum tone_map_method {
-    TONE_MAP_YCC_EXPONENT = 0,
-    TONE_MAP_RGB_LINEAR   = 1,
-    TONE_MAP_RGB_LINEAR2  = 2,
-    TONE_MAP_MAX          = 3,
-};
-
 struct light_param_glow {
     bool ready;
 
@@ -27,21 +20,21 @@ struct light_param_glow {
     bool has_saturate_coef;
     float_t saturate_coef;
     bool has_flare;
-    vec3 flare;
+    float_t flare[3];
     bool has_sigma;
-    vec3 sigma;
+    float_t sigma[3];
     bool has_intensity;
-    vec3 intensity;
+    float_t intensity[3];
     bool has_auto_exposure;
     bool auto_exposure;
     bool has_tone_map_method;
-    tone_map_method tone_map_method;
+    int32_t tone_map_method;
     bool has_fade_color;
     vec4 fade_color;
     int32_t fade_color_blend_func;
     bool has_tone_transform;
-    vec3 tone_transform_start;
-    vec3 tone_transform_end;
+    float_t tone_transform_start[3];
+    float_t tone_transform_end[3];
 
     light_param_glow();
     ~light_param_glow();

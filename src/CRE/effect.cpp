@@ -19,9 +19,10 @@
 #include "gl_rend_state.hpp"
 #include "gl_state.hpp"
 #include "random.hpp"
-#include "render_texture.hpp"
+#include "render.hpp"
 #include "render_context.hpp"
 #include "render_manager.hpp"
+#include "render_texture.hpp"
 #include "shader_ft.hpp"
 #include "stage.hpp"
 #include "stage_param.hpp"
@@ -1509,8 +1510,8 @@ void snow_particle_draw(render_data_context& rend_data_ctx, const cam_data& cam)
 
     mat4_transpose(&cam.view_mat, &temp);
     snow_scene.g_view_world_row2 = temp.row2;
-    snow_scene.g_size_in_projection.x = 1.0f / (float_t)rctx_ptr->render.render_width[0];
-    snow_scene.g_size_in_projection.y = 1.0f / (float_t)rctx_ptr->render.render_height[0];
+    snow_scene.g_size_in_projection.x = 1.0f / (float_t)rctx_ptr->render->fb_width[0];
+    snow_scene.g_size_in_projection.y = 1.0f / (float_t)rctx_ptr->render->fb_height[0];
     snow_scene.g_size_in_projection.z = snow_particle_size_min;
     snow_scene.g_size_in_projection.w = snow_particle_size_max;
     snow_scene.g_state_point_attenuation = { 0.0f, 0.0f, point_attenuation, 0.0f };
@@ -1528,7 +1529,7 @@ void snow_particle_draw(render_data_context& rend_data_ctx, const cam_data& cam)
     rend_data_ctx.state.write_uniform_buffer(snow_particle_batch_ubo, snow_batch);
 
     rend_data_ctx.state.active_bind_texture_2d(0, tex->glid);
-    rend_data_ctx.state.active_bind_texture_2d(1, rctx_ptr->render.rend_texture[0].get_depth_texture_glid());
+    rend_data_ctx.state.active_bind_texture_2d(1, rctx_ptr->render->fb_fbo[0].get_depth_texture_glid());
     rend_data_ctx.state.bind_vertex_array(rctx_ptr->common_vao);
 
     rend_data_ctx.shader_flags.arr[U_SNOW_TYPE] = 0;
@@ -6451,7 +6452,7 @@ static void snow_particle_init(bool change_stage) {
     snow_particle_fallen_count = 0;
     snow_particle_fallen_index = 0;
 
-    int32_t render_height = rctx_ptr->render.render_height[0];
+    int32_t render_height = rctx_ptr->render->fb_height[0];
     float_t snow_particle_size = (float_t)render_height * (float_t)(1.0 / 720.0);
     snow_particle_size_min = snow_particle_size;
     snow_particle_size_mid = snow_particle_size * 31.0f;

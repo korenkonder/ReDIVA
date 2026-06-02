@@ -4,6 +4,7 @@
 */
 
 #include "camera.hpp"
+#include "render.hpp"
 #include "render_context.hpp"
 #include "screen_param.hpp"
 
@@ -321,7 +322,8 @@ static void camera_calculate_projection(camera* c) {
 
     extern render_context* rctx_ptr;
     vec2 persp_scale = 1.0f;
-    vec2 persp_offset = rctx_ptr->render.get_taa_offset();
+    vec2 persp_offset;
+    rctx_ptr->render->perspective(persp_offset);
     mat4_persp_offset(c->fov * DEG_TO_RAD_FLOAT, (float_t)c->aspect,
         c->min_distance, c->max_distance, &persp_scale, &persp_offset, &c->projection);
     mat4_invert(&c->projection, &c->inv_projection);
@@ -513,4 +515,46 @@ void cam_data::set_up(const vec3& value) {
 
 void cam_data::set_view_point(const vec3& value) {
     view_point = value;
+}
+
+// 0x1401F9340
+void project_screen(const mat4* vpmat, float_t fv,
+    vec2* pos2d, const vec3* pos3d, bool with_render_offset) {
+    project_screen(vpmat, fv, pos2d, pos3d, 0.0f, with_render_offset);
+}
+
+// 0x1401F92E0
+void project_screen(const mat4* vpmat, float_t fv,
+    vec2* pos2d, const vec3* pos3d, float_t r, bool with_render_offset) {
+    vec3 src = *pos3d;
+    vec3 dst;
+    calc_screen_pos_r(vpmat, fv, &src, &dst, r, with_render_offset);
+    *pos2d = vec2(dst.x, dst.y);
+}
+
+// 0x1401F7EE0
+float_t calc_screen_pos_r(const mat4* vpmat, float_t fv,
+    vec3* dst, const vec3* src, float_t r, bool with_render_offset) {
+    vec4 v18 = vec4(src->x, src->y, src->z, 1.0f);
+    mat4_transform_vector(vpmat, &v18, &v18);
+    if (fabs(v18.w) >= 1.0e-10f) {
+        float_t v10 = 1.0f / v18.w;
+        float_t v11 = v18.y * v10;
+        float_t v12 = v18.x * v10 + 1.0f;
+        ScreenParam& render_screen_param = get_render_screen_param();
+        float_t v14 = (v12 * 0.5f) * (float_t)render_screen_param.width;
+        float_t v15 = ((1.0f - v11) * 0.5f) * (float_t)render_screen_param.height;
+        if (with_render_offset) {
+            ScreenParam& screen_param = get_screen_param();
+            v14 += (float_t)render_screen_param.xoffset;
+            v15 += (float_t)(screen_param.height - render_screen_param.yoffset - render_screen_param.height);
+        }
+        dst->x = v14;
+        dst->y = v15;
+        dst->z = -v18.w;
+        return fabsf(v10) * (fv * r);
+    }
+
+    *dst = 0.0f;
+    return 0.0f;
 }

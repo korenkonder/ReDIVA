@@ -57,8 +57,8 @@ static void draw_pass_reflect_full(render_data_context& rend_data_ctx, rndr::Ren
 void apply_blur_filter_sub(render_data_context& rend_data_ctx, RenderTexture* dst, RenderTexture* src,
     ImgfBoxSampl filter, const vec2 res_scale, const vec4 scale, const vec4 offset);
 
-static void render_manager_free_render_textures();
-static void render_manager_init_render_textures(int32_t multisample);
+static void rndpass_create_render_texture(int32_t multisample);
+static void rndpass_free_render_texture();
 
 static void set_reflect_mat(render_data_context& rend_data_ctx, cam_data& cam);
 
@@ -102,7 +102,7 @@ namespace rndr {
         silhouette_high(), show_ref_map(), reflect_type(), clear(), tex_index(), width(), height(),
         multisample_framebuffer(), multisample_renderbuffer(), multisample(), check_state(), show_vector_flags(),
         show_vector_length(), show_vector_z_offset(), show_stage_shadow(), effect_texture(), npr_param(),
-        npr_mask(), reflect_texture_mask(), reflect_tone_curve(), field_31F(), light_stage_ambient(), npr() {
+        npr_mask(), reflect_texture_mask(), reflect_tone_curve(), field_31F(), light_stage_ambient(), ss4x() {
         for (bool& i : pass_sw)
             i = true;
 
@@ -232,7 +232,7 @@ namespace rndr {
         multisample_renderbuffer = 0;
         multisample = false;//true;
 
-        npr = false;
+        ss4x = false;
     }
 
     void RenderManager::resize(int32_t width, int32_t height) {
@@ -582,21 +582,22 @@ namespace rndr {
                 if (npr_param == 1) {
                     if (sss->enable && sss->downsample) {
                         rend_data_ctx.shader_flags.arr[U_NPR] = 1;
-                        rend->draw_sss_contour(rend_data_ctx, reflect_cam);
+                        rend->draw_contour(rend_data_ctx, reflect_cam);
                     }
-                    else if (npr) {
+                    else if (ss4x) {
                         refl_tex.begin_render(rend_data_ctx.state);
                         refl_tex.set_viewport(rend_data_ctx.state);
                         rend_data_ctx.state.clear(GL_DEPTH_BUFFER_BIT);
                         rctx->draw_state->rend_data[rend_data_ctx.index].shader_index = SHADER_FT_SSS_SKIN;
                         rend_data_ctx.state.enable_depth_test();
+                        rend_data_ctx.state.set_depth_func(GL_LEQUAL);
                         rend_data_ctx.state.set_depth_mask(GL_TRUE);
                         rctx->disp_manager->draw(rend_data_ctx, mdl::OBJ_TYPE_SSS, reflect_cam);
                         rend_data_ctx.state.disable_depth_test();
                         rctx->draw_state->rend_data[rend_data_ctx.index].shader_index = -1;
                         refl_tex.end_render(rend_data_ctx.state);
                         rend_data_ctx.shader_flags.arr[U_NPR] = 1;
-                        rend->draw_sss_contour(rend_data_ctx, reflect_cam);
+                        rend->draw_contour(rend_data_ctx, reflect_cam);
                     }
                 }
 
@@ -633,21 +634,22 @@ namespace rndr {
             if (npr_param == 1) {
                 if (sss->enable && sss->downsample) {
                     rend_data_ctx.shader_flags.arr[U_NPR] = 1;
-                    rend->draw_sss_contour(rend_data_ctx, cam);
+                    rend->draw_contour(rend_data_ctx, cam);
                 }
-                else if (npr) {
-                    rend->rend_texture[0].begin_render(rend_data_ctx.state);
-                    rend->rend_texture[0].set_viewport(rend_data_ctx.state);
+                else if (ss4x) {
+                    rend->fb_fbo[0].begin_render(rend_data_ctx.state);
+                    rend->fb_fbo[0].set_viewport(rend_data_ctx.state);
                     rend_data_ctx.state.clear(GL_DEPTH_BUFFER_BIT);
                     rctx->draw_state->rend_data[rend_data_ctx.index].shader_index = SHADER_FT_SSS_SKIN;
                     rend_data_ctx.state.enable_depth_test();
+                    rend_data_ctx.state.set_depth_func(GL_LEQUAL);
                     rend_data_ctx.state.set_depth_mask(GL_TRUE);
                     rctx->disp_manager->draw(rend_data_ctx, mdl::OBJ_TYPE_SSS, cam);
                     rend_data_ctx.state.disable_depth_test();
                     rctx->draw_state->rend_data[rend_data_ctx.index].shader_index = -1;
-                    rend->rend_texture[0].end_render(rend_data_ctx.state);
+                    rend->fb_fbo[0].end_render(rend_data_ctx.state);
                     rend_data_ctx.shader_flags.arr[U_NPR] = 1;
-                    rend->draw_sss_contour(rend_data_ctx, cam);
+                    rend->draw_contour(rend_data_ctx, cam);
                 }
             }
 
@@ -916,7 +918,7 @@ namespace rndr {
         rend_data_ctx.state.enable_blend();
         rend_data_ctx.state.disable_cull_face();
         spr::flush(rend_data_ctx, spr::SPR_TARGET_BACK, true,
-            rend->temp_buffer.get_texture(),
+            rend->user_fbo.get_texture(),
             rctx->camera->view_projection_aet_3d);
         rend_data_ctx.state.enable_cull_face();
         rend_data_ctx.state.disable_blend();
@@ -1014,12 +1016,12 @@ namespace rndr {
         if (silhouette_high)
             rctx->disp_manager->draw(rend_data_ctx, mdl::OBJ_TYPE_SILHOUETTE_HIGH, cam);
 
-        render->calc_exposure_chara_data(rend_data_ctx, cam);
+        render->query_chara_exposure(rend_data_ctx, cam);
 
         if (npr_param == 1)
             pass_3d_contour(rend_data_ctx);
 
-        render->draw_lens_flare(rend_data_ctx, cam);
+        render->draw_sun(rend_data_ctx, cam);
         star_catalog_draw(rend_data_ctx, cam);
 
         draw_pass_3d_translucent(rend_data_ctx, rctx,
@@ -1082,7 +1084,10 @@ namespace rndr {
 
             cam_data screen_cam = cam;
             screen_cam.set_fov(32.2673416137695f * DEG_TO_RAD_FLOAT);
-            screen_cam.calc_persp_proj_mat_offset(1.0f, rctx->render.get_taa_offset());
+            vec2 persp_scale = 1.0f;
+            vec2 persp_offset;
+            rctx->render->perspective(persp_offset);
+            screen_cam.calc_persp_proj_mat_offset(persp_scale, persp_offset);
             screen_cam.calc_view_proj_mat();
             rend_data_ctx.set_batch_scene_camera(screen_cam);
 
@@ -1153,7 +1158,7 @@ namespace rndr {
                 light_proj_tex = litproj->draw_texture.get_texture();
         }
 
-        render->apply_post_process(rend_data_ctx, cam, light_proj_tex, npr_param);
+        render->draw_flare(rend_data_ctx, cam, light_proj_tex, npr_param);
         rend_data_ctx.state.end_event();
     }
 
@@ -1207,14 +1212,14 @@ namespace rndr {
     void RenderManager::pass_3d_contour(render_data_context& rend_data_ctx) {
         render_context* rctx = rctx_ptr;
         RenderTexture* rt;
-        RenderTexture* contour_rt;
+        RenderTexture* contour_fbo;
         if (reflect_draw) {
             rt = &get_render_texture(0);
-            contour_rt = &rctx->reflect_buffer;
+            contour_fbo = &rctx->reflect_buffer;
     }
         else {
-            rt = &render->rend_texture[0];
-            contour_rt = render->sss_contour_texture;
+            rt = &render->fb_fbo[0];
+            contour_fbo = render->contour_fbo;
         }
 
         rend_data_ctx.state.begin_event("`anonymous-namespace'::draw_npr_frame");
@@ -1240,8 +1245,8 @@ namespace rndr {
 
         shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_CONTOUR_NPR);
         rend_data_ctx.state.active_bind_texture_2d(14, rt->get_depth_texture_glid());
-        rend_data_ctx.state.active_bind_texture_2d(16, contour_rt->get_texture_glid());
-        rend_data_ctx.state.active_bind_texture_2d(17, contour_rt->get_depth_texture_glid());
+        rend_data_ctx.state.active_bind_texture_2d(16, contour_fbo->get_texture_glid());
+        rend_data_ctx.state.active_bind_texture_2d(17, contour_fbo->get_depth_texture_glid());
         rend_data_ctx.state.bind_sampler(14, rctx->render_samplers[1]);
         rend_data_ctx.state.bind_sampler(16, rctx->render_samplers[1]);
         rend_data_ctx.state.bind_sampler(17, rctx->render_samplers[1]);
@@ -1273,7 +1278,7 @@ namespace rndr {
         rend_data_ctx.state.enable_blend();
         rend_data_ctx.state.disable_cull_face();
         spr::flush(rend_data_ctx, spr::SPR_TARGET_FRONT_3D_SURF, true,
-            rend->temp_buffer.get_texture(),
+            rend->user_fbo.get_texture(),
             rctx->camera->view_projection_aet_2d);
     }
 }
@@ -1312,24 +1317,25 @@ void image_filter_scale(render_data_context& rend_data_ctx,
     rend_data_ctx.state.end_event();
 }
 
-void render_manager_init_data(int32_t ssaa, int32_t hd_res, int32_t ss_alpha_mask, bool npr) {
+// 0x140502A10
+void rndpass_init(int32_t anti_alias, int32_t min_render, int32_t ss_alpha_mask, bool ss4x) {
     rndr::RenderManager& render_manager = *rctx_ptr->render_manager;
 
     render_manager.reset();
-    render_manager.npr = npr;
+    render_manager.ss4x = ss4x;
     RenderTexture::init();
 
     ScreenParam& screen_param = get_screen_param();
     ScreenParam& render_screen_param = get_render_screen_param();
-    render_manager.render = &rctx_ptr->render;
-    render_manager.render->init_render_buffers(render_screen_param.width,
-        render_screen_param.height, ssaa, hd_res, ss_alpha_mask);
-    render_manager.render->set_screen_res(render_screen_param.xoffset,
+    render_manager.render = rctx_ptr->render;
+    render_manager.render->create_render_buffer(render_screen_param.width,
+        render_screen_param.height, anti_alias, min_render, ss_alpha_mask);
+    render_manager.render->set_viewport(render_screen_param.xoffset,
         render_screen_param.yoffset, render_screen_param.width, render_screen_param.height);
     render_manager.width = screen_param.width;
     render_manager.height = screen_param.height;
-    render_manager_init_render_textures(1);
-    render_manager.render->init_post_process_buffers();
+    rndpass_create_render_texture(1);
+    render_manager.render->create_other();
 
     init_shadow();
     render_manager.shadow_ptr = get_shadow();
@@ -1339,11 +1345,12 @@ void render_manager_init_data(int32_t ssaa, int32_t hd_res, int32_t ss_alpha_mas
     gl_get_error_print();
 }
 
-void render_manager_free_data() {
+// 0x140502770
+void rndpass_finish() {
     rndr::RenderManager& render_manager = *rctx_ptr->render_manager;
 
-    render_manager_free_render_textures();
-    render_manager.render->free();
+    rndpass_free_render_texture();
+    render_manager.render->destroy();
     finish_shadow();
     rctx_ptr->sss_data->free();
 }
@@ -1513,10 +1520,10 @@ static void draw_pass_3d_translucent(render_data_context& rend_data_ctx,
         && rctx->disp_manager->get_obj_count(translucent) < 1)
         return;
 
-    rndr::Render* rend = &rctx->render;
+    rndr::Render* rend = rctx->render;
 
     RenderTexture& rt = reflect_draw
-        ? rctx->render_manager->get_render_texture(0) : rend->rend_texture[0];
+        ? rctx->render_manager->get_render_texture(0) : rend->fb_fbo[0];
 
     int32_t alpha_array[256];
     int32_t count = draw_pass_3d_translucent_count_layers(rctx,
@@ -1548,10 +1555,10 @@ static void draw_pass_3d_translucent(render_data_context& rend_data_ctx,
         && rctx->disp_manager->get_obj_count(translucent) < 1)
         return;
 
-    rndr::Render* rend = &rctx->render;
+    rndr::Render* rend = rctx->render;
 
     RenderTexture& rt = reflect_draw
-        ? rctx->render_manager->get_render_texture(0) : rend->rend_texture[0];
+        ? rctx->render_manager->get_render_texture(0) : rend->fb_fbo[0];
 
     int32_t alpha_array[256];
     int32_t count = draw_pass_3d_translucent_count_layers(rctx,
@@ -1854,28 +1861,8 @@ void apply_blur_filter_sub(render_data_context& rend_data_ctx, RenderTexture* ds
     rend_data_ctx.state.end_event();
 }
 
-static void render_manager_free_render_textures() {
-    rndr::RenderManager& render_manager = *rctx_ptr->render_manager;
-
-#ifdef USE_OPENGL
-    if (!Vulkan::use) {
-        if (render_manager.multisample_renderbuffer) {
-            glDeleteRenderbuffers(1, &render_manager.multisample_renderbuffer);
-            render_manager.multisample_renderbuffer = 0;
-        }
-
-        if (render_manager.multisample_framebuffer) {
-            glDeleteFramebuffers(1, &render_manager.multisample_framebuffer);
-            render_manager.multisample_framebuffer = 0;
-        }
-    }
-#endif
-
-    for (RenderTexture& i : render_manager.render_textures)
-        i.destroy();
-}
-
-static void render_manager_init_render_textures(int32_t multisample) {
+// 0x140502560
+static void rndpass_create_render_texture(int32_t multisample) {
     rndr::RenderManager& render_manager = *rctx_ptr->render_manager;
 
 #ifdef USE_OPENGL
@@ -1916,6 +1903,28 @@ static void render_manager_init_render_textures(int32_t multisample) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     }
     gl_state.bind_framebuffer(0);
+}
+
+// 0x1405027A0
+static void rndpass_free_render_texture() {
+    rndr::RenderManager& render_manager = *rctx_ptr->render_manager;
+
+#ifdef USE_OPENGL
+    if (!Vulkan::use) {
+        if (render_manager.multisample_renderbuffer) {
+            glDeleteRenderbuffers(1, &render_manager.multisample_renderbuffer);
+            render_manager.multisample_renderbuffer = 0;
+        }
+
+        if (render_manager.multisample_framebuffer) {
+            glDeleteFramebuffers(1, &render_manager.multisample_framebuffer);
+            render_manager.multisample_framebuffer = 0;
+        }
+    }
+#endif
+
+    for (RenderTexture& i : render_manager.render_textures)
+        i.destroy();
 }
 
 static void set_reflect_mat(render_data_context& rend_data_ctx, cam_data& cam) {

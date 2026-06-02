@@ -7,6 +7,8 @@
 #include "app_system_detail.hpp"
 #include "gl_rend_state.hpp"
 #include "gl_state.hpp"
+#include "render.hpp"
+#include "render_manager.hpp"
 #include "shader_ft.hpp"
 #include "shadow.hpp"
 #include "sound.hpp"
@@ -1050,11 +1052,12 @@ vec2i render_context::texture_skinning_buffer::fill_data(const void* data, int32
 
 render_context::render_context() : litproj(), chara_reflect(), chara_refract(), box_vao(), lens_ghost_vao(),
 common_vao(), empty_texture_2d(), empty_texture_cube_map(), samplers(), render_samplers(), sprite_samplers(),
-sprite_width(), sprite_height(), screen_x_offset(), screen_y_offset(), screen_width(), screen_height() {
+view_w(), view_h(), view_x(), view_y(), screen_width(), screen_height() {
     camera = new ::camera;
     draw_state = new ::draw_state;
     disp_manager = new mdl::DispManager;
     etc_obj_manager = new mdl::EtcObjManager;
+    render = new rndr::Render;
     render_manager = new rndr::RenderManager;
     sss_data = new ::sss_data;
 
@@ -1347,6 +1350,11 @@ render_context::~render_context() {
         render_manager = 0;
     }
 
+    if (render) {
+        delete render;
+        render = 0;
+    }
+
     if (etc_obj_manager) {
         delete etc_obj_manager;
         etc_obj_manager = 0;
@@ -1445,46 +1453,44 @@ void render_context::init() {
             src.get_depth_texture() ? src.get_depth_texture()->internal_format : GL_ZERO);
     };
 
-    RenderTexture& render_buffer = render.rend_texture[0];
+    RenderTexture& render_buffer = render->fb_fbo[0];
     RenderTexture& reflect_buffer = render_manager->get_render_texture(0);
     RenderTexture& shadow_buffer = get_shadow()->get_rtex(1);
     init_copy_buffer(reflect_buffer, this->reflect_buffer);
     init_copy_buffer(render_buffer, this->render_buffer);
     init_copy_buffer(shadow_buffer, this->shadow_buffer);
 
-    screen_buffer.create_texture(sprite_width, sprite_height, 0, GL_RGBA8, 0);
-    screen_overlay_buffer.create_texture(sprite_width, sprite_height, 0, GL_RGBA8, 0);
+    screen_buffer.create_texture(view_w, view_h, 0, GL_RGBA8, 0);
+    screen_overlay_buffer.create_texture(view_w, view_h, 0, GL_RGBA8, 0);
 }
 
 void render_context::resize(int32_t render_width, int32_t render_height,
-    int32_t sprite_width, int32_t sprite_height,
-    int32_t screen_width, int32_t screen_height) {
-    bool render_res_change = render.inner_width != render_width || render.inner_height != render_height;
-    bool sprite_res_change = this->sprite_width != sprite_width || this->sprite_height != sprite_height;
+    int32_t view_w, int32_t view_h, int32_t screen_width, int32_t screen_height) {
+    bool render_res_change = render->fb_width_org != render_width || render->fb_height_org != render_height;
+    bool sprite_res_change = this->view_w != view_w || this->view_h != view_h;
     bool screen_res_change = this->screen_width != screen_width || this->screen_height != screen_height;
     if (!render_res_change && !sprite_res_change && !screen_res_change)
         return;
 
-    this->sprite_width = sprite_width;
-    this->sprite_height = sprite_height;
+    this->view_w = view_w;
+    this->view_h = view_h;
 
-    screen_x_offset = (screen_width - sprite_width) / 2 + (screen_width - sprite_width) % 2;
-    screen_y_offset = (screen_height - sprite_height) / 2 + (screen_height - sprite_height) % 2;
+    view_x = (screen_width - view_w) / 2 + (screen_width - view_w) % 2;
+    view_y = (screen_height - view_h) / 2 + (screen_height - view_h) % 2;
 
     this->screen_width = screen_width;
     this->screen_height = screen_height;
 
     if (render_res_change)
-        render.resize(render_width, render_height);
+        render->resize(render_width, render_height);
 
     if (sprite_res_change)
-        render_manager->resize(sprite_width, sprite_height);
+        render_manager->resize(view_w, view_h);
 
     if (render_res_change)
         litproj->resize(render_width, render_height);
 
-    sprite_manager_set_res((double_t)sprite_width / (double_t)sprite_height,
-        sprite_width, sprite_height);
+    sprite_manager_set_res((double_t)view_w / (double_t)view_h, view_w, view_h);
 
     if (render_res_change) {
         free();

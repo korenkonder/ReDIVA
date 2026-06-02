@@ -199,7 +199,7 @@ struct pv_scene_fade {
     float_t duration;
     float_t start_alpha;
     float_t end_alpha;
-    vec3 color;
+    float_t color[3];
 
     pv_scene_fade();
 
