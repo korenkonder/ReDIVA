@@ -154,7 +154,6 @@ namespace renderer {
 
         for (int32_t i = 0; i < 7; i++)
             m_texcoord_ubo[i].Destroy();
-
         m_common_ubo.Destroy();
 
         if (m_sampler[0]) {
