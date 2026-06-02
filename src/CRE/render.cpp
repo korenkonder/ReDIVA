@@ -1375,7 +1375,7 @@ namespace rndr {
     void Render::begin_render(p_gl_rend_state& p_gl_rend_st, bool composite_back) {
         if (composite_back) {
             composite_back_fbo.begin_render(p_gl_rend_st);
-            this->composite_back = 1;
+            this->composite_back = true;
         }
         else
             fb_fbo[0].begin_render(p_gl_rend_st);
@@ -1384,7 +1384,7 @@ namespace rndr {
 
     // 0x1404AE680
     void Render::end_render(p_gl_rend_state& p_gl_rend_st) {
-        fb_fbo->end_render(p_gl_rend_st);
+        fb_fbo[0].end_render(p_gl_rend_st);
     }
 
     // 0x1404A93B0

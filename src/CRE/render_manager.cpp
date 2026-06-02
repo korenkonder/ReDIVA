@@ -800,12 +800,12 @@ namespace rndr {
     void RenderManager::pass_refract(render_data_context& rend_data_ctx) {
         render_context* rctx = rctx_ptr;
         rend_data_ctx.state.begin_event("pass_refract");
-        RenderTexture& refract_texture = get_render_texture(1);
+        RenderTexture& reflect_texture = get_render_texture(1);
         if (rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_REFRACT_OPAQUE)
             || rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_REFRACT_TRANSPARENT)
             || rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_REFRACT_TRANSLUCENT)) {
-            refract_texture.begin_render(rend_data_ctx.state);
-            refract_texture.set_viewport(rend_data_ctx.state);
+            reflect_texture.begin_render(rend_data_ctx.state);
+            reflect_texture.set_viewport(rend_data_ctx.state);
             rend_data_ctx.set_batch_scene_camera(cam);
 
             for (int32_t i = LIGHT_SET_MAIN; i < LIGHT_SET_MAX; i++)
@@ -830,16 +830,16 @@ namespace rndr {
 
             rctx->draw_state->rend_data[rend_data_ctx.index].shader_index = -1;
             shader::unbind(rend_data_ctx.state);
-            refract_texture.end_render(rend_data_ctx.state);
+            reflect_texture.end_render(rend_data_ctx.state);
         }
         else {
-            refract_texture.begin_render(rend_data_ctx.state);
+            reflect_texture.begin_render(rend_data_ctx.state);
             vec4 clear_color;
             rend_data_ctx.state.get_clear_color(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
             rend_data_ctx.state.clear_color(0.0f, 0.0f, 0.0f, 0.0f);
             rend_data_ctx.state.clear(GL_COLOR_BUFFER_BIT);
             rend_data_ctx.state.clear_color(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
-            refract_texture.end_render(rend_data_ctx.state);
+            reflect_texture.end_render(rend_data_ctx.state);
         }
         rend_data_ctx.state.end_event();
     }
@@ -906,8 +906,6 @@ namespace rndr {
         if (!spr::getObjListCount(spr::SPR_TARGET_BACK))
             return;
 
-        render_context* rctx = rctx_ptr;
-
         rend_data_ctx.state.begin_event("pass_pre_sprite");
         rndr::Render* rend = render;
         rend->begin_render(rend_data_ctx.state, true);
@@ -919,7 +917,7 @@ namespace rndr {
         rend_data_ctx.state.disable_cull_face();
         spr::flush(rend_data_ctx, spr::SPR_TARGET_BACK, true,
             rend->user_fbo.get_texture(),
-            rctx->camera->view_projection_aet_3d);
+            rctx_ptr->camera->view_projection_aet_3d);
         rend_data_ctx.state.enable_cull_face();
         rend_data_ctx.state.disable_blend();
         rend_data_ctx.state.enable_depth_test();
@@ -1164,48 +1162,51 @@ namespace rndr {
 
     void RenderManager::pass_sprite(render_data_context& rend_data_ctx) {
         render_context* rctx = rctx_ptr;
-        if (!spr::getObjListCount(spr::SPR_TARGET_FRONT))
-            return;
-
         rend_data_ctx.state.begin_event("pass_sprite");
-        rndr::Render* rend = render;
-        rend_data_ctx.state.set_viewport(0, 0, width, height);
+        if (spr::getObjListCount(spr::SPR_TARGET_FRONT)) {
+            rend_data_ctx.state.set_viewport(0, 0, width, height);
 
-        if (Vulkan::use)
-            rctx->screen_buffer.begin_render(rend_data_ctx.state);
+            if (Vulkan::use)
+                rctx->screen_buffer.begin_render(rend_data_ctx.state);
 #ifdef USE_OPENGL
-        else if (multisample && multisample_framebuffer) {
-            rend_data_ctx.state.bind_framebuffer(multisample_framebuffer);
-            rend_data_ctx.state.enable_multisample();
-            rend_data_ctx.state.clear_color(0.0f, 0.0f, 0.0f, 0.0f);
-            rend_data_ctx.state.clear(GL_COLOR_BUFFER_BIT);
-        }
-        else
-            rctx->screen_buffer.begin_render(rend_data_ctx.state);
+            else if (multisample && multisample_framebuffer) {
+                rend_data_ctx.state.bind_framebuffer(multisample_framebuffer);
+                rend_data_ctx.state.enable_multisample();
+                rend_data_ctx.state.clear_color(0.0f, 0.0f, 0.0f, 0.0f);
+                rend_data_ctx.state.clear(GL_COLOR_BUFFER_BIT);
+            }
+            else
+                rctx->screen_buffer.begin_render(rend_data_ctx.state);
 #endif
 
-        rend_data_ctx.state.disable_depth_test();
-        rend_data_ctx.state.enable_blend();
-        rend_data_ctx.state.disable_cull_face();
-        spr::flush(rend_data_ctx, spr::SPR_TARGET_FRONT, true,
-            rctx->screen_overlay_buffer.get_texture(),
-            rctx->camera->view_projection_aet_2d);
-        rend_data_ctx.state.enable_cull_face();
-        rend_data_ctx.state.disable_blend();
-        rend_data_ctx.state.enable_depth_test();
+            rend_data_ctx.state.disable_depth_test();
+            rend_data_ctx.state.enable_blend();
+            rend_data_ctx.state.disable_cull_face();
+            spr::flush(rend_data_ctx, spr::SPR_TARGET_FRONT, true,
+                rctx->screen_overlay_buffer.get_texture(),
+                rctx->camera->view_projection_aet_2d);
+            rend_data_ctx.state.enable_cull_face();
+            rend_data_ctx.state.disable_blend();
+            rend_data_ctx.state.enable_depth_test();
 
+            if (Vulkan::use)
+                rctx->screen_buffer.end_render(rend_data_ctx.state);
 #ifdef USE_OPENGL
-        if (!Vulkan::use && multisample && multisample_framebuffer) {
-            rend_data_ctx.state.bind_framebuffer(rctx->screen_buffer.get_fb());
-            rend_data_ctx.state.disable_multisample();
-            rend_data_ctx.state.bind_read_framebuffer(multisample_framebuffer);
-            rend_data_ctx.state.blit_framebuffer(0, 0, width, height,
-                0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-            rend_data_ctx.state.bind_read_framebuffer(0);
-        }
+            if (multisample && multisample_framebuffer) {
+                rend_data_ctx.state.bind_framebuffer(rctx->screen_buffer.get_fb());
+                rend_data_ctx.state.disable_multisample();
+                rend_data_ctx.state.bind_read_framebuffer(multisample_framebuffer);
+                rend_data_ctx.state.blit_framebuffer(0, 0, width, height,
+                    0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+                rend_data_ctx.state.bind_read_framebuffer(0);
+            }
+            else
+                rctx->screen_buffer.end_render(rend_data_ctx.state);
 #endif
-        gl_get_error_print();
-        rend_data_ctx.state.bind_framebuffer(0);
+            shader::unbind(rend_data_ctx.state);
+
+            gl_get_error_print();
+        }
         rend_data_ctx.state.end_event();
     }
 

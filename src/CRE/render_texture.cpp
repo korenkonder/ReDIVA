@@ -143,7 +143,7 @@ int32_t RenderTexture::create_texture(int32_t width, int32_t height, int32_t lev
             return -1;
 
         m_tex_count++;
-        depth = this->get_depth_texture_glid();
+        depth = get_depth_texture_glid();
         stencil = depth_format == GL_DEPTH24_STENCIL8 || depth_format == GL_DEPTH32F_STENCIL8;
     }
     else {
