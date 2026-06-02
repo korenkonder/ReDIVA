@@ -8,6 +8,7 @@
 #include "../gl_rend_state.hpp"
 #include "../render.hpp"
 #include "../render_context.hpp"
+#include "../render_texture.hpp"
 #include "../shader_ft.hpp"
 
 extern render_context* rctx_ptr;

@@ -5,9 +5,13 @@
 
 #include "dof.hpp"
 #include "../rob/rob.hpp"
+#include "../camera.hpp"
 #include "../gl_rend_state.hpp"
 #include "../gl_state.hpp"
+#include "../render_context.hpp"
+#include "../render_texture.hpp"
 #include "../shader_ft.hpp"
+#include "../static_var.hpp"
 
 struct dof_common_shader_data {
     vec4 g_depth_params; //x=(n-f)/(nf), y=1/n, z=coc_from_z_scale, w=coc_from_z_offset
@@ -261,8 +265,7 @@ namespace renderer {
     }
 
     // 0x1404B1950
-    void DOF3::render_tiles(render_data_context& rend_data_ctx,
-        GLuint depth_texture, bool f2) {
+    void DOF3::render_tiles(render_data_context& rend_data_ctx, GLuint depth_texture, bool f2) {
         rend_data_ctx.state.begin_event("renderer::DOF3::render_tiles");
         m_fbo[0].bind_fbo(rend_data_ctx.state);
         rend_data_ctx.shader_flags.arr[U_DOF_STAGE] = 0;

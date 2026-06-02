@@ -4,6 +4,7 @@
 */
 
 #include "fbo.hpp"
+#include "../gl_rend_state.hpp"
 #include "../gl_state.hpp"
 
 namespace renderer {

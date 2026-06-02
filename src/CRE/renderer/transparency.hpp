@@ -6,10 +6,9 @@
 #pragma once
 
 #include "../../KKdLib/default.hpp"
-#include "../../KKdLib/vec.hpp"
-#include "../render_texture.hpp"
 #include "fbo.hpp"
 
+class RenderTexture;
 struct render_data_context;
 
 namespace renderer {

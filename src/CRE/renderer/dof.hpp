@@ -7,7 +7,6 @@
 
 #include "../../KKdLib/default.hpp"
 #include "../GL/uniform_buffer.hpp"
-#include "../render_texture.hpp"
 #include "fbo.hpp"
 
 enum dof_debug_flags {
@@ -38,6 +37,7 @@ struct dof_pv {
     dof_f2 f2;
 };
 
+class RenderTexture;
 struct render_data_context;
 
 namespace renderer {

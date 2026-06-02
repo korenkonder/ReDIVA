@@ -5,8 +5,11 @@
 
 #pragma once
 
-#include "../gl_rend_state.hpp"
+#include "../../KKdLib/default.hpp"
+#include "../gl.hpp"
 #include "../shared.hpp"
+
+struct p_gl_rend_state;
 
 namespace renderer {
     class FBO {
@@ -57,5 +60,4 @@ namespace renderer {
     inline GLuint FBO::get_tex(int32_t index) const {
         return m_tex[index];
     }
-
 }
