@@ -108,9 +108,6 @@ int32_t RenderTexture::create_texture(int32_t width, int32_t height, int32_t lev
     if (level < 0)
         return -1;
 
-    level = min_def(level, 15);
-    if (level < 0)
-        return 0;
     destroy();
 
     GLuint color;
@@ -153,10 +150,12 @@ int32_t RenderTexture::create_texture(int32_t width, int32_t height, int32_t lev
     }
     m_level = level;
 
-    if (create_fbo(level) >= 0)
-        for (int32_t i = 0; i <= level; i++)
-            if (set_render_target(color, i, depth, stencil) < 0)
-                return -1;
+    if (create_fbo(level) < 0)
+        return -1;
+
+    for (int32_t i = 0; i <= level; i++)
+        if (set_render_target(color, i, depth, stencil) < 0)
+            return -1;
     return 0;
 }
 
