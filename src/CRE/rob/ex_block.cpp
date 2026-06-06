@@ -1307,7 +1307,7 @@ void RobCloth::CtrlOsagePlayData(const std::vector<opd_blend_data>& opd_blend_da
             CLOTH_VERTEX& root_node = vtxarg.data()[j];
 
             vec3 parent_trans = root_node.pos;
-            mat4 mat = root.data()[j].mat;
+            mat4 mat = root.data()[j].root_mat;
             mat4_mul_translate(&mat, &root_node.org_pos, &mat);
 
             CLOTH_VERTEX* v29 = &vtxarg.data()[j + width];
@@ -1358,7 +1358,7 @@ void RobCloth::CtrlOsagePlayData(const std::vector<opd_blend_data>& opd_blend_da
 
     for (size_t i = 0; i < width; i++) {
         CLOTH_VERTEX& root_node = vtxarg.data()[i];
-        mat4 mat = root.data()[i].mat;
+        mat4 mat = root.data()[i].root_mat;
         mat4_mul_translate(&mat, &root_node.org_pos, &mat);
 
         CLOTH_VERTEX* v50 = &vtxarg.data()[i + width];
@@ -1484,7 +1484,7 @@ void RobCloth::calc_force(float_t time, bool init_flag) {
     for (size_t i = 1; i < height; i++) {
         CLOTH_WEIGHTED_ROOT* root = this->root.data();
         for (size_t j = 0; j < width; j++, root++, vtx++) {
-            mat4 mat = root->mat;
+            mat4 mat = root->root_mat;
 
             vec3 localvec;
             mat4_transform_vector(&mat, &vtx->localvec, &localvec);
@@ -1545,17 +1545,17 @@ void RobCloth::calc_root() {
 
         mat4 m = mat4_null;
         for (int32_t j = 0; j < 4; j++) {
-            if (!root.bone_mat[j] || !root.node_mat[j])
+            if (!root.orgmat[j] || !root.robmat[j])
                 continue;
 
             mat4 mat;
-            mat4_mul(root.bone_mat[j], root.node_mat[j], &mat);
+            mat4_mul(root.orgmat[j], root.robmat[j], &mat);
 
             float_t weight = root.weight[j];
             mat4_mul_scale(&mat, weight, weight, weight, weight, &mat);
             mat4_add(&m, &mat, &m);
         }
-        root.mat = m;
+        root.root_mat = m;
 
         mat4_transform_point(&m, &root_node.org_pos, &root_node.pos);
         mat4_transform_vector(&m, &root.normal, &root_node.normal);
@@ -1678,7 +1678,7 @@ void RobCloth::calc_velocity(const float_t dt, bool a3) {
                 vtx->vec = 0.0f;
             }
 
-            mat4 mat = root->mat;
+            mat4 mat = root->root_mat;
             mat4_set_translation(&mat, &vtx[-width].pos);
 
             ROTTYPE rottype = ROTTYPE_ZY;
@@ -1861,12 +1861,12 @@ void RobCloth::set_data(size_t w, size_t h, const obj_skin_ex_node_cloth_root * 
         for (int32_t j = 0; j < 4; j++) {
             const obj_skin_ex_node_cloth_weight& weight = rt_data[i].weight[j];
             root.node[j] = 0;
-            root.node_mat[j] = 0;
-            root.bone_mat[j] = &lcl_mat[weight.mat_idx];
+            root.robmat[j] = 0;
+            root.orgmat[j] = &lcl_mat[weight.mat_idx];
             if (weight.bone_name) {
                 root.node[j] = skin->get_node(weight.bone_name, bone_data);
                 if (root.node[j])
-                    root.node_mat[j] = root.node[j]->mat_ptr;
+                    root.robmat[j] = root.node[j]->mat_ptr;
             }
             root.weight[j] = weight.weight;
         }
@@ -2002,7 +2002,7 @@ void RobCloth::pos_init() {
     for (size_t i = 1; i < height; i++) {
         CLOTH_WEIGHTED_ROOT* root = this->root.data();
         for (ssize_t j = 0; j < width; j++, root++, vtx++) {
-            mat4 mat = root->mat;
+            mat4 mat = root->root_mat;
 
             vec3 v38;
             mat4_transform_vector(&mat, &vtx->localvec, &v38);
