@@ -489,8 +489,8 @@ static void calc_camera_matrix(CameraData* data) {
         data->cmat = mat4_identity;
         mat4_mul_rotate_z(&data->cmat, data->portrait
             ? (float_t)(M_PI_2 - data->rot.z) : -data->rot.z, &data->cmat);
-        mat4_mul_rotate_y(&data->cmat, -data->rot.y, &data->cmat);
         mat4_mul_rotate_x(&data->cmat, -data->rot.x, &data->cmat);
+        mat4_mul_rotate_y(&data->cmat, -data->rot.y, &data->cmat);
         mat4_mul_translate(&data->cmat, -data->pos.x, -data->pos.y, -data->pos.z, &data->cmat);
         mat4_invert(&data->cmat, &data->imat);
     }
