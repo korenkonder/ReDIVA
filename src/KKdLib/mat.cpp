@@ -2266,7 +2266,7 @@ void mat4_lerp_rotation(const mat4* in_m1, const mat4* in_m2, mat4* out_m, float
     *(vec3*)&out_m->row2 = m2;
 }
 
-inline void mat4_frustrum(float_t left, float_t right,
+inline void mat4_frustum(float_t left, float_t right,
     float_t bottom, float_t top, float_t z_near, float_t z_far, mat4* out_m) {
     *out_m = mat4_null;
     out_m->row0.x = (2.0f * z_near) / (right - left);

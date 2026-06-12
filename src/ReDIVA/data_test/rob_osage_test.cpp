@@ -6,6 +6,7 @@
 #include "rob_osage_test.hpp"
 #include "../../CRE/Glitter/glitter.hpp"
 #include "../../CRE/rob/rob.hpp"
+#include "../../CRE/camera.hpp"
 #include "../../CRE/data.hpp"
 #include "../../CRE/debug_print.hpp"
 #include "../../CRE/render_context.hpp"
@@ -1168,9 +1169,11 @@ void RobOsageTest::disp_line() {
         for (const RobJointNode* j = j_begin; j != j_end; j++)
             dx_draw_line(j[-1].pos, j[0].pos, line_color);
 
-        for (const RobJointNode* j = j_begin; j != j_end; j++)
-            spr::putRect({ project_screen(j->pos, true) - 2.0f, 4.0f },
-                SCREEN_MODE_MAX, spr::SPR_PRIO_DW, rect_color);
+        for (const RobJointNode* j = j_begin; j != j_end; j++) {
+            vec2 pos2d;
+            project_screen(&rctx_ptr->camera->vpmat, rctx_ptr->camera->fv, &pos2d, &j->pos, true);
+            spr::putRect({ pos2d - 2.0f, 4.0f }, SCREEN_MODE_MAX, spr::SPR_PRIO_DW, rect_color);
+        }
 
         mat4_scale_rot(i->osage_work.effector.dst_node_mat, 0.05f, &mat);
         debug_put_line_axis(mat, color_dark_red, color_dark_green, color_dark_blue);
@@ -1253,7 +1256,9 @@ void RobOsageTest::disp_line_cls_param(const mat4& motion_matrix, const vec3& po
     mat4_get_translation(&motion_matrix, &p_node);
     dx_draw_line(p, p_node, color_grey);
 
-    spr::putRect({ project_screen(p, true) - 1.0f, 2.0f },
+    vec2 pos2d;
+    project_screen(&rctx_ptr->camera->vpmat, rctx_ptr->camera->fv, &pos2d, &p, true);
+    spr::putRect({ pos2d - 1.0f, 2.0f },
         SCREEN_MODE_MAX, spr::SPR_PRIO_DW, color_yellow);
 }
 

@@ -13,13 +13,14 @@
 #include "../../KKdLib/str_utils.hpp"
 #include "../../KKdLib/waitable_timer.hpp"
 #include "../app_farc.hpp"
+#include "../camera.hpp"
 #include "../customize_item_table.hpp"
-#include "../module_table.hpp"
 #include "../data.hpp"
 #include "../effect.hpp"
 #include "../gl_state.hpp"
 #include "../hand_item.hpp"
 #include "../mdata_manager.hpp"
+#include "../module_table.hpp"
 #include "../pv_db.hpp"
 #include "../pv_expression.hpp"
 #include "../random.hpp"
@@ -727,7 +728,7 @@ struct rob_chara_age_age_object {
     void calc_vertex(rob_chara_age_age_object_vertex*& vtx_data,
         obj_mesh* mesh, const mat4& mat, float_t alpha);
     void disp(render_context* rctx, size_t id,
-        bool npr, bool reflect, const vec3& a5, bool chara_color);
+        bool npr, bool reflect, const vec3& z_axis, bool chara_color);
     ::obj* get_obj_set_obj();
     std::vector<GLuint>& get_obj_set_texture();
     void load(object_info obj_info, int32_t count);
@@ -760,7 +761,7 @@ struct rob_chara_age_age {
     void ctrl_data(rob_chara_age_age_data* data, mat4& mat);
     void ctrl_skip();
     void disp(render_context* rctx, size_t id,
-        bool npr, bool reflect, const vec3& a5, bool chara_color);
+        bool npr, bool reflect, const vec3& z_axis, bool chara_color);
     void load(object_info obj_info, rob_chara_age_age_data* data, int32_t count);
     void reset();
     void set_alpha(float_t value);
@@ -8957,7 +8958,7 @@ static void sub_140409170(rob_chara_look_anim* look_anim, const mat4& adjust_mat
     float_t eyes_rot_step = look_anim->eyes_rot_step * step;
     if (fabsf(look_anim->eyes_rot_step - 1.0f) <= 0.000001f
         || eyes_rot_step > 1.0f || look_anim->init_eyes_rotation && !eyes_rot_anim
-        || rctx_ptr->camera->fast_change_hist0 && rctx_ptr->camera->fast_change_hist1)
+        || rctx_ptr->camera->discontinuity2 && rctx_ptr->camera->discontinuity3)
         eyes_rot_step = 1.0f;
 
     look_anim->init_head_rotation = false;
@@ -9079,11 +9080,8 @@ static void rob_chara_head_adjust(rob_chara* rob_chr) {
     vec3* target_view_point = 0;
     if (rob_bone_data->get_look_anim_head_rotation()
         || rob_bone_data->get_look_anim_ext_head_rotation()) {
-        if (rob_bone_data->get_look_anim_update_view_point()) {
-            vec3 view_point;
-            rctx_ptr->camera->get_view_point(view_point);
-            rob_bone_data->set_look_anim_target_view_point(view_point);
-        }
+        if (rob_bone_data->get_look_anim_update_view_point())
+            rob_bone_data->set_look_anim_target_view_point(rctx_ptr->camera->get_pos());
 
         if (rob_bone_data->check_look_anim_head_rotation()
             || rob_bone_data->check_look_anim_ext_head_rotation())
@@ -9971,11 +9969,12 @@ static void rob_chara_age_age_ctrl(rob_chara_age_age* arr,
 static void rob_chara_age_age_disp(rob_chara_age_age* arr,
     render_context* rctx, int32_t rob_id, bool reflect, bool chara_color) {
     bool npr = !!rctx->render_manager->npr_param;
-    mat4& view = rctx->camera->view;
-    vec3 v11 = { view.row0.z, view.row1.z, view.row2.z };
-    arr[rob_id * 3 + 0].disp(rctx, rob_id, npr, reflect, v11, chara_color);
-    arr[rob_id * 3 + 1].disp(rctx, rob_id, npr, reflect, v11, chara_color);
-    arr[rob_id * 3 + 2].disp(rctx, rob_id, npr, reflect, v11, chara_color);
+    mat4 cmat;
+    rctx->camera->get_matrix(&cmat, 0, 0);
+    const vec3 z_axis(cmat.row0.z, cmat.row1.z, cmat.row2.z);
+    arr[rob_id * 3 + 0].disp(rctx, rob_id, npr, reflect, z_axis, chara_color);
+    arr[rob_id * 3 + 1].disp(rctx, rob_id, npr, reflect, z_axis, chara_color);
+    arr[rob_id * 3 + 2].disp(rctx, rob_id, npr, reflect, z_axis, chara_color);
 }
 
 static void rob_chara_age_age_load(rob_chara_age_age* arr,
@@ -18055,7 +18054,7 @@ void rob_chara_age_age_object::calc_vertex(rob_chara_age_age_object_vertex*& vtx
 }
 
 void rob_chara_age_age_object::disp(render_context* rctx, size_t id,
-    bool npr, bool reflect, const vec3& a5, bool chara_color) {
+    bool npr, bool reflect, const vec3& z_axis, bool chara_color) {
     int32_t disp_count = this->disp_count;
     if (!info_object.info || !disp_count)
         return;
@@ -18064,7 +18063,7 @@ void rob_chara_age_age_object::disp(render_context* rctx, size_t id,
 
     std::pair<float_t, int32_t> v44[10];
     for (int32_t i = 0; i < disp_count; i++) {
-        v44[i].first = vec3::dot(pos[i], a5);
+        v44[i].first = vec3::dot(pos[i], z_axis);
         v44[i].second = i;
     }
 
@@ -18511,9 +18510,9 @@ void rob_chara_age_age::ctrl_skip() {
 }
 
 void rob_chara_age_age::disp(render_context* rctx, size_t id,
-    bool npr, bool reflect, const vec3& a5, bool chara_color) {
+    bool npr, bool reflect, const vec3& z_axis, bool chara_color) {
     if (alpha >= 0.1f && visible)
-        object.disp(rctx, id, npr || this->npr, reflect, a5, chara_color);
+        object.disp(rctx, id, npr || this->npr, reflect, z_axis, chara_color);
 }
 
 void rob_chara_age_age::load(object_info obj_info, rob_chara_age_age_data* data, int32_t count) {

@@ -10,6 +10,7 @@
 #include "../KKdLib/txp.hpp"
 #include "GL/array_buffer.hpp"
 #include "GL/element_array_buffer.hpp"
+#include "camera.hpp"
 #include "data.hpp"
 #include "file_handler.hpp"
 #include "gl.hpp"
@@ -1892,27 +1893,29 @@ namespace spr {
             int32_t x_max;
             int32_t y_max;
             if (in_target == SPR_TARGET_FRONT || in_target == SPR_TARGET_3) {
-                ScreenParam& screen_param = get_screen_param();
+                const ScreenParam& screen_param = get_screen_param();
 
-                float_t sprite_half_width = (float_t)screen_param.width * 0.5f;
-                float_t sprite_half_height = (float_t)screen_param.height * 0.5f;
+                const float_t half_width = (float_t)screen_param.width * 0.5f;
+                const float_t half_height = (float_t)screen_param.height * 0.5f;
 
-                float_t aet_depth = rctx_ptr->camera->aet_depth;
-                float_t aet_depth_1 = 1.0f / aet_depth;
+                const float_t fv_2d = rctx_ptr->camera->get_fv_2d();
 
-                float_t v15a = sprite_half_height * projection_list[i].aspect * 0.2f * aet_depth_1;
-                float_t v15b = sprite_half_height * 0.2f * aet_depth_1;
+                const float_t clip_near_2d = 0.2f;
+                const float_t clip_far_2d = 3000.0f;
 
-                mat4 proj;
-                mat4_frustrum(-v15a, v15a, v15b, -v15b, 0.2f, 3000.0f, &proj);
+                const float_t range_x_2d = clip_near_2d * (half_height * projection_list[i].aspect) * (1.0f / fv_2d);
+                const float_t range_y_2d = clip_near_2d * half_height * (1.0f / fv_2d);
 
-                vec3 eye = { sprite_half_width, sprite_half_height, aet_depth };
-                vec3 target = { sprite_half_width, sprite_half_height, 0.0f };
+                mat4 pmat_2d;
+                mat4_frustum(-range_x_2d, range_x_2d, range_y_2d, -range_y_2d, clip_near_2d, clip_far_2d, &pmat_2d);
+
+                vec3 pos = { half_width, half_height, fv_2d };
+                vec3 intr = { half_width, half_height, 0.0f };
                 vec3 up = { 0.0f, 1.0f, 0.0f };
+                mat4 vmat_2d;
+                mat4_look_at(&pos, &intr, &up, &vmat_2d);
 
-                mat4 view;
-                mat4_look_at(&eye, &target, &up, &view);
-                mat4_mul(&view, &proj, &view_projection);
+                mat4_mul(&vmat_2d, &pmat_2d, &view_projection);
 
                 vec2 min;
                 vec2 max;

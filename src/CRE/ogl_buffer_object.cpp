@@ -5,6 +5,7 @@
 
 #include "ogl_buffer_object.hpp"
 #include "../KKdLib/obj.hpp"
+#include "mdl/disp_manager.hpp"
 #include "gl_state.hpp"
 #include "render_context.hpp"
 

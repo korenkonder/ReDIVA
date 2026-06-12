@@ -9,7 +9,7 @@
 #include "../KKdLib/image.hpp"
 #include "../KKdLib/time.hpp"
 #include "../KKdLib/vec.hpp"
-#include "camera.hpp"
+#include "camera_render.hpp"
 #include "gl.hpp"
 #include "render_texture.hpp"
 #include "static_var.hpp"

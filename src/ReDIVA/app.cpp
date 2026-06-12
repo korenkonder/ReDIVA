@@ -173,8 +173,6 @@ static int32_t old_height;
 int32_t width;
 int32_t height;
 
-static const double_t aspect = 16.0 / 9.0;
-
 static const int32_t fast_loader_speed = 60;
 
 bool light_chara_ambient;
@@ -862,7 +860,7 @@ static render_context* render_context_load(const wchar_t* config_path) {
     rctx->resize(internal_3d_res.x, internal_3d_res.y,
         internal_2d_res.x, internal_2d_res.y, width, height);
 
-    rctx->camera->initialize(aspect);
+    rctx->camera->init();
 
     app_resize_fb(rctx, true);
 
@@ -919,17 +917,17 @@ static render_context* render_context_load(const wchar_t* config_path) {
         command_buffer.Destroy();
     }
 
-    camera* cam = rctx->camera;
+    CameraData* cam = rctx->camera;
 
-    //cam->set_position({ 1.35542f, 1.41634f, 1.27852f });
+    //cam->set_pos_forward({ 1.35542f, 1.41634f, 1.27852f });
     //cam->rotate({ -45.0, -32.5 });
-    //cam->set_position({ -6.67555f, 4.68882f, -3.67537f });
+    //cam->set_pos_forward({ -6.67555f, 4.68882f, -3.67537f });
     //cam->rotate({ 136.5, -20.5 });
-    cam->set_view_point({ 0.0f, 1.0f, 3.45f });
-    cam->set_interest({ 0.0f, 1.0f, 0.0f });
-    //cam->set_fov(70.0);
-    cam->set_view_point({ 0.0f, 1.4f, 1.0f });
-    cam->set_interest({ 0.0f, 1.4f, 0.0f });
+    cam->set_pos({ 0.0f, 1.0f, 3.45f });
+    cam->set_intr({ 0.0f, 1.0f, 0.0f });
+    //cam->set_pers(70.0);
+    cam->set_pos({ 0.0f, 1.4f, 1.0f });
+    cam->set_intr({ 0.0f, 1.4f, 0.0f });
 
     rend_data_ctx.shader_flags.arr[U16] = 1;
 
@@ -1043,7 +1041,7 @@ static void render_context_ctrl(render_context* rctx) {
         Vulkan::manager_next_frame(vulkan_current_frame);
     }
 
-    camera* cam = rctx->camera;
+    CameraData* cam = rctx->camera;
 
     gl_state.get();
 
@@ -1060,17 +1058,17 @@ static void render_context_ctrl(render_context* rctx) {
     if (window_handle == GetForegroundWindow()) {
         if (input_reset) {
             input_reset = false;
-            cam->reset();
-            //cam->set_position({ 1.35542f, 1.41634f, 1.27852f });
+            cam->init();
+            //cam->set_pos_forward({ 1.35542f, 1.41634f, 1.27852f });
             //cam->rotate({ -45.0, -32.5 });
-            //cam->set_position({ -6.67555f, 4.68882f, -3.67537f });
+            //cam->set_pos_forward({ -6.67555f, 4.68882f, -3.67537f });
             //cam->rotate({ 136.5, -20.5 });
-            cam->set_view_point({ 0.0f, 1.0f, 3.45f });
-            cam->set_interest({ 0.0f, 1.0f, 0.0f });
-            //cam->set_fov(70.0);
-            cam->set_fast_change_hist0(true);
-            cam->set_view_point({ 0.0f, 1.4f, 1.0f });
-            cam->set_interest({ 0.0f, 1.4f, 0.0f });
+            cam->set_pos({ 0.0f, 1.0f, 3.45f });
+            cam->set_intr({ 0.0f, 1.0f, 0.0f });
+            //cam->set_pers(70.0);
+            cam->set_discontinuity2();
+            cam->set_pos({ 0.0f, 1.4f, 1.0f });
+            cam->set_intr({ 0.0f, 1.4f, 0.0f });
         }
         else {
             cam->rotate((float_t)input_rotate_x, (float_t)input_rotate_y);
@@ -1553,15 +1551,17 @@ static void app_resize_fb_glfw(GLFWwindow* window, int32_t w, int32_t h) {
 }
 
 static void app_resize_fb(render_context* rctx, bool change_fb) {
+    const ScreenParam& render_screen_param = get_render_screen_param();
+
     internal_3d_res = vec2i::max(internal_3d_res, 20);
 
     double_t res_width = (double_t)width;
     double_t res_height = (double_t)height;
     double_t view_aspect = res_width / res_height;
-    if (view_aspect < aspect)
-        res_height = round(res_width / aspect);
-    else if (view_aspect > aspect)
-        res_width = round(res_height * aspect);
+    if (view_aspect < render_screen_param.aspect)
+        res_height = round(res_width / render_screen_param.aspect);
+    else if (view_aspect > render_screen_param.aspect)
+        res_width = round(res_height * render_screen_param.aspect);
 
 #if BAKE_PNG || BAKE_VIDEO
     vec2i internal_res = { (int32_t)res_width * BAKE_RES_SCALE, (int32_t)res_height * BAKE_RES_SCALE };

@@ -9,7 +9,6 @@
 #include "../KKdLib/light_param/glow.hpp"
 #include "../KKdLib/vec.hpp"
 #include "GL/uniform_buffer.hpp"
-#include "camera.hpp"
 #include "render_texture.hpp"
 
 #define TONE_MAP_SAT_GAMMA_SAMPLES 32

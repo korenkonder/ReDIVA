@@ -4,9 +4,10 @@
 */
 
 #include "draw_task.hpp"
-#include "../../CRE/render_context.hpp"
 #include "../../KKdLib/hash.hpp"
 #include "../../KKdLib/sort.hpp"
+#include "../../CRE/mdl/disp_manager.hpp"
+#include "../../CRE/render_context.hpp"
 #include "../imgui_helper.hpp"
 #include "../task_window.hpp"
 

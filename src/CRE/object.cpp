@@ -12,6 +12,7 @@
 #include "../KKdLib/hash.hpp"
 #include "../KKdLib/msgpack.hpp"
 #include "../KKdLib/str_utils.hpp"
+#include "mdl/disp_manager.hpp"
 #include "prj/memory_manager.hpp"
 #include "data.hpp"
 #include "ogl_buffer_object.hpp"

@@ -4,8 +4,10 @@
 */
 
 #include "material.hpp"
+#include "../../KKdLib/obj.hpp"
 #include "../../CRE/light_param/face.hpp"
 #include "../../CRE/light_param.hpp"
+#include "../../CRE/object.hpp"
 #include "../../CRE/render_context.hpp"
 #include "../dw.hpp"
 

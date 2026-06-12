@@ -4,6 +4,7 @@
 */
 
 #include "glitter.hpp"
+#include "../camera.hpp"
 #include "../render_context.hpp"
 
 extern render_context* rctx_ptr;
@@ -148,7 +149,7 @@ namespace Glitter {
         mat4 dir_mat;
         switch (data.direction) {
         case DIRECTION_BILLBOARD:
-            mat4_from_mat3(&rctx_ptr->camera->inv_view_mat3, &dir_mat);
+            mat4_from_mat3(&rctx_ptr->camera->imat3, &dir_mat);
             mat4_mul(&eff_inst->mat, &dir_mat, &dir_mat);
             mat4_clear_trans(&dir_mat, &dir_mat);
             break;
@@ -162,7 +163,7 @@ namespace Glitter {
             mat4_rotate_z((float_t)-M_PI_2, &dir_mat);
             break;
         case DIRECTION_BILLBOARD_Y_AXIS:
-            mat4_rotate_y(rctx_ptr->camera->rotation.y, &dir_mat);
+            mat4_rotate_y(rctx_ptr->camera->get_rot_y() * DEG_TO_RAD_FLOAT, &dir_mat);
             break;
         default:
             mult = false;
@@ -567,7 +568,7 @@ namespace Glitter {
         switch (data.direction) {
         case DIRECTION_BILLBOARD: {
             if (eff_inst->data.flags & EFFECT_SCREEN) {
-                dir_mat = rctx_ptr->camera->view;
+                dir_mat = rctx_ptr->camera->cmat;
                 mat4_clear_trans(&dir_mat, &dir_mat);
                 mat4_mul(&dir_mat, &mat, &dir_mat);
             }
@@ -575,7 +576,7 @@ namespace Glitter {
                 dir_mat = mat;
 
             mat4 inv_view_mat;
-            mat4_from_mat3(&rctx_ptr->camera->inv_view_mat3, &inv_view_mat);
+            mat4_from_mat3(&rctx_ptr->camera->imat3, &inv_view_mat);
             mat4_mul(&dir_mat, &inv_view_mat, &dir_mat);
             mat4_clear_trans(&dir_mat, &dir_mat);
         } break;
@@ -586,7 +587,7 @@ namespace Glitter {
             mat4_rotate_x((float_t)-M_PI_2, &dir_mat);
             break;
         case DIRECTION_BILLBOARD_Y_AXIS:
-            mat4_rotate_y(rctx_ptr->camera->rotation.y, &dir_mat);
+            mat4_rotate_y(rctx_ptr->camera->get_rot_y() * DEG_TO_RAD_FLOAT, &dir_mat);
             break;
         default:
             mult = false;
@@ -681,7 +682,7 @@ namespace Glitter {
         mat4 dir_mat;
         switch (data.direction) {
         case DIRECTION_BILLBOARD: {
-            mat4_from_mat3(&rctx_ptr->camera->inv_view_mat3, &dir_mat);
+            mat4_from_mat3(&rctx_ptr->camera->imat3, &dir_mat);
             mat4_mul(&dir_mat, &mat, &dir_mat);
             mat4_clear_trans(&dir_mat, &dir_mat);
         } break;
@@ -692,7 +693,7 @@ namespace Glitter {
             mat4_rotate_x((float_t)-M_PI_2, &dir_mat);
             break;
         case DIRECTION_BILLBOARD_Y_AXIS:
-            mat4_rotate_y(rctx_ptr->camera->rotation.y, &dir_mat);
+            mat4_rotate_y(rctx_ptr->camera->get_rot_y() * DEG_TO_RAD_FLOAT, &dir_mat);
             break;
         default:
             mult = false;

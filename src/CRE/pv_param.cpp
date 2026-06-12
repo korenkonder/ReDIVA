@@ -7,6 +7,7 @@
 #include "../KKdLib/io/file_stream.hpp"
 #include "../KKdLib/str_utils.hpp"
 #include "app_system_detail.hpp"
+#include "camera.hpp"
 #include "render.hpp"
 #include "render_context.hpp"
 
@@ -1159,14 +1160,11 @@ namespace pv_param_task {
                     mat4_get_translation(rob_chr->get_bone_data_mat(BLK_CL_KAO), &trans);
             }
 
-            camera* cam = rctx_ptr->camera;
+            CameraData* cam = rctx_ptr->camera;
 
             bool enable = true;
-            vec3 view_point;
-            cam->get_view_point(view_point);
-            get_autofocus_data(vec3::distance(trans, view_point), cam->get_fov(),
-                enable, data.data.focus, data.data.focus_range,
-                data.data.fuzzing_range, data.data.ratio);
+            get_autofocus_data(vec3::distance(trans, cam->get_pos()), cam->get_pers(), enable,
+                data.data.focus, data.data.focus_range, data.data.fuzzing_range, data.data.ratio);
             rctx_ptr->render->enable_dof_set(enable);
         }
         else if (frame < 0.0f)

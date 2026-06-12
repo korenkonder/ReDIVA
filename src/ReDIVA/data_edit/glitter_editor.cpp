@@ -14,6 +14,7 @@
 #include "../../KKdLib/txp.hpp"
 #include "../../KKdLib/vec.hpp"
 #include "../../CRE/Glitter/glitter.hpp"
+#include "../../CRE/mdl/disp_manager.hpp"
 #include "../../CRE/app_system_detail.hpp"
 #include "../../CRE/camera.hpp"
 #include "../../CRE/data.hpp"
@@ -1941,9 +1942,9 @@ static void glitter_editor_draw_emitter_type_emitter_inst_f2(
     mat4 mat;
     mat4_normalize_rotation(&emit_inst->mat, &mat);
     if (screen) {
-        mat4_mul(&rctx_ptr->camera->inv_view, &emit_inst->mat, &mat);
-        mat4_mul(&rctx_ptr->camera->view, &mat, &mat);
-        mat4_mul(&mat, &rctx_ptr->camera->inv_view, &mat);
+        mat4_mul(&rctx_ptr->camera->imat, &emit_inst->mat, &mat);
+        mat4_mul(&rctx_ptr->camera->cmat, &mat, &mat);
+        mat4_mul(&mat, &rctx_ptr->camera->imat, &mat);
         mat4_normalize_rotation(&mat, &mat);
     }
     else
@@ -2019,9 +2020,9 @@ static void glitter_editor_draw_emitter_type_emitter_inst_x(
     mat4 mat;
     mat4_normalize_rotation(&emit_inst->mat, &mat);
     if (screen) {
-        mat4_mul(&rctx_ptr->camera->inv_view, &emit_inst->mat, &mat);
-        mat4_mul(&rctx_ptr->camera->view, &mat, &mat);
-        mat4_mul(&mat, &rctx_ptr->camera->inv_view, &mat);
+        mat4_mul(&rctx_ptr->camera->imat, &emit_inst->mat, &mat);
+        mat4_mul(&rctx_ptr->camera->cmat, &mat, &mat);
+        mat4_mul(&mat, &rctx_ptr->camera->imat, &mat);
         mat4_normalize_rotation(&mat, &mat);
     }
     else
@@ -2187,13 +2188,13 @@ static void glitter_editor_test_window(GlitterEditor* glt_edt) {
 
     ImGui::Separator();
 
-    camera* cam = rctx_ptr->camera;
+    CameraData* cam = rctx_ptr->camera;
 
     static const float_t fov_min = 0.0;
     static const float_t fov_max = 180.0;
-    float_t fov = cam->get_fov();
+    float_t fov = cam->get_pers();
     if (ImGui::SliderScalar("Camera FOV", ImGuiDataType_Float, &fov, &fov_min, &fov_max, "%g"))
-        cam->set_fov(fov);
+        cam->set_pers(fov);
 
     input_locked |= ImGui::IsWindowFocused();
     ImGui::End();
@@ -2868,13 +2869,13 @@ static void glitter_editor_play_manager(GlitterEditor* glt_edt) {
 
     ImGui::Separator();
 
-    camera* cam = rctx_ptr->camera;
+    CameraData* cam = rctx_ptr->camera;
 
     static const float_t fov_min = 0.0f;
     static const float_t fov_max = 180.0f;
-    float_t fov = cam->get_fov();
+    float_t fov = cam->get_pers();
     if (ImGui::SliderScalar("Camera FOV", ImGuiDataType_Float, &fov, &fov_min, &fov_max, "%g"))
-        cam->set_fov(fov);
+        cam->set_pers(fov);
 }
 
 static void glitter_editor_property(GlitterEditor* glt_edt) {

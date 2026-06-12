@@ -79,10 +79,13 @@ namespace renderer {
 
     // Inlined
     void DOF3::apply(render_data_context& rend_data_ctx, RenderTexture* rt, RenderTexture* buf_rt) {
-        camera* cam = rctx_ptr->camera;
+        CameraData* cam = rctx_ptr->camera;
         bool use_dof_f2 = false;
         if (dof_debug_data.flags & DOF_DEBUG_USE_UI_PARAMS) {
             if (dof_debug_data.flags & DOF_DEBUG_ENABLE_DOF) {
+                const float_t min_distance = cam->get_near_clip();
+                const float_t max_distance = cam->get_far_clip();
+                const float_t fov = cam->get_pers() * DEG_TO_RAD_FLOAT;
                 if (dof_debug_data.flags & DOF_DEBUG_ENABLE_PHYS_DOF) {
                     float_t focus = dof_debug_data.focus;
                     if (dof_debug_data.flags & DOF_DEBUG_AUTO_FOCUS) {
@@ -99,34 +102,35 @@ namespace renderer {
                             vec3 chara_trans = 0.0f;
                             mat4_get_translation(&mat, &chara_trans);
 
-                            mat4 view_transpose;
-                            mat4_transpose(&cam->view, &view_transpose);
-                            focus = -vec3::dot(*(vec3*)&view_transpose.row2, chara_trans)
-                                - view_transpose.row2.w - 0.1f;
+                            mat4 cmat;
+                            cam->get_matrix(&cmat, 0, 0);
+                            const vec3 z_axis = { cmat.row0.z, cmat.row1.z, cmat.row2.z };
+                            focus = -vec3::dot(z_axis, chara_trans) - cmat.row3.z - 0.1f;
                             break;
                         }
                     }
 
-                    focus = max_def(focus, (float_t)cam->min_distance);
+                    focus = max_def(focus, (float_t)min_distance);
                     apply(rend_data_ctx, rt, buf_rt, rt->get_texture_glid(), rt->get_depth_texture_glid(),
-                        cam->min_distance, cam->max_distance, focus,
-                        dof_debug_data.focal_length, cam->fov * DEG_TO_RAD_FLOAT, dof_debug_data.f_number);
+                        min_distance, max_distance, focus,
+                        dof_debug_data.focal_length, fov, dof_debug_data.f_number);
                 }
                 else {
                     float_t fuzzing_range = max_def(dof_debug_data.f2.fuzzing_range, 0.01f);
                     apply_f2(rend_data_ctx, rt, buf_rt, rt->get_texture_glid(), rt->get_depth_texture_glid(),
-                        cam->min_distance, cam->max_distance, cam->fov * DEG_TO_RAD_FLOAT,
-                        dof_debug_data.f2.focus, dof_debug_data.f2.focus_range,
+                        min_distance, max_distance, fov, dof_debug_data.f2.focus, dof_debug_data.f2.focus_range,
                         fuzzing_range, dof_debug_data.f2.ratio);
                     use_dof_f2 = true;
                 }
             }
         }
         else if (dof_pv_data.enable && dof_pv_data.f2.ratio > 0.0f) {
-            float_t fuzzing_range = max_def(dof_pv_data.f2.fuzzing_range, 0.01f);
+            const float_t min_distance = cam->get_near_clip();
+            const float_t max_distance = cam->get_far_clip();
+            const float_t fuzzing_range = max_def(dof_pv_data.f2.fuzzing_range, 0.01f);
+            const float_t fov = cam->get_pers() * DEG_TO_RAD_FLOAT;
             apply_f2(rend_data_ctx, rt, buf_rt, rt->get_texture_glid(), rt->get_depth_texture_glid(),
-                cam->min_distance, cam->max_distance, cam->fov * DEG_TO_RAD_FLOAT,
-                dof_pv_data.f2.focus, dof_pv_data.f2.focus_range,
+                min_distance, max_distance, fov, dof_pv_data.f2.focus, dof_pv_data.f2.focus_range,
                 fuzzing_range, dof_pv_data.f2.ratio);
             enum_or(dof_debug_data.flags, DOF_DEBUG_ENABLE_DOF);
             dof_debug_data.f2 = dof_pv_data.f2;

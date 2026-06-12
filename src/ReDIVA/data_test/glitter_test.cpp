@@ -4,6 +4,8 @@
 */
 
 #include "glitter_test.hpp"
+#include "../../CRE/mdl/disp_manager.hpp"
+#include "../../CRE/camera.hpp"
 #include "../../CRE/clear_color.hpp"
 #include "../../CRE/data.hpp"
 #include "../../CRE/render_context.hpp"
@@ -69,9 +71,9 @@ bool TaskDataTestGlitterParticle::init() {
     Glitter::glt_particle_manager->draw_all = false;
     Glitter::glt_particle_manager->draw_all_mesh = false;
 
-    camera* cam = rctx_ptr->camera;
-    cam->set_view_point({ 0.0f, 1.0f, 3.45f });
-    cam->set_interest({ 0.0f, 1.0f, 0.0f });
+    CameraData* cam = rctx_ptr->camera;
+    cam->set_pos({ 0.0f, 1.0f, 3.45f });
+    cam->set_intr({ 0.0f, 1.0f, 0.0f });
 
     hash = hash_fnv1a64m_empty;
     scene_counter = 0;

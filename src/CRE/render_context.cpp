@@ -4,7 +4,9 @@
 */
 
 #include "render_context.hpp"
+#include "mdl/disp_manager.hpp"
 #include "app_system_detail.hpp"
+#include "camera.hpp"
 #include "gl_rend_state.hpp"
 #include "gl_state.hpp"
 #include "render.hpp"
@@ -13,6 +15,7 @@
 #include "shadow.hpp"
 #include "sound.hpp"
 #include "sprite.hpp"
+#include "sss.hpp"
 #include "task.hpp"
 
 extern float_t rob_frame;
@@ -1053,7 +1056,7 @@ vec2i render_context::texture_skinning_buffer::fill_data(const void* data, int32
 render_context::render_context() : litproj(), chara_reflect(), chara_refract(), box_vao(), lens_ghost_vao(),
 common_vao(), empty_texture_2d(), empty_texture_cube_map(), samplers(), render_samplers(), sprite_samplers(),
 view_w(), view_h(), view_x(), view_y(), screen_width(), screen_height() {
-    camera = new ::camera;
+    camera = new CameraData;
     draw_state = new ::draw_state;
     disp_manager = new mdl::DispManager;
     etc_obj_manager = new mdl::EtcObjManager;
@@ -1394,7 +1397,7 @@ void render_context::disp() {
     disp_manager->refresh();
     draw_state->stats_update();
     spr::refresh();
-    camera->update();
+    camera->ctrl();
     render_manager->cam.get(camera);
     app::disp_task();
     render_manager->calc_shadow();

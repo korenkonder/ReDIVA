@@ -288,7 +288,7 @@ bool FaceAnim::init() {
 
     camera* cam = rctx_ptr->camera;
     cam->reset();
-    cam->set_fast_change_hist0(true);
+    cam->set_discontinuity2(true);
     cam->set_view_point({ 0.0f, 1.4f, 1.0f });
     cam->set_interest({ 0.0f, 1.4f, 0.0f });
 

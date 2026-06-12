@@ -4,9 +4,11 @@
 */
 
 #include "shadow.hpp"
+#include "mdl/disp_manager.hpp"
 #include "gl_state.hpp"
 #include "render_context.hpp"
 #include "render_manager.hpp"
+#include "object.hpp"
 #include "shader_ft.hpp"
 
 #define MIN_SHADOW_RANGE (1.2f)

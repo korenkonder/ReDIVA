@@ -42,5 +42,3 @@ extern void debug_put_triangle(const prj::Triangle3f& triangle);
 extern void debug_put_trnsl(float_t trnsl);
 
 extern void dx_draw_line(vec3 p1, vec3 p2, color4u8 color);
-
-extern vec2 project_screen(vec3 vec, bool with_render_offset);

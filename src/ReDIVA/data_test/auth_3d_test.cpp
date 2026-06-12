@@ -7,6 +7,7 @@
 #include "../../CRE/rob/rob.hpp"
 #include "../../CRE/rob/motion.hpp"
 #include "../../CRE/app_system_detail.hpp"
+#include "../../CRE/camera.hpp"
 #include "../../CRE/clear_color.hpp"
 #include "../../CRE/data.hpp"
 #include "../../CRE/debug_print.hpp"
@@ -1440,7 +1441,7 @@ Auth3dTestWindow::SelectionButtonCamReset::~SelectionButtonCamReset() {
 
 void Auth3dTestWindow::SelectionButtonCamReset::Callback(dw::SelectionListener::CallbackData* data) {
     CameraParam cam;
-    cam.set(rctx_ptr->camera);
+    cam.set_to_camera(rctx_ptr->camera);
 }
 
 Auth3dTestWindow::SelectionButtonDebugCamera::SelectionButtonDebugCamera() {

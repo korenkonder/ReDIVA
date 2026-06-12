@@ -7,6 +7,7 @@
 #include "../../KKdLib/database/stage.hpp"
 #include "../Glitter/glitter.hpp"
 #include "../prj/memory_manager.hpp"
+#include "../camera.hpp"
 #include "../config.hpp"
 #include "../gl_state.hpp"
 #include "../ogl_buffer_object.hpp"
@@ -2151,96 +2152,53 @@ namespace mdl {
         obj_reflect[type].push_back(data);
     }
 
-    static int32_t obj_bounding_sphere_check_visibility_default(const vec3& center, camera* cam, float_t radius) {
+    static int32_t obj_bounding_sphere_check_visibility_default(const vec3& center, CameraData* cam, float_t radius) {
         vec3 _center;
-        mat4_transform_point(&cam->view, &center, &_center);
+        mat4_transform_point(&cam->cmat, &center, &_center);
 
         double_t min_depth = (double_t)_center.z - (double_t)radius;
         double_t max_depth = (double_t)_center.z + (double_t)radius;
-        if (-cam->min_distance < min_depth || -cam->max_distance > max_depth)
+        if (-cam->clip_near < min_depth || -cam->clip_far > max_depth)
             return 0;
 
-        float_t v5 = vec3::dot(cam->field_1E4, _center);
+        float_t v5 = vec3::dot(cam->fpn_left, _center);
         if (v5 < -radius)
             return 0;
 
-        float_t v6 = vec3::dot(cam->field_1F0, _center);
+        float_t v6 = vec3::dot(cam->fpn_right, _center);
         if (v6 < -radius)
             return 0;
 
-        float_t v7 = vec3::dot(cam->field_1FC, _center);
+        float_t v7 = vec3::dot(cam->fpn_bottom, _center);
         if (v7 < -radius)
             return 0;
 
-        float_t v8 = vec3::dot(cam->field_208, _center);
+        float_t v8 = vec3::dot(cam->fpn_top, _center);
         if (v8 < -radius)
             return 0;
 
-        if (-cam->min_distance >= max_depth && -cam->max_distance <= min_depth
+        if (-cam->clip_near >= max_depth && -cam->clip_far <= min_depth
             && v5 >= radius && v6 >= radius && v7 >= radius && v8 >= radius)
             return 1;
         return 2;
     }
 
     static int32_t obj_bounding_sphere_check_visibility(const obj_bounding_sphere& sphere,
-        CullingCheck* culling, camera* cam, const mat4& mat) {
+        CullingCheck* culling, CameraData* cam, const mat4& mat) {
         if (culling->func)
-            return culling->func(&sphere, &cam->view);
+            return culling->func(&sphere, &cam->cmat);
 
         vec3 center;
         mat4_transform_point(&mat, &sphere.center, &center);
         return obj_bounding_sphere_check_visibility_default(center, cam, mat4_get_max_scale(&mat) * sphere.radius);
     }
 
-    static int32_t obj_axis_aligned_bounding_box_check_visibility_default(
-        const obj_axis_aligned_bounding_box* aabb, camera* cam, const mat4& mat) {
-        vec3 points[8];
-        points[0] = aabb->center + (aabb->size ^ vec3( 0.0f,  0.0f,  0.0f));
-        points[1] = aabb->center + (aabb->size ^ vec3(-0.0f, -0.0f, -0.0f));
-        points[2] = aabb->center + (aabb->size ^ vec3(-0.0f,  0.0f,  0.0f));
-        points[3] = aabb->center + (aabb->size ^ vec3( 0.0f, -0.0f, -0.0f));
-        points[4] = aabb->center + (aabb->size ^ vec3( 0.0f, -0.0f,  0.0f));
-        points[5] = aabb->center + (aabb->size ^ vec3(-0.0f,  0.0f, -0.0f));
-        points[6] = aabb->center + (aabb->size ^ vec3( 0.0f,  0.0f, -0.0f));
-        points[7] = aabb->center + (aabb->size ^ vec3(-0.0f, -0.0f,  0.0f));
-
-        mat4 view_mat;
-        mat4_mul(&mat, &cam->view, &view_mat);
-        for (int32_t i = 0; i < 8; i++)
-            mat4_transform_point(&view_mat, &points[i], &points[i]);
-
-        vec4 v2[6];
-        *(vec3*)&v2[0] = { 0.0f, 0.0f, -1.0f };
-        v2[0].w = -cam->min_distance;
-        *(vec3*)&v2[1] = cam->field_1E4;
-        v2[1].w = 0.0f;
-        *(vec3*)&v2[2] = cam->field_1F0;
-        v2[2].w = 0.0f;
-        *(vec3*)&v2[3] = cam->field_1FC;
-        v2[3].w = 0.0f;
-        *(vec3*)&v2[4] = cam->field_208;
-        v2[4].w = 0.0f;
-        *(vec3*)&v2[5] = { 0.0f, 0.0f, 1.0f };
-        v2[5].w = cam->max_distance;
-
-        for (int32_t i = 0; i < 6; i++)
-            for (int32_t j = 0; j < 8; j++) {
-                float_t vtx_data = vec3::dot(*(vec3*)&v2[i], points[j]) + v2[i].w;
-                if (vtx_data > 0.0f)
-                    break;
-
-                if (j == 7)
-                    return 0;
-            }
-        return 1;
-    }
-
-    static int32_t obj_axis_aligned_bounding_box_check_visibility(
-        const obj_axis_aligned_bounding_box* aabb,
-        CullingCheck* culling, camera* cam, const mat4& mat) {
+    // 0x140436F80
+    static int32_t check_culling_aabb(const obj_axis_aligned_bounding_box* aabb,
+        CullingCheck* culling, CameraData* cam, const mat4& mat) {
         if (culling->func)
             return 1;
-        return obj_axis_aligned_bounding_box_check_visibility_default(aabb, cam, mat);
+        return check_screen_aabb(aabb, cam, mat);
     }
 
     bool DispManager::entry_obj(const ::obj* obj, const mat4& mat, VertexBuffer* vbhn_array,
@@ -2254,7 +2212,7 @@ namespace mdl {
             return false;
         }
 
-        ::camera* cam = rctx_ptr->camera;
+        CameraData* cam = rctx_ptr->camera;
 
         if (object_culling && !instances_count && !bone_mat && (!obj
             || !obj_bounding_sphere_check_visibility(
@@ -2299,7 +2257,7 @@ namespace mdl {
                         sub_mesh->bounding_sphere, &culling, cam, mat);
                     if (v32 != 2 || (!mesh->attrib.m.billboard_view && !mesh->attrib.m.billboard)) {
                         if (v32 == 2)
-                            v32 = obj_axis_aligned_bounding_box_check_visibility(
+                            v32 = check_culling_aabb(
                                 &sub_mesh->axis_aligned_bounding_box, &culling, cam, mat);
 
                         if (!v32) {
@@ -2317,7 +2275,7 @@ namespace mdl {
                             int32_t v32 = obj_bounding_sphere_check_visibility(
                                 sub_mesh_morph->bounding_sphere, &culling, cam, mat);
                             if (v32 == 2)
-                                v32 = obj_axis_aligned_bounding_box_check_visibility(
+                                v32 = check_culling_aabb(
                                     &sub_mesh_morph->axis_aligned_bounding_box, &culling, cam, mat);
 
                             if (!v32) {

@@ -4,8 +4,11 @@
 */
 
 #include "glitter.hpp"
+#include "../mdl/disp_manager.hpp"
+#include "../camera.hpp"
 #include "../gl_rend_state.hpp"
 #include "../gl_state.hpp"
+#include "../object.hpp"
 #include "../render_context.hpp"
 #include "../shader.hpp"
 #include "../shader_ft.hpp"
@@ -342,9 +345,9 @@ namespace Glitter {
         vec3 x_vec = { 1.0f, 0.0f, 0.0f };
         if (rend_group->flags & PARTICLE_SCREEN) {
             mat4 mat;
-            mat4_mul(&rctx_ptr->camera->inv_view, &rend_group->mat, &mat);
-            mat4_mul(&rctx_ptr->camera->view, &mat, &mat);
-            mat4_mul(&mat, &rctx_ptr->camera->inv_view, &rend_group->mat_draw);
+            mat4_mul(&rctx_ptr->camera->imat, &rend_group->mat, &mat);
+            mat4_mul(&rctx_ptr->camera->cmat, &mat, &mat);
+            mat4_mul(&mat, &rctx_ptr->camera->imat, &rend_group->mat_draw);
         }
         else
             rend_group->mat_draw = mat4_identity;
@@ -371,7 +374,7 @@ namespace Glitter {
         else
             model_mat = mat3_identity;
 
-        mat3_transform_vector(&rctx_ptr->camera->inv_view_mat3, &x_vec, &x_vec);
+        mat3_transform_vector(&rctx_ptr->camera->imat3, &x_vec, &x_vec);
 
         Buffer* buf = rend_group->buffer;
         if (!buf)
@@ -480,13 +483,13 @@ namespace Glitter {
         if (rend_group->flags & PARTICLE_EMITTER_LOCAL) {
             model_mat = rend_group->mat;
             mat4_normalize_rotation(&model_mat, &view_mat);
-            mat4_mul(&view_mat, &rctx_ptr->camera->view, &view_mat);
+            mat4_mul(&view_mat, &rctx_ptr->camera->cmat, &view_mat);
             mat4_invert(&view_mat, &inv_view_mat);
         }
         else {
             model_mat = mat4_identity;
-            view_mat = rctx_ptr->camera->view;
-            inv_view_mat = rctx_ptr->camera->inv_view;
+            view_mat = rctx_ptr->camera->cmat;
+            inv_view_mat = rctx_ptr->camera->imat;
         }
 
         if (rend_group->flags & PARTICLE_SCREEN) {
@@ -495,7 +498,7 @@ namespace Glitter {
             mat4_invert(&view_mat, &inv_view_mat);
         }
 
-        mat4_mul(&view_mat, &rctx_ptr->camera->inv_view, &rend_group->mat_draw);
+        mat4_mul(&view_mat, &rctx_ptr->camera->imat, &rend_group->mat_draw);
 
         mat4 dir_mat;
         switch (rend_group->draw_type) {
@@ -525,7 +528,7 @@ namespace Glitter {
             mat4_rotate_z((float_t)-M_PI_2, &dir_mat);
             break;
         case DIRECTION_BILLBOARD_Y_AXIS:
-            mat4_rotate_y(rctx_ptr->camera->rotation.y, &dir_mat);
+            mat4_rotate_y(rctx_ptr->camera->get_rot_y() * DEG_TO_RAD_FLOAT, &dir_mat);
             break;
         default:
             dir_mat = mat4_identity;
@@ -674,7 +677,7 @@ namespace Glitter {
         if (fabsf(rend_group->z_offset) > 0.000001f) {
             use_z_offset = true;
             mat4_get_translation(model_mat, &dist_to_cam);
-            dist_to_cam = rctx_ptr->camera->view_point - dist_to_cam;
+            dist_to_cam = rctx_ptr->camera->get_pos() - dist_to_cam;
             if (rend_group->flags & PARTICLE_EMITTER_LOCAL) {
                 mat4_normalize_rotation(model_mat, &z_offset_inv_mat);
                 mat4_invert(&z_offset_inv_mat, &z_offset_inv_mat);
@@ -1341,9 +1344,9 @@ namespace Glitter {
         vec3 x_vec = { 1.0f, 0.0f, 0.0f };
         if (rend_group->flags & PARTICLE_SCREEN) {
             mat4 mat;
-            mat4_mul(&rctx_ptr->camera->inv_view, &rend_group->mat, &mat);
-            mat4_mul(&rctx_ptr->camera->view, &mat, &mat);
-            mat4_mul(&mat, &rctx_ptr->camera->inv_view, &rend_group->mat_draw);
+            mat4_mul(&rctx_ptr->camera->imat, &rend_group->mat, &mat);
+            mat4_mul(&rctx_ptr->camera->cmat, &mat, &mat);
+            mat4_mul(&mat, &rctx_ptr->camera->imat, &rend_group->mat_draw);
         }
         else
             rend_group->mat_draw = mat4_identity;
@@ -1369,7 +1372,7 @@ namespace Glitter {
         else
             model_mat = mat3_identity;
 
-        mat3_transform_vector(&rctx_ptr->camera->inv_view_mat3, &x_vec, &x_vec);
+        mat3_transform_vector(&rctx_ptr->camera->imat3, &x_vec, &x_vec);
 
         Buffer* buf = rend_group->buffer;
         if (!buf)
@@ -1482,13 +1485,13 @@ namespace Glitter {
                 mat4_clear_rot(&rend_group->mat, &model_mat);
             else
                 mat4_normalize_rotation(&rend_group->mat, &model_mat);
-            mat4_mul(&model_mat, &rctx_ptr->camera->view, &view_mat);
+            mat4_mul(&model_mat, &rctx_ptr->camera->cmat, &view_mat);
             mat4_invert(&view_mat, &inv_view_mat);
         }
         else {
             model_mat = mat4_identity;
-            view_mat = rctx_ptr->camera->view;
-            inv_view_mat = rctx_ptr->camera->inv_view;
+            view_mat = rctx_ptr->camera->cmat;
+            inv_view_mat = rctx_ptr->camera->imat;
         }
 
         if (rend_group->flags & PARTICLE_SCREEN) {
@@ -1497,7 +1500,7 @@ namespace Glitter {
             mat4_mul(&view_mat, &inv_view_mat, &view_mat);
             mat4_invert(&view_mat, &inv_view_mat);
         }
-        mat4_mul(&view_mat, &rctx_ptr->camera->inv_view, &rend_group->mat_draw);
+        mat4_mul(&view_mat, &rctx_ptr->camera->imat, &rend_group->mat_draw);
 
         mat4 dir_mat;
         switch (rend_group->draw_type) {
@@ -1518,7 +1521,7 @@ namespace Glitter {
             mat4_rotate_x((float_t)-M_PI_2, &dir_mat);
             break;
         case DIRECTION_BILLBOARD_Y_AXIS:
-            mat4_rotate_y(rctx_ptr->camera->rotation.y, &dir_mat);
+            mat4_rotate_y(rctx_ptr->camera->get_rot_y() * DEG_TO_RAD_FLOAT, &dir_mat);
             break;
         default:
             dir_mat = mat4_identity;
@@ -1664,7 +1667,7 @@ namespace Glitter {
         if (fabsf(rend_group->z_offset) > 0.000001f) {
             use_z_offset = true;
             mat4_get_translation(model_mat, &dist_to_cam);
-            dist_to_cam = rctx_ptr->camera->view_point - dist_to_cam;
+            dist_to_cam = rctx_ptr->camera->get_pos() - dist_to_cam;
             if (rend_group->flags & PARTICLE_EMITTER_LOCAL) {
                 mat4_normalize_rotation(model_mat, &z_offset_inv_mat);
                 mat4_invert(&z_offset_inv_mat, &z_offset_inv_mat);
@@ -2169,7 +2172,7 @@ namespace Glitter {
         if (rend_group->flags & PARTICLE_EMITTER_LOCAL) {
             model_mat = rend_group->mat;
             mat4_normalize_rotation(&model_mat, &view_mat);
-            mat4_mul(&view_mat, &rctx_ptr->camera->view, &view_mat);
+            mat4_mul(&view_mat, &rctx_ptr->camera->cmat, &view_mat);
             mat4_invert(&view_mat, &inv_view_mat);
 
             emitter_local = true;
@@ -2180,8 +2183,8 @@ namespace Glitter {
         }
         else {
             model_mat = mat4_identity;
-            view_mat = rctx_ptr->camera->view;
-            inv_view_mat = rctx_ptr->camera->inv_view;
+            view_mat = rctx_ptr->camera->cmat;
+            inv_view_mat = rctx_ptr->camera->imat;
         }
 
         bool screen = false;
@@ -2191,7 +2194,7 @@ namespace Glitter {
             mat4_invert(&view_mat, &inv_view_mat);
             screen = true;
         }
-        mat4_mul(&view_mat, &rctx_ptr->camera->inv_view, &rend_group->mat_draw);
+        mat4_mul(&view_mat, &rctx_ptr->camera->imat, &rend_group->mat_draw);
 
         mat4 dir_mat = mat4_identity;
         vec3 up_vec = { 0.0f, 0.0f, 1.0f };
@@ -2222,7 +2225,7 @@ namespace Glitter {
             mat4_rotate_x((float_t)-M_PI_2, &dir_mat);
             break;
         case DIRECTION_BILLBOARD_Y_AXIS:
-            mat4_rotate_y(rctx_ptr->camera->rotation.y, &dir_mat);
+            mat4_rotate_y(rctx_ptr->camera->get_rot_y() * DEG_TO_RAD_FLOAT, &dir_mat);
             break;
         case DIRECTION_EMITTER_ROTATION:
             emitter_rotation = true;
@@ -2332,7 +2335,7 @@ namespace Glitter {
                 disp_manager.set_texture_transform(tex_trans_count, tex_trans);
 
                 if (screen)
-                    mat4_mul(&mat, &rctx_ptr->camera->inv_view, &mat);
+                    mat4_mul(&mat, &rctx_ptr->camera->imat, &mat);
                 elem->mat_draw = mat;
 
                 if (screen

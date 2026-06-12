@@ -15,6 +15,7 @@
 #include "rob/rob.hpp"
 #include "app_system_detail.hpp"
 #include "auth_3d.hpp"
+#include "camera.hpp"
 #include "data.hpp"
 #include "gl_rend_state.hpp"
 #include "gl_state.hpp"
@@ -1470,7 +1471,8 @@ void particle_draw(render_data_context& rend_data_ctx, const cam_data& cam) {
     shader_data.g_transform[1] = temp.row1;
     shader_data.g_transform[2] = temp.row2;
     shader_data.g_transform[3] = temp.row3;
-    rctx_ptr->camera->get_view_point(shader_data.g_view_pos);
+    *(vec3*)&shader_data.g_view_pos = rctx_ptr->camera->get_pos();
+    shader_data.g_view_pos.w = 0.0f;
     light_chara.get_diffuse(shader_data.g_light_env_chara_diffuse);
     light_chara.get_specular(shader_data.g_light_env_chara_specular);
     rend_data_ctx.state.write_uniform_buffer(particle_scene_ubo, shader_data);

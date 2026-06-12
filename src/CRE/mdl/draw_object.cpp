@@ -7,8 +7,10 @@
 #include "../light_param/light.hpp"
 #include "../render_manager.hpp"
 #include "../shader_ft.hpp"
+#include "../sss.hpp"
 #include "../static_var.hpp"
 #include "../texture.hpp"
+#include "disp_manager.hpp"
 
 enum MaterialLightingType {
     MAT_SHADER_LIGHTING_LAMBERT = 0,
@@ -88,7 +90,7 @@ namespace mdl {
             stats.draw_triangle_count += count - 2;
     }
 
-    void draw_etc_obj(render_data_context& rend_data_ctx, const mdl::EtcObjData* etc, const mat4* mat) {
+    void draw_etc_obj(render_data_context& rend_data_ctx, const EtcObjData* etc, const mat4* mat) {
         const vec4 normal_color = etc->color;
         const vec4 const_color = 0.0f;
 

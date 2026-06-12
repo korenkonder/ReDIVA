@@ -292,8 +292,8 @@ struct pv_game_pv_data {
     bool music_playing;
     int32_t field_2BFC4;
     bool pv_end;
-    float_t fov;
-    float_t min_dist;
+    float_t pers;
+    float_t clip_near;
     bool look_camera_enable;
     bool field_2BFD5;
     pv_play_data playdata[ROB_ID_MAX];

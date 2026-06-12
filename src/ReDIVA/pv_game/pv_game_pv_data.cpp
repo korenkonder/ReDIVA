@@ -6,6 +6,7 @@
 #include "pv_game_pv_data.hpp"
 #include "../../CRE/rob/motion.hpp"
 #include "../../CRE/app_system_detail.hpp"
+#include "../../CRE/camera.hpp"
 #include "../../CRE/pv_expression.hpp"
 #include "../../CRE/pv_param.hpp"
 #include "../../CRE/render.hpp"
@@ -328,8 +329,8 @@ scene_rot_y(), field_2C550(), branch_mode(), last_challenge_note(), field_2C560(
     field_2BFB8 = -1;
     field_2BFBC = -1;
     music_play = true;
-    fov = 32.2673416137695f;
-    min_dist = 0.05f;
+    pers = 32.2673416137695f;
+    clip_near = 0.05f;
     target_flying_time = -1.0f;
     measured_fps = 60.0f;
     anim_frame_speed = 1.0f;
@@ -706,7 +707,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
                 frame = dsc_frame;
 
             pv_game->set_data_campv(0, index, frame);
-            rctx_ptr->camera->set_fast_change_hist0(true);
+            rctx_ptr->camera->set_discontinuity2();
             set_camera_frame_max(data_camera[0].time);
         } break;
         case 1: {
@@ -731,12 +732,12 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
             field_2C560.field_2D0 = data_camera[1].time;
 
             pv_game->set_data_campv(1, index, frame);
-            rctx_ptr->camera->set_fast_change_hist0(true);
+            rctx_ptr->camera->set_discontinuity2();
             set_camera_frame_max(data_camera[1].time);
         } break;
         case 2: {
             pv_game->set_data_campv(2, index, 0.0f);
-            rctx_ptr->camera->set_fast_change_hist0(true);
+            rctx_ptr->camera->set_discontinuity2();
         } break;
         }
     } break;
@@ -1224,12 +1225,12 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
             chara_follow_point = data[23];
         }
 
-        pv_game_camera_set_fov_min_dist(fov, min_dist);
+        pv_game_camera_set_pers_clip_near(pers, clip_near);
         pv_game_camera_set_dsc_data(duration, start, end, acceleration_1, acceleration_2,
             follow_chara, rob_id, chara_follow_point, func == DSC_FT_EDIT_CAMERA);
         pv_game_camera_ctrl(0.0f);
 
-        rctx_ptr->camera->set_fast_change_hist0(true);
+        rctx_ptr->camera->set_discontinuity2();
     } break;
     case DSC_FT_PV_END: {
         dsc_data_ptr++;
@@ -1496,34 +1497,34 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
             rob_chr->set_face_object_index(index >= 0 || index < 15 ? index : 0);
     } break;
     case DSC_FT_NEAR_CLIP: {
-        float_t _min_dist = (float_t)data[0] * 0.001f;
-        float_t _fov = (float_t)data[1] * 0.001f;
+        float_t clip_near = (float_t)data[0] * 0.001f;
+        float_t pers = (float_t)data[1] * 0.001f;
 
-        camera* cam = rctx_ptr->camera;
+        CameraData* cam = rctx_ptr->camera;
 
-        bool ignore_min_dist = true;
-        if (_min_dist <= 0.0f) {
-            _min_dist = 0.05f;
-            ignore_min_dist = false;
+        bool ignore_near_clip = true;
+        if (clip_near <= 0.0f) {
+            clip_near = 0.05f;
+            ignore_near_clip = false;
         }
 
-        bool ignore_fov = true;
-        if (_fov <= 0.0f) {
-            _fov = 32.2673416137695f;
-            ignore_fov = false;
+        bool ignore_pers = true;
+        if (pers <= 0.0f) {
+            pers = 32.2673416137695f;
+            ignore_pers = false;
         }
 
-        min_dist = _min_dist;
-        cam->set_ignore_min_dist(false);
-        cam->set_min_distance(_min_dist);
-        cam->set_ignore_min_dist(ignore_min_dist);
+        this->clip_near = clip_near;
+        cam->set_ignore_near_clip(false);
+        cam->set_near_clip(clip_near);
+        cam->set_ignore_near_clip(ignore_near_clip);
 
-        fov = _fov;
-        cam->set_ignore_fov(false);
-        cam->set_fov(_fov);
-        cam->set_ignore_fov(ignore_fov);
+        this->pers = pers;
+        cam->set_ignore_pers(false);
+        cam->set_pers(pers);
+        cam->set_ignore_pers(ignore_pers);
 
-        pv_game_camera_set_fov_min_dist(_fov, _min_dist);
+        pv_game_camera_set_pers_clip_near(pers, clip_near);
     } break;
     case DSC_FT_CLOTH_WET: {
         rob_id = (ROB_ID)data[0];
@@ -2456,8 +2457,8 @@ void pv_game_pv_data::init(::pv_game* pv_game, bool music_play) {
 
     pv_game_camera_reset();
 
-    fov = 32.2673416137695f;
-    min_dist = 0.05f;
+    pers = 32.2673416137695f;
+    clip_near = 0.05f;
 
     scene_fade.reset();
 
@@ -2561,11 +2562,11 @@ void pv_game_pv_data::reset() {
 }
 
 void pv_game_pv_data::reset_camera_post_process() {
-    camera* cam = rctx_ptr->camera;
-    cam->set_ignore_min_dist(false);
-    cam->set_min_distance(0.05f);
-    cam->set_ignore_fov(false);
-    cam->set_fov(32.2673416137695f);
+    CameraData* cam = rctx_ptr->camera;
+    cam->set_ignore_near_clip(false);
+    cam->set_near_clip(0.05f);
+    cam->set_ignore_pers(false);
+    cam->set_pers(32.2673416137695f);
 
     rctx_ptr->render->set_fade_color_default(1);
     rctx_ptr->render->set_tone_trans_default(1);

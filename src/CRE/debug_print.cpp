@@ -4,6 +4,8 @@
 */
 
 #include "debug_print.hpp"
+#include "mdl/disp_manager.hpp"
+#include "camera.hpp"
 #include "render_context.hpp"
 #include "screen_param.hpp"
 #include "sprite.hpp"
@@ -76,8 +78,8 @@ void debug_put_line(const prj::Line3f& line) {
 }
 
 void debug_put_line(const vec3& p0, const vec3& p1) {
-    vec2 sc_p0 = project_screen(p0, true);
-    vec2 sc_p1 = project_screen(p1, true);
+    vec2 sc_p0 = calc_screen_pos(&rctx_ptr->camera->cmat, rctx_ptr->camera->fv, &p0, true);
+    vec2 sc_p1 = calc_screen_pos(&rctx_ptr->camera->cmat, rctx_ptr->camera->fv, &p1, true);
     spr::putLine(sc_p0, sc_p1, SCREEN_MODE_MAX, spr::SPR_PRIO_DW, primitive_color);
 }
 
@@ -177,13 +179,13 @@ void dx_draw_line(vec3 p1, vec3 p2, color4u8 color) {
 }
 
 vec2 project_screen(vec3 vec, bool offset) {
-    camera* cam = rctx_ptr->camera;
+    CameraData* cam = rctx_ptr->camera;
 
-    mat4_transform_point(&cam->view, &vec, &vec);
+    mat4_transform_point(&cam->cmat, &vec, &vec);
     if (fabsf(vec.z) < 1.0e-10f)
         return 0.0f;
 
-    vec2 sc_vec = cam->depth * *(vec2*)&vec.x * (1.0f / vec.z);
+    vec2 sc_vec = cam->fv * *(vec2*)&vec.x * (1.0f / vec.z);
 
     ScreenParam& render_screen_param = get_render_screen_param();
     sc_vec.x = (float_t)render_screen_param.width * 0.5f - sc_vec.x;

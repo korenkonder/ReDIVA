@@ -7,6 +7,7 @@
 #include "renderer/dof.hpp"
 #include "renderer/transparency.hpp"
 #include "rob/rob.hpp"
+#include "camera.hpp"
 #include "gl_rend_state.hpp"
 #include "gl_state.hpp"
 #include "reflect_full.hpp"
@@ -1415,7 +1416,7 @@ namespace rndr {
         prev_cam_view_proj = cam_view_proj;
         cam_view_proj = cam.get_view_proj_mat();
 
-        reset_exposure = rctx_ptr->camera->fast_change_hist1 && !rctx_ptr->camera->fast_change_hist0;
+        reset_exposure = rctx_ptr->camera->discontinuity3 && !rctx_ptr->camera->discontinuity2;
         if (reset_exposure) {
             float_t pos_dist = vec3::distance(cam_pos, prev_cam_pos);
 
@@ -1611,7 +1612,7 @@ namespace rndr {
         mat4_transform_vector(&inv_view_proj_mat, &v45, &v45);
 
         calc_screen_pos_r(&cam.get_view_proj_mat(),
-            rctx_ptr->camera->depth, &flare_pos, &position, 0.0f, false);
+            rctx_ptr->camera->fv, &flare_pos, &position, 0.0f, false);
 
         float_t v17 = flare_pos.x - (float_t)scr_width * 0.5f;
         float_t v19 = v5 / ((float_t)scr_height * 0.5f);

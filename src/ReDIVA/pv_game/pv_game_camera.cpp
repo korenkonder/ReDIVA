@@ -5,6 +5,7 @@
 
 #include "pv_game_camera.hpp"
 #include "../../CRE/rob/rob.hpp"
+#include "../../CRE/camera.hpp"
 #include "../../CRE/render_context.hpp"
 
 struct pv_game_camera {
@@ -23,8 +24,8 @@ struct pv_game_camera {
     mat4 up_mat;
     vec3 view_direction;
     vec3 up_vec;
-    float_t fov;
-    float_t min_dist;
+    float_t pers;
+    float_t clip_near;
     ROB_ID rob_id;
     int32_t chara_follow_point;
     float_t acceleration_1;
@@ -47,7 +48,7 @@ static bool pv_game_camera_get_edit_camera(CameraParam* cam, float_t delta_time)
 static bool pv_game_camera_get_move_camera(CameraParam* cam, float_t delta_time);
 
 pv_game_camera::pv_game_camera() : enable(), follow_chara(), edit_camera(), duration(), curr_time(),
-start_distance(), end_distance(), fov(), min_dist(), rob_id(), chara_follow_point(),
+start_distance(), end_distance(), pers(), clip_near(), rob_id(), chara_follow_point(),
 acceleration_1(), acceleration_2(), field_F4(), acceleration(), acceleration_curr_time() {
 
 }
@@ -66,8 +67,8 @@ void pv_game_camera::reset() {
     up_mat = mat4_identity;
     view_direction = { 0.0f, 0.0f, 1.0f };
     up_vec = { 0.0f, 1.0f, 0.0f };
-    fov = 32.2673416137695f;
-    min_dist = 0.05f;
+    pers = 32.2673416137695f;
+    clip_near = 0.05f;
     rob_id = ROB_ID_1P;
     chara_follow_point = 0;
     acceleration_1 = 0.0f;
@@ -92,9 +93,9 @@ void pv_game_camera_ctrl(float_t delta_time) {
     else
         in_transition = pv_game_camera_get_move_camera(&cam, delta_time);
 
-    cam.v_fov = pv_game_camera_data.fov * DEG_TO_RAD_FLOAT;
-    cam.clip_near = pv_game_camera_data.min_dist;
-    cam.set(rctx_ptr->camera);
+    cam.v_fov = pv_game_camera_data.pers * DEG_TO_RAD_FLOAT;
+    cam.clip_near = pv_game_camera_data.clip_near;
+    cam.set_to_camera(rctx_ptr->camera);
 
     if (!in_transition)
         pv_game_camera_data.reset();
@@ -164,9 +165,9 @@ void pv_game_camera_set_dsc_data(float_t duration, pv_game_camera_dsc_data& star
     pv_game_camera_data.acceleration_2 = acceleration_2;
 }
 
-void pv_game_camera_set_fov_min_dist(float_t fov, float_t min_dist) {
-    pv_game_camera_data.fov = fov;
-    pv_game_camera_data.min_dist = min_dist;
+void pv_game_camera_set_pers_clip_near(float_t pers, float_t clip_near) {
+    pv_game_camera_data.pers = pers;
+    pv_game_camera_data.clip_near = clip_near;
 }
 
 static float_t sub_14011B160(float_t acceleration_1, float_t acceleration_2, float_t t) {

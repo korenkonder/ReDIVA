@@ -9,6 +9,7 @@
 #include "../../CRE/rob/motion.hpp"
 #include "../../CRE/rob/skin_param.hpp"
 #include "../../CRE/app_system_detail.hpp"
+#include "../../CRE/camera.hpp"
 #include "../../CRE/clear_color.hpp"
 #include "../../CRE/data.hpp"
 #include "../../CRE/debug_print.hpp"
@@ -426,10 +427,10 @@ bool DataTestMot::init() {
     clear_color = 0xFF606060;
     set_clear_color = true;
 
-    camera* cam = rctx_ptr->camera;
-    cam->set_view_point({ 0.0f, 1.0f, 3.45f });
-    cam->set_interest({ 0.0f, 1.0f, 0.0f });
-    cam->set_roll(0.0f);
+    CameraData* cam = rctx_ptr->camera;
+    cam->set_pos({ 0.0f, 1.0f, 3.45f });
+    cam->set_intr({ 0.0f, 1.0f, 0.0f });
+    cam->set_rot_z(0.0f);
 
     data_test_mot_dw_array_init(ROB_ID_1P, &dtm_mot_array[ROB_ID_1P]);
     data_test_mot_dw_array_init(ROB_ID_2P, &dtm_mot_array[ROB_ID_2P]);
@@ -625,13 +626,13 @@ bool DataTestMot::ctrl() {
             cam.interest = { 0.0f, 1.0f, 0.0f };
             cam.v_fov = 0.563171327114105f;
         }
-        cam.set(rctx_ptr->camera);
+        cam.set_to_camera(rctx_ptr->camera);
     }
 
     if (data.field_A8) {
         data.field_A8 = false;
 
-        //sub_1401F9510(data.field_A9 ? 32.2673416137695f : 32.8125f);
+        //set_debug_camera_pers(data.field_A9 ? 32.2673416137695f : 32.8125f);
     }
 
     if (data.running && dtm_mot_array[ROB_ID_1P].CheckFirstFrame() && !frame_comp

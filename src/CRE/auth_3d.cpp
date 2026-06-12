@@ -16,6 +16,7 @@
 #include "rob/rob.hpp"
 #include "rob/motion.hpp"
 #include "app_system_detail.hpp"
+#include "camera.hpp"
 #include "clear_color.hpp"
 #include "data.hpp"
 #include "debug_print.hpp"
@@ -1338,7 +1339,7 @@ namespace auth_3d_detail {
             || intr_translation.y.check_threshold_discontinuity(frame)
             || intr_translation.z.check_threshold_discontinuity(frame)) {
             frame = prj::floorf(frame);
-            rctx->camera->set_fast_change(true);
+            rctx->camera->set_discontinuity();
         }
         else {
             float_t frame_prev = frame - get_delta_frame();
@@ -1350,7 +1351,7 @@ namespace auth_3d_detail {
                     || intr_translation.x.check_threshold_discontinuity(frame_prev)
                     || intr_translation.y.check_threshold_discontinuity(frame_prev)
                     || intr_translation.z.check_threshold_discontinuity(frame_prev))
-                    rctx->camera->set_fast_change_hist0(true);
+                    rctx->camera->set_discontinuity2();
             }
         }
 
@@ -1619,10 +1620,7 @@ namespace auth_3d_detail {
         if (!has_dof)
             return;
 
-        vec3 view_point;
-        rctx->camera->get_view_point(view_point);
-
-        float_t focus = vec3::distance(model_transform.translation, view_point);
+        float_t focus = vec3::distance(model_transform.translation, rctx->camera->get_pos());
 
         rctx->render->enable_dof_set(fabsf(model_transform.rotation.z) > 0.000001f);
         rctx->render->set_dof_data(focus, model_transform.scale.x,
@@ -5504,16 +5502,13 @@ namespace auth_3d_detail {
                 for (CameraRoot& i : camera_root_list) {
                     CameraParam cam = i.get(frame, *this, rctx);
 
-                    if (M_is_reverse_side) {
-                        cam.interest.x = -cam.interest.x;
-                        cam.view_point.x = -cam.view_point.x;
-                        cam.roll = -cam.roll;
-                    }
+                    if (M_is_reverse_side)
+                        cam.reverse_side();
 
                     mat4_transform_point(&base_matrix, &cam.interest, &cam.interest);
                     mat4_transform_point(&base_matrix, &cam.view_point, &cam.view_point);
 
-                    cam.set(rctx->camera);
+                    cam.set_to_camera(rctx->camera);
                     break;
                 }
 

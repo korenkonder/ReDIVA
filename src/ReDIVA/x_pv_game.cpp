@@ -10,6 +10,7 @@
 #include "../CRE/rob/motion.hpp"
 #include "../CRE/rob/skin_param.hpp"
 #include "../CRE/app_system_detail.hpp"
+#include "../CRE/camera.hpp"
 #include "../CRE/data.hpp"
 #include "../CRE/effect.hpp"
 #include "../CRE/gl_state.hpp"
@@ -962,7 +963,7 @@ void x_pv_game_camera::ctrl(float_t curr_time) {
         }
 
         this->id = id;
-        rctx_ptr->camera->reset();
+        rctx_ptr->camera->init();
         state = 11;
     } break;
     case 11: {
@@ -8347,7 +8348,7 @@ void x_pv_game::ctrl(float_t curr_time, float_t delta_time) {
         x_pv_game_data* data = this->data;
         for (int32_t i = 0; i < pv_count; i++, data++) {
             if (!data->state) {
-                rctx_ptr->camera->reset();
+                rctx_ptr->camera->init();
                 data->field_1C &= ~0xD1;
                 data->state = 0;
                 data->stage_effect_index = 0;

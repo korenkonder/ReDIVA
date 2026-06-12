@@ -4,6 +4,7 @@
 */
 
 #include "mode_data_edit.hpp"
+#include "../CRE/camera.hpp"
 #include "../CRE/render_context.hpp"
 #include "../CRE/render_manager.hpp"
 #include "data_edit/face_anim.hpp"
@@ -57,9 +58,9 @@ bool dest_data_edit_main_md() { // Added
 }
 
 bool init_data_edit_glitter_editor_md() { // Added
-    camera* cam = rctx_ptr->camera;
-    cam->set_view_point({ 0.0f, 1.4f, 1.0f });
-    cam->set_interest({ 0.0f, 1.4f, 0.0f });
+    CameraData* cam = rctx_ptr->camera;
+    cam->set_pos({ 0.0f, 1.4f, 1.0f });
+    cam->set_intr({ 0.0f, 1.4f, 0.0f });
 
     glitter_editor.open("GLITTER EDITOR", app::TASK_PRIO_HIGH);
     return true;

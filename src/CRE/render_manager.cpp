@@ -11,6 +11,7 @@
 #include "mdl/draw_object.hpp"
 #include "rob/rob.hpp"
 #include "Vulkan/gl_wrap.hpp"
+#include "camera.hpp"
 #include "config.hpp"
 #include "clear_color.hpp"
 #include "effect.hpp"
@@ -23,6 +24,7 @@
 #include "shader_ft.hpp"
 #include "shadow.hpp"
 #include "sprite.hpp"
+#include "sss.hpp"
 #include "static_var.hpp"
 #include "texture.hpp"
 
@@ -133,7 +135,7 @@ namespace rndr {
         shadow_ptr->reset_group();
 
         if (shadow) {
-            shadow_ptr->set_view_mtx(&rctx_ptr->camera->view);
+            shadow_ptr->set_view_mtx(&rctx_ptr->camera->cmat);
 
             light_data& light_chara = rctx_ptr->light_set[LIGHT_SET_MAIN].lights[LIGHT_CHARA];
 
@@ -917,7 +919,7 @@ namespace rndr {
         rend_data_ctx.state.disable_cull_face();
         spr::flush(rend_data_ctx, spr::SPR_TARGET_BACK, true,
             rend->user_fbo.get_texture(),
-            rctx_ptr->camera->view_projection_aet_3d);
+            rctx_ptr->camera->set_projection_matrix_2d(true));
         rend_data_ctx.state.enable_cull_face();
         rend_data_ctx.state.disable_blend();
         rend_data_ctx.state.enable_depth_test();
@@ -1184,7 +1186,7 @@ namespace rndr {
             rend_data_ctx.state.disable_cull_face();
             spr::flush(rend_data_ctx, spr::SPR_TARGET_FRONT, true,
                 rctx->screen_overlay_buffer.get_texture(),
-                rctx->camera->view_projection_aet_2d);
+                rctx->camera->set_projection_matrix_2d(false));
             rend_data_ctx.state.enable_cull_face();
             rend_data_ctx.state.disable_blend();
             rend_data_ctx.state.enable_depth_test();
@@ -1280,7 +1282,7 @@ namespace rndr {
         rend_data_ctx.state.disable_cull_face();
         spr::flush(rend_data_ctx, spr::SPR_TARGET_FRONT_3D_SURF, true,
             rend->user_fbo.get_texture(),
-            rctx->camera->view_projection_aet_2d);
+            rctx->camera->set_projection_matrix_2d(false));
     }
 }
 

@@ -4,6 +4,8 @@
 */
 
 #include "object_test.hpp"
+#include "../../CRE/mdl/disp_manager.hpp"
+#include "../../CRE/camera.hpp"
 #include "../../CRE/clear_color.hpp"
 #include "../../CRE/data.hpp"
 #include "../../CRE/render_context.hpp"
@@ -87,9 +89,9 @@ TaskDataTestObj::~TaskDataTestObj() {
 bool TaskDataTestObj::init() {
     clear_color = 0xFF606060;
 
-    camera* cam = rctx_ptr->camera;
-    cam->set_view_point({ 0.0f, 1.0f, 3.45f });
-    cam->set_interest({ 0.0f, 1.0f, 0.0f });
+    CameraData* cam = rctx_ptr->camera;
+    cam->set_pos({ 0.0f, 1.0f, 3.45f });
+    cam->set_intr({ 0.0f, 1.0f, 0.0f });
 
     data_test_obj_dw_init();
     task_stage_set_stage_index(data.stage_index);
@@ -127,28 +129,28 @@ bool TaskDataTestObj::ctrl() {
         if (data.cull_camera) {
             const obj_bounding_sphere* sphere = data_test_object_manager->get_object_bounding_sphere(data.obj_index);
             if (sphere) {
-                camera* cam = rctx_ptr->camera;
+                CameraData* cam = rctx_ptr->camera;
 
-                float_t v13 = tanf(cam->get_fov() * DEG_TO_RAD_FLOAT * 0.5f);
+                float_t v13 = tanf(cam->get_pers() * DEG_TO_RAD_FLOAT * 0.5f);
 
                 vec3 view_point;
                 view_point.x = sphere->center.x;
                 view_point.y = sphere->center.y;
-                view_point.z = v13 * sphere->radius + sphere->center.z + 0.2f;
+                view_point.z = sphere->center.z + v13 * sphere->radius + 0.2f;
 
                 vec3 interest;
                 interest.x = sphere->center.x;
                 interest.y = sphere->center.y;
                 interest.z = 0.0f;
 
-                cam->set_view_point(view_point);
-                cam->set_interest(interest);
+                cam->set_pos(view_point);
+                cam->set_intr(interest);
             }
         }
         else {
-            camera* cam = rctx_ptr->camera;
-            cam->set_view_point({ 0.0f, 1.0f, 3.45f });
-            cam->set_interest({ 0.0f, 1.0f, 0.0f });
+            CameraData* cam = rctx_ptr->camera;
+            cam->set_pos({ 0.0f, 1.0f, 3.45f });
+            cam->set_intr({ 0.0f, 1.0f, 0.0f });
         }
     }
 

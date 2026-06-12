@@ -4,6 +4,7 @@
 */
 
 #include "mode_data_test.hpp"
+#include "../CRE/camera.hpp"
 #include "../CRE/clear_color.hpp"
 #include "../CRE/render_context.hpp"
 #include "../CRE/render_manager.hpp"
@@ -110,9 +111,9 @@ bool dest_data_test_obj_md() {
 bool init_data_test_stg_md() {
     clear_color = 0xFF606060;
 
-    camera* cam = rctx_ptr->camera;
-    cam->set_view_point({ 0.0f, 0.88f, 4.3f });
-    cam->set_interest({ 0.0f, 1.0f, 0.0f });
+    CameraData* cam = rctx_ptr->camera;
+    cam->set_pos({ 0.0f, 0.88f, 4.3f });
+    cam->set_intr({ 0.0f, 1.0f, 0.0f });
 
     dtm_stg->open("DATA_TEST_STAGE");
     dtw_stg_init();

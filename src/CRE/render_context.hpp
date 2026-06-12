@@ -15,11 +15,9 @@
 #include "light_param/fog.hpp"
 #include "light_param/light.hpp"
 #include "light_param/wind.hpp"
-#include "mdl/disp_manager.hpp"
-#include "camera.hpp"
+#include "camera_render.hpp"
 #include "gl_rend_state.hpp"
 #include "render_texture.hpp"
-#include "sss.hpp"
 #include <unordered_map>
 
 #define MATRIX_BUFFER_COUNT 320
@@ -427,6 +425,11 @@ struct render_data {
     void set_shader(uint32_t index);
 };
 
+namespace mdl {
+    struct DispManager;
+    struct EtcObjManager;
+}
+
 namespace rndr {
     class Render;
     class RenderManager;
@@ -551,13 +554,13 @@ struct render_context {
         vec2i offset;
     };
 
-    ::camera* camera;
+    struct CameraData* camera;
     draw_state* draw_state;
     mdl::DispManager* disp_manager;
     mdl::EtcObjManager* etc_obj_manager;
     rndr::Render* render;
     rndr::RenderManager* render_manager;
-    sss_data* sss_data;
+    struct sss_data* sss_data;
 
     face face;
     fog fog[FOG_MAX];

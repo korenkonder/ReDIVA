@@ -9,6 +9,7 @@
 #include "../../CRE/rob/motion.hpp"
 #include "../../CRE/rob/skin_param.hpp"
 #include "../../CRE/app_system_detail.hpp"
+#include "../../CRE/camera.hpp"
 #include "../../CRE/customize_item_table.hpp"
 #include "../../CRE/effect.hpp"
 #include "../../CRE/hand_item.hpp"
@@ -426,8 +427,8 @@ void pv_game_data::reset() {
 
     pv_game_camera_reset();
 
-    pv_data.fov = 32.2673416137695f;
-    pv_data.min_dist = 0.05f;
+    pv_data.pers = 32.2673416137695f;
+    pv_data.clip_near = 0.05f;
     pv_data.scene_fade.reset();
     pv_data.pv_game->data_itmpv_disable();
     pv_data.reset_camera_post_process();
@@ -3728,7 +3729,7 @@ bool pv_game::load() {
                 sub_14013C8F0()->sub_14012AE60();*/
         }
 
-        rctx_ptr->camera->reset();
+        rctx_ptr->camera->init();
 
         data.score_final = 0;
         data.challenge_time_total_bonus = 0;
@@ -3803,16 +3804,15 @@ bool pv_game::load() {
             break;
         }
 
-        float_t view_point_xz_pos_angle =
-            (float_t)(36 * get_main_timer() % 360) * DEG_TO_RAD_FLOAT;
-        vec3 view_point;
-        view_point.x = sinf(view_point_xz_pos_angle) * 40.0f;
-        view_point.y = 0.0f;
-        view_point.z = cosf(view_point_xz_pos_angle) * 40.0f;
+        float_t cam_pos_xz_angle = (float_t)(36 * get_main_timer() % 360) * DEG_TO_RAD_FLOAT;
+        vec3 cam_pos;
+        cam_pos.x = sinf(cam_pos_xz_angle) * 40.0f;
+        cam_pos.y = 0.0f;
+        cam_pos.z = cosf(cam_pos_xz_angle) * 40.0f;
 
-        camera* cam = rctx_ptr->camera;
-        cam->set_view_point(view_point);
-        cam->set_interest({ 0.0f, 0.0f, 0.0f });
+        CameraData* cam = rctx_ptr->camera;
+        cam->set_pos(cam_pos);
+        cam->set_intr({ 0.0f, 0.0f, 0.0f });
 
         data.change_field_branch_success_counter--;
         if (data.field_index < data.field_data.size())
