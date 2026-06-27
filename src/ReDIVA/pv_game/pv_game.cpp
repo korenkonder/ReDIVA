@@ -255,8 +255,8 @@ void pv_game_edit_effect::unload() {
     reset();
 }
 
-pv_game_field::pv_game_field() : stage_index(), light_auth_3d_uid(), light_auth_3d_id(),
-light_frame(), spr_set_back_id(), stage_flag(), npr_type(), cam_blur(), sdw_off() {
+pv_game_field::pv_game_field() : stage_index(-1), light_auth_3d_uid(-1), light_auth_3d_id(),
+light_frame(), spr_set_back_id(-1), stage_flag(), npr_type(), cam_blur(), sdw_off() {
 
 }
 

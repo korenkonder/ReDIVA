@@ -260,14 +260,6 @@ namespace aet {
         return *this;
     }
 
-    // Missing
-    void IdHandle::restart() {
-        if (isValid() && getReady()) {
-            remove();
-            M_put();
-        }
-    }
-
     // 0x1401E5F10
     void IdHandle::put() {
         remove();

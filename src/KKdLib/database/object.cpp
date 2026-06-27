@@ -386,7 +386,11 @@ const object_set_info* object_database::get_object_set_info(const char* name) co
     if (!name || !*name)
         return 0;
 
-    auto elem = obj_set_murmurhashes.find(hash_utf8_murmurhash(name));
+    uint32_t name_hash = hash_utf8_murmurhash(name);
+    if (name_hash == hash_murmurhash_empty)
+        return 0;
+
+    auto elem = obj_set_murmurhashes.find(name_hash);
     if (elem != obj_set_murmurhashes.end())
         return elem->second;
     return 0;
@@ -410,7 +414,11 @@ const object_info_data* object_database::get_object_info_data(const char* name) 
     if (!str_utils_compare_length(name, name_len, "NULL", 5))
         return 0;
 
-    auto elem = obj_murmurhashes.find(hash_utf8_murmurhash(name));
+    uint32_t name_hash = hash_utf8_murmurhash(name);
+    if (name_hash == hash_murmurhash_empty)
+        return 0;
+
+    auto elem = obj_murmurhashes.find(name_hash);
     if (elem != obj_murmurhashes.end())
         return elem->second;
     return 0;
@@ -454,7 +462,11 @@ uint32_t object_database::get_object_set_id(const char* name) const {
     if (!str_utils_compare_length(name, name_len, "NULL", 5))
         return (uint32_t)-1;
 
-    auto elem = obj_set_murmurhashes.find(hash_utf8_murmurhash(name));
+    uint32_t name_hash = hash_utf8_murmurhash(name);
+    if (name_hash == hash_murmurhash_empty)
+        return (uint32_t)-1;
+
+    auto elem = obj_set_murmurhashes.find(name_hash);
     if (elem != obj_set_murmurhashes.end())
         return elem->second->id;
     return (uint32_t)-1;
@@ -478,7 +490,11 @@ object_info object_database::get_object_info(const char* name) const {
     if (!str_utils_compare_length(name, name_len, "NULL", 5))
         return object_info();
 
-    auto elem = obj_info_murmurhashes.find(hash_utf8_murmurhash(name));
+    uint32_t name_hash = hash_utf8_murmurhash(name);
+    if (name_hash == hash_murmurhash_empty)
+        return object_info();
+
+    auto elem = obj_info_murmurhashes.find(name_hash);
     if (elem != obj_info_murmurhashes.end())
         return elem->second;
     return object_info();

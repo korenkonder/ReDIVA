@@ -59,8 +59,8 @@ static void draw_pass_reflect_full(render_data_context& rend_data_ctx, rndr::Ren
 void apply_blur_filter_sub(render_data_context& rend_data_ctx, RenderTexture* dst, RenderTexture* src,
     ImgfBoxSampl filter, const vec2 res_scale, const vec4 scale, const vec4 offset);
 
-static void rndpass_create_render_texture(int32_t multisample);
-static void rndpass_free_render_texture();
+static void rndpass_create_texture(int32_t multisample);
+static void rndpass_free_texture();
 
 static void set_reflect_mat(render_data_context& rend_data_ctx, cam_data& cam);
 
@@ -1337,7 +1337,7 @@ void rndpass_init(int32_t anti_alias, int32_t min_render, int32_t ss_alpha_mask,
         render_screen_param.yoffset, render_screen_param.width, render_screen_param.height);
     render_manager.width = screen_param.width;
     render_manager.height = screen_param.height;
-    rndpass_create_render_texture(1);
+    rndpass_create_texture(1);
     render_manager.render->create_other();
 
     init_shadow();
@@ -1352,7 +1352,7 @@ void rndpass_init(int32_t anti_alias, int32_t min_render, int32_t ss_alpha_mask,
 void rndpass_finish() {
     rndr::RenderManager& render_manager = *rctx_ptr->render_manager;
 
-    rndpass_free_render_texture();
+    rndpass_free_texture();
     render_manager.render->destroy();
     finish_shadow();
     rctx_ptr->sss_data->free();
@@ -1865,7 +1865,7 @@ void apply_blur_filter_sub(render_data_context& rend_data_ctx, RenderTexture* ds
 }
 
 // 0x140502560
-static void rndpass_create_render_texture(int32_t multisample) {
+static void rndpass_create_texture(int32_t multisample) {
     rndr::RenderManager& render_manager = *rctx_ptr->render_manager;
 
 #ifdef USE_OPENGL
@@ -1909,7 +1909,7 @@ static void rndpass_create_render_texture(int32_t multisample) {
 }
 
 // 0x1405027A0
-static void rndpass_free_render_texture() {
+static void rndpass_free_texture() {
     rndr::RenderManager& render_manager = *rctx_ptr->render_manager;
 
 #ifdef USE_OPENGL

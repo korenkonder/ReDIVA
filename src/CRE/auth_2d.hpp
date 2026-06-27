@@ -93,7 +93,6 @@ namespace aet {
         }
 
         IdHandle& assign(const AetArgs& in_args);
-        void restart();
         void put();
         void put_valid();
         void destroy();

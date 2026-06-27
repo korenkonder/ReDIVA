@@ -273,7 +273,11 @@ const BoneData* bone_database::get_bone_data(const char* kind_name) const {
     if (!kind_name)
         return 0;
 
-    auto elem = bonedata_map.find(hash_utf8_murmurhash(kind_name));
+    uint32_t kind_name_hash = hash_utf8_murmurhash(kind_name);
+    if (kind_name_hash == hash_murmurhash_empty)
+        return 0;
+
+    auto elem = bonedata_map.find(kind_name_hash);
     if (elem != bonedata_map.end())
         return elem->second;
     return 0;
@@ -283,10 +287,18 @@ int32_t bone_database::get_block_index(const char* kind_name, const char* name) 
     if (!kind_name || !name)
         return -1;
 
-    auto elem = bonedata_map.find(hash_utf8_murmurhash(kind_name));
+    uint32_t kind_name_hash = hash_utf8_murmurhash(kind_name);
+    if (kind_name_hash == hash_murmurhash_empty)
+        return - 1;
+
+    auto elem = bonedata_map.find(kind_name_hash);
     if (elem != bonedata_map.end()) {
+        uint32_t name_hash = hash_utf8_murmurhash(name);
+        if (name_hash == hash_murmurhash_empty)
+            return -1;
+
         const BoneData* skel = elem->second;
-        auto elem = skel->body_type_map.find(hash_utf8_murmurhash(name));
+        auto elem = skel->body_type_map.find(name_hash);
         if (elem != skel->body_type_map.end())
             return (int32_t)(elem->second - skel->body_type.data());
     }
@@ -297,7 +309,11 @@ const std::vector<BODYTYPE>* bone_database::get_body_type_table(const char* kind
     if (!kind_name)
         return 0;
 
-    auto elem = bonedata_map.find(hash_utf8_murmurhash(kind_name));
+    uint32_t kind_name_hash = hash_utf8_murmurhash(kind_name);
+    if (kind_name_hash == hash_murmurhash_empty)
+        return 0;
+
+    auto elem = bonedata_map.find(kind_name_hash);
     if (elem != bonedata_map.end())
         return &elem->second->body_type;
     return 0;
@@ -307,7 +323,11 @@ const std::vector<CHAINPOSRADIUS>* bone_database::get_joint_table(const char* ki
     if (!kind_name)
         return 0;
 
-    auto elem = bonedata_map.find(hash_utf8_murmurhash(kind_name));
+    uint32_t kind_name_hash = hash_utf8_murmurhash(kind_name);
+    if (kind_name_hash == hash_murmurhash_empty)
+        return 0;
+
+    auto elem = bonedata_map.find(kind_name_hash);
     if (elem != bonedata_map.end())
         return &elem->second->chain_pos_rad;
     return 0;
@@ -317,10 +337,18 @@ int32_t bone_database::get_bone_index(const char* kind_name, const char* name) c
     if (!kind_name || !name)
         return -1;
 
-    auto elem = bonedata_map.find(hash_utf8_murmurhash(kind_name));
+    uint32_t kind_name_hash = hash_utf8_murmurhash(kind_name);
+    if (kind_name_hash == hash_murmurhash_empty)
+        return -1;
+
+    auto elem = bonedata_map.find(kind_name_hash);
     if (elem != bonedata_map.end()) {
+        uint32_t name_hash = hash_utf8_murmurhash(name);
+        if (name_hash == hash_murmurhash_empty)
+            return -1;
+
         const BoneData* skel = elem->second;
-        auto elem = skel->bone_name_map.find(hash_utf8_murmurhash(name));
+        auto elem = skel->bone_name_map.find(name_hash);
         if (elem != skel->bone_name_map.end())
             return (int32_t)(elem->second - skel->bone_name.data());
     }
@@ -331,7 +359,11 @@ const std::vector<std::string>* bone_database::get_bone_name_table(const char* k
     if (!kind_name)
         return 0;
 
-    auto elem = bonedata_map.find(hash_utf8_murmurhash(kind_name));
+    uint32_t kind_name_hash = hash_utf8_murmurhash(kind_name);
+    if (kind_name_hash == hash_murmurhash_empty)
+        return 0;
+
+    auto elem = bonedata_map.find(kind_name_hash);
     if (elem != bonedata_map.end())
         return &elem->second->bone_name;
     return 0;
@@ -341,10 +373,18 @@ int32_t bone_database::get_bone_node_index(const char* kind_name, const char* na
     if (!kind_name || !name)
         return -1;
 
-    auto elem = bonedata_map.find(hash_utf8_murmurhash(kind_name));
+    uint32_t kind_name_hash = hash_utf8_murmurhash(kind_name);
+    if (kind_name_hash == hash_murmurhash_empty)
+        return -1;
+
+    auto elem = bonedata_map.find(kind_name_hash);
     if (elem != bonedata_map.end()) {
+        uint32_t name_hash = hash_utf8_murmurhash(name);
+        if (name_hash == hash_murmurhash_empty)
+            return -1;
+
         const BoneData* skel = elem->second;
-        auto elem = skel->bone_node_name_map.find(hash_utf8_murmurhash(name));
+        auto elem = skel->bone_node_name_map.find(name_hash);
         if (elem != skel->bone_node_name_map.end())
             return (int32_t)(elem->second - skel->bone_node_name.data());
     }
@@ -355,7 +395,11 @@ const std::vector<std::string>* bone_database::get_bone_node_name_table(const ch
     if (!kind_name)
         return 0;
 
-    auto elem = bonedata_map.find(hash_utf8_murmurhash(kind_name));
+    uint32_t kind_name_hash = hash_utf8_murmurhash(kind_name);
+    if (kind_name_hash == hash_murmurhash_empty)
+        return 0;
+
+    auto elem = bonedata_map.find(kind_name_hash);
     if (elem != bonedata_map.end())
         return &elem->second->bone_node_name;
     return 0;
@@ -365,7 +409,11 @@ const std::vector<std::uint16_t>* bone_database::get_node_parent_table(const cha
     if (!kind_name)
         return 0;
 
-    auto elem = bonedata_map.find(hash_utf8_murmurhash(kind_name));
+    uint32_t kind_name_hash = hash_utf8_murmurhash(kind_name);
+    if (kind_name_hash == hash_murmurhash_empty)
+        return 0;
+
+    auto elem = bonedata_map.find(kind_name_hash);
     if (elem != bonedata_map.end())
         return &elem->second->parent_node;
     return 0;
@@ -375,7 +423,11 @@ const float_t* bone_database::get_heel_height(const char* kind_name) const {
     if (!kind_name)
         return 0;
 
-    auto elem = bonedata_map.find(hash_utf8_murmurhash(kind_name));
+    uint32_t kind_name_hash = hash_utf8_murmurhash(kind_name);
+    if (kind_name_hash == hash_murmurhash_empty)
+        return 0;
+
+    auto elem = bonedata_map.find(kind_name_hash);
     if (elem != bonedata_map.end())
         return &elem->second->heel_height;
     return 0;

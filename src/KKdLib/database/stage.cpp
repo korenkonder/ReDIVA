@@ -445,7 +445,11 @@ const ::stage_data_modern* stage_database::get_stage_data_modern(uint32_t stage_
 }
 
 int32_t stage_database::get_stage_index(const char* name) const {
-    auto elem = stage_data_names.find(hash_utf8_murmurhash(name));
+    uint32_t name_hash = hash_utf8_murmurhash(name);
+    if (name_hash == hash_murmurhash_empty)
+        return -1;
+
+    auto elem = stage_data_names.find(name_hash);
     if (elem != stage_data_names.end())
         return (int32_t)(elem->second - stage_data.data());
     return -1;

@@ -294,7 +294,11 @@ const motion_set_info* motion_database::get_motion_set_by_name(const char* name)
     if (!name)
         return 0;
 
-    auto elem = motion_set_names.find(hash_utf8_murmurhash(name));
+    uint32_t name_hash = hash_utf8_murmurhash(name);
+    if (name_hash == hash_murmurhash_empty)
+        return 0;
+
+    auto elem = motion_set_names.find(name_hash);
     if (elem != motion_set_names.end())
         return elem->second;
     return 0;
@@ -314,7 +318,11 @@ const motion_set_info* motion_database::get_motion_set_by_motion_name(const char
     if (!name)
         return 0;
 
-    auto elem = motion_set_motion_names.find(hash_utf8_murmurhash(name));
+    uint32_t name_hash = hash_utf8_murmurhash(name);
+    if (name_hash == hash_murmurhash_empty)
+        return 0;
+
+    auto elem = motion_set_motion_names.find(name_hash);
     if (elem != motion_set_motion_names.end())
         return elem->second;
     return 0;
@@ -334,7 +342,11 @@ uint32_t motion_database::get_motion_set_id_by_motion_name(const char* name) con
     if (!name)
         return -1;
 
-    auto elem = motion_names.find(hash_utf8_murmurhash(name));
+    uint32_t name_hash = hash_utf8_murmurhash(name);
+    if (name_hash == hash_murmurhash_empty)
+        return -1;
+
+    auto elem = motion_names.find(name_hash);
     if (elem != motion_names.end())
         return elem->second->set_id;
     return -1;
@@ -344,7 +356,11 @@ uint32_t motion_database::get_motion_set_id(const char* name) const {
     if (!name)
         return -1;
 
-    auto elem = motion_set_names.find(hash_utf8_murmurhash(name));
+    uint32_t name_hash = hash_utf8_murmurhash(name);
+    if (name_hash == hash_murmurhash_empty)
+        return -1;
+
+    auto elem = motion_set_names.find(name_hash);
     if (elem != motion_set_names.end())
         return elem->second->id;
     return -1;
@@ -374,7 +390,11 @@ const motion_info* motion_database::get_motion_by_name(const char* name) const {
     if (!name)
         return 0;
 
-    auto elem = motion_names.find(hash_utf8_murmurhash(name));
+    uint32_t name_hash = hash_utf8_murmurhash(name);
+    if (name_hash == hash_murmurhash_empty)
+        return 0;
+
+    auto elem = motion_names.find(name_hash);
     if (elem != motion_names.end())
         return elem->second;
     return 0;
@@ -384,7 +404,11 @@ uint32_t motion_database::get_motion_id(const char* name) const {
     if (!name)
         return -1;
 
-    auto elem = motion_names.find(hash_utf8_murmurhash(name));
+    uint32_t name_hash = hash_utf8_murmurhash(name);
+    if (name_hash == hash_murmurhash_empty)
+        return -1;
+
+    auto elem = motion_names.find(name_hash);
     if (elem != motion_names.end())
         return elem->second->id;
     return -1;

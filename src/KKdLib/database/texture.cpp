@@ -307,7 +307,11 @@ uint32_t texture_database::get_texture_id(const char* name) const {
     if (!name)
         return -1;
 
-    auto elem = texture_murmurhashes.find(hash_utf8_murmurhash(name));
+    uint32_t name_hash = hash_utf8_murmurhash(name);
+    if (name_hash == hash_murmurhash_empty)
+        return -1;
+
+    auto elem = texture_murmurhashes.find(name_hash);
     if (elem != texture_murmurhashes.end())
         return elem->second->id;
     return -1;

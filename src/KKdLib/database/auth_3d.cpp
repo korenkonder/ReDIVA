@@ -202,7 +202,11 @@ void auth_3d_database::update() {
 }
 
 int32_t auth_3d_database::get_category_index(const char* name) const {
-    auto elem = category_names.find(hash_utf8_murmurhash(name));
+    uint32_t name_hash = hash_utf8_murmurhash(name);
+    if (name_hash == hash_murmurhash_empty)
+        return -1;
+
+    auto elem = category_names.find(name_hash);
     if (elem != category_names.end())
         return (int32_t)(elem->second - category.data());
     return -1;
@@ -211,7 +215,11 @@ int32_t auth_3d_database::get_category_index(const char* name) const {
 void auth_3d_database::get_category_uids(const char* name, std::vector<int32_t>& uid) const {
     uid.clear();
 
-    auto elem = category_names.find(hash_utf8_murmurhash(name));
+    uint32_t name_hash = hash_utf8_murmurhash(name);
+    if (name_hash == hash_murmurhash_empty)
+        return;
+
+    auto elem = category_names.find(name_hash);
     if (elem != category_names.end()) {
         uid.assign(elem->second->uid.begin(), elem->second->uid.end());
         return;
@@ -219,7 +227,11 @@ void auth_3d_database::get_category_uids(const char* name, std::vector<int32_t>&
 }
 
 int32_t auth_3d_database::get_uid(const char* name) const {
-    auto elem = uid_names.find(hash_utf8_murmurhash(name));
+    uint32_t name_hash = hash_utf8_murmurhash(name);
+    if (name_hash == hash_murmurhash_empty)
+        return -1;
+
+    auto elem = uid_names.find(name_hash);
     if (elem != uid_names.end())
         return (int32_t)(elem->second - uid.data());
     return -1;

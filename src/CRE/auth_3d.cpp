@@ -1741,7 +1741,8 @@ namespace auth_3d_detail {
     void EventA2d::entry(const Scene& in_scene, EventActionFlag in_eaf, render_context* rctx) {
         float_t frame = in_scene.get_frame();
         if (frame >= begin && frame < end)
-            M_a2d_handle.restart();
+            if (M_a2d_handle.isValid() && M_a2d_handle.getReady())
+                M_a2d_handle.put();
     }
 
     // 0x1401D3890
