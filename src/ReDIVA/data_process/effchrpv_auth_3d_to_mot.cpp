@@ -418,11 +418,11 @@ static void set_bone_key_set_global_data(
 
     fck += mot->bone_data.bone_key_set_count;
     for (int32_t i = 0; i < count; i++) {
-        if (fck[0].kind == FCURVE_KEY_KIND_STATIC_DATA && fck[0].val)
+        if (fck[0].kind == FC_STATIC_DATA && fck[0].val)
             *(float_t*)&fck[0].val[0] = data[i].x;
-        if (fck[1].kind == FCURVE_KEY_KIND_STATIC_DATA && fck[1].val)
+        if (fck[1].kind == FC_STATIC_DATA && fck[1].val)
             *(float_t*)&fck[1].val[0] = data[i].y;
-        if (fck[2].kind == FCURVE_KEY_KIND_STATIC_DATA && fck[2].val)
+        if (fck[2].kind == FC_STATIC_DATA && fck[2].val)
             *(float_t*)&fck[2].val[0] = data[i].z;
         fck += 3;
     }
@@ -463,11 +463,11 @@ static void set_bone_key_set_data(RobBlock* block_top,
     fck += block_top[blk].key_set_offset;
     block_top[blk].frame = -FLT_MAX;
     for (int32_t i = 0; i < count; i++) {
-        if (fck[0].kind == FCURVE_KEY_KIND_STATIC_DATA && fck[0].val)
+        if (fck[0].kind == FC_STATIC_DATA && fck[0].val)
             *(float_t*)&fck[0].val[0] = data[i].x;
-        if (fck[1].kind == FCURVE_KEY_KIND_STATIC_DATA && fck[1].val)
+        if (fck[1].kind == FC_STATIC_DATA && fck[1].val)
             *(float_t*)&fck[1].val[0] = data[i].y;
-        if (fck[2].kind == FCURVE_KEY_KIND_STATIC_DATA && fck[2].val)
+        if (fck[2].kind == FC_STATIC_DATA && fck[2].val)
             *(float_t*)&fck[2].val[0] = data[i].z;
         fck += 3;
     }

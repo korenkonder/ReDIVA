@@ -21,6 +21,7 @@
 #include "../object.hpp"
 #include "../ogl_buffer_object.hpp"
 #include "../static_var.hpp"
+#include "fcurve.hpp"
 #include "rob_item.hpp"
 
 enum ACT_NAME {
@@ -790,14 +791,6 @@ enum eyes_base_adjust_type {
     EYES_BASE_ADJUST_CLEARANCE = 0x01,
     EYES_BASE_ADJUST_OFF       = 0x02,
     EYES_BASE_ADJUST_MAX       = 0x03,
-};
-
-enum FcurveKeyKind {
-    FCURVE_KEY_KIND_STATIC_0 = 0,
-    FCURVE_KEY_KIND_STATIC_DATA,
-    FCURVE_KEY_KIND_HERMITE,
-    FCURVE_KEY_KIND_HERMITE_TANGENT,
-    FCURVE_KEY_KIND_MAX,
 };
 
 enum GuardKind {
@@ -2023,33 +2016,6 @@ struct RobNode {
 struct struc_314 {
     uint32_t* field_0;
     size_t field_8;
-};
-
-struct FcurveKey {
-    FcurveKeyKind kind;
-    int32_t sum;
-    int32_t cache_idx;
-    int32_t last_idx;
-    const uint16_t* num;
-    const float_t* val;
-};
-
-struct Fcurve {
-    uint16_t fc_max;
-    uint16_t frame_max;
-    uint16_t key_num_type;
-    FcurveKey* fck_ptr;
-
-    bool fcurve_init(const void* data);
-    void fcurve_init_u16(const void* data);
-    void interpolate(float_t frame, float_t* value,
-        FcurveKey* fck, uint32_t in_fc_max, const struct struc_369* a6);
-    void set_fck_ptr(FcurveKey* ptr);
-};
-
-struct struc_369 {
-    int32_t field_0;
-    float_t field_4;
 };
 
 struct mot_key_data {

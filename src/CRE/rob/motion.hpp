@@ -6,6 +6,7 @@
 #pragma once
 
 #include "rob.hpp"
+#include "../../KKdLib/mot.hpp"
 
 struct MhdListFile {
     int32_t type;
