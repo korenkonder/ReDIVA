@@ -4,6 +4,7 @@
 */
 
 #include "gl_rend_state.hpp"
+#include "../KKdLib/prj/prj_assert.hpp"
 #include "shared.hpp"
 
 enum gl_rend_state_update_flags : uint32_t {
@@ -1174,7 +1175,7 @@ inline void gl_rend_state::generate_texture_mipmap(GLuint texture) {
 }
 
 void gl_rend_state::get() {
-    gl_get_error_all_print();
+    get_gl_error_all();
 
     glGetIntegerv(GL_CURRENT_PROGRAM, (GLint*)&program);
 
@@ -1828,8 +1829,8 @@ inline void gl_rend_state::update_read_framebuffer() {
             if (read_framebuffer_binding) {
                 GLenum status = glCheckFramebufferStatus(GL_READ_FRAMEBUFFER);
                 if (status != GL_FRAMEBUFFER_COMPLETE && status != GL_NO_ERROR)
-                    printf_debug("GL Error: Bind Read Framebuffer Status - 0x%04X\n", status);
-                gl_get_error_print();
+                    prj_tracef("GL Error: Bind Read Framebuffer Status - 0x%04X\n", status);
+                get_gl_error();
             }
             curr_read_framebuffer_binding = read_framebuffer_binding;
         }
@@ -1844,8 +1845,8 @@ inline void gl_rend_state::update_draw_framebuffer() {
             if (draw_framebuffer_binding) {
                 GLenum status = glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER);
                 if (status != GL_FRAMEBUFFER_COMPLETE && status != GL_NO_ERROR)
-                    printf_debug("GL Error: Bind Draw Framebuffer Status - 0x%04X\n", status);
-                gl_get_error_print();
+                    prj_tracef("GL Error: Bind Draw Framebuffer Status - 0x%04X\n", status);
+                get_gl_error();
             }
             curr_draw_framebuffer_binding = draw_framebuffer_binding;
         }

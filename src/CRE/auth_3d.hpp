@@ -1776,12 +1776,18 @@ namespace auth_3d_detail {
     extern const char* get_name_uid(int32_t in_uid, const auth_3d_database* auth_3d_db);
     extern const mat4* get_object_matrix(int32_t in_handle, size_t in_index, bool in_is_hrc);
     extern int32_t get_assign_rob_id(int32_t in_handle);
+    extern int32_t get_event_log_level();
     extern Scene* get_scene(int32_t in_uid); // Added
     extern Scene* get_scene(uint32_t hash); // Added
     extern int32_t get_scene_object_index(object_info in_obj_uid,
         int32_t* out_index, bool* out_is_hrc, int32_t in_instance = -1);
     extern int32_t get_scene_object_index(uint32_t in_file_name_hash, uint32_t in_obj_hash,
         int32_t* out_index, bool* out_is_hrc, int32_t in_instance = -1); // Added
+    extern void set_event_log_level(int32_t level);
+
+#if DEBUG
+    extern void debug_dump_scene_buffer();
+#endif
 
     // MGF
     inline bool Ambient::has_light_diffuse() const {

@@ -4,6 +4,7 @@
 */
 
 #include "object.hpp"
+#include "../KKdLib/prj/prj_assert.hpp"
 #include "../KKdLib/io/file_stream.hpp"
 #include "../KKdLib/io/json.hpp"
 #include "../KKdLib/io/path.hpp"
@@ -1972,6 +1973,10 @@ int32_t request_objset(void* data, const object_database* obj_db, uint32_t objse
     info->req_cnt = 1;
     info->obj_ready = false;
     info->tex_ready = false;
+
+#if DEBUG
+    prj_tracef("--- req  objset [%s]\n", info->name.c_str());
+#endif
     return 0;
 }
 
@@ -2012,6 +2017,10 @@ int32_t request_objset(void* data, const object_database* obj_db, const char* na
     info->req_cnt = 1;
     info->obj_ready = false;
     info->tex_ready = false;
+
+#if DEBUG
+    prj_tracef("--- req  objset [%s]\n", info->name.c_str());
+#endif
     return 0;
 }
 
@@ -2042,14 +2051,22 @@ int32_t request_objset_modern(void* data, uint32_t hash) {
     info->req_cnt = 1;
     info->obj_ready = false;
     info->tex_ready = false;
+
+#if DEBUG
+    prj_tracef("--- req  objset [Hash 0x%08X]\n", hash);
+#endif
     return 0;
 }
 
 // 0x14045DA60
 bool wait_objset(uint32_t objset_index, object_database* obj_db, texture_database* tex_db) {
     ObjsetInfo* info = get_objset_info(objset_index);
-    if (!info)
+    if (!info) {
+#if DEBUG
+        prj_tracef("can't find objset [%d] in objdb !!\n", objset_index);
+#endif
         return true;
+    }
 
     if (!info->modern) {
         if (!info->obj_ready && !info->obj_file_handler.check_not_ready()) {
@@ -2224,6 +2241,10 @@ inline void free_objset(uint32_t objset_index) {
     info->farc_file_handler.reset();
     if (info->modern)
         objset_info_storage_data_modern.erase(objset_index);
+
+#if DEBUG
+    prj_tracef("--- free objset [%s]\n", info->name.c_str());
+#endif
 }
 
 // Added
@@ -2252,6 +2273,10 @@ inline void free_objset(const object_database* obj_db, const char* name) {
     info->tex_file_handler.reset();
     info->obj_file_handler.reset();
     info->farc_file_handler.reset();
+
+#if DEBUG
+    prj_tracef("--- free objset [%s]\n", info->name.c_str());
+#endif
 }
 
 // Added

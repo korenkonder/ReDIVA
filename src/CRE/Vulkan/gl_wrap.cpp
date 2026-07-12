@@ -4,6 +4,7 @@
 */
 
 #include "gl_wrap.hpp"
+#include "../../KKdLib/prj/prj_assert.hpp"
 #include "../../KKdLib/hash.hpp"
 #include "../shader.hpp"
 #include "../static_var.hpp"
@@ -2894,7 +2895,7 @@ namespace Vulkan {
     static bool gl_wrap_manager_prepare_pipeline_draw(GLenum mode, GLenum type, const void* indices) {
         Vulkan::gl_program* vk_program = Vulkan::gl_program::get(gl_state.program);
         if (!vk_program) {
-            printf_debug("Vulkan: No Program\n");
+            prj_tracef("Vulkan: No Program\n");
             return false;
         }
 
@@ -2902,17 +2903,17 @@ namespace Vulkan {
         const shader_sub_table* sub_shader = vk_program->sub_shader;
         const uint32_t* unival_arr = vk_program->unival_arr;
         if (!shader || !sub_shader || !sub_shader->vp_desc || !sub_shader->fp_desc) {
-            printf_debug("Vulkan: No Shader info.\n");
+            prj_tracef("Vulkan: No Shader info.\n");
             return false;
         }
 
         Vulkan::gl_vertex_array* vk_vao = Vulkan::gl_vertex_array::get(gl_state.vertex_array_binding);
         if (!vk_vao) {
-            printf_debug("Vulkan: No VAO was bound.\n");
+            prj_tracef("Vulkan: No VAO was bound.\n");
             return false;
         }
         else if (type && !vk_vao->index_buffer_binding.buffer) {
-            printf_debug("Vulkan: VAO has invalid EBO while draw needs it.\n");
+            prj_tracef("Vulkan: VAO has invalid EBO while draw needs it.\n");
             return false;
         }
 
@@ -3029,7 +3030,7 @@ namespace Vulkan {
             input_assembly_state.primitiveRestartEnable = gl_state.primitive_restart ? VK_TRUE : VK_FALSE;
             break;
         default:
-            printf_debug("Vulkan: Invalid Primitive Type.\n");
+            prj_tracef("Vulkan: Invalid Primitive Type.\n");
             return false;
         }
 
@@ -3190,7 +3191,7 @@ namespace Vulkan {
             = vk_descriptor_pipeline->GetDescriptorSetCollection(Vulkan::manager_get_frame(),
                 hash_xxh3_64bits(descriptor_infos, descriptor_infos_size));
         if (!descriptor_set_collection) {
-            printf_debug("Vulkan: No Descriptor Set Collection was found.\n");
+            prj_tracef("Vulkan: No Descriptor Set Collection was found.\n");
             free_def(descriptor_infos);
             return false;
         }
@@ -3207,7 +3208,7 @@ namespace Vulkan {
                 if (!sampler_descriptor_set) {
                     free_def(descriptor_writes);
                     free_def(descriptor_infos);
-                    printf_debug("Vulkan: No Sampler Descriptor Set was found.\n");
+                    prj_tracef("Vulkan: No Sampler Descriptor Set was found.\n");
                     return false;
                 }
             }
@@ -3218,7 +3219,7 @@ namespace Vulkan {
                 if (!uniform_descriptor_set) {
                     free_def(descriptor_writes);
                     free_def(descriptor_infos);
-                    printf_debug("Vulkan: No Uniform Descriptor Set was found.\n");
+                    prj_tracef("Vulkan: No Uniform Descriptor Set was found.\n");
                     return false;
                 }
             }
@@ -3229,7 +3230,7 @@ namespace Vulkan {
                 if (!storage_descriptor_set) {
                     free_def(descriptor_writes);
                     free_def(descriptor_infos);
-                    printf_debug("Vulkan: No Storage Descriptor Set was found.\n");
+                    prj_tracef("Vulkan: No Storage Descriptor Set was found.\n");
                     return false;
                 }
             }
@@ -3355,7 +3356,7 @@ namespace Vulkan {
             Vulkan::gl_framebuffer* vk_fbo = Vulkan::gl_framebuffer::get(gl_state.draw_framebuffer_binding);
             if (!vk_fbo->framebuffer) {
                 free_def(descriptor_infos);
-                printf_debug("Vulkan: No Framebuffer was found.\n");
+                prj_tracef("Vulkan: No Framebuffer was found.\n");
                 return false;
             }
 

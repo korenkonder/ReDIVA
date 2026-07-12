@@ -4,6 +4,7 @@
 */
 
 #include "app_system_detail.hpp"
+#include "../KKdLib/prj/prj_assert.hpp"
 #include "../KKdLib/time.hpp"
 #include "screen_param.hpp"
 
@@ -261,7 +262,7 @@ void app_system_detail::SystemInfo::MeasureFps::exec() {
             break;
 
         if (get_screen_param().mode == SCREEN_MODE_HD && (fps < 59.940002f || fps > 60.060001f)) {
-            printf_debug_info("%s: %f(%zu) -> retry\n", __FUNCTION__, fps, retry_count);
+            prj_trace("%s: %f(%zu) -> retry\n", __FUNCTION__, fps, retry_count);
             retry_count++;
             if (retry_count < 3) {
                 state = 1;
@@ -273,9 +274,9 @@ void app_system_detail::SystemInfo::MeasureFps::exec() {
 
         this->fps = fps;
         state = 3;
-        printf_debug_info("%s: %f(%zu)\n", __FUNCTION__, fps, retry_count);*/
+        prj_trace("%s: %f(%zu)\n", __FUNCTION__, fps, retry_count);*/
 
-        this->fps = 60.0;
+        this->fps = 60.0f;
         state = 3;
     } break;
     }

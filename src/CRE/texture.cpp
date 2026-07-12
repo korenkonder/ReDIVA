@@ -119,7 +119,7 @@ void texture_apply_color_tone(const texture* chg_tex,
             glTexSubImage2D(chg_tex->target, i, 0, 0, width, height,
                 GL_RGB, GL_UNSIGNED_SHORT_5_6_5, data);
         }
-        gl_get_error_print();
+        get_gl_error();
         prj::MemoryManager::free(prj::MemCTemp, data);
     }
     texture_bind(org_tex->target, 0);
@@ -149,7 +149,7 @@ texture* texture_create_copy_texture(texture_id id, texture* org_tex) {
             glGetCompressedTexImage(org_tex->target, i, data);
         else
             glGetTexImage(org_tex->target, i, format, type, data);
-        gl_get_error_print();
+        get_gl_error();
         vec_data.push_back(data);
     }
     texture_bind(org_tex->target, 0);
@@ -203,7 +203,7 @@ texture* texture_create_copy_texture_apply_color_tone(
         }
         else
             glGetTexImage(org_tex->target, i, format, type, data);
-        gl_get_error_print();
+        get_gl_error();
         vec_data.push_back(data);
     }
     texture_bind(org_tex->target, 0);
@@ -633,7 +633,7 @@ inline static GLuint texture_get_working_internal_format(GLuint internal_format)
 
 static int32_t texture_load_pixels(GLenum target, GLenum internal_format,
     int32_t width, int32_t height, int32_t level, const void* data) {
-    gl_get_error_all_print();
+    get_gl_error_all();
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     switch (internal_format) {
     case GL_COMPRESSED_RGB_S3TC_DXT1_EXT:
@@ -659,7 +659,7 @@ static int32_t texture_load_pixels(GLenum target, GLenum internal_format,
         glTexImage2D(target, level, internal_format, width, height, 0, format, type, data);
     } break;
     }
-    return -(gl_get_error_print() != GL_ZERO);
+    return -(get_gl_error() != GL_ZERO);
 }
 
 static texture* texture_load_tex(texture_id id, GLenum target,

@@ -4,6 +4,7 @@
 */
 
 #include "fcurve.hpp"
+#include "../../KKdLib/prj/prj_assert.hpp"
 #include "../../KKdLib/mot.hpp"
 
 // 0x14036F780
@@ -13,7 +14,29 @@ void Fcurve::clear_fcurve_key() {
 
 // 0x14036F790
 void Fcurve::dbg_print_fcurve() {
+    FcurveKey* fck = fck_ptr;
+    for (int32_t i = 0; i < fc_max; fck++, i++) {
+        if (fck->kind == FC_STATIC_0)
+            prj_tracef(" %d : FC_STATIC_0", i);
+        else if (fck->kind == FC_STATIC_DATA)
+            prj_tracef(" %d : FC_STATIC_DATA %f", i, *fck->val);
+        else if (fck->kind == FC_SPLINE_SLOPE_0) {
+            prj_tracef(" %d : FC_SPLINE_SLOPE_0 ", i);
 
+            int32_t sum = max_def(fck->sum, 8);
+            for (int32_t j = 0; j < sum; j++)
+                prj_tracef("%f ", fck->val[j]);
+        }
+        else if (fck->kind == FC_SPLINE_DATA) {
+            prj_tracef(" %d : FC_SPLINE_DATA ", i);
+
+            int32_t sum = max_def(fck->sum, 4);
+            for (int32_t j = 0; j < sum; j++)
+                prj_tracef("%f %f ", fck->val[j * 2], fck->val[j * 2 + 1]);
+        }
+        prj_tracef("\n");
+    }
+    prj_tracef("\n");
 }
 
 // 0x14036F7B0

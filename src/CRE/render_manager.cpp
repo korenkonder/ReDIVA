@@ -5,6 +5,7 @@
 
 #include "render_manager.hpp"
 #include "../KKdLib/mat.hpp"
+#include "../KKdLib/prj/prj_assert.hpp"
 #include "Glitter/glitter.hpp"
 #include "light_param/fog.hpp"
 #include "light_param/light.hpp"
@@ -402,7 +403,7 @@ namespace rndr {
         cpu_time[id] = 0.0;
         gpu_time[id] = 0.0;
         if (!pass_sw[id]) {
-            gl_get_error_print();
+            get_gl_error();
             return;
         }
 
@@ -443,7 +444,7 @@ namespace rndr {
             break;
         }
         render_pass_end(id);
-        gl_get_error_print();
+        get_gl_error();
     }
 
     void RenderManager::render_pass_begin() {
@@ -555,8 +556,8 @@ namespace rndr {
             rend_data_ctx.state.begin_event("reflect");
             reflect_draw = true;
 
-            RenderTexture& refl_tex = get_render_texture(0);
-            if (sss->set(rend_data_ctx, refl_tex)) {
+            RenderTexture* rt_reflect = &get_render_texture(0);
+            if (sss->set(rend_data_ctx, *rt_reflect)) {
                 rndr::Render* rend = render;
 
                 for (int32_t i = LIGHT_SET_MAIN; i < LIGHT_SET_MAX; i++)
@@ -587,8 +588,12 @@ namespace rndr {
                         rend->draw_contour(rend_data_ctx, reflect_cam);
                     }
                     else if (ss4x) {
-                        refl_tex.begin_render(rend_data_ctx.state);
-                        refl_tex.set_viewport(rend_data_ctx.state);
+                        if (rt_reflect->begin_render(rend_data_ctx.state) < 0) {
+#if DEBUG
+                            prj_tracef("rt_reflect->begin_render() error.\n");
+#endif
+                        }
+                        rt_reflect->set_viewport(rend_data_ctx.state);
                         rend_data_ctx.state.clear(GL_DEPTH_BUFFER_BIT);
                         rctx->draw_state->rend_data[rend_data_ctx.index].shader_index = SHADER_FT_SSS_SKIN;
                         rend_data_ctx.state.enable_depth_test();
@@ -597,7 +602,7 @@ namespace rndr {
                         rctx->disp_manager->draw(rend_data_ctx, mdl::OBJ_TYPE_SSS, reflect_cam);
                         rend_data_ctx.state.disable_depth_test();
                         rctx->draw_state->rend_data[rend_data_ctx.index].shader_index = -1;
-                        refl_tex.end_render(rend_data_ctx.state);
+                        rt_reflect->end_render(rend_data_ctx.state);
                         rend_data_ctx.shader_flags.arr[U_NPR] = 1;
                         rend->draw_contour(rend_data_ctx, reflect_cam);
                     }
@@ -672,16 +677,20 @@ namespace rndr {
 
         render_context* rctx = rctx_ptr;
         rend_data_ctx.state.begin_event("pass_reflect");
-        RenderTexture& refl_tex = get_render_texture(0);
-        RenderTexture& refl_buf_tex = rctx->reflect_buffer;
+        RenderTexture* rt_reflect = &get_render_texture(0);
+        RenderTexture* rt_reflect_buffer = &rctx->reflect_buffer;
         if (rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_REFLECT_OPAQUE)
             || rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_REFLECT_TRANSPARENT)
             || rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_REFLECT_TRANSLUCENT)
             || rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_REFLECT_CHARA_OPAQUE)
             || rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_REFLECT_CHARA_TRANSPARENT)
             || rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_REFLECT_CHARA_TRANSLUCENT)) {
-            refl_tex.begin_render(rend_data_ctx.state);
-            refl_tex.set_viewport(rend_data_ctx.state);
+            if (rt_reflect->begin_render(rend_data_ctx.state) < 0) {
+#if DEBUG
+                prj_tracef("rt_reflect->begin_render() error.\n");
+#endif
+            }
+            rt_reflect->set_viewport(rend_data_ctx.state);
             rend_data_ctx.set_batch_scene_camera(cam);
 
             for (int32_t i = LIGHT_SET_MAIN; i < LIGHT_SET_MAX; i++)
@@ -779,22 +788,26 @@ namespace rndr {
             rctx->draw_state->rend_data[rend_data_ctx.index].shader_index = -1;
 
             for (int32_t i = reflect_blur_num, j = 0; i > 0; i--, j++) {
-                apply_blur_filter_sub(rend_data_ctx, &refl_buf_tex, &refl_tex,
+                apply_blur_filter_sub(rend_data_ctx, rt_reflect_buffer, rt_reflect,
                     reflect_blur_filter, 1.0f, 1.0f, 0.0f);
-                image_filter_scale(rend_data_ctx, &refl_tex, refl_buf_tex.get_texture());
+                image_filter_scale(rend_data_ctx, rt_reflect, rt_reflect_buffer->get_texture());
             }
 
             shader::unbind(rend_data_ctx.state);
-            refl_tex.end_render(rend_data_ctx.state);
+            rt_reflect->end_render(rend_data_ctx.state);
         }
         else {
-            refl_tex.begin_render(rend_data_ctx.state);
+            if (rt_reflect->begin_render(rend_data_ctx.state) < 0) {
+#if DEBUG
+                prj_tracef("rt_reflect->begin_render() error.\n");
+#endif
+            }
             vec4 clear_color;
             rend_data_ctx.state.get_clear_color(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
             rend_data_ctx.state.clear_color(0.0f, 0.0f, 0.0f, 0.0f);
             rend_data_ctx.state.clear(GL_COLOR_BUFFER_BIT);
             rend_data_ctx.state.clear_color(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
-            refl_tex.end_render(rend_data_ctx.state);
+            rt_reflect->end_render(rend_data_ctx.state);
         }
         rend_data_ctx.state.end_event();
     }
@@ -900,7 +913,7 @@ namespace rndr {
             }
         }
 
-        gl_get_error_print();
+        get_gl_error();
         rend_data_ctx.state.end_event();
     }
 
@@ -926,7 +939,7 @@ namespace rndr {
         rend_data_ctx.state.set_depth_mask(GL_TRUE);
         shader::unbind(rend_data_ctx.state);
         rend->end_render(rend_data_ctx.state);
-        gl_get_error_print();
+        get_gl_error();
         rend_data_ctx.state.end_event();
     }
 
@@ -957,11 +970,11 @@ namespace rndr {
         else
             rend_data_ctx.state.active_bind_texture_2d(14, rctx->empty_texture_2d->glid);
 
-        RenderTexture* refl_tex = 0;
+        RenderTexture* rt_reflect = 0;
         if (pass_sw[RND_PASSID_REFLECT] && reflect) {
-            refl_tex = &get_render_texture(0);
-            refl_tex->bind_texture(rend_data_ctx.state, 15);
-            rend_data_ctx.state.active_bind_texture_2d(15, refl_tex->get_texture_glid());
+            rt_reflect = &get_render_texture(0);
+            rt_reflect->bind_texture(rend_data_ctx.state, 15);
+            rend_data_ctx.state.active_bind_texture_2d(15, rt_reflect->get_texture_glid());
             rend_data_ctx.shader_flags.arr[U_TEX_REFLECTMAP] = 1;
         }
         else {
@@ -1126,8 +1139,8 @@ namespace rndr {
 
         rend_data_ctx.state.disable_depth_test();
 
-        if (refl_tex)
-            refl_tex->unbind_texture(rend_data_ctx.state);
+        if (rt_reflect)
+            rt_reflect->unbind_texture(rend_data_ctx.state);
 
         if (shadow)
             shadow_ptr->unbind_shadow(rend_data_ctx, rctx);
@@ -1207,7 +1220,7 @@ namespace rndr {
 #endif
             shader::unbind(rend_data_ctx.state);
 
-            gl_get_error_print();
+            get_gl_error();
         }
         rend_data_ctx.state.end_event();
     }
@@ -1342,10 +1355,14 @@ void rndpass_init(int32_t anti_alias, int32_t min_render, int32_t ss_alpha_mask,
 
     init_shadow();
     render_manager.shadow_ptr = get_shadow();
-    render_manager.shadow_ptr->create();
+    int32_t ret = render_manager.shadow_ptr->create();
+#if DEBUG
+    if (ret < 0)
+        prj_tracef("RenderPass : failed rp->shadow->create(), ret = %d\n", ret);
+#endif
 
     rctx_ptr->sss_data->init();
-    gl_get_error_print();
+    get_gl_error();
 }
 
 // 0x140502770
@@ -1666,15 +1683,19 @@ static void draw_pass_3d_translucent_has_objects(
 static void draw_pass_reflect_full(render_data_context& rend_data_ctx, rndr::RenderManager* render_manager) {
     render_context* rctx = rctx_ptr;
     rend_data_ctx.state.begin_event("pass_reflect");
-    RenderTexture& refl_tex = render_manager->get_render_texture(0);
-    RenderTexture& refl_buf_tex = rctx->reflect_buffer;
+    RenderTexture* rt_reflect = &render_manager->get_render_texture(0);
+    RenderTexture* rt_reflect_buffer= &rctx->reflect_buffer;
     extern bool reflect_full;
     if (rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_REFLECT_OPAQUE)
         || rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_REFLECT_TRANSPARENT)
         || rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_REFLECT_TRANSLUCENT_SORT_BY_RADIUS)
         || rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_REFLECT_TRANSLUCENT)) {
-        refl_tex.begin_render(rend_data_ctx.state);
-        refl_tex.set_viewport(rend_data_ctx.state);
+        if (rt_reflect->begin_render(rend_data_ctx.state) < 0) {
+#if DEBUG
+            prj_tracef("rt_reflect->begin_render() error.\n");
+#endif
+        }
+        rt_reflect->set_viewport(rend_data_ctx.state);
 
         if (!rctx->sss_data->enable || !rctx->sss_data->downsample
             || draw_pass_3d_get_translucent_count(rctx)) {
@@ -1804,22 +1825,26 @@ static void draw_pass_reflect_full(render_data_context& rend_data_ctx, rndr::Ren
         rend_data_ctx.state.disable_depth_test();
 
         for (int32_t i = render_manager->reflect_blur_num, j = 0; i > 0; i--, j++) {
-            apply_blur_filter_sub(rend_data_ctx, &refl_buf_tex, &refl_tex,
+            apply_blur_filter_sub(rend_data_ctx, rt_reflect_buffer, rt_reflect,
                 render_manager->reflect_blur_filter, 1.0f, 1.0f, 0.0f);
-            image_filter_scale(rend_data_ctx, &refl_tex, refl_buf_tex.get_texture());
+            image_filter_scale(rend_data_ctx, rt_reflect, rt_reflect_buffer->get_texture());
         }
 
         shader::unbind(rend_data_ctx.state);
-        refl_tex.end_render(rend_data_ctx.state);
+        rt_reflect->end_render(rend_data_ctx.state);
     }
     else {
-        refl_tex.begin_render(rend_data_ctx.state);
+        if (rt_reflect->begin_render(rend_data_ctx.state) < 0) {
+#if DEBUG
+            prj_tracef("rt_reflect->begin_render() error.\n");
+#endif
+        }
         vec4 clear_color;
         rend_data_ctx.state.get_clear_color(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
         rend_data_ctx.state.clear_color(0.0f, 0.0f, 0.0f, 0.0f);
         rend_data_ctx.state.clear(GL_COLOR_BUFFER_BIT);
         rend_data_ctx.state.clear_color(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
-        refl_tex.end_render(rend_data_ctx.state);
+        rt_reflect->end_render(rend_data_ctx.state);
     }
     rend_data_ctx.state.end_event();
 }
@@ -1898,10 +1923,17 @@ static void rndpass_create_texture(int32_t multisample) {
         if (tex_data->type != GL_TEXTURE_2D)
             continue;
 
-        RenderTexture& rt = render_manager.render_textures[i];
-        rt.create_texture(tex_data->width, tex_data->height, tex_data->max_level,
-            tex_data->color_format, tex_data->depth_format);
-        rt.begin_render(gl_state);
+        int32_t ret = render_manager.render_textures[i].create_texture(tex_data->width, tex_data->height,
+            tex_data->max_level, tex_data->color_format, tex_data->depth_format);
+#if DEBUG
+        if (ret < 0)
+            prj_tracef("RenderPass : failed rndpass_create_texture(), ret = %d\n", ret);
+#endif
+        if (render_manager.render_textures[i].begin_render(gl_state)) {
+#if DEBUG
+            prj_tracef("render_manager.render_textures[%d]->begin_render() error.\n", i);
+#endif
+        }
         glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     }

@@ -5,6 +5,7 @@
 
 #include "sound.hpp"
 #include "../KKdLib/io/file_stream.hpp"
+#include "../KKdLib/prj/prj_assert.hpp"
 #include "../KKdLib/key_val.hpp"
 #include "../KKdLib/farc.hpp"
 #include "../KKdLib/str_utils.hpp"
@@ -1070,7 +1071,7 @@ void sound_init() {
 
                             PropVariantInit(&pv);
                             if (SUCCEEDED(store->GetValue(PKEY_Device_FriendlyName, &pv)))
-                                printf_debug("%ls\n", pv.pwszVal);
+                                prj_tracef("%ls\n", pv.pwszVal);
                             PropVariantClear(&pv);
 
                             store->Release();

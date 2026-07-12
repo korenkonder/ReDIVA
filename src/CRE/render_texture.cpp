@@ -4,6 +4,7 @@
 */
 
 #include "render_texture.hpp"
+#include "../KKdLib/prj/prj_assert.hpp"
 #include "prj/memory_manager.hpp"
 #include "gl_rend_state.hpp"
 #include "gl_state.hpp"
@@ -11,15 +12,22 @@
 
 int32_t RenderTexture::m_tex_count;
 
+static GLenum check_framebuffer_status();
+static GLenum check_framebuffer_status(p_gl_rend_state& p_gl_rend_st);
+
 // 0x140503310
 int32_t RenderTexture::create_fbo(int32_t level) {
     int32_t level_count = level + 1;
     m_fb = prj::MemoryManager::alloc<GLuint>(prj::MemCSystem, level_count, "FBO");
-    if (!m_fb)
+    if (!m_fb) {
+#if DEBUG
+        prj_tracef(__FUNCTION__"() : mem_malloc() failed.\n");
+#endif
         return -1;
+    }
 
     glGenFramebuffers(level_count, m_fb);
-    return gl_get_error_print() != GL_ZERO ? -1 : 0;
+    return get_gl_error() != GL_ZERO ? -1 : 0;
 }
 
 // 0x1405036A0
@@ -28,21 +36,21 @@ int32_t RenderTexture::set_render_target(GLuint color, int32_t level, GLuint dep
         return -1;
 
     gl_state.bind_framebuffer(m_fb[level]);
-    gl_get_error_print();
+    get_gl_error();
 
     if (color) {
         glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, color, level);
-        gl_get_error_print();
+        get_gl_error();
         glDrawBuffer(GL_COLOR_ATTACHMENT0);
         glReadBuffer(GL_COLOR_ATTACHMENT0);
     }
     else {
         glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, 0, 0);
-        gl_get_error_print();
+        get_gl_error();
         glDrawBuffer(GL_ZERO);
         glReadBuffer(GL_ZERO);
     }
-    gl_get_error_print();
+    get_gl_error();
 
     if (!level) {
         GLenum attechment = stencil ? GL_DEPTH_STENCIL_ATTACHMENT : GL_DEPTH_ATTACHMENT;
@@ -54,14 +62,18 @@ int32_t RenderTexture::set_render_target(GLuint color, int32_t level, GLuint dep
         }*/
         else
             glFramebufferTexture(GL_FRAMEBUFFER, attechment, 0, 0);
-        gl_get_error_print();
+        get_gl_error();
     }
 
     int32_t ret = 0;
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+    if (check_framebuffer_status() != GL_FRAMEBUFFER_COMPLETE) {
+#if DEBUG
+        prj_tracef("RenderTexture::set_render_target() error. color=%d, level=%d, depth=%d\n", color, level, depth);
+#endif
         ret = -1;
+    }
     gl_state.bind_framebuffer(0);
-    gl_get_error_print();
+    get_gl_error();
     return ret;
 }
 
@@ -73,7 +85,7 @@ int32_t RenderTexture::set_render_target(GLuint color, int32_t level, GLuint dep
     glRenderbufferStorage(GL_RENDERBUFFER, internal_format, width, height);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_rb_depth);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    return gl_get_error_print() != GL_ZERO ? -1 : 0;
+    return get_gl_error() != GL_ZERO ? -1 : 0;
 }*/
 
 // 0x140503370
@@ -84,7 +96,7 @@ int32_t RenderTexture::set_render_target(GLuint color, int32_t level, GLuint dep
     glRenderbufferStorage(GL_RENDERBUFFER, internal_format, width, height);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_rb_stencil);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    return gl_get_error_print() != GL_ZERO ? -1 : 0;
+    return get_gl_error() != GL_ZERO ? -1 : 0;
 }*/
 
 // 0x140503680
@@ -154,8 +166,14 @@ int32_t RenderTexture::create_texture(int32_t width, int32_t height, int32_t lev
         return -1;
 
     for (int32_t i = 0; i <= level; i++)
-        if (set_render_target(color, i, depth, stencil) < 0)
+        if (set_render_target(color, i, depth, stencil) < 0) {
+#if DEBUG
+            prj_tracef("RenderTexture::set_render_target() error."
+                " width=%d height=%d level=%d, pixel_format=%x, depth_format=%x\n",
+                width, height, level, pixel_format, depth_format);
+#endif
             return -1;
+        }
     return 0;
 }
 
@@ -221,10 +239,14 @@ int32_t RenderTexture::begin_render(gl_state_struct& gl_st, int32_t level) {
         return -1;
 
     gl_st.bind_framebuffer(m_fb[level]);
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+    if (check_framebuffer_status() != GL_FRAMEBUFFER_COMPLETE) {
+#if DEBUG
+        prj_tracef(__FUNCTION__, "() error. level=%d\n", level);
+#endif
         return -1;
+    }
 
-    gl_get_error_print();
+    get_gl_error();
     return 0;
 }
 
@@ -234,23 +256,27 @@ int32_t RenderTexture::begin_render(p_gl_rend_state& p_gl_rend_st, int32_t level
         return -1;
 
     p_gl_rend_st.bind_framebuffer(m_fb[level]);
-    if (p_gl_rend_st.check_framebuffer_status(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+    if (check_framebuffer_status(p_gl_rend_st) != GL_FRAMEBUFFER_COMPLETE) {
+#if DEBUG
+        prj_tracef(__FUNCTION__, "() error. level=%d\n", level);
+#endif
         return -1;
+    }
 
-    gl_get_error_print();
+    get_gl_error();
     return 0;
 }
 
 // 0x140503660
 void RenderTexture::end_render(gl_state_struct& gl_st) {
     gl_st.bind_framebuffer(0);
-    gl_get_error_print();
+    get_gl_error();
 }
 
 // 0x140503660
 void RenderTexture::end_render(p_gl_rend_state& p_gl_rend_st) {
     p_gl_rend_st.bind_framebuffer(0);
-    gl_get_error_print();
+    get_gl_error();
 }
 
 // 0x140503200
@@ -267,4 +293,64 @@ void RenderTexture::unbind_texture(p_gl_rend_state& p_gl_rend_st) {
 // Added
 void RenderTexture::set_viewport(p_gl_rend_state& p_gl_rend_st) {
     p_gl_rend_st.set_viewport(0, 0, get_width(), get_height());
+}
+
+// 0x140503240
+static GLenum check_framebuffer_status() {
+    GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+#if DEBUG
+    switch (status) {
+    case GL_FRAMEBUFFER_COMPLETE:
+        break;
+    case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
+        prj_tracef("glCheckFramebufferStatus() = GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT\n");
+        break;
+    case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
+        prj_tracef("glCheckFramebufferStatus() = GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT\n");
+        break;
+    case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER:
+        prj_tracef("glCheckFramebufferStatus() = GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER\n");
+        break;
+    case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER:
+        prj_tracef("glCheckFramebufferStatus() = GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER\n");
+        break;
+    case GL_FRAMEBUFFER_UNSUPPORTED:
+        prj_tracef("glCheckFramebufferStatus() = GL_FRAMEBUFFER_UNSUPPORTED\n");
+        break;
+    default:
+        prj_tracef("status=%x\n", status);
+        break;
+    }
+#endif
+    return status;
+}
+
+// Added
+static GLenum check_framebuffer_status(p_gl_rend_state& p_gl_rend_st) {
+    GLenum status = p_gl_rend_st.check_framebuffer_status(GL_FRAMEBUFFER);
+#if DEBUG
+    switch (status) {
+    case GL_FRAMEBUFFER_COMPLETE:
+        break;
+    case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
+        prj_tracef("glCheckFramebufferStatus() = GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT\n");
+        break;
+    case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
+        prj_tracef("glCheckFramebufferStatus() = GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT\n");
+        break;
+    case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER:
+        prj_tracef("glCheckFramebufferStatus() = GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER\n");
+        break;
+    case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER:
+        prj_tracef("glCheckFramebufferStatus() = GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER\n");
+        break;
+    case GL_FRAMEBUFFER_UNSUPPORTED:
+        prj_tracef("glCheckFramebufferStatus() = GL_FRAMEBUFFER_UNSUPPORTED\n");
+        break;
+    default:
+        prj_tracef("status=%x\n", status);
+        break;
+    }
+#endif
+    return status;
 }

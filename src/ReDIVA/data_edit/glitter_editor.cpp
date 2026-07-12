@@ -1580,7 +1580,7 @@ static void glitter_editor_load_file(GlitterEditor* glt_edt, const char* path, c
             if (elem != hashes.end())
                 e->name.assign(elem->second);
             else {
-                printf_debug("Couldn't find name for hash 0x%08X\n", (uint32_t)e->data.name_hash);
+                prj_tracef("Couldn't find name for hash 0x%08X\n", (uint32_t)e->data.name_hash);
                 load_success = false;
             }
         }
@@ -1607,7 +1607,7 @@ static void glitter_editor_load_file(GlitterEditor* glt_edt, const char* path, c
             if (elem != hashes.end())
                 e->name.assign(elem->second);
             else {
-                printf_debug("Couldn't find name for hash 0x%016llX\n", e->data.name_hash);
+                prj_tracef("Couldn't find name for hash 0x%016llX\n", e->data.name_hash);
                 load_success = false;
             }
         }

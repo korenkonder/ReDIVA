@@ -53,6 +53,7 @@
 #include "../KKdLib/database/item_table.hpp"
 #include "../KKdLib/io/path.hpp"
 #include "../KKdLib/prj/algorithm.hpp"
+#include "../KKdLib/prj/prj_assert.hpp"
 #include "../KKdLib/farc.hpp"
 #include "../KKdLib/timer.hpp"
 #include "../KKdLib/sort.hpp"
@@ -1593,79 +1594,82 @@ static void app_resize_fb(render_context* rctx, bool change_fb) {
 #if RENDER_DEBUG
 static void APIENTRY render_debug_output(GLenum source, GLenum type, uint32_t id,
     GLenum severity, GLsizei length, const char* message, const void* userParam) {
-    if (!id && severity == GL_DEBUG_SEVERITY_NOTIFICATION
-        || id == 131169 || id == 131185 || id == 131218 || id == 131204)
+    if ((!id && severity == GL_DEBUG_SEVERITY_NOTIFICATION)
+        || id == 131169 || id == 131185 || id == 131218 || id == 131204) // IDs from NVIDIA's Debug API
         return;
 
-    printf_debug("########################################\n");
+    char buf[0x200];
+    buf[0] = 0;
     switch (type) {
     case GL_DEBUG_TYPE_ERROR:
-        printf_debug("Type: Error;                ");
+        strcat_s(buf, sizeof(buf), "Type: Error;                ");
         break;
     case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
-        printf_debug("Type: Deprecated Behaviour; ");
+        strcat_s(buf, sizeof(buf), "Type: Deprecated Behaviour; ");
         break;
     case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
-        printf_debug("Type: Undefined Behaviour;  ");
+        strcat_s(buf, sizeof(buf), "Type: Undefined Behaviour;  ");
         break;
     case GL_DEBUG_TYPE_PORTABILITY:
-        printf_debug("Type: Portability;          ");
+        strcat_s(buf, sizeof(buf), "Type: Portability;          ");
         break;
     case GL_DEBUG_TYPE_PERFORMANCE:
-        printf_debug("Type: Performance;          ");
+        strcat_s(buf, sizeof(buf), "Type: Performance;          ");
         break;
     case GL_DEBUG_TYPE_MARKER:
-        printf_debug("Type: Marker;               ");
+        strcat_s(buf, sizeof(buf), "Type: Marker;               ");
         break;
     case GL_DEBUG_TYPE_PUSH_GROUP:
-        printf_debug("Type: Push Group;           ");
+        strcat_s(buf, sizeof(buf), "Type: Push Group;           ");
         break;
     case GL_DEBUG_TYPE_POP_GROUP:
-        printf_debug("Type: Pop Group;            ");
+        strcat_s(buf, sizeof(buf), "Type: Pop Group;            ");
         break;
     case GL_DEBUG_TYPE_OTHER:
-        printf_debug("Type: Other;                ");
+        strcat_s(buf, sizeof(buf), "Type: Other;                ");
         break;
     }
 
     switch (severity) {
     case GL_DEBUG_SEVERITY_HIGH:
-        printf_debug("Severity: high;   ");
+        strcat_s(buf, sizeof(buf), "Severity: high;   ");
         break;
     case GL_DEBUG_SEVERITY_MEDIUM:
-        printf_debug("Severity: medium; ");
+        strcat_s(buf, sizeof(buf), "Severity: medium; ");
         break;
     case GL_DEBUG_SEVERITY_LOW:
-        printf_debug("Severity: low;    ");
+        strcat_s(buf, sizeof(buf), "Severity: low;    ");
         break;
     case GL_DEBUG_SEVERITY_NOTIFICATION:
-        printf_debug("Severity: notif;  ");
+        strcat_s(buf, sizeof(buf), "Severity: notif;  ");
         break;
     }
 
     switch (source) {
     case GL_DEBUG_SOURCE_API:
-        printf_debug("Source: API\n");
+        strcat_s(buf, sizeof(buf), "Source: API");
         break;
     case GL_DEBUG_SOURCE_WINDOW_SYSTEM:
-        printf_debug("Source: Window System\n");
+        strcat_s(buf, sizeof(buf), "Source: Window System");
         break;
     case GL_DEBUG_SOURCE_SHADER_COMPILER:
-        printf_debug("Source: Shader Compiler\n");
+        strcat_s(buf, sizeof(buf), "Source: Shader Compiler");
         break;
     case GL_DEBUG_SOURCE_THIRD_PARTY:
-        printf_debug("Source: Third Party\n");
+        strcat_s(buf, sizeof(buf), "Source: Third Party");
         break;
     case GL_DEBUG_SOURCE_APPLICATION:
-        printf_debug("Source: Application\n");
+        strcat_s(buf, sizeof(buf), "Source: Application");
         break;
     case GL_DEBUG_SOURCE_OTHER:
-        printf_debug("Source: Other\n");
+        strcat_s(buf, sizeof(buf), "Source: Other");
         break;
     }
 
-    printf_debug("Debug message (%d): %s\n", id, message);
-    printf_debug("########################################\n\n");
+    prj_tracef("########################################\n");
+    prj_tracef("%s\n", buf);
+    prj_tracef("Debug message (%d): %s\n", id, message);
+    prj_tracef("########################################\n\n");
 }
 #endif
 
@@ -2601,7 +2605,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL app_debug_callback(
         GetConsoleScreenBufferInfo(console, &csbi);
         SetConsoleTextAttribute(console, FOREGROUND_INTENSITY | FOREGROUND_RED
             | FOREGROUND_GREEN | FOREGROUND_BLUE | BACKGROUND_RED);
-        printf_debug("validation layer error: %s\n\n", pCallbackData->pMessage);
+        prj_tracef("validation layer error: %s\n\n", pCallbackData->pMessage);
         SetConsoleTextAttribute(console, csbi.wAttributes);
     }
     else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
@@ -2611,7 +2615,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL app_debug_callback(
         GetConsoleScreenBufferInfo(console, &csbi);
         SetConsoleTextAttribute(console, FOREGROUND_RED
             | BACKGROUND_RED | BACKGROUND_GREEN | BACKGROUND_BLUE);
-        printf_debug("validation layer warn: %s\n\n", pCallbackData->pMessage);
+        prj_tracef("validation layer warn: %s\n\n", pCallbackData->pMessage);
         SetConsoleTextAttribute(console, csbi.wAttributes);
     }
     else if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT) {
@@ -2621,11 +2625,11 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL app_debug_callback(
         GetConsoleScreenBufferInfo(console, &csbi);
         SetConsoleTextAttribute(console, FOREGROUND_INTENSITY | FOREGROUND_RED
             | FOREGROUND_GREEN | FOREGROUND_BLUE | BACKGROUND_RED | BACKGROUND_GREEN);
-        printf_debug("validation layer perf:  %s\n", pCallbackData->pMessage);
+        prj_tracef("validation layer perf:  %s\n", pCallbackData->pMessage);
         SetConsoleTextAttribute(console, csbi.wAttributes);
     }
     else
-        printf_debug("validation layer msg:   %s\n", pCallbackData->pMessage);
+        prj_tracef("validation layer msg:   %s\n", pCallbackData->pMessage);
     return VK_FALSE;
 }
 #endif

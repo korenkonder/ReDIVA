@@ -3502,7 +3502,7 @@ bool x_pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
             rob_chr->set_chara_height_adjust(height_adjust != 0);
     } break;
     case DSC_X_ITEM_ANIM: {
-        printf_debug("");
+        prj_tracef("");
     } break;
     case DSC_X_CHARA_POS_ADJUST: {
         rob_id = (ROB_ID)data[0];
@@ -3785,7 +3785,7 @@ bool x_pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         int32_t env_index = data[0];
         int32_t trans = data[1];
         pv_game->stage_data.set_env(env_index, (float_t)trans * (float_t)(1.0f / 60.0f), 0.0f);
-        printf_debug("Time: %8d; Frame %5d; Env: %2d; Trans: %3d\n",
+        prj_tracef("Time: %8d; Frame %5d; Env: %2d; Trans: %3d\n",
             (int32_t)(curr_time / 10000), pv_game->frame, env_index, trans);
     } break;
     case DSC_X_RESERVE2: {
@@ -12244,7 +12244,7 @@ static void x_pv_game_write_glitter(Glitter::EffectGroup* eff_group, const auth_
             if (elem != x_data->glitter_list_murmurhash.end())
                 e->name.assign(elem->second);
             else {
-                printf_debug("Couldn't find name for hash 0x%08X\n", (uint32_t)e->data.name_hash);
+                prj_tracef("Couldn't find name for hash 0x%08X\n", (uint32_t)e->data.name_hash);
                 continue;
             }
         }

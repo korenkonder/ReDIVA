@@ -8,6 +8,7 @@
 #include "../KKdLib/io/json.hpp"
 #include "../KKdLib/io/path.hpp"
 #include "../KKdLib/prj/algorithm.hpp"
+#include "../KKdLib/prj/prj_assert.hpp"
 #include "../KKdLib/farc.hpp"
 #include "../KKdLib/hash.hpp"
 #include "../KKdLib/interpolation.hpp"
@@ -51,6 +52,10 @@ namespace auth_3d_detail {
     static void event_log(const char* fmt, ...);
     static const char* get_ID_EVENT_TYPE(EVENT_TYPE type);
 
+#if DEBUG
+    static void report_bad_handle();
+#endif
+
     template <class T>
     size_t get_index_by_name(const T& in_c, const std::string& in_name);
 
@@ -66,6 +71,7 @@ static void a3da_msgpack_read(const char* path, const char* file, a3d::Scene* au
 static void auth_3d_set_material_list(auth_3d_detail::Scene& in_scene, render_context* rctx);
 
 namespace auth_3d_detail {
+    int32_t event_log_enable;
     Auth3dManager* g_manager;
     TaskAuth3d* task_auth_3d;
 }
@@ -1568,8 +1574,14 @@ namespace auth_3d_detail {
         float_t frame = in_frame;
         if (offset != 0.0f) {
             frame += offset;
-            if (frame >= fcurve_ptr->curve.m_max_frame)
-                frame -= fcurve_ptr->curve.m_max_frame;
+            const float_t max_frame = fcurve_ptr->curve.m_max_frame;
+            if (frame >= max_frame) {
+                frame -= max_frame;
+#if DEBUG
+                if (frame >= max_frame)
+                    prj_tracef("Warning: too large offset(%f)\n", offset);
+#endif
+            }
         }
         value = fcurve_ptr->curve.get(frame);
     }
@@ -1729,7 +1741,13 @@ namespace auth_3d_detail {
 
     // 0x1401B3710
     EventA2d::EventA2d(const a3d::Event& in_e) : Event(in_e) {
+        data_struct* aft_data = &data_list[DATA_AFT];
+        aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
 
+        AetArgs args;
+        args.id.id = aft_aet_db->get_aet_by_name(("AET_" + param1 + "_MAIN").c_str())->id;
+        args.layer_name = ref.c_str();
+        M_a2d_handle.assign(args);
     }
 
     // 0x1401B87C0
@@ -1740,9 +1758,14 @@ namespace auth_3d_detail {
     // 0x1401D1E90
     void EventA2d::entry(const Scene& in_scene, EventActionFlag in_eaf, render_context* rctx) {
         float_t frame = in_scene.get_frame();
-        if (frame >= begin && frame < end)
+        if (frame >= begin && frame < end) {
             if (M_a2d_handle.isValid() && M_a2d_handle.getReady())
                 M_a2d_handle.put();
+#if DEBUG
+            else
+                prj_tracef("Error: %s: Not Loaded data [%s][%s]\n", __FUNCSIG__, param1.c_str(), ref.c_str());
+#endif
+        }
     }
 
     // 0x1401D3890
@@ -1775,7 +1798,11 @@ namespace auth_3d_detail {
         if (param1.compare("DOWN") && param1.compare("KABEHIT1") && param1.compare("PAPER1"))
             return;
 
-        ref_index = in_scene.get_point_index(ref);;
+        ref_index = in_scene.get_point_index(ref);
+#if DEBUG
+        if (ref_index == -1)
+            prj_tracef("Error: %s: Not found ref [%s][%s]\n", __FUNCTION__, name.c_str(), ref.c_str());
+#endif
     }
 
     // 0x1401D1EF0
@@ -1824,6 +1851,10 @@ namespace auth_3d_detail {
         }
 
         ref_index = in_scene.get_chara_index(ref);
+#if DEBUG
+        if (ref_index == -1)
+            prj_tracef("Error: %s: Not found ref [%s][%s]\n", __FUNCTION__, name.c_str(), ref.c_str());
+#endif
     }
 
     // 0x1401D1F10
@@ -1938,6 +1969,10 @@ namespace auth_3d_detail {
     // 0x1401E5EC0
     void EventMot::resolve_relation(const Scene& in_scene) {
         ref_index = in_scene.get_chara_index(ref);
+#if DEBUG
+        if (ref_index == -1)
+            prj_tracef("Error: %s: Not found ref [%s][%s]\n", __FUNCTION__, name.c_str(), ref.c_str());
+#endif
     }
 
     // 0x1401D1FF0
@@ -1982,9 +2017,18 @@ namespace auth_3d_detail {
         rob_man->set_disp_on(rob_id, true);
 
         uint32_t motnum = aft_mot_db->get_motion_id(param1.c_str());
-        if (motnum != -1 && motion_storage_check_mot_file_not_ready(
+        if (motnum == -1) {
+#if DEBUG
+            prj_tracef("Error: motion name not found in DB[%s]\n", param1.c_str());
+#endif
+        }
+        else if (motion_storage_check_mot_file_not_ready(
             aft_mot_db->get_motion_set_id_by_motion_id(motnum)))
             rob_man->set_motion(rob_id, motnum);
+#if DEBUG
+        else
+            prj_tracef("Error: motion not loaded[%s]\n", param1.c_str());
+#endif
     }
 
     // 0x1401D3940
@@ -2462,6 +2506,11 @@ namespace auth_3d_detail {
         if (obj_uid.not_null()) {
             this->obj_uid = obj_uid;
             this->uid_name.assign(uid_name);
+
+#if DEBUG
+            if (obj_uid.is_null())
+                prj_tracef("Error: %s: obj [%s] not found in db.\n", __FUNCTION__, uid_name.c_str());
+#endif
             return true;
         }
         return false;
@@ -2547,6 +2596,11 @@ namespace auth_3d_detail {
 
         obj_uid = obj_db->get_object_info(uid_name.c_str());
         obj_hash = hash_string_murmurhash(uid_name);
+
+#if DEBUG
+        if (obj_uid.is_null())
+            prj_tracef("Error: %s: obj [%s] not found in db.\n", __FUNCTION__, uid_name.c_str());
+#endif
 
         static std::string reflect_str = "_REFLECT";
         is_reflect = uid_name.find(reflect_str) != -1;
@@ -2729,6 +2783,11 @@ namespace auth_3d_detail {
     // 0x1401DCA70
     bool Light::load(const SceneFile& in_file, const a3d::Light& in_l) {
         id = in_l.id;
+#if DEBUG
+        if (id < 0 || id >= LIGHT_MAX)
+            prj_tracef("Error: %s: Invalid id (%d) [%s].\n", __FUNCTION__, id, "light.#");
+#endif
+
         name.assign(in_l.name);
         type.assign(in_l.type);
 
@@ -3741,6 +3800,11 @@ namespace auth_3d_detail {
         if (obj_uid.not_null()) {
             this->obj_uid = obj_uid;
             this->uid_name.assign(uid_name);
+
+#if DEBUG
+            if (obj_uid.is_null())
+                prj_tracef("Error: %s: obj [%s] not found in db.\n", __FUNCTION__, uid_name.c_str());
+#endif
             return true;
         }
         return false;
@@ -3835,6 +3899,11 @@ namespace auth_3d_detail {
 
         obj_uid = obj_db->get_object_info(uid_name.c_str());
         obj_hash = hash_string_murmurhash(uid_name);
+
+#if DEBUG
+        if (obj_uid.is_null())
+            prj_tracef("Error: %s: obj [%s] not found in db.\n", __FUNCTION__, uid_name.c_str());
+#endif
 
         static std::string reflect_str = "_REFLECT";
         is_reflect = uid_name.find(reflect_str) != -1;
@@ -3948,6 +4017,11 @@ namespace auth_3d_detail {
 
         obj_uid = obj_db->get_object_info(uid_name.c_str());
         obj_hash = hash_string_murmurhash(uid_name);
+
+#if DEBUG
+        if (obj_uid.is_null())
+            prj_tracef("Error: %s: obj [%s] not found in db.\n", __FUNCTION__, uid_name.c_str());
+#endif
 
         shadow = in_oi.shadow;
         motion_transform.load(in_file, in_oi.model_transform);
@@ -4397,6 +4471,12 @@ namespace auth_3d_detail {
         const a3d::Texture& in_t, const texture_database* tex_db) {
         name.assign(in_t.name);
         tex_uid = tex_db->get_texture_id(name.c_str());
+
+#if DEBUG
+        if (tex_uid == -1)
+            prj_tracef("Error: %s: tex [%s] not found in db.\n", __FUNCTION__, name.c_str());
+#endif
+
         tex_pat.name.assign(in_t.pattern);
         tex_pat.offset = in_t.pattern_offset;
         return true;
@@ -4546,6 +4626,11 @@ namespace auth_3d_detail {
         const a3d::TextureTransform& in_tt, const texture_database* tex_db) {
         name.assign(in_tt.name);
         tex_uid = tex_db->get_texture_id(name.c_str());
+
+#if DEBUG
+        if (tex_uid == -1)
+            prj_tracef("Error: %s: tex [%s] not found in db.\n", __FUNCTION__, name.c_str());
+#endif
 
         if (in_tt.flag & a3d::TextureTransform::FLAG_COVERAGE_U) {
             fcurve_coverage_u.load(in_file, in_tt.coverage_u);
@@ -4896,8 +4981,12 @@ namespace auth_3d_detail {
 
     // 0x1401D3B10
     void CategoryData::free() {
-        if (--ref_count < 0)
+        if (--ref_count < 0) {
+#if DEBUG
+            prj_tracef("Error: Doubly free\n");
+#endif
             ref_count = 0;
+        }
         else if (!ref_count)
             M_free();
     }
@@ -4991,8 +5080,12 @@ namespace auth_3d_detail {
     // Inlined
     void UidData::M_load_req(const auth_3d_database* auth_3d_db) {
         load_state = S_DONE;
-        if (uid >= auth_3d_db->uid.size())
+        if (uid >= auth_3d_db->uid.size()) {
+#if DEBUG
+            prj_tracef("Error: Invalid uid (%d)\n", uid);
+#endif
             return;
+        }
 
         const auth_3d_database_uid* db_uid = &auth_3d_db->uid[uid];
 
@@ -5072,8 +5165,12 @@ namespace auth_3d_detail {
 
     // 0x1401D3B30
     void UidData::free() {
-        if (--ref_count < 0)
+        if (--ref_count < 0) {
+#if DEBUG
+            prj_tracef("Error: Doubly free\n");
+#endif
             ref_count = 0;
+        }
         else if (!ref_count)
             M_free();
     }
@@ -5172,8 +5269,12 @@ namespace auth_3d_detail {
 
     // Added
     void UidDataModern::free() {
-        if (--ref_count < 0)
+        if (--ref_count < 0) {
+#if DEBUG
+            prj_tracef("Error: Doubly free\n");
+#endif
             ref_count = 0;
+        }
         else if (!ref_count)
             M_free();
     }
@@ -5679,12 +5780,20 @@ namespace auth_3d_detail {
                 size_t index = get_curve_index(i.obj_pat.name);
                 if (index != -1)
                     i.obj_pat.bind(curve_list[index]);
+#if DEBUG
+                else
+                    prj_tracef("Error: %s: malformed pat [%s].\n", __FUNCTION__, i.obj_pat.name.c_str());
+#endif
             }
 
             if (i.obj_morph.name.size()) {
                 size_t index = get_curve_index(i.obj_morph.name);
                 if (index != -1)
                     i.obj_morph.bind(curve_list[index]);
+#if DEBUG
+                else
+                    prj_tracef("Error: %s: malformed morph [%s].\n", __FUNCTION__, i.obj_morph.name.c_str());
+#endif
             }
 
             for (Texture& j : i.texture_list)
@@ -5692,14 +5801,24 @@ namespace auth_3d_detail {
                     size_t index = get_curve_index(j.tex_pat.name);
                     if (index != -1)
                         j.tex_pat.bind(curve_list[index]);
+#if DEBUG
+                else
+                    prj_tracef("Error: %s: malformed tex pat [%s].\n", __FUNCTION__, j.tex_pat.name.c_str());
+#endif
                 }
 
             i.prepare_morph(obj_db);
         }
 
         object_list.reserve(object_name_list.size());
-        for (const std::string& i : object_name_list)
-            object_list.push_back(&object_holder[get_object_index(i)]);
+        for (const std::string& i : object_name_list) {
+            size_t index = get_object_index(i);
+#if DEBUG
+            if (index == -1)
+                prj_tracef("Error: %s: Not found object name [%s].\n", __FUNCTION__, i.c_str());
+#endif
+            object_list.push_back(&object_holder[index]);
+        }
 
         list_load(object_hrc_holder, in_file, prop.object_hrc, obj_db);
 
@@ -5731,6 +5850,10 @@ namespace auth_3d_detail {
             size_t index = get_object_hrc_index(i);
             if (index != -1)
                 object_hrc_list.push_back(&object_hrc_holder[index]);
+#if DEBUG
+            if (index == -1)
+                prj_tracef("Error: %s: Not found hierarchy object name [%s].\n", __FUNCTION__, i.c_str());
+#endif
         }
 
         list_load(m_object_hrc_holder, in_file, prop.m_object_hrc, obj_db);
@@ -5743,6 +5866,10 @@ namespace auth_3d_detail {
             size_t index = get_m_object_hrc_index(i);
             if (index != -1)
                 m_object_hrc_list.push_back(&m_object_hrc_holder[index]);
+#if DEBUG
+            if (index == -1)
+                prj_tracef("Error: %s: Not found multi hierarchy object name [%s].\n", __FUNCTION__, i.c_str());
+#endif
         }
 
         if (object_holder.size()) {
@@ -6114,15 +6241,24 @@ namespace auth_3d_detail {
     const std::string* Scene::chara_get_name(size_t in_index) const {
         if (in_index < chara_list.size())
             return &chara_list[in_index].name;
+#if DEBUG 
+        else
+            prj_tracef("Error: %s: bad param (%d)\n", __FUNCTION__, in_index);
+#endif
         return 0;
     }
 
     // Inlined
     void Scene::chara_bind_rob(size_t in_index, int32_t in_rob_id) {
         if (in_index < chara_list.size()
-            && (in_rob_id == ROB_ID_NULL || in_rob_id == ROB_ID_1P || in_rob_id == ROB_ID_2P)
-            && chara_list[in_index].rob_id != in_rob_id)
+            && (in_rob_id == ROB_ID_NULL || in_rob_id == ROB_ID_1P || in_rob_id == ROB_ID_2P)) {
+            if (chara_list[in_index].rob_id != in_rob_id)
                 chara_list[in_index].rob_id = in_rob_id;
+        }
+#if DEBUG 
+        else
+            prj_tracef("Error: %s: bad param (%d, %d)\n", __FUNCTION__, in_index, in_rob_id);
+#endif
     }
 
     // 0x1401D5C80
@@ -6530,6 +6666,10 @@ namespace auth_3d_detail {
         CategoryData* category_data = get_category_data(in_name);
         if (category_data)
             category_data->free();
+#if DEBUG 
+        else
+            prj_tracef("%s: category [%s] not found in auth_3d_db.\n", __FUNCTION__, in_name);
+#endif
     }
 
     // Added
@@ -6543,6 +6683,10 @@ namespace auth_3d_detail {
             if (elem->second.ref_count <= 0)
                 category_data_list_modern.erase(elem);
         }
+#if DEBUG 
+        else
+            prj_tracef("%s: category hash [0x%08X] not found in auth_3d_db.\n", __FUNCTION__, in_hash);
+#endif
     }
 
     // 0x1401CBDF0
@@ -6553,6 +6697,10 @@ namespace auth_3d_detail {
         CategoryData* category_data = get_category_data(in_name);
         if (category_data)
             return category_data->load_is_done();
+#if DEBUG 
+        else
+            prj_tracef("%s: category [%s] not found in auth_3d_db.\n", __FUNCTION__, in_name);
+#endif
         return true;
     }
 
@@ -6564,6 +6712,10 @@ namespace auth_3d_detail {
         auto elem = category_data_list_modern.find(in_hash);
         if (elem != category_data_list_modern.end())
             return elem->second.load_is_done();
+#if DEBUG 
+        else
+            prj_tracef("%s: category hash [0x%08X] not found in auth_3d_db.\n", __FUNCTION__, in_hash);
+#endif
         return true;
     }
 
@@ -6575,6 +6727,10 @@ namespace auth_3d_detail {
         CategoryData* category_data = get_category_data(in_name);
         if (category_data)
             category_data->load_req(in_mdata_dir);
+#if DEBUG 
+        else
+            prj_tracef("%s: category [%s] not found in auth_3d_db.\n", __FUNCTION__, in_name);
+#endif
     }
 
     // Added
@@ -6599,6 +6755,9 @@ namespace auth_3d_detail {
         const Scene* scene = get_work_enabled(in_handle);
         if (scene)
             return scene->get_object_matrix(in_index, in_is_hrc);
+#if DEBUG
+        report_bad_handle();
+#endif
         return 0;
     }
 
@@ -6620,6 +6779,9 @@ namespace auth_3d_detail {
             if (scene && scene->M_uid == in_uid)
                 return scene;
         }
+#if DEBUG
+        report_bad_handle();
+#endif
         return 0;
     }
 
@@ -6630,6 +6792,9 @@ namespace auth_3d_detail {
             if (scene && scene->hash == hash)
                 return scene;
         }
+#if DEBUG
+        report_bad_handle();
+#endif
         return 0;
     }
 
@@ -6726,6 +6891,10 @@ namespace auth_3d_detail {
         UidData* uid_data = get_uid_data(in_uid, auth_3d_db);
         if (uid_data)
             uid_data->free();
+#if DEBUG
+        else
+            prj_tracef("Error:%s: %d not found in auth_3d_db\n", __FUNCTION__, in_uid);
+#endif
     }
 
     // Added
@@ -6733,6 +6902,10 @@ namespace auth_3d_detail {
         UidDataModern* uid_data = get_uid_data_modern(hash);
         if (uid_data)
             uid_data->free();
+#if DEBUG
+        else
+            prj_tracef("Error:%s: Hash 0x%08X not found in auth_3d_db\n", __FUNCTION__, hash);
+#endif
     }
 
     // 0x1401D6910
@@ -6817,14 +6990,22 @@ namespace auth_3d_detail {
 
     // 0x1401D6580
     int32_t Auth3dManager::create(int32_t uid, const auth_3d_database* auth_3d_db) {
-        if (uid >= auth_3d_db->uid.size() || !auth_3d_db->uid[uid].enabled)
+        if (uid >= auth_3d_db->uid.size() || !auth_3d_db->uid[uid].enabled) {
+#if DEBUG 
+            prj_tracef("Error:%s: %d not found in auth_3d_db\n", __FUNCTION__, uid);
+#endif
             return -1;
+        }
 
         int32_t index = 0;
         while (scene_buffer[index].is_valid() || scene_buffer[index].hash
             != hash_murmurhash_empty && scene_buffer[index].hash != -1)
-            if (++index >= AUTH_3D_DATA_COUNT)
+            if (++index >= AUTH_3D_DATA_COUNT) {
+#if DEBUG 
+                prj_tracef("Error:%s: too many handle. (handle leak ?)\n", __FUNCTION__);
+#endif
                 return -1;
+            }
 
         scene_buffer[index].init();
 
@@ -6844,8 +7025,12 @@ namespace auth_3d_detail {
         int32_t index = 0;
         while (scene_buffer[index].is_valid() || scene_buffer[index].hash
             != hash_murmurhash_empty && scene_buffer[index].hash != -1)
-            if (++index >= AUTH_3D_DATA_COUNT)
+            if (++index >= AUTH_3D_DATA_COUNT) {
+#if DEBUG 
+                prj_tracef("Error:%s: too many handle. (handle leak ?)\n", __FUNCTION__);
+#endif
                 return -1;
+            }
 
         auto elem = uid_data_list_modern.find(hash);
         if (elem == uid_data_list_modern.end())
@@ -6879,8 +7064,14 @@ namespace auth_3d_detail {
     // 0x1401D6710
     void Auth3dManager::destroy(int32_t in_handle, render_context* rctx) {
         Scene* scene = get_work(in_handle);
-        if (scene && prj::find_and_erase(handle_list, in_handle))
-            scene->destroy(rctx);
+        if (scene) {
+            if (prj::find_and_erase(handle_list, in_handle))
+                scene->destroy(rctx);
+        }
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
     }
 
     // 0x1401D4FD0
@@ -6888,6 +7079,9 @@ namespace auth_3d_detail {
         const Scene* scene = get_work(in_handle);
         if (scene)
             return scene->get_assign_rob_id();
+#if DEBUG
+        report_bad_handle();
+#endif
         return ROB_ID_NULL;
     }
 
@@ -6963,6 +7157,10 @@ namespace auth_3d_detail {
         Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             scene->add_event_listener(in_evt_list);
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
     }
 
     // 0x1401E3420
@@ -6970,6 +7168,10 @@ namespace auth_3d_detail {
         Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             scene->remove_event_listener(in_evt_list);
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
     }
 
     // 0x1401E0F80
@@ -6977,6 +7179,10 @@ namespace auth_3d_detail {
         Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             scene->load_req(auth_3d_db);
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
     }
 
     // Added
@@ -6984,6 +7190,10 @@ namespace auth_3d_detail {
         Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             scene->load_req_modern();
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
     }
 
     // 0x1401E0680
@@ -6991,6 +7201,10 @@ namespace auth_3d_detail {
         const Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             return scene->load_is_done();
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
         return true;
     }
 
@@ -6999,6 +7213,10 @@ namespace auth_3d_detail {
         Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             return scene->set_frame_req(in_frame);
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
     }
 
     // 0x1401E6520
@@ -7006,6 +7224,10 @@ namespace auth_3d_detail {
         Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             return scene->set_frame_max(in_frame);
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
     }
 
     // 0x1401D56C0
@@ -7013,6 +7235,10 @@ namespace auth_3d_detail {
         const Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             return scene->get_frame();
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
         return 0.0f;
     }
 
@@ -7021,6 +7247,10 @@ namespace auth_3d_detail {
         const Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             return scene->get_frame_size();
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
         return 0.0f;
     }
 
@@ -7029,6 +7259,10 @@ namespace auth_3d_detail {
         const Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             return scene->get_frame_fps();
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
         return 60.0f;
     }
 
@@ -7037,6 +7271,10 @@ namespace auth_3d_detail {
         const Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             return scene->get_frame_begin();
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
         return 0.0f;
     }
 
@@ -7045,6 +7283,10 @@ namespace auth_3d_detail {
         Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             return scene->set_frame_rate_control(in_value);
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
     }
 
     // 0x1401E6A10
@@ -7052,6 +7294,10 @@ namespace auth_3d_detail {
         Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             return scene->set_pause(in_value);
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
     }
 
     // 0x1401D5D90
@@ -7059,6 +7305,10 @@ namespace auth_3d_detail {
         const Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             return scene->get_pause();
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
         return false;
     }
 
@@ -7067,6 +7317,10 @@ namespace auth_3d_detail {
         Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             return scene->set_enabled(in_value);
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
     }
 
     // 0x1401D5580
@@ -7074,6 +7328,10 @@ namespace auth_3d_detail {
         const Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             return scene->get_enabled();
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
         return false;
     }
 
@@ -7082,6 +7340,10 @@ namespace auth_3d_detail {
         Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             return scene->set_looped(in_value);
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
     }
 
     // 0x1401D5990
@@ -7089,6 +7351,10 @@ namespace auth_3d_detail {
         const Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             return scene->get_looped();
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
         return false;
     }
 
@@ -7097,6 +7363,10 @@ namespace auth_3d_detail {
         Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             return scene->set_frame_loop_begin();
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
     }
 
     // 0x1401E6570
@@ -7104,6 +7374,10 @@ namespace auth_3d_detail {
         Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             return scene->set_frame_loop_begin(in_frame);
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
     }
 
     // 0x1401D57C0
@@ -7111,6 +7385,10 @@ namespace auth_3d_detail {
         const Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             return scene->get_frame_loop_begin();
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
         return 0.0f;
     }
 
@@ -7119,6 +7397,10 @@ namespace auth_3d_detail {
         Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             return scene->set_frame_loop_end();
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
     }
 
     // 0x1401E6610
@@ -7126,6 +7408,10 @@ namespace auth_3d_detail {
         Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             return scene->set_frame_loop_end(in_frame);
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
     }
 
     // 0x1401D5810
@@ -7133,6 +7419,10 @@ namespace auth_3d_detail {
         const Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             return scene->get_frame_loop_end();
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
         return 0.0f;
     }
 
@@ -7141,6 +7431,10 @@ namespace auth_3d_detail {
         const Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             return scene->is_finished();
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
         return false;
     }
 
@@ -7149,6 +7443,10 @@ namespace auth_3d_detail {
         Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             return scene->set_auto_disable(in_value);
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
     }
 
     // 0x1401D51B0
@@ -7156,6 +7454,10 @@ namespace auth_3d_detail {
         const Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             return scene->get_auto_disable();
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
         return false;
     }
 
@@ -7164,6 +7466,10 @@ namespace auth_3d_detail {
         Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             return scene->set_base_matrix(in_value);
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
     }
 
     // 0x1401D5200
@@ -7171,6 +7477,10 @@ namespace auth_3d_detail {
         const Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             return scene->get_base_matrix();
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
         return bad_matrix;
     }
 
@@ -7178,7 +7488,11 @@ namespace auth_3d_detail {
     void Handle::set_reverse_side(bool in_value) {
         Scene* scene = g_manager->get_work(m_handle);
         if (scene)
-            return scene->set_reverse_side(in_value);
+            scene->set_reverse_side(in_value);
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
     }
 
     // 0x1401D5E60
@@ -7186,6 +7500,10 @@ namespace auth_3d_detail {
         const Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             return scene->get_reverse_side();
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
         return false;
     }
 
@@ -7194,6 +7512,10 @@ namespace auth_3d_detail {
         const Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             return scene->get_chara_size();
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
         return 0;
     }
 
@@ -7202,6 +7524,10 @@ namespace auth_3d_detail {
         const Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             return scene->get_chara_index(in_name);
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
         return 0;
     }
 
@@ -7210,6 +7536,10 @@ namespace auth_3d_detail {
         const Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             return scene->chara_get_name(in_index);
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
         return 0;
     }
 
@@ -7218,6 +7548,10 @@ namespace auth_3d_detail {
         Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             scene->chara_bind_rob(in_index, in_rob_id);
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
     }
 
     // 0x1401D5C10
@@ -7225,6 +7559,10 @@ namespace auth_3d_detail {
         const Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             return scene->get_object_size();
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
         return 0;
     }
 
@@ -7233,6 +7571,10 @@ namespace auth_3d_detail {
         const Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             return scene->get_object_index(in_name);
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
         return -1;
     }
 
@@ -7241,6 +7583,10 @@ namespace auth_3d_detail {
         const Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             return scene->object_get_name(in_index);
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
         return 0;
     }
 
@@ -7249,6 +7595,10 @@ namespace auth_3d_detail {
         const Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             return scene->get_object_matrix(in_index);
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
         return 0;
     }
 
@@ -7257,6 +7607,10 @@ namespace auth_3d_detail {
         Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             return scene->set_visible(in_value);
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
     }
 
     // 0x1401D64A0
@@ -7264,6 +7618,10 @@ namespace auth_3d_detail {
         const Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             return scene->get_visible();
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
         return false;
     }
 
@@ -7272,6 +7630,10 @@ namespace auth_3d_detail {
         Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             return scene->set_trnsl(in_value, in_state);
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
     }
 
     // 0x1401D60D0
@@ -7279,6 +7641,10 @@ namespace auth_3d_detail {
         const Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             return scene->get_trnsl();
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
         return 1.0f;
     }
 
@@ -7287,6 +7653,10 @@ namespace auth_3d_detail {
         Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             scene->set_attribute_wall(in_value);
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
     }
 
     // 01401D50A0
@@ -7294,6 +7664,10 @@ namespace auth_3d_detail {
         const Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             return scene->get_attribute_wall();
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
         return false;
     }
 
@@ -7302,6 +7676,10 @@ namespace auth_3d_detail {
         Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             return scene->set_item_attr(in_id, in_attr);
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
     }
 
     // 0x1401E68A0
@@ -7309,6 +7687,10 @@ namespace auth_3d_detail {
         Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             return scene->set_item_texchange(in_list);
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
     }
 
     // 0x1401CB580
@@ -7316,6 +7698,10 @@ namespace auth_3d_detail {
         Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             return scene->camera_set_enabled(in_value);
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
     }
 
     // 0x1401CB4D0
@@ -7323,6 +7709,10 @@ namespace auth_3d_detail {
         const Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             return scene->camera_get_enabled();
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
         return false;
     }
 
@@ -7331,6 +7721,10 @@ namespace auth_3d_detail {
         Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             return scene->camera_set_fov_adjust(in_value);
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
     }
 
     // 0x1401CB520
@@ -7338,6 +7732,10 @@ namespace auth_3d_detail {
         const Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             return scene->camera_get_fov_adjust();
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
         return 1.0f;
     }
 
@@ -7346,6 +7744,10 @@ namespace auth_3d_detail {
         const Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             return scene->get_auth_2d_size();
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
         return 0;
     }
 
@@ -7354,6 +7756,10 @@ namespace auth_3d_detail {
         const Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             return scene->get_auth_2d_index(in_name);
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
         return -1;
     }
 
@@ -7361,6 +7767,10 @@ namespace auth_3d_detail {
         const Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             return scene->auth_2d_get_name(in_index);
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
         return 0;
     }
 
@@ -7369,6 +7779,10 @@ namespace auth_3d_detail {
         Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             scene->set_data(in_value);
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
     }
 
     // Missing
@@ -7376,6 +7790,10 @@ namespace auth_3d_detail {
         const Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             return scene->get_data();
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
         return 0;
     }
 
@@ -7384,6 +7802,10 @@ namespace auth_3d_detail {
         Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             scene->set_debug(in_debug);
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
     }
 
     // 0x1401D5530
@@ -7391,6 +7813,10 @@ namespace auth_3d_detail {
         const Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             return scene->get_debug();
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
         return 0;
     }
 
@@ -7399,6 +7825,10 @@ namespace auth_3d_detail {
         Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             scene->assign_rob_id(in_value);
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
     }
 
     // 0x1401D5050
@@ -7406,6 +7836,10 @@ namespace auth_3d_detail {
         const Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             return scene->get_assign_rob_id();
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
         return ROB_ID_NULL;
     }
 
@@ -7414,6 +7848,10 @@ namespace auth_3d_detail {
         Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             return set_obj_uid(in_value);
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
     }
 
     // 0x1401E6AD0
@@ -7421,6 +7859,10 @@ namespace auth_3d_detail {
         Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             scene->set_shadow(in_value);
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
     }
 
     // Missing
@@ -7428,6 +7870,10 @@ namespace auth_3d_detail {
         const Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             return scene->is_shadow();
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
         return false;
     }
 
@@ -7436,6 +7882,10 @@ namespace auth_3d_detail {
         Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             scene->replace_chara(in_cn_src, in_cn_dst);
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
     }
 
     // 0x1401CAD50
@@ -7443,6 +7893,10 @@ namespace auth_3d_detail {
         Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             scene->set_frame_object_hrc(in_frame);
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
     }
 
     // 0x1401CB0F0
@@ -7450,6 +7904,10 @@ namespace auth_3d_detail {
         Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             scene->calc_matrix_hierarchy(in_value);
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
     }
 
     // 0x1401D8C40
@@ -7469,6 +7927,10 @@ namespace auth_3d_detail {
                 scene->join();
             }
         }
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
     }
 
     // 0x1401D92D
@@ -7488,6 +7950,10 @@ namespace auth_3d_detail {
                 scene->join_lock();
             }
         }
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
     }
 
     // 0x1401E6470
@@ -7495,6 +7961,10 @@ namespace auth_3d_detail {
         Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             scene->set_ex_node_mat(in_value);
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
     }
 
     // Missing
@@ -7502,6 +7972,10 @@ namespace auth_3d_detail {
         const Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             return scene->is_ex_node_mat();
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
         return false;
     }
 
@@ -7510,6 +7984,10 @@ namespace auth_3d_detail {
         Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             scene->lock_list_set();
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
     }
 
     // Added
@@ -7517,6 +7995,10 @@ namespace auth_3d_detail {
         Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             scene->set_chara_item(in_value);
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
     }
 
     // Added
@@ -7524,6 +8006,10 @@ namespace auth_3d_detail {
         const Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             return scene->get_chara_item();
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
         return false;
     }
 
@@ -7532,6 +8018,10 @@ namespace auth_3d_detail {
         Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             scene->set_reflect(in_value);
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
     }
 
     // Added
@@ -7539,6 +8029,10 @@ namespace auth_3d_detail {
         const Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             return scene->get_reflect();
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
         return false;
     }
 
@@ -7547,6 +8041,10 @@ namespace auth_3d_detail {
         Scene* scene = g_manager->get_work(m_handle);
         if (scene)
             return scene;
+#if DEBUG
+        else
+            report_bad_handle();
+#endif
         return 0;
     }
 
@@ -7567,7 +8065,10 @@ namespace auth_3d_detail {
 
                 time_struct time;
                 M_loadFromProperties(uid_data->file, aft_obj_db, aft_tex_db);
-                time.calc_time();
+                int64_t elapsed = time.calc_time_int();
+#if DEBUG
+                prj_tracef("%s: elapsed time %d\n", __FUNCSIG__, elapsed);
+#endif
 
                 for (a3d::EventListener*& i : my_event_listener) {
                     Handle handle = to_handle();
@@ -7596,7 +8097,10 @@ namespace auth_3d_detail {
 
                 time_struct time;
                 M_loadFromProperties(uid_data->file, uid_data->obj_db, uid_data->tex_db);
-                time.calc_time();
+                int64_t elapsed = time.calc_time_int();
+#if DEBUG
+                prj_tracef("%s: elapsed time %d\n", __FUNCSIG__, elapsed);
+#endif
 
                 hash = uid_data->hash;
 
@@ -7696,6 +8200,11 @@ namespace auth_3d_detail {
         return g_manager->get_assign_rob_id(in_handle);
     }
 
+    // Missing
+    int32_t get_event_log_level() {
+        return event_log_enable;
+    }
+
     // Added
     Scene* get_scene(int32_t in_uid) {
         return g_manager->get_scene(in_uid);
@@ -7722,6 +8231,34 @@ namespace auth_3d_detail {
     const char* get_name_uid(int32_t in_uid, const auth_3d_database* auth_3d_db) {
         return g_manager->get_name_uid(in_uid, auth_3d_db);
     }
+
+    // Missing
+    void set_event_log_level(int32_t level) {
+        event_log_enable = level;
+    }
+
+#if DEBUG
+    // Missing
+    void debug_dump_scene_buffer(const auth_3d_database* auth_3d_db) {
+        prj_tracef("# dump internal auth_3d_detail::Handle buffer.\n");
+        prj_tracef("buf.length: %u\n", 96);
+
+        int32_t index = 0;
+        for (Scene& scene : g_manager->scene_buffer) {
+            if (scene.M_uid >= 0) {
+                const char* name = 0;
+                if (scene.M_uid < auth_3d_db->uid.size()) {
+                    const auth_3d_database_uid* uid = &auth_3d_db->uid[scene.M_uid];
+                    if (uid && uid->enabled)
+                        name = uid->name.c_str();
+                }
+
+                prj_tracef("buf.%d: %4d %s\n", index, scene.M_uid, name ? name : "{not found in db}");
+            }
+            index++;
+        }
+    }
+#endif
 }
 
 void auth_3d_data_init() {
@@ -7879,10 +8416,12 @@ namespace auth_3d_detail {
     // 0x1401D3860
     static void event_log(const char* fmt, ...) {
 #ifdef DEBUG
-        va_list args;
-        va_start(args, fmt);
-        vprintf(fmt, args);
-        va_end(args);
+        if (event_log_enable) {
+            va_list args;
+            va_start(args, fmt);
+            prj_vtracef(fmt, args);
+            va_end(args);
+        }
 #endif
     }
 
@@ -7905,6 +8444,12 @@ namespace auth_3d_detail {
             return "(unknown)";
         }
     }
+
+#if DEBUG
+    static void report_bad_handle() {
+        prj_tracef("Error: bad handle\n");
+    }
+#endif
 
     template <class T>
     size_t get_index_by_name(const T& in_c, const std::string& in_name) {

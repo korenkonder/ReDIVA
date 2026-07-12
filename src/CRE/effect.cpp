@@ -5,6 +5,7 @@
 
 #include "effect.hpp"
 #include "../KKdLib/prj/algorithm.hpp"
+#include "../KKdLib/prj/prj_assert.hpp"
 #include "../KKdLib/hash.hpp"
 #include "../KKdLib/mat.hpp"
 #include "GL/array_buffer.hpp"
@@ -2246,7 +2247,7 @@ TaskEffectFogAnim::~TaskEffectFogAnim() {
 }
 
 bool TaskEffectFogAnim::init() {
-    printf_debug_info(__FUNCTION__ "()\n");
+    prj_tracef(__FUNCTION__ "()\n");
     return true;
 }
 
@@ -2258,7 +2259,7 @@ bool TaskEffectFogAnim::ctrl() {
 bool TaskEffectFogAnim::dest() {
     data.reset();
     effect_fog_anim = 0;
-    printf_debug_info(__FUNCTION__ "()\n");
+    prj_tracef(__FUNCTION__ "()\n");
     return true;
 }
 
@@ -2269,7 +2270,7 @@ void TaskEffectFogAnim::disp() {
 void TaskEffectFogAnim::pre_init(int32_t) {
     data.reset();
     effect_fog_anim = &data;
-    printf_debug_info(__FUNCTION__ "()\n");
+    prj_tracef(__FUNCTION__ "()\n");
 }
 
 void TaskEffectFogAnim::reset() {
@@ -2438,18 +2439,22 @@ void EffectFogRing::draw(render_data_context& rend_data_ctx, const cam_data& cam
         return;
 
     rctx->draw_state->set_fog_height(true);
-    RenderTexture& rt = rctx->render_manager->get_render_texture(8);
-    rt.begin_render(rend_data_ctx.state);
+    RenderTexture* rt_fog = &rctx->render_manager->get_render_texture(8);
+    if (rt_fog->begin_render(rend_data_ctx.state) < 0) {
+#if DEBUG
+        prj_tracef("rt_fog->begin_render() error.\n");
+#endif
+    }
     rend_data_ctx.state.set_viewport(0, 0,
-        rt.get_texture()->get_width_align_mip_level(),
-        rt.get_texture()->get_height_align_mip_level());
+        rt_fog->get_texture()->get_width_align_mip_level(),
+        rt_fog->get_texture()->get_height_align_mip_level());
     rend_data_ctx.state.clear_color(density_offset, density_offset, density_offset, 1.0f);
     rend_data_ctx.state.clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     if (rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_USER))
         rctx->disp_manager->draw(rend_data_ctx, mdl::OBJ_TYPE_USER, cam);
-    rt.end_render(rend_data_ctx.state);
-    rctx->render_manager->set_effect_texture(rt.get_texture());
-    gl_get_error_print();
+    rt_fog->end_render(rend_data_ctx.state);
+    rctx->render_manager->set_effect_texture(rt_fog->get_texture());
+    get_gl_error();
 }
 
 void EffectFogRing::init_particle_data() {
@@ -2701,7 +2706,7 @@ TaskEffectFogRing::~TaskEffectFogRing() {
 }
 
 bool TaskEffectFogRing::init() {
-    printf_debug_info(__FUNCTION__ "()\n");
+    prj_tracef(__FUNCTION__ "()\n");
     return true;
 }
 
@@ -2714,7 +2719,7 @@ bool TaskEffectFogRing::ctrl() {
 bool TaskEffectFogRing::dest() {
     data.dest();
     effect_fog_ring = 0;
-    printf_debug_info(__FUNCTION__ "()\n");
+    prj_tracef(__FUNCTION__ "()\n");
     return 1;
 }
 
@@ -3218,21 +3223,25 @@ void EffectRipple::clear_tex() {
     glGetFloatv(GL_COLOR_CLEAR_VALUE, (GLfloat*)&clear_color);
 
     for (int32_t i = 0, j = 5; i < 3; i++, j++) {
-        RenderTexture* rt;
+        RenderTexture* rtex_ripple;
         float_t v5;
         if (use_float_ripplemap) {
-            rt = &rctx_ptr->render_manager->get_render_texture(j - 3);
+            rtex_ripple = &rctx_ptr->render_manager->get_render_texture(j - 3);
             v5 = -0.3f;
         }
         else {
-            rt = &rctx_ptr->render_manager->get_render_texture(j);
+            rtex_ripple = &rctx_ptr->render_manager->get_render_texture(j);
             v5 = 0.5f;
         }
 
-        rt->begin_render(gl_state);
+        if (rtex_ripple->begin_render(gl_state) < 0) {
+#if DEBUG
+            prj_tracef("rtex_ripple->begin_render() error.\n");
+#endif
+        }
         glClearColor(0.0f, 0.0f, 0.0f, v5);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        rt->end_render(gl_state);
+        rtex_ripple->end_render(gl_state);
     }
 
     glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
@@ -3297,9 +3306,9 @@ void EffectRipple::draw(render_data_context& rend_data_ctx, const cam_data& cam)
 
     render_context* rctx = rctx_ptr;
 
-    RenderTexture* rt[3];
+    RenderTexture* rt_ripple[3];
     for (int32_t i = 0, j = 2; i < 3; i++, j++)
-        rt[i] = &rctx->render_manager->get_render_texture(
+        rt_ripple[i] = &rctx->render_manager->get_render_texture(
             use_float_ripplemap ? j : (j + 3));
 
     if (update) {
@@ -3307,24 +3316,28 @@ void EffectRipple::draw(render_data_context& rend_data_ctx, const cam_data& cam)
         if (counter >= 3)
             counter = 0;
 
-        rt[(counter + 1) % 3]->begin_render(rend_data_ctx.state);
+        if (rt_ripple[(counter + 1) % 3]->begin_render(rend_data_ctx.state) < 0) {
+#if DEBUG
+            prj_tracef("rt_ripple->begin_render() error.\n");
+#endif
+        }
 
         gl_rend_state_rect viewport_rect = rend_data_ctx.state.get_viewport();
 
-        int32_t width = rt[0]->get_width();
-        int32_t height = rt[0]->get_height();
+        int32_t width = rt_ripple[0]->get_width();
+        int32_t height = rt_ripple[0]->get_height();
 
         rend_data_ctx.state.set_viewport(1, 1, width - 2, height - 2);
 
         rend_data_ctx.set_batch_scene_camera(cam);
         rend_data_ctx.state.clear(GL_DEPTH_BUFFER_BIT);
         if (rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_USER)) {
-            rend_data_ctx.state.active_bind_texture_2d(7, rt[counter % 3]->get_texture_glid());
+            rend_data_ctx.state.active_bind_texture_2d(7, rt_ripple[counter % 3]->get_texture_glid());
             rctx->disp_manager->draw(rend_data_ctx, mdl::OBJ_TYPE_USER, cam);
             rend_data_ctx.state.active_bind_texture_2d(7, 0);
         }
 
-        rt[(counter + 1) % 3]->end_render(rend_data_ctx.state);
+        rt_ripple[(counter + 1) % 3]->end_render(rend_data_ctx.state);
 
         params.field_8 = 0.0005f;
         params.field_C = 0.97f;
@@ -3333,11 +3346,12 @@ void EffectRipple::draw(render_data_context& rend_data_ctx, const cam_data& cam)
             params.field_C = 0.999f;
         }
 
-        ripple_propagate(rend_data_ctx, rt[(counter + 2) % 3], rt[(counter + 1) % 3], rt[counter % 3], params);
+        ripple_propagate(rend_data_ctx, rt_ripple[(counter + 2) % 3],
+            rt_ripple[(counter + 1) % 3], rt_ripple[counter % 3], params);
 
         rend_data_ctx.state.set_viewport(viewport_rect);
 
-        copy_to_ripple_tex(rend_data_ctx, rt[(counter + 2) % 3]);
+        copy_to_ripple_tex(rend_data_ctx, rt_ripple[(counter + 2) % 3]);
 
         this->counter = counter;
     }
@@ -3661,7 +3675,7 @@ TaskEffectRipple::~TaskEffectRipple() {
 
 bool TaskEffectRipple::init() {
     ripple_emit_init();
-    printf_debug_info(__FUNCTION__ "()\n");
+    prj_tracef(__FUNCTION__ "()\n");
     return true;
 }
 
@@ -3673,7 +3687,7 @@ bool TaskEffectRipple::ctrl() {
 
 bool TaskEffectRipple::dest() {
     emit->dest();
-    printf_debug_info(__FUNCTION__ "()\n");
+    prj_tracef(__FUNCTION__ "()\n");
     ripple_emit_free();
     return true;
 }
@@ -4730,7 +4744,7 @@ TaskEffectSplash::~TaskEffectSplash() {
 bool TaskEffectSplash::init() {
     water_particle_init();
     set_enable(true);
-    printf_debug_info(__FUNCTION__ "()\n");
+    prj_tracef(__FUNCTION__ "()\n");
     return true;
 }
 
@@ -4745,7 +4759,7 @@ bool TaskEffectSplash::dest() {
     water_particle_free();
 
     effect_splash = 0;
-    printf_debug_info(__FUNCTION__ "()\n");
+    prj_tracef(__FUNCTION__ "()\n");
     return true;
 }
 
@@ -5806,10 +5820,10 @@ static void draw_ripple_particles(render_data_context& rend_data_ctx,
 
     int32_t size = (int32_t)(data->size + 0.5f);
 
-    RenderTexture& rt = rctx_ptr->render_manager->get_render_texture(
+    RenderTexture* rt_ripple = &rctx_ptr->render_manager->get_render_texture(
         effect_ripple->use_float_ripplemap ? 2 : 5);
-    int32_t width = rt.get_width();
-    int32_t height = rt.get_height();
+    int32_t width = rt_ripple->get_width();
+    int32_t height = rt_ripple->get_height();
 
     ripple_emit_scene_shader_data shader_data = {};
     shader_data.g_size_in_projection = {

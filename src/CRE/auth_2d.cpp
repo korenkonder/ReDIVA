@@ -13,6 +13,10 @@
 #include "sound.hpp"
 #include "task.hpp"
 
+#if DEBUG
+#include "../KKdLib/prj/prj_assert.hpp"
+#endif
+
 class AetObj {
 public:
     aet_info info;
@@ -122,6 +126,10 @@ public:
     virtual bool dest() override;
     virtual void disp() override;
     virtual void post() override;
+
+#if DEBUG
+    void print();
+#endif
 
     uint32_t AddSetModern();
     void AddAetSets(const aet_database* aet_db);
@@ -1687,6 +1695,29 @@ void AetMgr::post() {
     }
 }
 
+#if DEBUG
+// Missing
+void AetMgr::print() {
+    prj_tracef("\nSET\n");
+    for (auto& i : sets) {
+        AetSet* set = &i.second;
+        prj_tracef("ID:%2d FNAME:%30s READY:%1d REFERENCE:%2d ADRESS:%p\n",
+            i.first, set->name.c_str(), set->ready, set->load_count, set);
+    }
+
+    prj_tracef("\nOBJECT\n");
+    for (auto& i : objects) {
+        AetObj* obj = &i.second;
+        prj_tracef("IDX:%8d ADRESS: %p SETID:%3d LAYER_NAME:%30s\n", i.first,
+            obj, obj->info.set_index, obj->layer ? obj->layer->name : 0);
+    }
+
+    prj_tracef("\nCLOSE OBJECT\n");
+    for (auto& i : free_objects)
+        prj_tracef("IDX:%8d ADRESS: %p\n", i->first, &i->second);
+}
+#endif
+
 uint32_t AetMgr::AddSetModern() {
     uint32_t index = this->set_counter;
     //for (; index <= 0x0FFF; index++) {
@@ -1838,34 +1869,65 @@ void AetMgr::InitAetLayout(AetComp* comp, AetArgs& args) {
 
 bool AetMgr::InitAetObj(AetObj& obj, AetArgs& args) {
     AetSet* set = GetSet(args.id.info.set_index);
-    if (!set)
+    if (!set) {
+#if DEBUG
+        prj_tracef("can not find set form request id\n");
+#endif
         return false;
+    }
 
     const aet_scene* scene = set->GetSceneByInfo(args.id.info);
-    if (!scene)
+    if (!scene) {
+#if DEBUG
+        prj_tracef("can not find scene form request id\n");
+#endif
         return false;
+    }
 
     const aet_comp* comp = aet_scene::get_root_comp(scene);
-    if (!comp)
+    if (!comp) {
+#if DEBUG
+        prj_tracef("can not find root comp\n");
+#endif
         return false;
+    }
 
     const aet_layer* layer = 0;
     if (args.layer_name) {
         layer = set->GetSceneLayer(scene, args.layer_name);
-        if (!layer)
+        if (!layer) {
+#if DEBUG
+            prj_tracef("can not find [%s] layer\n", args.layer_name);
+#endif
             return false;
+        }
     }
 
     const aet_marker* start_marker = 0;
-    const aet_marker* end_marker = 0;
-    if ((!args.start_marker || (start_marker = set->GetLayerMarker(layer, args.start_marker)))
-        && (!args.end_marker || (end_marker = set->GetLayerMarker(layer, args.end_marker)))) {
-        SCREEN_MODE mode = set->GetSceneScreenMode(scene);
-        obj.Init(args, scene, comp, layer, start_marker, end_marker, mode);
-        return true;
+    if (args.start_marker) {
+        start_marker = set->GetLayerMarker(layer, args.start_marker);
+        if (!start_marker) {
+#if DEBUG
+            prj_tracef("can not find [%s] marker\n", args.start_marker);
+#endif
+            return false;
+        }
     }
 
-    return false;
+    const aet_marker* end_marker = 0;
+    if (args.end_marker) {
+        end_marker = set->GetLayerMarker(layer, args.end_marker);
+        if (end_marker) {
+#if DEBUG
+            prj_tracef("can not find [%s] marker\n", args.end_marker);
+#endif
+            return false;
+        }
+    }
+
+    SCREEN_MODE mode = set->GetSceneScreenMode(scene);
+    obj.Init(args, scene, comp, layer, start_marker, end_marker, mode);
+    return true;
 }
 
 uint32_t AetMgr::InitAetObject(AetArgs& args) {

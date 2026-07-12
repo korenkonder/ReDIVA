@@ -4,6 +4,7 @@
 */
 
 #include "ogl_buffer_object.hpp"
+#include "../KKdLib/prj/prj_assert.hpp"
 #include "../KKdLib/obj.hpp"
 #include "mdl/disp_manager.hpp"
 #include "gl_state.hpp"
@@ -25,8 +26,12 @@ IndexBuffer::IndexBuffer() : ib() {
 
 // Added
 bool IndexBuffer::create(uint32_t size, const void* buf) {
-    if (!size)
+    if (!size) {
+#if DEBUG
+        prj_tracef(__FUNCTION__"() : error. size == 0\n");
+#endif
         return false;
+    }
 
     ib = create_index_buffer(size, buf);
     return true;
@@ -75,8 +80,18 @@ VertexBuffer::~VertexBuffer() {
 
 // 0x140461650
 bool VertexBuffer::create(uint32_t size, const void* buf, uint32_t num_flip, GL::BufferUsage usage) {
-    if (!size || num_flip > VertexBuffer::NUM_FLIP_MAX)
+    if (!size) {
+#if DEBUG
+        prj_tracef(__FUNCTION__"() : error. size == 0\n");
+#endif
         return false;
+    }
+    else if (num_flip > VertexBuffer::NUM_FLIP_MAX) {
+#if DEBUG
+        prj_tracef(__FUNCTION__"() : error. num_flip == %d\n", num_flip);
+#endif
+        return false;
+    }
 
     num_flip_chain = num_flip;
     flip_index = 0;
@@ -218,6 +233,13 @@ void free_index_buffer(GLuint ib) {
     extern render_context* rctx_ptr;
     rctx_ptr->disp_manager->remove_index_buffer(ib);
 
+    if (!glIsBuffer(ib)) {
+#if DEBUG
+        prj_tracef(__FUNCTION__"(): ib is not buffer object.\n");
+#endif
+        return;
+    }
+
     GLint size = 0;
     if (GLAD_GL_VERSION_4_5)
         glGetNamedBufferParameteriv(ib, GL_BUFFER_SIZE, &size);
@@ -264,6 +286,13 @@ void free_vertex_buffer(GLuint vb) {
 
     extern render_context* rctx_ptr;
     rctx_ptr->disp_manager->remove_vertex_buffer(vb);
+
+    if (!glIsBuffer(vb)) {
+#if DEBUG
+        prj_tracef(__FUNCTION__"(): vb is not buffer object.\n");
+#endif
+        return;
+    }
 
     GLint size = 0;
     if (GLAD_GL_VERSION_4_5)

@@ -2207,8 +2207,8 @@ namespace mdl {
         int32_t instances_count, const mat4* instances_mat,
         draw_func func, const ObjSubMeshArgs* func_data, bool enable_bone_mat) {
         if (!vbhn_array || !ibhn_array) {
-            printf_debug("mdl::DispManager::entry_obj: no vertex or index object buffer to draw;\n");
-            printf_debug("    Object: %s\n", obj->name);
+            prj_tracef("mdl::DispManager::entry_obj: no vertex or index object buffer to draw;\n");
+            prj_tracef("    Object: %s\n", obj->name);
             return false;
         }
 
@@ -2329,8 +2329,8 @@ namespace mdl {
                 }
 
                 if (!vb || !ib || morph_vbhn_array && !morph_vb) {
-                    printf_debug("mdl::DispManager::entry_obj: no vertex or index mesh buffer to draw;\n");
-                    printf_debug("    Object: %s; Mesh: %s; Sub Mesh: %d\n", obj->name, mesh->name, j);
+                    prj_tracef("mdl::DispManager::entry_obj: no vertex or index mesh buffer to draw;\n");
+                    prj_tracef("    Object: %s; Mesh: %s; Sub Mesh: %d\n", obj->name, mesh->name, j);
                     continue;
                 }
 

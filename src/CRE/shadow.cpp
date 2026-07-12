@@ -430,7 +430,7 @@ int32_t Shadow::create() {
     GLint swizzle[] = { GL_RED, GL_RED, GL_RED, GL_ONE };
     glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
     gl_state.bind_texture_2d(0);
-    gl_get_error_print();
+    get_gl_error();
     return 0;
 }
 

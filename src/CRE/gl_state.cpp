@@ -97,7 +97,7 @@ bool gl_state_struct::check_texture_binding_cube_map() {
 }
 
 void gl_state_struct::get() {
-    gl_get_error_all_print();
+    get_gl_error_all();
 
     glGetIntegerv(GL_TEXTURE_BINDING_2D, (GLint*)&texture_binding_2d);
     glGetIntegerv(GL_TEXTURE_BINDING_CUBE_MAP, (GLint*)&texture_binding_cube_map);

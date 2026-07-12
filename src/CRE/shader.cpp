@@ -6,6 +6,7 @@
 #include "shader.hpp"
 #include "../KKdLib/io/file_stream.hpp"
 #include "../KKdLib/io/path.hpp"
+#include "../KKdLib/prj/prj_assert.hpp"
 #include "../KKdLib/prj/shared_ptr.hpp"
 #include "../KKdLib/prj/vector_pair.hpp"
 #include "../KKdLib/farc.hpp"
@@ -43,15 +44,23 @@ static prj::shared_ptr<Vulkan::ShaderModule> shader_load_spv_shader(program_spv*
 
 int32_t shader::bind(p_gl_rend_state& p_gl_rend_st,
     const uniform_value& shader_flags, shader_set_data* set, uint32_t sub_index) {
-    if (num_sub < 1)
+    if (num_sub < 1) {
+        prj_trap("Cannot find SubShaderName %d\n", sub_index);
         return -1;
+    }
 
     int32_t sub_shader_index = 0;
     for (shader_sub* i = sub; i->sub_index != sub_index; i++)
-        if (++sub_shader_index >= num_sub)
+        if (++sub_shader_index >= num_sub) {
+            prj_trap("Cannot find SubShaderName %d\n", sub_index);
             return -1;
+        }
 
     shader_sub* sub_shader = &sub[sub_shader_index];
+    if (!sub_shader) {
+        prj_trap("Cannot find SubShaderName %d\n", sub_index);
+        return -1;
+    }
 
     int32_t unival_shad_curr = 1;
     int32_t unival_shad = 0;
@@ -746,9 +755,9 @@ void shader_set_data::load(struct farc* f, bool ignore_cache,
 
                 program_spv* vert_spv = 0;
                 if (!shader_vert_file || !shader_vert_file->data)
-                    printf_debug("Vertex shader not found: %s\n", vert_bin_buf);
+                    prj_trap("Vertex shader not found: %s\n", vert_bin_buf);
                 else if (vert_file_name_hash != ((uint64_t*)shader_vert_file->data)[0])
-                    printf_debug("Vertex shader flags not equal: %s\n", vert_file_buf);
+                    prj_trap("Vertex shader flags not equal: %s\n", vert_file_buf);
                 else
                     vert_spv = (program_spv*)&((uint64_t*)shader_vert_file->data)[1];
 
@@ -756,9 +765,9 @@ void shader_set_data::load(struct farc* f, bool ignore_cache,
 
                 program_spv* frag_spv = 0;
                 if (!shader_frag_file || !shader_frag_file->data)
-                    printf_debug("Fragment shader not found: %s\n", frag_bin_buf);
+                    prj_trap("Fragment shader not found: %s\n", frag_bin_buf);
                 else if (frag_file_name_hash != ((uint64_t*)shader_frag_file->data)[0])
-                    printf_debug("Fragment shader flags not equal: %s\n", frag_file_buf);
+                    prj_trap("Fragment shader flags not equal: %s\n", frag_file_buf);
                 else
                     frag_spv = (program_spv*)&((uint64_t*)shader_frag_file->data)[1];
 
@@ -1084,13 +1093,13 @@ void shader_set_data::load(struct farc* f, bool ignore_cache,
                 program_binary* bin = 0;
                 if (!ignore_cache) {
                     if (!shader_cache_file || !shader_cache_file->data)
-                        printf_debug("Shader not compiled: %s %s\n", vert_file_buf, frag_file_buf);
+                        prj_trap("Shader not compiled: %s %s\n", vert_file_buf, frag_file_buf);
                     else if (vert_file_name_hash != ((uint64_t*)shader_cache_file->data)[0]
                         || frag_file_name_hash != ((uint64_t*)shader_cache_file->data)[1])
-                        printf_debug("Shader flags not equal: %s %s\n", vert_file_buf, frag_file_buf);
+                        prj_trap("Shader flags not equal: %s %s\n", vert_file_buf, frag_file_buf);
                     else if (vert_data_hash != ((uint64_t*)shader_cache_file->data)[2]
                         || frag_data_hash != ((uint64_t*)shader_cache_file->data)[3])
-                        printf_debug("Shader hash not equal: %s %s\n", vert_file_buf, frag_file_buf);
+                        prj_trap("Shader hash not equal: %s %s\n", vert_file_buf, frag_file_buf);
                     else
                         bin = (program_binary*)&((uint64_t*)shader_cache_file->data)[4];
                 }
@@ -1329,6 +1338,13 @@ void shader_set_data::load(struct farc* f, bool ignore_cache,
 
 void shader_set_data::set(p_gl_rend_state& p_gl_rend_st, uniform_value& shader_flags, uint32_t index) {
     if (this && index && index != -1) {
+#if DEBUG
+        if (index < 0 || index > size) {
+            prj_trap("ShaderName [%d] out of range.\n", index);
+            return;
+        }
+#endif
+
         shader* shader = &shaders[index];
         if (shader->bind_func)
             shader->bind_func(p_gl_rend_st, shader_flags, this, shader);
@@ -1408,7 +1424,7 @@ static GLuint shader_compile_shader(GLenum type, const char* data, const char* f
             type_str = "Vertex";
             break;
         }
-        printf_debug("%s shader compile error:\nfile: %s\n%s\n", type_str, file, info_log);
+        prj_trap("%s shader compile error:\nfile: %s\n%s\n", type_str, file, info_log);
 
         wchar_t temp_buf[MAX_PATH];
         if (SUCCEEDED(SHGetFolderPathW(0, CSIDL_LOCAL_APPDATA, 0, 0, temp_buf))) {
@@ -1467,7 +1483,7 @@ static GLuint shader_compile(const char* vert, const char* frag, const char* vp,
         glGetProgramInfoLog(program, length, 0, info_log);
         info_log[length] = 0;
 
-        printf_debug("Program Shader Permut linking error:\nvp: %s; fp: %s\n%s\n", vp, fp, info_log);
+        prj_trap("Program Shader Permut linking error:\nvp: %s; fp: %s\n%s\n", vp, fp, info_log);
 
         wchar_t temp_buf[MAX_PATH];
         if (SUCCEEDED(SHGetFolderPathW(0, CSIDL_LOCAL_APPDATA, 0, 0, temp_buf))) {
@@ -1510,7 +1526,7 @@ static GLuint shader_compile(const char* vert, const char* frag, const char* vp,
         return 0;
     }
     else {
-        gl_get_error_all_print();
+        get_gl_error_all();
         return program;
     }
 }
@@ -1543,7 +1559,7 @@ static GLuint shader_compile_binary(const char* vert, const char* frag, const ch
         glGetProgramInfoLog(program, length, 0, info_log);
         info_log[length] = 0;
 
-        printf_debug("Program Shader Permut linking error:\nvp: %s; fp: %s\n%s\n", vp, fp, info_log);
+        prj_trap("Program Shader Permut linking error:\nvp: %s; fp: %s\n%s\n", vp, fp, info_log);
 
         wchar_t temp_buf[MAX_PATH];
         if (SUCCEEDED(SHGetFolderPathW(0, CSIDL_LOCAL_APPDATA, 0, 0, temp_buf))) {
@@ -1586,13 +1602,13 @@ static GLuint shader_compile_binary(const char* vert, const char* frag, const ch
         return 0;
     }
     else {
-        gl_get_error_all_print();
+        get_gl_error_all();
 
         GLenum binary_format = 0x00;
         GLsizei length = 0;
         while (*buffer_size < 0x7FFFFFF) {
             glGetProgramBinary(program, *buffer_size, &length, &binary_format, *binary);
-            if (!gl_get_error_print())
+            if (!get_gl_error())
                 break;
 
             free_def(*binary);
@@ -1611,7 +1627,7 @@ static GLuint shader_compile_binary(const char* vert, const char* frag, const ch
 
 static bool shader_load_binary_shader(program_binary* bin, GLuint* program, const char* vp, const char* fp) {
     if (bin->hash != hash_xxh3_64bits((void*)((size_t)bin + bin->binary), bin->length)) {
-        printf_debug("Compiled binary hash could not be validated: %s %s\n", vp, fp);
+        prj_trap("Compiled binary hash could not be validated: %s %s\n", vp, fp);
         return false;
     }
 
@@ -1630,7 +1646,7 @@ static bool shader_load_binary_shader(program_binary* bin, GLuint* program, cons
 
 static prj::shared_ptr<Vulkan::ShaderModule> shader_load_spv_shader(program_spv* spv, const char* shader) {
     if (spv->hash != hash_xxh3_64bits((void*)((size_t)spv + spv->spv), spv->size)) {
-        printf_debug("Compiled binary hash could not be validated: %s\n", shader);
+        prj_trap("Compiled binary hash could not be validated: %s\n", shader);
         return {};
     }
 

@@ -8,6 +8,7 @@
 #include "../../KKdLib/io/json.hpp"
 #include "../../KKdLib/io/path.hpp"
 #include "../../KKdLib/prj/algorithm.hpp"
+#include "../../KKdLib/prj/prj_assert.hpp"
 #include "../../KKdLib/key_val.hpp"
 #include "../../KKdLib/sort.hpp"
 #include "../../KKdLib/str_utils.hpp"
@@ -10465,15 +10466,15 @@ static void rob_chara_bone_data_set_mats(rob_chara_bone_data* rob_bone_data,
         i.no_scale_mat = i.mat_ptr;
 
     if (node != rob_bone_data->node_max)
-        printf_debug_error("Node mismatch");
+        prj_tracef("Node mismatch");
     if (mat != rob_bone_data->mat_max)
-        printf_debug_error("Matrix mismatch");
+        prj_tracef("Matrix mismatch");
     if (mat2 != rob_bone_data->node_max - rob_bone_data->mat_max)
-        printf_debug_error("Matrix2 mismatch");
+        prj_tracef("Matrix2 mismatch");
     if (leaf_pos != rob_bone_data->leaf_pos_max)
-        printf_debug_error("LeafPos mismatch");
+        prj_tracef("LeafPos mismatch");
     if (chain_pos != rob_bone_data->chain_pos_max)
-        printf_debug_error("ChainPos mismatch");
+        prj_tracef("ChainPos mismatch");
     rob_bone_data->field_1 = true;
 }
 
@@ -11632,11 +11633,11 @@ void bone_data_parent::ik_init(const std::vector<BODYTYPE>* body_type_table,
     }
 
     if (node_count != rob_bone_data->node_max)
-        printf_debug_error("Node mismatch");
+        prj_trap("Node mismatch");
     if (leaf_pos != leaf_pos_max)
-        printf_debug_error("LeafPos mismatch");
+        prj_trap("LeafPos mismatch");
     if (chain_pos != chain_pos_max)
-        printf_debug_error("ChainPos mismatch");
+        prj_trap("ChainPos mismatch");
 }
 
 void mot_play_frame_data::reset() {

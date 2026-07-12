@@ -4,6 +4,7 @@
 */
 
 #include "nvenc_encoder.hpp"
+#include "../../../KKdLib/prj/prj_assert.hpp"
 #include <algorithm>
 #include <vector>
 #include <d3d11.h>
@@ -392,7 +393,7 @@ static void print_nvenc_status(int32_t line, NVENCSTATUS status) {
     switch (status) {
 #define ERR(s) \
 case s: \
-printf_debug("% 3d: %s\n", line, #s); \
+prj_tracef("% 3d: %s\n", line, #s); \
 break
     case NV_ENC_SUCCESS:
         break;

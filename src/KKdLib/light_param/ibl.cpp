@@ -7,6 +7,7 @@
 #include "../io/file_stream.hpp"
 #include "../io/memory_stream.hpp"
 #include "../io/path.hpp"
+#include "../prj/prj_assert.hpp"
 #include "../str_utils.hpp"
 #include "shared.hpp"
 
@@ -96,7 +97,7 @@ static void light_param_ibl_read_inner(light_param_ibl* ibl, stream& s) {
     char buf[0x200];
     const char* d = light_param_read_line(buf, sizeof(buf), data);
     if (str_utils_compare(buf, "VF5_IBL")) {
-        printf_debug_error("Not VF5_IBL file\n");
+        prj_trap("Not VF5_IBL file\n");
         return;
     }
 
@@ -229,7 +230,7 @@ static void light_param_ibl_read_inner(light_param_ibl* ibl, stream& s) {
             heights[index] = h;
         }
         else {
-            printf_debug_error("%s: unknown tag %s\n", "light_table_detail::LightDataIbl::load", buf);
+            prj_trap("%s: unknown tag %s\n", "light_table_detail::LightDataIbl::load", buf);
             goto End;
         }
     }

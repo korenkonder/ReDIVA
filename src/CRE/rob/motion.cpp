@@ -5,6 +5,7 @@
 
 #include "motion.hpp"
 #include "../../KKdLib/io/path.hpp"
+#include "../../KKdLib/prj/prj_assert.hpp"
 #include "../data.hpp"
 
 static const MhdData mothead_mot_null;
@@ -234,7 +235,7 @@ const mot_data* get_motiondata_address(uint32_t motnum, const motion_database* m
 
     const motion_set_info* set_info = mot_db->get_motion_set_by_motion_id(motnum);
     if (!set_info) {
-        printf_debug_info("%08x : illegal motfile Num.\n", motnum);
+        prj_tracef("%08x : illegal motfile Num.\n", motnum);
         return 0;
     }
 
@@ -261,7 +262,7 @@ float_t get_mot_frame_max(uint32_t mot_id, const motion_database* mot_db) {
 void motion_set_load_mothead(uint32_t set, std::string&& mdata_dir, const motion_database* mot_db) {
     const motion_set_info* set_info = mot_db->get_motion_set_by_id(set);
     if (!set_info) {
-        printf_debug_error("request_load_mhd_file(): illegal file_id(%d).\n", set);
+        prj_trap("request_load_mhd_file(): illegal file_id(%d).\n", set);
         return;
     }
 

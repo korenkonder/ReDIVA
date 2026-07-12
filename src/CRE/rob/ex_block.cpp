@@ -4,6 +4,7 @@
 */
 
 #include "rob.hpp"
+#include "../../KKdLib/prj/prj_assert.hpp"
 #include "../../KKdLib/key_val.hpp"
 #include "../../KKdLib/str_utils.hpp"
 #include "../app_system_detail.hpp"
@@ -3904,11 +3905,11 @@ void ExExpressionBlock::set_data(const RobSkinDisp* skin_disp,
             script = str_utils_get_next_string(script, value_type, ' ');
             if (!value_type.size() || !memcmp(value_type.c_str(), "error",
                 min_def(value_type.size(), 5)) && value_type.size() == 5) {
-                printf_debug_info("Expression error: %s.", this->name);
+                prj_tracef("Expression error: %s.", this->name);
                 if (index >= 0 && index < 9)
-                    printf_debug_info("%s\n", expression_component_names[index]);
+                    prj_tracef("%s\n", expression_component_names[index]);
                 else
-                    printf_debug_info("\n");
+                    prj_tracef("\n");
                 break;
             }
 
