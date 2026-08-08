@@ -2615,7 +2615,7 @@ void EffectFogRing::sub_140347B40(float_t delta_time) {
 
         struc_573* v8 = *v5;
         for (int32_t j = 0; j < 5; j++, v8++) {
-            mat4* mat = rob_bone_data->get_mats_mat(v8->bone_index);
+            mat4* mat = rob_bone_data->get_matrix(v8->bone_index);
             if (!mat)
                 continue;
 

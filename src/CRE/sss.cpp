@@ -139,7 +139,7 @@ void sss_data::pre_proc(const struct cam_data& cam) {
         chara_distance[i] = 999999.0f;
         rob_chara_bone_data* rob_bone_data = rob_man->get_rob_motion_work((ROB_ID)i);
         if (rob_man->is_init((ROB_ID)i) && rob_man->get_disp_on((ROB_ID)i)) {
-            mat4* mat = rob_bone_data->get_mats_mat(BLK_N_HARA_CP);
+            mat4* mat = rob_bone_data->get_matrix(BLK_N_HARA_CP);
             if (mat) {
                 mat4_get_translation(mat, &chara_position[i]);
                 if (reflect_draw)

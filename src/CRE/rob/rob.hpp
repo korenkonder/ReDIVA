@@ -2066,22 +2066,22 @@ struct RobBlock {
     ~RobBlock();
 
     bool calc_constraint(const RobBlock* block_top);
+    void calc_ik_block(uint32_t mode);
     void copy_rot_trans(const RobBlock& other);
     bool check_expression_id_not_null();
     void exp_set_dir(const vec3& glo);
     void exp_set_dir_zx(vec3 vy);
     void exp_set_rot(const vec3& glo, float_t keisuu);
     bool get_ex_rotation(RobTransform& transform, const RobBlock* block_top);
-    void get_mat(int32_t target);
-    void solve_ik(int32_t target);
+    void get_smooth_target(int32_t target);
     void recalc_fk_block(const mat4& cur_mat, const RobBlock* block_top, bool rot);
     const vec3* set_global_leaf_sub(const vec3* val, BONE_KIND kind, bool get_data, bool flip_x);
-    void get_smooth_target(int32_t target);
+    void solve_ik(uint32_t mode);
 
     static float_t limit_angle(float_t angle);
 };
 
-struct bone_data_parent {
+struct MotBase {
     rob_chara_bone_data* rob_bone_data;
     size_t block_max;
     size_t leaf_pos_max;
@@ -2092,13 +2092,17 @@ struct bone_data_parent {
     vec3 gblctr_rot;
     uint32_t bone_key_set_count;
     uint32_t global_key_set_count;
-    float_t yrot;
+    float_t kg_ya_ex;
+    float_t dturn_yang;
 
-    bone_data_parent();
-    ~bone_data_parent();
+    MotBase();
+    ~MotBase();
 
     void ik_init(const std::vector<BODYTYPE>* body_type_table,
         const CHAINPOSRADIUS* joint_table, const CHAINPOSRADIUS* disp_joint_table);
+    void make_block_id_trans_tbl(const mot_data* motiondata,
+        const bone_database* bone_data, const motion_database* mot_db);
+    void set_dturn_yang(float_t rad);
 };
 
 struct mot_play_frame_data {
@@ -2131,9 +2135,9 @@ struct mot_play_data {
 };
 
 struct MotionSmooth {
-    int32_t field_0;
-    int32_t field_4;
-    uint8_t field_8;
+    uint32_t motion_flag;
+    uint32_t field_4;
+    bool mirror_bef;
     mat4 base_mtx;
     mat4 base_mtx_bef;
     bool base_mtx_set;
@@ -2142,15 +2146,30 @@ struct MotionSmooth {
     vec3 field_A8;
     float_t move_yang;
     float_t move_yang_bef;
-    bool root_ypos;
-    bool root_xzpos;
-    float_t field_C0;
-    float_t field_C4;
-    vec3 field_C8;
+    bool y_move;
+    bool y_move_bef;
+    float_t mot_adjust_scale;
+    float_t mot_xz_adjust_scale;
+    vec3 mot_adjust_base_pos;
 
     MotionSmooth();
 
+    bool check_mot_flip() const;
+    bool get_lock() const;
     void reset();
+    void set_data_mirror(bool flag);
+    void set_lock(bool flag);
+    void set_mirror(bool flag);
+    void set_mot_adjust_base_pos(const vec3& base_pos);
+    void set_mot_adjust_scale(float_t in_adjust_scale);
+    void set_mot_xz_adjust_scale(float_t xz_adjust_scale);
+    void set_move_yang(float_t rad);
+    void set_move_yang_bef(float_t rad);
+    void set_next_mirror(bool flag);
+    void set_rear_smooth_flip(bool flag);
+    void set_xz_smooth(bool flag);
+    void set_y_move(bool flag);
+    void set_y_move_bef(bool flag);
 };
 
 struct struc_400 {
@@ -2178,7 +2197,7 @@ public:
     virtual ~MotionBlend();
 
     virtual void Reset();
-    virtual void Field_10(float_t, float_t, int32_t) = 0;
+    virtual void setup_rear_smooth(float_t, float_t, int32_t) = 0;
     virtual void Step(struc_400*) = 0;
     virtual void Field_20(prj::sys_vector<RobBlock>* bones_curr, prj::sys_vector<RobBlock>* bones_prev) = 0;
     virtual void Blend(RobBlock* curr, RobBlock* prev) = 0;
@@ -2200,7 +2219,7 @@ public:
     virtual ~MotionBlendCross() override;
 
     virtual void Reset() override;
-    virtual void Field_10(float_t, float_t, int32_t) override;
+    virtual void setup_rear_smooth(float_t, float_t, int32_t) override;
     virtual void Step(struc_400*) override;
     virtual void Field_20(prj::sys_vector<RobBlock>* bones_curr, prj::sys_vector<RobBlock>* bones_prev) override;
     virtual void Blend(RobBlock* curr, RobBlock* prev) override;
@@ -2221,9 +2240,9 @@ public:
     bool trans_xz;
     bool trans_y;
     int32_t field_24;
-    float_t field_28;
-    float_t field_2C;
-    int32_t field_30;
+    float_t smooth_r_length;
+    float_t smooth_r_start;
+    int32_t smooth_r_target;
     mat4 rot_y_mat;
     mat4 field_74;
     mat4 field_B4;
@@ -2233,7 +2252,7 @@ public:
     virtual ~MotionBlendFreeze() override;
 
     virtual void Reset() override;
-    virtual void Field_10(float_t, float_t, int32_t) override;
+    virtual void setup_rear_smooth(float_t, float_t, int32_t) override;
     virtual void Step(struc_400*) override;
     virtual void Field_20(prj::sys_vector<RobBlock>* bones_curr, prj::sys_vector<RobBlock>* bones_prev) override;
     virtual void Blend(RobBlock* curr, RobBlock* prev) override;
@@ -2245,7 +2264,7 @@ public:
     virtual ~PartialMotionBlendFreeze() override;
 
     virtual void Reset() override;
-    virtual void Field_10(float_t, float_t, int32_t) override;
+    virtual void setup_rear_smooth(float_t, float_t, int32_t) override;
     virtual void Step(struc_400*) override;
     virtual void Field_20(prj::sys_vector<RobBlock>* bones_curr, prj::sys_vector<RobBlock>* bones_prev) override;
     virtual void Blend(RobBlock* curr, RobBlock* prev) override;
@@ -2272,7 +2291,7 @@ struct motion_blend_mot {
     MotionBlendCross cross;
     MotionBlendFreeze freeze;
     MotionBlendCombine combine;
-    bone_data_parent bone_data;
+    MotBase mot_base;
     mot_key_data mot_key_data;
     mot_play_data mot_play_data;
     MotionSmooth smooth;
@@ -2283,14 +2302,15 @@ struct motion_blend_mot {
     ~motion_blend_mot();
 
     void apply_global_transform();
+    void calc_fcurve();
     void copy_rot_trans();
     void copy_rot_trans(const prj::sys_vector<RobBlock>& block_vec);
     bool get_blend_enable();
-    void get_n_hara_cp_position(vec3& value);
+    void get_leaf_matrix(BONE_BLK block, mat4* out_mat);
+    void get_root_trans(vec3& trans);
     MotionBlendType get_type();
     void init(rob_chara_bone_data* rob_bone_data,
         PFNMOTIONBONECHECKFUNC check_func, const bone_database* bone_data);
-    void interpolate();
     void load_file(uint32_t motnum, MotionBlendType blend_type, float_t blend,
         const bone_database* bone_data, const motion_database* mot_db);
     void mult_mat(const mat4* mat);
@@ -2300,8 +2320,6 @@ struct motion_blend_mot {
     void set_blend_duration(float_t duration, float_t step, float_t offset);
     void set_step(float_t step);
     void get_smooth_target(int32_t motion_body_type);
-
-    static bool interpolate_get_flip(MotionSmooth& a1);
 };
 
 struct rob_chara_bone_data_adjust_scale {
@@ -2323,10 +2341,10 @@ struct partial_motion_blend_mot {
     partial_motion_blend_mot();
     ~partial_motion_blend_mot();
 
+    void calc_fcurve(prj::sys_vector<RobBlock>& block_vec,
+        const prj::sys_vector<uint16_t>* bone_indices, BONE_KIND kind);
     void init(BONE_KIND type, PFNMOTIONBONECHECKFUNC bone_check_func,
         size_t block_max, const bone_database* bone_data);
-    void interpolate(prj::sys_vector<RobBlock>& block_vec,
-        const prj::sys_vector<uint16_t>* bone_indices, BONE_KIND kind);
     void load_file(uint32_t motnum, const motion_database* mot_db);
     void reset();
     void set_blend_duration(float_t duration, float_t step, float_t offset);
@@ -2402,6 +2420,8 @@ struct Motion {
 
         void calc(prj::sys_vector<RobBlock>& block_vec, const mat4& cur_mat, float_t step,
             BONE_KIND kind, const BONE_BLK* c_momo_l_ik_blk, const BONE_BLK* c_momo_r_ik_blk);
+        void calc_leaf(prj::sys_vector<RobBlock>& block_vec, const mat4& inherit_mat,
+            const vec3& in_leaf_pos, const BONE_BLK* ik_list, float_t rotation_blend, float_t arm_length, bool rot);
         void calc_sub(RobBlock& bl_momo, const RobBlock& bl_toe,
             float_t hh, Motion::AshiOidashi& ashi, float_t step);
         void reset();
@@ -2524,26 +2544,41 @@ public:
     rob_chara_bone_data();
     ~rob_chara_bone_data();
 
+    void calc_fcurve();
+    void calc_leaf(const vec3& in_leaf_pos, const BONE_BLK* ik_list,
+        float_t rotation_blend, float_t arm_length, bool rot);
+    void calc_motion(const mat4* matp);
     bool check_look_anim_head_rotation();
     bool check_look_anim_ext_head_rotation();
+    float_t get_adjust_scale() const;
+    float_t get_adjust_scale_arm() const;
+    float_t get_adjust_scale_body() const;
+    float_t get_adjust_scale_height() const;
     float_t get_frame() const;
     float_t get_frame_max() const;
+    void get_leaf_matrix(BONE_BLK blk, mat4* out_mat);
     vec3* get_look_anim_target_view_point();
     bool get_look_anim_ext_head_rotation();
     bool get_look_anim_head_rotation();
     bool get_look_anim_update_view_point();
-    mat4* get_mats_mat(size_t index);
+    mat4* get_matrix(size_t index);
     bool get_motion_has_looped();
-    void interpolate();
+    void get_root_trans(vec3& trans);
+    void get_smooth_target(int32_t target);
+    void ik_init(const std::vector<BODYTYPE>* body_type_table, const std::string* bone_node_name_table);
     void load_eyes_motion(uint32_t motnum, const motion_database* mot_db);
     void load_face_motion(uint32_t motnum, const motion_database* mot_db);
     void load_eyelid_motion(uint32_t motnum, const motion_database* mot_db);
     void load_hand_l_motion(uint32_t motnum, const motion_database* mot_db);
     void load_hand_r_motion(uint32_t motnum, const motion_database* mot_db);
     void load_mouth_motion(uint32_t motnum, const motion_database* mot_db);
+    void motion_alloc();
+    void motion_count(const std::vector<BODYTYPE>* body_type_table);
     void motion_step();
     void reset();
+    void set_data_mirror(bool flag);
     void set_disable_eye_motion(bool value);
+    void set_dturn_yang(float_t rad);
     void set_eyelid_blend_duration(float_t duration, float_t step, float_t offset);
     void set_eyelid_frame(float_t frame);
     void set_eyelid_step(float_t step);
@@ -2560,11 +2595,15 @@ public:
     void set_hand_r_blend_duration(float_t duration, float_t step, float_t offset);
     void set_hand_r_frame(float_t frame);
     void set_hand_r_step(float_t step);
+    void set_lock(bool flag);
     void set_look_anim(bool update_view_point, bool rotation_enable, float_t head_rot_strength,
         float_t eyes_rot_strength, float_t duration, float_t eyes_rot_step, float_t a8, bool ft);
     void set_look_anim_target_view_point(const vec3& value);
     void set_mats_identity();
-    void set_motion_blend_duration(float_t duration, float_t step, float_t offset);
+    void set_mirror(bool flag);
+    void set_mot_adjust_base_pos(const vec3& base_pos);
+    void set_mot_adjust_scale(float_t in_adjust_scale);
+    void set_mot_xz_adjust_scale(float_t xz_adjust_scale);
     void set_motion_frame(float_t frame, float_t step, float_t frame_max);
     void set_motion_loop(float_t loop_begin, int32_t loop_count, float_t loop_end);
     void set_motion_loop_state(mot_play_frame_data_loop_state value);
@@ -2573,7 +2612,18 @@ public:
     void set_mouth_blend_duration(float_t duration, float_t step, float_t offset);
     void set_mouth_frame(float_t frame);
     void set_mouth_step(float_t step);
-    void update(const mat4* mat);
+    void set_move_yang(float_t rad);
+    void set_move_yang_bef(float_t rad);
+    void set_next_mirror(bool flag);
+    void set_node_parent(const uint16_t* node_parent_tbl);
+    void set_rear_smooth_flip(bool flag);
+    void set_skeleton(BONE_KIND kind, BONE_KIND disp_kind, const bone_database* bone_data);
+    void set_skeleton_all(BONE_KIND kind, BONE_KIND disp_kind, const bone_database* bone_data);
+    void set_xz_smooth(bool flag);
+    void set_y_move(bool in_y_move);
+    void set_y_move_bef(bool in_y_move);
+    void setup_front_smooth(float_t length, float_t step, float_t offset);
+    void setup_rear_smooth(float_t length, float_t start, int32_t target);
 };
 
 class RobAngle {
@@ -4986,15 +5036,24 @@ public:
     void arm_adjust_ctrl();
     void autoblink_disable();
     void autoblink_enable();
+    float_t calc_front_smooth_length();
+    float_t calc_rear_smooth_length();
     void calc_mot_adjust_scale();
     void calc_rob_colli_matrix();
     RobAngle calc_mot_yang(bool compel_flag) const;
+    void calc_rob_motion(const motion_database* mot_db,
+        const bone_database* bone_data, void* data, const object_database* obj_db);
+    void calc_rob_move();
+    void calc_rob_trans();
     bool check_disp_left() const;
     bool check_for_ageageagain_module();
     void check_rob_dummy_collision_ringout();
+    bool ctrl_leaf(MotLeafCtrlPart part);
     void disble_disp_pos_reset();
     void enable_disp_pos_reset();
+    float_t get_adjust_scale() const;
     mat4* get_bone_data_mat(size_t index);
+    CHARA_NUM get_chara_num() const;
     uint32_t get_common_mot(MOTTABLE_TYPE mottbl_type) const;
     int32_t get_costume() const;
     float_t get_frame() const;
@@ -5005,6 +5064,7 @@ public:
     float_t get_pos_scale(CB cb, vec3& center);
     const RobData* get_rob_data() const;
     const RobInit* get_rob_init() const;
+    float_t get_xz_adjust_scale() const;
     void init_colli_every_frame();
     void set_item(ROB_PARTS_KIND kind, object_info obj_uid,
         const bone_database* bone_data, void* data, const object_database* obj_db);
@@ -5109,11 +5169,13 @@ public:
     void set_time_up(bool flag);
     void set_use_opd(bool value);
     void set_wind_strength(float_t value);
+    void setup_mot_smooth(bool fsmooth);
 
     void CalcNotNormal();
     void ControlMotionFrameStep();
     void UpdateMotionFrame();
 
+    // 0x1404AE770
     inline bool get_disp() {
         return rob_base.flag.bit.disp;
     }

@@ -1238,13 +1238,13 @@ bool DtmMot::ctrl() {
 
         CtrlFaceMot();
 
-        motion->interpolate();
+        motion->calc_fcurve();
 
         mat4 mat;
         mat4_rotate_zyx(rot[0], rot[1], rot[2], &mat);
         mat4_mul_rotate_y(&mat, rot[3], &mat);
         mat4_set_translation(&mat, &pos);
-        motion->update(&mat);
+        motion->calc_motion(&mat);
 
         rob_chr->adjust_ctrl();
         rob_chr->set_data_adjust_mat(&rob_chr->rob_base.adjust);

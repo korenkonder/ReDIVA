@@ -416,7 +416,7 @@ static void set_bone_key_set_global_data(
         }
     }
 
-    fck += mot->bone_data.bone_key_set_count;
+    fck += mot->mot_base.bone_key_set_count;
     for (int32_t i = 0; i < count; i++) {
         if (fck[0].kind == FC_STATIC_DATA && fck[0].val)
             *(float_t*)&fck[0].val[0] = data[i].x;
@@ -427,8 +427,8 @@ static void set_bone_key_set_global_data(
         fck += 3;
     }
 
-    mot->bone_data.gblctr_pos = data[0];
-    mot->bone_data.gblctr_rot = data[1];
+    mot->mot_base.gblctr_pos = data[0];
+    mot->mot_base.gblctr_rot = data[1];
 
     mot->apply_global_transform();
 }
@@ -475,7 +475,7 @@ static void set_bone_key_set_data(RobBlock* block_top,
     block_top[blk].set_global_leaf_sub(data, BONE_KIND_CMN, true, false);
 
     while (curr_block_id <= blk)
-        block_top[curr_block_id++].get_mat(motion_body_type);
+        block_top[curr_block_id++].calc_ik_block(motion_body_type);
 }
 
 static void rotate_euler(const mat4& src, const mat4& dst, const vec3& src_rotation, vec3& dst_rotation) {
@@ -588,7 +588,7 @@ void effchrpv_auth_3d_to_mot::get_body_anim(int32_t frame, bool add_keys) {
         impl->set_disp_flag(ho->node_list[0].motion_transform.visibility);
 
         motion_blend_mot* mot = impl->bone_data->motion_loaded.front();
-        RobBlock* block_top = mot->bone_data.block_vec.data();
+        RobBlock* block_top = mot->mot_base.block_vec.data();
         FcurveKey* fck = mot->mot_key_data.mot.fck_ptr;
         int32_t curr_block_id = 0;
         int32_t motion_body_type = mot->mot_key_data.motion_body_type;
@@ -783,8 +783,8 @@ void effchrpv_auth_3d_to_mot::get_hand_anim(int32_t frame) {
 
         BONE_KIND kind = rob_bone_data->kind;
         motion_blend_mot* mot = rob_bone_data->motion_loaded.front();
-        prj::sys_vector<RobBlock>* block_vec = &mot->bone_data.block_vec;
-        prj::sys_vector<uint16_t>* bone_indices = &mot->bone_data.bone_indices;
+        prj::sys_vector<RobBlock>* block_vec = &mot->mot_base.block_vec;
+        prj::sys_vector<uint16_t>* bone_indices = &mot->mot_base.bone_indices;
 
         RobBlock* block_top = block_vec->data();
         for (uint16_t& i : *bone_indices) {
