@@ -1129,8 +1129,8 @@ static uint32_t get_common_rob_mot(CHARA_NUM cn, uint32_t kamae_type, MOTTABLE_T
 
 static void mot_key_data_get_key_set_count_by_bone_database_bones(mot_key_data* a1,
     const std::vector<BODYTYPE>* body_type_table);
-static void mot_key_data_get_key_set_count(mot_key_data* a1, size_t block_max, size_t leaf_pos);
-static void mot_key_data_init_key_sets(mot_key_data* a1, BONE_KIND kind, size_t block_max, size_t leaf_pos);
+static void mot_key_data_get_key_set_count(mot_key_data* a1, size_t block_max, size_t leaf_pos_max);
+static void mot_key_data_init_key_sets(mot_key_data* a1, BONE_KIND kind, size_t block_max, size_t leaf_pos_max);
 static const mot_data* mot_key_data_load_file(mot_key_data* a1, uint32_t motnum, const motion_database* mot_db);
 static void mot_key_data_reserve_key_sets(mot_key_data* a1);
 
@@ -6453,8 +6453,8 @@ static void mot_key_data_get_key_set_count_by_bone_database_bones(
     mot_key_data_get_key_set_count(a1, block_max, leaf_pos_max);
 }
 
-static void mot_key_data_get_key_set_count(mot_key_data* a1, size_t block_max, size_t leaf_pos) {
-    a1->key_set_count = (block_max + leaf_pos) * 3 + 16;
+static void mot_key_data_get_key_set_count(mot_key_data* a1, size_t block_max, size_t leaf_pos_max) {
+    a1->key_set_count = (block_max + leaf_pos_max) * 3 + 16;
 }
 
 static void mot_key_data_init(mot_key_data* a1, BONE_KIND kind, const bone_database* bone_data) {
@@ -6467,8 +6467,8 @@ static void mot_key_data_init(mot_key_data* a1, BONE_KIND kind, const bone_datab
     a1->kind = kind;
 }
 
-static void mot_key_data_init_key_sets(mot_key_data* a1, BONE_KIND kind, size_t block_max, size_t leaf_pos) {
-    mot_key_data_get_key_set_count(a1, block_max, leaf_pos);
+static void mot_key_data_init_key_sets(mot_key_data* a1, BONE_KIND kind, size_t block_max, size_t leaf_pos_max) {
+    mot_key_data_get_key_set_count(a1, block_max, leaf_pos_max);
     mot_key_data_reserve_key_sets(a1);
     a1->kind = kind;
 }
